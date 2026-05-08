@@ -38,25 +38,42 @@ export async function PUT(
   try {
     const { id } = await params;
     const supabase = await createClient();
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const formData = await request.formData();
-    const updateData: ProductUpdate = {};
+    const updateData: Partial<ProductUpdate> = {};
 
-    const fields = ['name', 'slug', 'category_id', 'default_unit_id', 'description'];
-    fields.forEach(field => {
-      const val = formData.get(field);
-      if (val !== null) updateData[field as keyof ProductUpdate] = val as string || null;
+    const fields: (keyof ProductUpdate)[] = [
+      'name',
+      'slug',
+      'category_id',
+      'default_unit_id',
+      'description',
+    ];
+
+    fields.forEach((field) => {
+      const val = formData.get(field as string);
+
+      if (val !== null) {
+        (updateData as Record<string, unknown>)[field] = String(val);
+      }
     });
 
-    const booleanFields = ['is_active', 'is_ancestral_food', 'is_medicinal_plant', 'is_non_food'];
-    booleanFields.forEach(field => {
-      if (formData.has(field)) {
-        updateData[field as keyof ProductUpdate] = formData.get(field) === 'true';
+    const booleanFields: (keyof ProductUpdate)[] = [
+      'is_active',
+      'is_ancestral_food',
+      'is_medicinal_plant',
+      'is_non_food',
+    ];
+
+    booleanFields.forEach((field) => {
+      if (formData.has(field as string)) {
+        (updateData as Record<string, unknown>)[field] =
+          formData.get(field as string) === 'true';
       }
     });
 

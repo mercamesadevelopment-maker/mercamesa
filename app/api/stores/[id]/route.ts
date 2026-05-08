@@ -44,24 +44,33 @@ export async function PUT(
   try {
     const { id } = await params;
     const supabase = await createClient();
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const formData = await request.formData();
-    const updateData: StoreUpdate = {};
+    const updateData: Partial<StoreUpdate> = {};
 
-    const fields = ['name', 'slug', 'marketplace_id', 'description', 'contact_name', 'contact_email', 'phone', 'whatsapp'];
-    fields.forEach(field => {
-      const val = formData.get(field);
-      if (val !== null) updateData[field as keyof StoreUpdate] = val as string;
+    const fields: (keyof StoreUpdate)[] = [
+      'name',
+      'slug',
+      'marketplace_id',
+      'description',
+      'contact_name',
+      'contact_email',
+      'phone',
+      'whatsapp',
+    ];
+
+    fields.forEach((field) => {
+      const val = formData.get(field as string);
+
+      if (val !== null) {
+        (updateData as Record<string, unknown>)[field] = String(val);
+      }
     });
-
-    if (formData.has('is_active')) {
-      updateData.is_active = formData.get('is_active') === 'true';
-    }
 
     const coverImage = formData.get('cover_image') as File | null;
     if (coverImage && coverImage.size > 0) {
