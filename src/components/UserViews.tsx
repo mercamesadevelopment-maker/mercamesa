@@ -4,9 +4,9 @@ import { useApp } from '../store';
 import { Order, Address, PaymentMethod, StoreReview } from '../types';
 import { fmt } from '../constants';
 import { Button, Badge, Input, cn } from './Shared';
-import { 
-  ClipboardList, Package, Truck, CheckCircle2, XCircle, 
-  Clock, MapPin, CreditCard, Star, Heart, Settings, 
+import {
+  ClipboardList, Package, Truck, CheckCircle2, XCircle,
+  Clock, MapPin, CreditCard, Star, Heart, Settings,
   User, Bell, MessageSquare, Plus, Trash2, Edit2,
   ChevronRight, Send, Smile, Paperclip, MoreVertical,
   LayoutDashboard, Image as ImageIcon, Leaf, Flame, Trophy, Store, X
@@ -41,7 +41,7 @@ export function OrdersView() {
     };
 
     dispatch({ type: 'ADD_REVIEW', review: newReview });
-    
+
     dispatch({
       type: 'ADD_NOTIF',
       notif: {
@@ -64,7 +64,7 @@ export function OrdersView() {
   const filteredOrders = state.orders.filter(o => {
     // Filter by role
     if (isProvider && o.storeId !== myStoreId) return false;
-    
+
     // Filter by status tab
     if (activeTab === 'active') return ['pending', 'preparing', 'on_the_way'].includes(o.status);
     if (activeTab === 'completed') return o.status === 'delivered';
@@ -224,20 +224,20 @@ export function OrdersView() {
       <AnimatePresence>
         {isRatingModalOpen && ratingStoreId && (
           <div className="fixed inset-0 z-[155] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsRatingModalOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10 text-center"
             >
-              <button 
+              <button
                 onClick={() => setIsRatingModalOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -252,7 +252,7 @@ export function OrdersView() {
                 ¿Qué tal tu compra?
               </h2>
               <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{state.stores.find(s => s.id === ratingStoreId)?.name}</span></p>
-              
+
               <div className="flex justify-center gap-2 mb-8">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -260,11 +260,11 @@ export function OrdersView() {
                     onClick={() => setRatingValue(star)}
                     className="p-1 focus:outline-none transition-transform active:scale-90"
                   >
-                    <Star 
+                    <Star
                       className={cn(
-                        "w-10 h-10 transition-colors", 
+                        "w-10 h-10 transition-colors",
                         star <= ratingValue ? "fill-mm-oro text-mm-oro" : "text-mm-crd"
-                      )} 
+                      )}
                     />
                   </button>
                 ))}
@@ -307,13 +307,13 @@ export function BuyerProfileView() {
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
 
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  const [addressForm, setAddressForm] = useState({ 
-    label: '', 
-    street: '', 
-    neighborhood: '', 
-    notes: '', 
-    icon: '🏠', 
-    isDefault: false 
+  const [addressForm, setAddressForm] = useState({
+    label: '',
+    street: '',
+    neighborhood: '',
+    notes: '',
+    icon: '🏠',
+    isDefault: false
   });
   const [paymentForm, setPaymentForm] = useState({
     label: '',
@@ -352,18 +352,18 @@ export function BuyerProfileView() {
       }));
     }
 
-    dispatch({ 
-      type: 'UPDATE_BUYER_PROFILE', 
-      profile: { payments: updatedPayments } 
+    dispatch({
+      type: 'UPDATE_BUYER_PROFILE',
+      profile: { payments: updatedPayments }
     });
     setIsPaymentModalOpen(false);
   };
 
   const handleDeletePayment = (id: string) => {
     const updated = profile.payments.filter(p => p.id !== id);
-    dispatch({ 
-      type: 'UPDATE_BUYER_PROFILE', 
-      profile: { payments: updated } 
+    dispatch({
+      type: 'UPDATE_BUYER_PROFILE',
+      profile: { payments: updated }
     });
   };
 
@@ -377,7 +377,7 @@ export function BuyerProfileView() {
 
   const handleSaveRating = () => {
     if (!ratingStoreId) return;
-    
+
     const newRatings = { ...profile.storeRatings };
     newRatings[ratingStoreId] = {
       stars: ratingValue,
@@ -401,7 +401,7 @@ export function BuyerProfileView() {
     };
 
     dispatch({ type: 'ADD_REVIEW', review: newReview });
-    
+
     dispatch({
       type: 'ADD_NOTIF',
       notif: {
@@ -425,13 +425,13 @@ export function BuyerProfileView() {
 
   const handleOpenEdit = (addr: Address) => {
     setEditingAddress(addr);
-    setAddressForm({ 
-      label: addr.label, 
-      street: addr.street, 
-      neighborhood: addr.neighborhood, 
-      notes: addr.notes || '', 
-      icon: addr.icon, 
-      isDefault: addr.isDefault 
+    setAddressForm({
+      label: addr.label,
+      street: addr.street,
+      neighborhood: addr.neighborhood,
+      notes: addr.notes || '',
+      icon: addr.icon,
+      isDefault: addr.isDefault
     });
     setIsAddressModalOpen(true);
   };
@@ -441,13 +441,14 @@ export function BuyerProfileView() {
     let updatedAddresses = [...profile.addresses];
 
     if (editingAddress) {
-      updatedAddresses = updatedAddresses.map(a => 
+      updatedAddresses = updatedAddresses.map(a =>
         a.id === editingAddress.id ? { ...a, ...addressForm } : a
       );
     } else {
       const newAddr: Address = {
         id: String(Math.max(0, ...profile.addresses.map(a => Number(a.id))) + 1),
-        ...addressForm
+        ...addressForm,
+        city: (addressForm as any).city ?? ''
       };
       updatedAddresses.push(newAddr);
     }
@@ -461,18 +462,18 @@ export function BuyerProfileView() {
       }));
     }
 
-    dispatch({ 
-      type: 'UPDATE_BUYER_PROFILE', 
-      profile: { addresses: updatedAddresses } 
+    dispatch({
+      type: 'UPDATE_BUYER_PROFILE',
+      profile: { addresses: updatedAddresses }
     });
     setIsAddressModalOpen(false);
   };
 
   const handleDeleteAddress = (id: string) => {
     const updated = profile.addresses.filter(a => a.id !== id);
-    dispatch({ 
-      type: 'UPDATE_BUYER_PROFILE', 
-      profile: { addresses: updated } 
+    dispatch({
+      type: 'UPDATE_BUYER_PROFILE',
+      profile: { addresses: updated }
     });
   };
 
@@ -497,8 +498,8 @@ export function BuyerProfileView() {
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 "w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all font-bold text-sm",
-                activeTab === tab.id 
-                  ? "bg-mm-g text-white shadow-lg" 
+                activeTab === tab.id
+                  ? "bg-mm-g text-white shadow-lg"
                   : "bg-white text-mm-txs border border-mm-crd hover:border-mm-g"
               )}
             >
@@ -512,7 +513,7 @@ export function BuyerProfileView() {
         <div className="flex-grow">
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
-              <motion.div 
+              <motion.div
                 key="dashboard"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -567,7 +568,7 @@ export function BuyerProfileView() {
             )}
 
             {activeTab === 'addresses' && (
-              <motion.div 
+              <motion.div
                 key="addresses"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -585,20 +586,20 @@ export function BuyerProfileView() {
                       </div>
                       <div className="flex-grow">
                         <div className="flex items-center gap-2 mb-1">
-                           <h4 className="font-bold text-mm-g">{addr.label}</h4>
-                           {addr.isDefault && <Badge variant="success" className="text-[10px]">Predeterminada</Badge>}
+                          <h4 className="font-bold text-mm-g">{addr.label}</h4>
+                          {addr.isDefault && <Badge variant="success" className="text-[10px]">Predeterminada</Badge>}
                         </div>
                         <p className="text-sm text-mm-txs">{addr.street}, {addr.neighborhood}</p>
                         <p className="text-xs text-mm-txw">{addr.notes}</p>
                       </div>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
                           onClick={() => handleOpenEdit(addr)}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
                           onClick={() => handleDeleteAddress(addr.id)}
                         >
@@ -609,7 +610,7 @@ export function BuyerProfileView() {
                   ))}
                   {profile.addresses.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-3xl border border-mm-crd border-dashed">
-                       <p className="text-mm-txw">No tienes direcciones guardadas.</p>
+                      <p className="text-mm-txw">No tienes direcciones guardadas.</p>
                     </div>
                   )}
                 </div>
@@ -617,7 +618,7 @@ export function BuyerProfileView() {
             )}
 
             {activeTab === 'payments' && (
-              <motion.div 
+              <motion.div
                 key="payments"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -640,7 +641,7 @@ export function BuyerProfileView() {
                         </div>
                         {pay.type === 'card' ? <p className="text-sm text-mm-txs">Vence: {pay.exp}</p> : <p className="text-sm text-mm-txs">Pago contra entrega</p>}
                       </div>
-                      <button 
+                      <button
                         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
                         onClick={() => handleDeletePayment(pay.id)}
                       >
@@ -650,7 +651,7 @@ export function BuyerProfileView() {
                   ))}
                   {profile.payments.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-3xl border border-mm-crd border-dashed">
-                       <p className="text-mm-txw">No tienes medios de pago guardados.</p>
+                      <p className="text-mm-txw">No tienes medios de pago guardados.</p>
                     </div>
                   )}
                 </div>
@@ -658,7 +659,7 @@ export function BuyerProfileView() {
             )}
 
             {activeTab === 'ratings' && (
-              <motion.div 
+              <motion.div
                 key="ratings"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -691,7 +692,7 @@ export function BuyerProfileView() {
                       ))}
                     {state.orders.filter(o => o.status === 'delivered' && !profile.storeRatings[o.storeId]).length === 0 && (
                       <div className="p-10 text-center bg-mm-gbg/20 rounded-[32px] border border-dashed border-mm-crd opacity-60">
-                         <p className="text-mm-txs">¡Estás al día! No tienes calificaciones pendientes.</p>
+                        <p className="text-mm-txs">¡Estás al día! No tienes calificaciones pendientes.</p>
                       </div>
                     )}
                   </div>
@@ -705,7 +706,7 @@ export function BuyerProfileView() {
                   <div className="grid sm:grid-cols-2 gap-4">
                     {Object.entries(profile.storeRatings).map(([storeId, rating]: [string, any]) => {
                       const store = state.stores.find(s => s.id === parseInt(storeId));
-                      if(!store) return null;
+                      if (!store) return null;
                       return (
                         <div key={storeId} className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm">
                           <div className="flex items-center gap-4 mb-4">
@@ -734,7 +735,7 @@ export function BuyerProfileView() {
             )}
 
             {activeTab === 'favorites' && (
-              <motion.div 
+              <motion.div
                 key="favorites"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -746,14 +747,14 @@ export function BuyerProfileView() {
                     const store = state.stores.find(s => s.id === storeId);
                     if (!store) return null;
                     return (
-                      <div 
-                        key={storeId} 
+                      <div
+                        key={storeId}
                         className="bg-white p-5 rounded-3xl border border-mm-crd shadow-sm flex items-center gap-4 group cursor-pointer hover:border-mm-g transition-all"
                         onClick={() => {
-                          dispatch({ 
-                            type: 'SELECT_STORE', 
-                            plazaId: store.plazaId, 
-                            storeId: store.id 
+                          dispatch({
+                            type: 'SELECT_STORE',
+                            plazaId: store.plazaId,
+                            storeId: store.id
                           });
                         }}
                       >
@@ -765,10 +766,10 @@ export function BuyerProfileView() {
                           )}
                         </div>
                         <div className="flex-grow">
-                           <h4 className="font-bold text-mm-g">{store.name}</h4>
-                           <p className="text-xs text-mm-txw">{store.cat}</p>
+                          <h4 className="font-bold text-mm-g">{store.name}</h4>
+                          <p className="text-xs text-mm-txw">{store.cat}</p>
                         </div>
-                        <button 
+                        <button
                           className="p-2 text-r hover:bg-rl rounded-full transition-all relative z-10"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -783,7 +784,7 @@ export function BuyerProfileView() {
                   })}
                   {profile.favoriteStores.length === 0 && (
                     <div className="sm:col-span-2 text-center py-12 bg-white rounded-3xl border border-mm-crd border-dashed">
-                       <p className="text-mm-txw">Aún no tienes tiendas favoritas.</p>
+                      <p className="text-mm-txw">Aún no tienes tiendas favoritas.</p>
                     </div>
                   )}
                 </div>
@@ -791,7 +792,7 @@ export function BuyerProfileView() {
             )}
 
             {activeTab === 'prefs' && (
-              <motion.div 
+              <motion.div
                 key="prefs"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -810,7 +811,7 @@ export function BuyerProfileView() {
                         <p className="font-bold text-mm-g">{p.label}</p>
                         <p className="text-xs text-mm-txw">{p.sub}</p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           const newPrefs = { ...profile.prefs, [p.id]: !profile.prefs[p.id as keyof typeof profile.prefs] };
                           dispatch({ type: 'UPDATE_BUYER_PROFILE', profile: { prefs: newPrefs } });
@@ -832,7 +833,7 @@ export function BuyerProfileView() {
             )}
 
             {activeTab === 'account' && (
-              <motion.div 
+              <motion.div
                 key="account"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -863,20 +864,20 @@ export function BuyerProfileView() {
       <AnimatePresence>
         {isAddressModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddressModalOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddressModalOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -886,62 +887,62 @@ export function BuyerProfileView() {
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">
                 {editingAddress ? 'Editar Dirección' : 'Nueva Dirección'}
               </h2>
-              
+
               <form onSubmit={handleSaveAddress} className="space-y-4">
                 <div className="flex gap-4">
                   <div className="w-20 h-20 bg-mm-gbg rounded-3xl flex items-center justify-center text-4xl shrink-0">
                     {addressForm.icon}
                   </div>
-                  <Input 
-                    label="Emoji" 
-                    value={addressForm.icon} 
-                    onChange={e => setAddressForm({...addressForm, icon: e.target.value})}
+                  <Input
+                    label="Emoji"
+                    value={addressForm.icon}
+                    onChange={e => setAddressForm({ ...addressForm, icon: e.target.value })}
                     placeholder="🏠"
                   />
                 </div>
-                
-                <Input 
-                  label="Nombre / Etiqueta" 
-                  value={addressForm.label} 
-                  onChange={e => setAddressForm({...addressForm, label: e.target.value})}
+
+                <Input
+                  label="Nombre / Etiqueta"
+                  value={addressForm.label}
+                  onChange={e => setAddressForm({ ...addressForm, label: e.target.value })}
                   placeholder="Ej: Casa, Trabajo, Novia"
                   required
                 />
 
-                <Input 
-                  label="Dirección (Calle/Carrera)" 
-                  value={addressForm.street} 
-                  onChange={e => setAddressForm({...addressForm, street: e.target.value})}
+                <Input
+                  label="Dirección (Calle/Carrera)"
+                  value={addressForm.street}
+                  onChange={e => setAddressForm({ ...addressForm, street: e.target.value })}
                   placeholder="Ej: Calle 45 # 23-12"
                   required
                 />
 
-                <Input 
-                  label="Barrio / Sector" 
-                  value={addressForm.neighborhood} 
-                  onChange={e => setAddressForm({...addressForm, neighborhood: e.target.value})}
+                <Input
+                  label="Barrio / Sector"
+                  value={addressForm.neighborhood}
+                  onChange={e => setAddressForm({ ...addressForm, neighborhood: e.target.value })}
                   placeholder="Ej: Laureles"
                   required
                 />
 
-                <Input 
-                  label="Notas adicionales" 
-                  value={addressForm.notes} 
-                  onChange={e => setAddressForm({...addressForm, notes: e.target.value})}
+                <Input
+                  label="Notas adicionales"
+                  value={addressForm.notes}
+                  onChange={e => setAddressForm({ ...addressForm, notes: e.target.value })}
                   placeholder="Ej: Apto 302, Portería vigilada"
                 />
 
                 <div className="flex items-center gap-3 p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
-                   <input 
-                     type="checkbox" 
-                     id="isDefault"
-                     checked={addressForm.isDefault}
-                     onChange={e => setAddressForm({...addressForm, isDefault: e.target.checked})}
-                     className="w-5 h-5 rounded border-mm-crd text-mm-g focus:ring-mm-g"
-                   />
-                   <label htmlFor="isDefault" className="text-sm font-bold text-mm-g cursor-pointer">
-                     Establecer como dirección predeterminada
-                   </label>
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={addressForm.isDefault}
+                    onChange={e => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                    className="w-5 h-5 rounded border-mm-crd text-mm-g focus:ring-mm-g"
+                  />
+                  <label htmlFor="isDefault" className="text-sm font-bold text-mm-g cursor-pointer">
+                    Establecer como dirección predeterminada
+                  </label>
                 </div>
 
                 <div className="pt-4 flex gap-3">
@@ -962,20 +963,20 @@ export function BuyerProfileView() {
       <AnimatePresence>
         {isRatingModalOpen && ratingStoreId && (
           <div className="fixed inset-0 z-[155] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsRatingModalOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10 text-center"
             >
-              <button 
+              <button
                 onClick={() => setIsRatingModalOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -990,7 +991,7 @@ export function BuyerProfileView() {
                 ¿Qué tal tu experiencia?
               </h2>
               <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{state.stores.find(s => s.id === ratingStoreId)?.name}</span></p>
-              
+
               <div className="flex justify-center gap-2 mb-8">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -998,11 +999,11 @@ export function BuyerProfileView() {
                     onClick={() => setRatingValue(star)}
                     className="p-1 focus:outline-none transition-transform active:scale-90"
                   >
-                    <Star 
+                    <Star
                       className={cn(
-                        "w-10 h-10 transition-colors", 
+                        "w-10 h-10 transition-colors",
                         star <= ratingValue ? "fill-mm-oro text-mm-oro" : "text-mm-crd"
-                      )} 
+                      )}
                     />
                   </button>
                 ))}
@@ -1015,7 +1016,7 @@ export function BuyerProfileView() {
                   placeholder="Cuéntanos más... ¿Los productos estaban frescos? ¿Llegaron a tiempo?"
                   className="w-full bg-mm-gbg/50 rounded-2xl p-6 text-sm outline-none border-1.5 border-transparent focus:border-mm-gll focus:bg-white transition-all min-h-[120px] resize-none"
                 />
-                
+
                 <div className="flex flex-wrap justify-center gap-2">
                   {["Productos frescos", "Gran servicio", "Precio justo", "Rápido"].map(chip => (
                     <button
@@ -1047,20 +1048,20 @@ export function BuyerProfileView() {
       <AnimatePresence>
         {isPaymentModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsPaymentModalOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsPaymentModalOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -1068,13 +1069,13 @@ export function BuyerProfileView() {
               </button>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nuevo Medio de Pago</h2>
-              
+
               <form onSubmit={handleSavePayment} className="space-y-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-mm-txs ml-1">Tipo de Pago</label>
-                  <select 
+                  <select
                     value={paymentForm.type}
-                    onChange={e => setPaymentForm({...paymentForm, type: e.target.value as any})}
+                    onChange={e => setPaymentForm({ ...paymentForm, type: e.target.value as any })}
                     className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
                   >
                     <option value="card">Tarjeta de Crédito / Débito</option>
@@ -1082,28 +1083,28 @@ export function BuyerProfileView() {
                   </select>
                 </div>
 
-                <Input 
-                  label="Nombre / Etiqueta" 
-                  value={paymentForm.label} 
-                  onChange={e => setPaymentForm({...paymentForm, label: e.target.value})}
+                <Input
+                  label="Nombre / Etiqueta"
+                  value={paymentForm.label}
+                  onChange={e => setPaymentForm({ ...paymentForm, label: e.target.value })}
                   placeholder="Ej: Mi Visa, Personal, Efectivo"
                   required
                 />
 
                 {paymentForm.type === 'card' && (
                   <div className="grid grid-cols-2 gap-4">
-                    <Input 
-                      label="Número (últimos 4)" 
-                      value={paymentForm.number} 
-                      onChange={e => setPaymentForm({...paymentForm, number: e.target.value})}
+                    <Input
+                      label="Número (últimos 4)"
+                      value={paymentForm.number}
+                      onChange={e => setPaymentForm({ ...paymentForm, number: e.target.value })}
                       placeholder="Ej: 4422"
                       maxLength={4}
                       required
                     />
-                    <Input 
-                      label="Vencimiento" 
-                      value={paymentForm.exp} 
-                      onChange={e => setPaymentForm({...paymentForm, exp: e.target.value})}
+                    <Input
+                      label="Vencimiento"
+                      value={paymentForm.exp}
+                      onChange={e => setPaymentForm({ ...paymentForm, exp: e.target.value })}
                       placeholder="Ej: 05/28"
                       required
                     />
@@ -1111,16 +1112,16 @@ export function BuyerProfileView() {
                 )}
 
                 <div className="flex items-center gap-3 p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
-                   <input 
-                     type="checkbox" 
-                     id="isPayDefault"
-                     checked={paymentForm.isDefault}
-                     onChange={e => setPaymentForm({...paymentForm, isDefault: e.target.checked})}
-                     className="w-5 h-5 rounded border-mm-crd text-mm-g focus:ring-mm-g"
-                   />
-                   <label htmlFor="isPayDefault" className="text-sm font-bold text-mm-g cursor-pointer">
-                     Establecer como medio predeterminado
-                   </label>
+                  <input
+                    type="checkbox"
+                    id="isPayDefault"
+                    checked={paymentForm.isDefault}
+                    onChange={e => setPaymentForm({ ...paymentForm, isDefault: e.target.checked })}
+                    className="w-5 h-5 rounded border-mm-crd text-mm-g focus:ring-mm-g"
+                  />
+                  <label htmlFor="isPayDefault" className="text-sm font-bold text-mm-g cursor-pointer">
+                    Establecer como medio predeterminado
+                  </label>
                 </div>
 
                 <div className="pt-4 flex gap-3">
@@ -1186,8 +1187,8 @@ export function SupportChatView() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className={cn(
               "max-w-[80%] p-4 rounded-2xl text-sm shadow-sm relative",
-              msg.sender === 'user' 
-                ? "bg-mm-gll text-mm-g ml-auto rounded-tr-none" 
+              msg.sender === 'user'
+                ? "bg-mm-gll text-mm-g ml-auto rounded-tr-none"
                 : "bg-white text-mm-txs mr-auto rounded-tl-none"
             )}
           >
@@ -1200,7 +1201,7 @@ export function SupportChatView() {
       <div className="bg-white p-6 rounded-b-[32px] border-x border-b border-mm-crd shadow-sm">
         <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
           {["¿Cómo va mi pedido?", "Problema con entrega", "Cambiar dirección", "Cancelar pedido"].map(chip => (
-            <button 
+            <button
               key={chip}
               onClick={() => setInput(chip)}
               className="px-4 py-1.5 bg-mm-gbg text-mm-g text-xs font-bold rounded-full whitespace-nowrap hover:bg-mm-gll transition-colors"
@@ -1212,14 +1213,14 @@ export function SupportChatView() {
         <form onSubmit={handleSend} className="flex gap-3">
           <button type="button" className="p-3 text-mm-txw hover:text-mm-g transition-colors"><Smile className="w-6 h-6" /></button>
           <button type="button" className="p-3 text-mm-txw hover:text-mm-g transition-colors"><Paperclip className="w-6 h-6" /></button>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Escribe un mensaje..." 
+            placeholder="Escribe un mensaje..."
             className="flex-grow bg-[#F0F2F5] rounded-full px-6 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-mm-gll transition-all"
           />
-          <button 
+          <button
             type="submit"
             className="w-12 h-12 bg-mm-g text-white rounded-full flex items-center justify-center hover:bg-mm-gm transition-all shadow-md"
           >
