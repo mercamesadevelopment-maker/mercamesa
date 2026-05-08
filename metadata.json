@@ -1,0 +1,7 @@
+{
+  "name": "Remix: Mercamesa",
+  "description": "Marketplace de plazas de mercado colombianas con 5 roles de usuario: Minorista, Mayorista, Proveedor, Repartidor y Admin.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
