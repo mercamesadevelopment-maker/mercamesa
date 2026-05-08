@@ -127,9 +127,16 @@ export const SEED_PRODUCTS: Product[] = [
 ];
 
 export const DEFAULT_BUYER_PROFILE: BuyerProfile = {
-  name: "María García", phone: "+57 300 123 4567", email: "maria.garcia@gmail.com",
-  avatar: "https://picsum.photos/seed/maria/200/200", memberSince: "Enero 2024", rating: 4.9, totalOrders: 23,
-  totalSpent: 1240000, loyaltyPoints: 1860,
+  id: "buyer-default",
+  name: "María García",
+  phone: "+57 300 123 4567",
+  email: "maria.garcia@gmail.com",
+  avatar: "https://picsum.photos/seed/maria/200/200",
+  memberSince: "Enero 2024",
+  rating: 4.9,
+  totalOrders: 23,
+  totalSpent: 1240000,
+  loyaltyPoints: 1860,
   addresses: [
     { id: "a1", label: "Casa", street: "Cra 70 #45-12", neighborhood: "Laureles", city: "Medellín", notes: "Apto 302, timbre azul", isDefault: true, icon: "🏠" },
     { id: "a2", label: "Trabajo", street: "Cl 10 #43-01", neighborhood: "El Centro", city: "Medellín", notes: "Piso 4, preguntar por María", isDefault: false, icon: "🏢" },
