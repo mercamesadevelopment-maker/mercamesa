@@ -414,6 +414,79 @@ export type Database = {
         }
         Relationships: []
       }
+      store_products: {
+        Row: {
+          catalog_product_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_price_update: string | null
+          min_order_qty: number
+          price_per_unit: number
+          stock: number
+          store_id: string
+          unit_id: string
+          updated_at: string
+          updated_by_bot: boolean
+          wholesale_min_qty: number | null
+          wholesale_price: number | null
+        }
+        Insert: {
+          catalog_product_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_price_update?: string | null
+          min_order_qty?: number
+          price_per_unit: number
+          stock?: number
+          store_id: string
+          unit_id: string
+          updated_at?: string
+          updated_by_bot?: boolean
+          wholesale_min_qty?: number | null
+          wholesale_price?: number | null
+        }
+        Update: {
+          catalog_product_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_price_update?: string | null
+          min_order_qty?: number
+          price_per_unit?: number
+          stock?: number
+          store_id?: string
+          unit_id?: string
+          updated_at?: string
+          updated_by_bot?: boolean
+          wholesale_min_qty?: number | null
+          wholesale_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_products_catalog_product_id_fkey"
+            columns: ["catalog_product_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_products_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "measurement_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           contact_email: string | null
@@ -481,6 +554,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stores_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stores_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
@@ -491,7 +571,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      marketplaces_detail: {
+        Row: {
+          address: string | null
+          city: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          created_by: string | null
+          department: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          name: string | null
+          slug: string | null
+          stores: Json | null
+          stores_count: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplaces_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_permission: {

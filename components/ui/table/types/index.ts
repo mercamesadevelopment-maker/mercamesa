@@ -19,4 +19,5 @@ export interface TableProps<T> {
   rowsPerPageOptions?: number[];
   emptyMessage?: string;
   actions?: (item: T) => React.ReactNode;
+  expandableContent?: (item: T) => React.ReactNode;
 }

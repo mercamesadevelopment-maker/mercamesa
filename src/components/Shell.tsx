@@ -5,14 +5,15 @@ import { useApp } from '../store';
 import { ROLES, C, fmt } from '../constants';
 import { RoleKey, CartItem } from '../types';
 import { Button, Badge, cn } from './Shared';
-import { 
+import {
   Search, ShoppingCart, Bell, User, LogOut, Star,
-  LayoutDashboard, ShoppingBag, ClipboardList, 
+  LayoutDashboard, ShoppingBag, ClipboardList,
   MessageSquare, TrendingUp, Map, Settings,
   ChevronRight, Trash2, Minus, Plus, MapPin, CreditCard,
   Leaf, Package, X, Image as ImageIcon, ChevronDown, Truck,
   Store as StoreIcon, Tag, History
 } from 'lucide-react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void; onToggleSidebar: () => void }) {
   const { state, dispatch } = useApp();
@@ -24,7 +25,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void
   return (
     <header className="fixed top-0 left-0 w-full h-16 bg-mm-g text-white z-[60] flex items-center justify-between px-4 lg:px-8 shadow-lg">
       <div className="flex items-center gap-3">
-        <button 
+        <button
           onClick={onToggleSidebar}
           className="p-2 hover:bg-white/10 rounded-xl transition-colors shrink-0"
         >
@@ -39,10 +40,10 @@ export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void
       </div>
 
       <div className="flex-grow max-w-xl mx-8 hidden lg:block text-mm-gll font-medium text-sm tracking-wide">
-        {state.userRole === 'admin' ? 'PANEL DE ADMINISTRACIÓN' : 
-         state.userRole === 'provider' ? 'GESTIÓN DE PROVEEDOR' : 
-         state.userRole === 'delivery' ? 'CENTRO DE REPARTO' : 
-         'MARKETPLACE MERCAMESA'}
+        {state.userRole === 'admin' ? 'PANEL DE ADMINISTRACIÓN' :
+          state.userRole === 'provider' ? 'GESTIÓN DE PROVEEDOR' :
+            state.userRole === 'delivery' ? 'CENTRO DE REPARTO' :
+              'MARKETPLACE MERCAMESA'}
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
@@ -54,21 +55,22 @@ export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void
             };
             const Icon = { ShoppingBag, TrendingUp, Store: StoreIcon, Truck, Settings }[r.icon] || ShoppingBag;
             return (
-            <button
-              key={r.k}
-              onClick={() => { dispatch({ type: 'SET_ROLE', role: r.k }); router.push(roleRoute[r.k] || '/marketplaces'); }}
-              className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5",
-                state.userRole === r.k ? "bg-white text-mm-g shadow-sm" : "text-white/60 hover:text-white"
-              )}
-            >
-              <Icon className="w-3 h-3" />
-              {r.k}
-            </button>
-          )})}
+              <button
+                key={r.k}
+                onClick={() => { dispatch({ type: 'SET_ROLE', role: r.k }); router.push(roleRoute[r.k] || '/marketplaces'); }}
+                className={cn(
+                  "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5",
+                  state.userRole === r.k ? "bg-white text-mm-g shadow-sm" : "text-white/60 hover:text-white"
+                )}
+              >
+                <Icon className="w-3 h-3" />
+                {r.k}
+              </button>
+            )
+          })}
         </div>
 
-        <button 
+        <button
           onClick={onCartOpen}
           className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
         >
@@ -81,7 +83,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void
         </button>
 
         <div className="relative">
-          <button 
+          <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             className="flex items-center gap-2 pl-2 border-l border-white/20 ml-2 hover:bg-white/10 p-1 rounded-xl transition-all"
           >
@@ -99,7 +101,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void
             {showProfileMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -109,24 +111,32 @@ export function Topbar({ onCartOpen, onToggleSidebar }: { onCartOpen: () => void
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest leading-none mb-1">Tu Cuenta</p>
                     <p className="text-sm font-bold text-mm-g truncate truncate">{state.buyerProfile.name}</p>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={() => { router.push('/profile'); setShowProfileMenu(false); }}
                     className="w-full text-left px-4 py-2 text-sm text-mm-txs hover:bg-mm-gbg hover:text-mm-g flex items-center gap-2 transition-colors"
                   >
                     <User className="w-4 h-4" /> Mi Perfil
                   </button>
-                  <button 
+                  <button
                     onClick={() => { router.push('/support'); setShowProfileMenu(false); }}
                     className="w-full text-left px-4 py-2 text-sm text-mm-txs hover:bg-mm-gbg hover:text-mm-g flex items-center gap-2 transition-colors"
                   >
                     <MessageSquare className="w-4 h-4" /> Ayuda y Soporte
                   </button>
-                  
+
                   <div className="h-px bg-mm-crd my-2" />
-                  
-                  <button 
-                    onClick={() => dispatch({ type: 'LOGOUT' })}
+
+                  <button
+                    onClick={async () => {
+                      const supabase = createSupabaseBrowserClient();
+
+                      await supabase.auth.signOut();
+
+                      router.push('/');
+
+                      setShowProfileMenu(false);
+                    }}
                     className="w-full text-left px-4 py-2 text-sm text-r hover:bg-rl flex items-center gap-2 transition-colors font-bold"
                   >
                     <LogOut className="w-4 h-4" /> Cerrar Sesión
@@ -150,7 +160,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
 export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { state, dispatch } = useApp();
   const router = useRouter();
-  
+
   const storesInCart = Array.from(new Set(state.cart.map(i => i.storeId)));
   const cartByStore = storesInCart.map(storeId => ({
     store: state.stores.find(s => s.id === storeId)!,
@@ -179,14 +189,14 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       storeId: group.store.id,
       storeName: group.store.name,
       storeEmoji: group.store.emoji,
-      items: group.items.map(i => ({ 
-        id: i.id, 
-        name: i.name, 
-        qty: i.qty, 
-        price: getPrice(i), 
+      items: group.items.map(i => ({
+        id: i.id,
+        name: i.name,
+        qty: i.qty,
+        price: getPrice(i),
         unit: i.unit,
         emoji: i.emoji,
-        image: i.image 
+        image: i.image
       })),
       total: group.items.reduce((acc, i) => acc + (getPrice(i) * i.qty), 0),
       status: 'pending' as const,
@@ -196,7 +206,7 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     }));
 
     dispatch({ type: 'PLACE_ORDER', orders: newOrders });
-    
+
     // Add notification
     const notif = {
       id: Date.now().toString(),
@@ -207,7 +217,7 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       read: false
     };
     dispatch({ type: 'ADD_NOTIF', notif });
-    
+
     // Redirect to orders
     router.push('/orders');
     onClose();
@@ -217,14 +227,14 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-mm-g/40 backdrop-blur-sm z-[100]"
           />
-          <motion.div 
+          <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -267,9 +277,9 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-mm-gbg rounded-lg overflow-hidden border border-mm-crd shrink-0">
                             {group.store.image ? (
-                               <img src={group.store.image} alt={group.store.name} className="w-full h-full object-cover" />
+                              <img src={group.store.image} alt={group.store.name} className="w-full h-full object-cover" />
                             ) : (
-                               <div className="w-full h-full flex items-center justify-center bg-mm-gbg text-mm-txw text-xs">ST</div>
+                              <div className="w-full h-full flex items-center justify-center bg-mm-gbg text-mm-txw text-xs">ST</div>
                             )}
                           </div>
                           <span className="font-bold text-mm-g">{group.store.name}</span>
@@ -293,7 +303,7 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                             <div className="flex-grow">
                               <div className="flex justify-between items-start">
                                 <h4 className="font-bold text-mm-g text-sm">{item.name}</h4>
-                                <button 
+                                <button
                                   onClick={() => dispatch({ type: 'REMOVE_FROM_CART', productId: item.id })}
                                   className="text-mm-txw hover:text-r transition-colors"
                                 >
@@ -303,7 +313,7 @@ export function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                               <p className="text-xs text-mm-txs mb-2">{fmt(getPrice(item))} / {item.unit}</p>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center bg-mm-gbg rounded-xl p-1 gap-1">
-                                  <input 
+                                  <input
                                     type="number"
                                     step={itemModes[item.id] === 'alt' ? "1" : "0.01"}
                                     min="0"

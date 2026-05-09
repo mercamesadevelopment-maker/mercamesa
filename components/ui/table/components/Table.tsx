@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { TableProps } from '../types';
 import { cn } from '@/src/components/Shared';
 
@@ -16,8 +17,20 @@ export function Table<T>({
   onRowsPerPageChange,
   rowsPerPageOptions = [5, 10, 20, 50],
   emptyMessage = 'No hay datos disponibles',
-  actions
+  actions,
+  expandableContent
 }: TableProps<T>) {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (index: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-mm-crd shadow-sm overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
@@ -56,20 +69,50 @@ export function Table<T>({
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => (
-                <tr key={index} className="hover:bg-mm-gbg/20 transition-colors">
-                  {columns.map((col) => (
-                    <td key={col.key} className="px-6 py-4">
-                      {col.render ? col.render(item) : (item as any)[col.key]}
-                    </td>
-                  ))}
-                  {actions && (
-                    <td className="px-6 py-4">
-                      {actions(item)}
-                    </td>
-                  )}
-                </tr>
-              ))
+              data.map((item, index) => {
+                const isExpanded = expandedRows.has(index);
+                return (
+                  <React.Fragment key={index}>
+                    <tr 
+                      className={cn(
+                        "transition-colors",
+                        expandableContent ? "cursor-pointer hover:bg-mm-gbg/20" : "hover:bg-mm-gbg/20",
+                        isExpanded && "bg-mm-gbg/[0.15]"
+                      )}
+                      onClick={() => expandableContent && toggleRow(index)}
+                    >
+                      {columns.map((col) => (
+                        <td key={col.key} className="px-6 py-4">
+                          {col.render ? col.render(item) : (item as any)[col.key]}
+                        </td>
+                      ))}
+                      {actions && (
+                        <td className="px-6 py-4">
+                          {actions(item)}
+                        </td>
+                      )}
+                    </tr>
+                    {expandableContent && (
+                      <tr>
+                        <td colSpan={columns.length + (actions ? 1 : 0)} className="p-0 border-b-0">
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden bg-white/50"
+                              >
+                                {expandableContent(item)}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>

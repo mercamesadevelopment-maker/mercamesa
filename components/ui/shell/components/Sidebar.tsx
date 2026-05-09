@@ -4,6 +4,9 @@ import { usePermissions } from '../hooks/usePermissions';
 import { cn } from '@/src/components/Shared';
 import { useRouter, usePathname } from 'next/navigation';
 import { useApp } from '@/src/store';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+
+
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,7 +20,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const roleId = state.buyerProfile?.role_id;
   // Pasamos _hydrated para que usePermissions sepa cuándo puede empezar a cargar
   const { modules, loading } = usePermissions(roleId, state._hydrated);
-  
+
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
   const keyToRoute: Record<string, string> = {
@@ -53,7 +56,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const getRoute = (key: string) => keyToRoute[key] || `/${key}`;
 
   const toggleMenu = (id: string) => {
-    setOpenMenus(prev => 
+    setOpenMenus(prev =>
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
     );
   };
@@ -110,8 +113,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all font-medium group relative",
-                    isActive 
-                      ? "bg-mm-gbg text-mm-g" 
+                    isActive
+                      ? "bg-mm-gbg text-mm-g"
                       : "text-mm-txs hover:bg-mm-gbg/50 hover:text-mm-g",
                     collapsed && "justify-center px-0"
                   )}
@@ -140,8 +143,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
                           onClick={() => router.push(subRoute)}
                           className={cn(
                             "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm font-medium",
-                            pathname === subRoute 
-                              ? "bg-mm-gll/20 text-mm-g" 
+                            pathname === subRoute
+                              ? "bg-mm-gll/20 text-mm-g"
                               : "text-mm-txw hover:bg-mm-gbg/40 hover:text-mm-g"
                           )}
                         >
@@ -176,15 +179,21 @@ export function Sidebar({ collapsed }: SidebarProps) {
             </div>
           </div>
         )}
-        <button 
-          onClick={() => dispatch({ type: 'LOGOUT' })}
+        <button
+          onClick={async () => {
+            const supabase = createSupabaseBrowserClient();
+
+            await supabase.auth.signOut();
+
+            router.push('/');
+          }}
           title="Cerrar sesión"
           className={cn(
             "w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-r hover:bg-rl rounded-xl transition-all",
             collapsed && "px-0"
           )}
         >
-          <LucideIcons.LogOut className="w-4 h-4" /> 
+          <LucideIcons.LogOut className="w-4 h-4" />
           {!collapsed && <span>Cerrar sesión</span>}
         </button>
       </div>

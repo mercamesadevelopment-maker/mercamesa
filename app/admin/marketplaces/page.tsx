@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Plus, Building2, Edit2, Trash2 } from 'lucide-react'
+import { Plus, Building2, Edit2, Trash2, Eye } from 'lucide-react'
 import { Database } from '../../../types/database_generated'
 import { useMarketplaces } from './hooks/useMarketplaces'
 import { MarketplaceModal } from './components/MarketplaceModal'
+import { MarketplaceDetailModal } from './components/MarketplaceDetailModal'
 import { Table } from '../../../components/ui/table/components/Table'
 import { useTable } from '../../../components/ui/table/hooks/useTable'
 import { Button, Badge } from '@/src/components/Shared'
@@ -17,7 +18,9 @@ type Marketplace = Database['public']['Tables']['marketplaces']['Row'] & {
 export default function MarketplacesAdmin() {
   const { marketplaces, loading, error, fetchMarketplaces, deleteMarketplace, saveMarketplace } = useMarketplaces()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [editingPlaza, setEditingPlaza] = useState<Marketplace | null>(null)
+  const [viewingSlug, setViewingSlug] = useState<string | null>(null)
 
   useEffect(() => {
     fetchMarketplaces()
@@ -98,14 +101,23 @@ export default function MarketplacesAdmin() {
         actions={(item: Marketplace) => (
           <div className="flex gap-2">
             <button 
+              onClick={() => { setViewingSlug(item.slug); setIsDetailModalOpen(true); }}
+              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+              title="Ver Detalles"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            <button 
               onClick={() => { setEditingPlaza(item); setIsModalOpen(true); }}
               className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+              title="Editar Plaza"
             >
               <Edit2 className="w-4 h-4" />
             </button>
             <button 
               onClick={() => deleteMarketplace(item.id)}
               className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
+              title="Eliminar Plaza"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -119,6 +131,14 @@ export default function MarketplacesAdmin() {
         onSave={saveMarketplace}
         initialData={editingPlaza}
       />
+
+      {viewingSlug && (
+        <MarketplaceDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => { setIsDetailModalOpen(false); setViewingSlug(null); }}
+          slug={viewingSlug}
+        />
+      )}
     </div>
   )
 }
