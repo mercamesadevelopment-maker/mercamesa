@@ -26,7 +26,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ data }, { status: 200 });
+  // Generate signed URLs for product images
+  const productsWithSignedUrls = await Promise.all(data.map(async (product) => {
+    let imageSignedUrl = null;
+    if (product.catalog_products?.image_url) {
+      const { data: signedData } = await supabase.storage
+        .from('products')
+        .createSignedUrl(product.catalog_products.image_url, 60 * 60); // 1 hour expiration
+      if (signedData?.signedUrl) {
+        imageSignedUrl = signedData.signedUrl;
+      }
+    }
+    return { ...product, imageSignedUrl };
+  }));
+
+  return NextResponse.json({ data: productsWithSignedUrls }, { status: 200 });
 }
 
 export async function POST(request: Request) {

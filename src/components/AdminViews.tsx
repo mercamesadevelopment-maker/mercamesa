@@ -2600,54 +2600,7 @@ export function AdminView() {
           </motion.div>
         )}
 
-        {activeTab === 'offers' && (
-          <motion.div key="offers" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Ofertas</h2>
-              <Button size="sm" onClick={() => {
-                const myStore = state.stores[0];
-                setNewOffer({ ...newOffer, storeId: myStore.id });
-                setIsAddOfferOpen(true);
-              }}><Plus className="w-4 h-4" /> Nueva Oferta</Button>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {state.offers
-                .filter(o => !isProvider || o.storeId === state.stores[0].id)
-                .map(o => (
-                <div key={o.id} className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-mm-g/5 -mr-8 -mt-8 rounded-full transition-transform group-hover:scale-110" />
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 bg-mm-gbg rounded-2xl flex items-center justify-center text-3xl">
-                      {o.emoji}
-                    </div>
-                    <Badge variant={o.status === 'active' ? 'success' : 'warning'}>{o.status === 'active' ? 'Activa' : 'Expirada'}</Badge>
-                  </div>
-                  <h3 className="text-lg font-bold text-mm-g mb-1">{o.title}</h3>
-                  <p className="text-sm text-mm-txs mb-4">{o.desc}</p>
-                  <div className="flex items-center justify-between pt-4 border-t border-mm-gbg">
-                    <div className="text-mm-g font-bold">
-                      {o.type === 'percentage' ? `${o.value}% OFF` : `-$${o.value.toLocaleString()}`}
-                    </div>
-                    <div className="flex gap-2">
-                       <Button variant="outline" size="sm" className="p-2" onClick={() => dispatch({ type: 'DELETE_OFFER', offerId: o.id })}><Trash2 className="w-4 h-4 text-r" /></Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {state.offers.filter(o => !isProvider || o.storeId === state.stores[0].id).length === 0 && (
-                <div className="col-span-full py-20 bg-mm-gbg/20 rounded-[40px] border-2 border-dashed border-mm-crd flex flex-col items-center justify-center">
-                  <Tag className="w-12 h-12 text-mm-txw mb-4 opacity-20" />
-                  <p className="text-mm-txw font-medium">No hay ofertas creadas aún</p>
-                  <Button variant="ghost" className="mt-4" onClick={() => {
-                    const myStore = state.stores[0];
-                    setNewOffer({ ...newOffer, storeId: myStore.id });
-                    setIsAddOfferOpen(true);
-                  }}>Crear mi primera oferta</Button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
+
       </AnimatePresence>
 
       <AnimatePresence>

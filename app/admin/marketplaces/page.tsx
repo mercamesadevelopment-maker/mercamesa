@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import  { useEffect, useState } from 'react'
 import { Plus, Building2, Edit2, Trash2, Eye } from 'lucide-react'
 import { Database } from '../../../types/database_generated'
 import { useMarketplaces } from './hooks/useMarketplaces'

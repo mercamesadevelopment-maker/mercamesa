@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Package, Edit2, Trash2, Store as StoreIcon, ChevronRight } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useStoreProducts } from './hooks/useStoreProducts';
