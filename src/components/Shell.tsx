@@ -98,15 +98,15 @@ export function Topbar({
             className="flex items-center gap-2 pl-2 border-l border-white/20 ml-2 hover:bg-white/10 p-1 rounded-xl transition-all"
           >
             {state.buyerProfile.avatar ? (
-  <img
-    src={state.buyerProfile.avatar}
-    alt="Profile"
-    className="w-full h-full object-cover"
-    referrerPolicy="no-referrer"
-  />
-) : (
-  <User className="w-5 h-5 text-white" />
-)}
+              <img
+                src={state.buyerProfile.avatar}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <User className="w-5 h-5 text-white" />
+            )}
 
             <div className="text-left hidden sm:block">
               <p className="text-xs font-bold leading-none">
@@ -244,15 +244,29 @@ export function CartPanel({
   const cartByStore = storesInCart.map(storeId => {
     // Attempt to find the store in the loaded stores state
     const storeFromState = state.stores.find(s => s.id === storeId);
-    
+
     // Find an item from this store to fallback to its storeName
     const firstItem = state.cart.find(i => i.storeId === storeId);
-    
+
     return {
-      store: storeFromState || { 
-        id: storeId, 
-        name: firstItem?.storeName || 'Tienda', 
-        emoji: '🏪' 
+      store: storeFromState || {
+        id: storeId,
+        plazaId: 0,
+        emoji: '🏪',
+        name: 'Tienda',
+        ownerName: '',
+        cat: '',
+        phone: '',
+        desc: '',
+        open: true,
+        rating: 0,
+        reviewCount: 0,
+        local: '',
+        status: 'active',
+        openTime: '',
+        closeTime: '',
+        location: { lat: 0, lng: 0 },
+        email: '',
       },
       items: state.cart.filter(i => i.storeId === storeId),
     };
