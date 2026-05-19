@@ -241,14 +241,22 @@ export function CartPanel({
     new Set(state.cart.map(i => i.storeId))
   );
 
-  const cartByStore = storesInCart.map(storeId => ({
-    store: state.stores.find(
-      s => s.id === storeId
-    )!,
-    items: state.cart.filter(
-      i => i.storeId === storeId
-    ),
-  }));
+  const cartByStore = storesInCart.map(storeId => {
+    // Attempt to find the store in the loaded stores state
+    const storeFromState = state.stores.find(s => s.id === storeId);
+    
+    // Find an item from this store to fallback to its storeName
+    const firstItem = state.cart.find(i => i.storeId === storeId);
+    
+    return {
+      store: storeFromState || { 
+        id: storeId, 
+        name: firstItem?.storeName || 'Tienda', 
+        emoji: '🏪' 
+      },
+      items: state.cart.filter(i => i.storeId === storeId),
+    };
+  });
 
   const isWS = state.userRole === 'wholesale';
 
