@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Search, ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePublicProducts } from './hooks/usePublicProducts';
 import { Badge, Button, cn } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
@@ -11,10 +11,20 @@ export default function ProductsPage() {
   const { products, loading, error } = usePublicProducts();
   const { dispatch } = useApp();
   
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const [search, setSearch] = useState('');
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [activeCat, setActiveCat] = useState('Todas');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 20;
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, minPrice, maxPrice, activeCat]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -39,6 +49,12 @@ export default function ProductsPage() {
     });
   }, [products, search, activeCat, minPrice, maxPrice]);
 
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   const handleAddToCart = (e: React.MouseEvent, p: any) => {
     e.stopPropagation();
     dispatch({
@@ -61,6 +77,12 @@ export default function ProductsPage() {
   };
 
   const fmt = (val: number) => `$${val.toLocaleString('es-CO')}`;
+
+  const scroll = (offset: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-mm-txs">Cargando productos...</div>;
@@ -109,24 +131,40 @@ export default function ProductsPage() {
           </div>
         </div>
         
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {categories.map(c => (
-            <button
-              key={c}
-              onClick={() => setActiveCat(c)}
-              className={cn(
-                "px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
-                activeCat === c ? "bg-mm-g text-white shadow-md" : "bg-white border border-mm-crd text-mm-txs hover:border-mm-g"
-              )}
-            >
-              {c}
-            </button>
-          ))}
+        <div className="relative group flex items-center">
+          <button 
+            onClick={() => scroll(-200)}
+            className="absolute left-0 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-mm-txs hover:text-mm-g opacity-0 group-hover:opacity-100 transition-opacity -ml-4"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div ref={scrollRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-grow px-2">
+            {categories.map(c => (
+              <button
+                key={c}
+                onClick={() => setActiveCat(c)}
+                className={cn(
+                  "px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
+                  activeCat === c ? "bg-mm-g text-white shadow-md" : "bg-white border border-mm-crd text-mm-txs hover:border-mm-g"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          <button 
+            onClick={() => scroll(200)}
+            className="absolute right-0 z-10 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-mm-txs hover:text-mm-g opacity-0 group-hover:opacity-100 transition-opacity -mr-4"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-        {filteredProducts.map(product => {
+        {paginatedProducts.map(product => {
           return (
             <motion.div
               key={product.id}
@@ -173,6 +211,30 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 pt-8">
+          <Button 
+            variant="outline" 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="w-10 h-10 p-0 rounded-full flex items-center justify-center"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <span className="text-sm font-bold text-mm-txs">
+            Página {currentPage} de {totalPages}
+          </span>
+          <Button 
+            variant="outline" 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="w-10 h-10 p-0 rounded-full flex items-center justify-center"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
