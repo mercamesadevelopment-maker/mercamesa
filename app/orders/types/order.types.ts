@@ -27,6 +27,15 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   returned: 'Devuelto',
 };
 
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: 'Pendiente',
+  processing: 'Procesando',
+  approved: 'Aprobado',
+  rejected: 'Rechazado',
+  refunded: 'Reembolsado',
+  disputed: 'Disputado',
+};
+
 export interface OrderDetail extends Omit<OrderDetailRow, 'products'> {
   products: OrderProduct[] | null;
 }

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 serve(async (req) => {
   const corsHeaders = {
@@ -17,7 +18,11 @@ serve(async (req) => {
     const usuario = Deno.env.get('ZONAPAGOS_USUARIO')
     const clave = Deno.env.get('ZONAPAGOS_CLAVE')
     const codigoServicio = Deno.env.get('ZONAPAGOS_CODIGO_SERVICIO')
-    const appUrl = Deno.env.get('ZONAPAGOS_APP_URL') || 'https://mercamesa.app'
+    const appUrl = Deno.env.get('ZONAPAGOS_APP_URL') || 'https://mercamesa.vercel.app/'
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // 3. Armar el JSON EXACTO con la estructura que exige Zonapagos
     const zonapagosPayload = {
@@ -71,6 +76,28 @@ serve(async (req) => {
     })
 
     const result = await zonapagosResponse.json()
+
+    // If payment initiation was successful, create the payment record
+    const paymentUrl = result?.str_url || result?.url_pago || result?.str_url_pago;
+    
+    if (paymentUrl && compraData.orderId) {
+      const { error: insertError } = await supabase
+        .from('payments')
+        .insert({
+          order_id: compraData.orderId,
+          provider: 'zonapagos',
+          str_id_pago: compraData.idPago,
+          status: 'pending',
+          amount: compraData.total,
+          payment_url: paymentUrl,
+        });
+      
+      if (insertError) {
+        console.error('Error inserting payment record:', insertError);
+        // We don't throw here to not block the user from paying, 
+        // but it's important to log it.
+      }
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

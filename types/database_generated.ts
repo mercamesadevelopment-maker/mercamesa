@@ -470,6 +470,8 @@ export type Database = {
           created_at: string
           id: string
           order_id: string
+          payment_method: string | null
+          payment_method_label: string | null
           payment_url: string | null
           provider: string
           provider_payment_id: string | null
@@ -483,6 +485,8 @@ export type Database = {
           created_at?: string
           id?: string
           order_id: string
+          payment_method?: string | null
+          payment_method_label?: string | null
           payment_url?: string | null
           provider?: string
           provider_payment_id?: string | null
@@ -496,6 +500,8 @@ export type Database = {
           created_at?: string
           id?: string
           order_id?: string
+          payment_method?: string | null
+          payment_method_label?: string | null
           payment_url?: string | null
           provider?: string
           provider_payment_id?: string | null
@@ -957,10 +963,12 @@ export type Database = {
           created_at: string | null
           delivery_address_id: string | null
           department: string | null
-          method: Database["public"]["Enums"]["payment_status"] | null
           municipality: string | null
           neighborhood: string | null
           order_id: string | null
+          payment_method: string | null
+          payment_method_label: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
           products: Json | null
           status: Database["public"]["Enums"]["order_status"] | null
           store_id: string | null
