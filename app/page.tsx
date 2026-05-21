@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { Button, cn } from '@/src/components/Shared';
 import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
-import { LoginModal } from './components/auth/LoginModal';
-import { RegisterModal } from './components/auth/RegisterModal';
+import { LoginModal } from './auth/LoginModal';
+import { RegisterModal } from './auth/RegisterModal';
 import { useApp } from '@/src/store';
 
 const roleRoutes: Record<string, string> = {

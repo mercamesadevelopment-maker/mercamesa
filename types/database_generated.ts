@@ -372,6 +372,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
             foreignKeyName: "order_items_store_product_id_fkey"
             columns: ["store_product_id"]
             isOneToOne: false
@@ -447,6 +454,13 @@ export type Database = {
             referencedRelation: "delivery_addresses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orders_delivery_address_id_fkey"
+            columns: ["delivery_address_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["delivery_address_id"]
+          },
         ]
       }
       payments: {
@@ -496,6 +510,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_payments_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
           },
         ]
       }
@@ -727,6 +748,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "store_orders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
             foreignKeyName: "store_orders_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
@@ -918,6 +946,40 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders_detail_view: {
+        Row: {
+          address_line: string | null
+          buyer_id: string | null
+          created_at: string | null
+          delivery_address_id: string | null
+          department: string | null
+          method: Database["public"]["Enums"]["payment_status"] | null
+          municipality: string | null
+          neighborhood: string | null
+          order_id: string | null
+          products: Json | null
+          status: Database["public"]["Enums"]["order_status"] | null
+          store_id: string | null
+          store_name: string | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]

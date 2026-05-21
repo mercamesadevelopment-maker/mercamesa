@@ -5,7 +5,7 @@ import { useApp } from '@/src/store';
 import { ROLES, C } from '@/src/constants';
 import { RoleKey } from '@/src/types';
 import { Button, Input, StepBar } from '@/src/components/Shared';
-import { useAuthHooks } from '../../hooks/useAuth';
+import { useAuthHooks } from '../hooks/useAuth';
 
 export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { dispatch } = useApp();

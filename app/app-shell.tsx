@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Topbar, CartPanel } from '../src/components/Shell';
-import { Sidebar } from '../components/ui/shell/components/Sidebar';
-import { cn } from '../src/components/Shared';
+import { Topbar } from '@/src/features/layout/components/Topbar';
+import { Sidebar } from '@/src/features/layout/components/Sidebar';
+import { CartPanel } from '@/src/features/cart/components/CartPanel';
+import { cn } from '@/src/components/Shared';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

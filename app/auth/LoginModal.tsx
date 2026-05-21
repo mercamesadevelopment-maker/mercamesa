@@ -7,7 +7,7 @@ import { X, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 import { useApp } from '@/src/store';
 import { Button, Input } from '@/src/components/Shared';
-import { useAuthHooks } from '../../hooks/useAuth';
+import { useAuthHooks } from '../hooks/useAuth';
 
 export function LoginModal({
   isOpen,
