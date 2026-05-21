@@ -385,12 +385,14 @@ export type Database = {
           address_change_fee: number
           buyer_id: string
           buyer_type: Database["public"]["Enums"]["buyer_type"]
+          client_idempotency_key: string | null
           created_at: string
           delivery_address_id: string | null
           delivery_fee: number
           discount: number
           id: string
           notes: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -400,12 +402,14 @@ export type Database = {
           address_change_fee?: number
           buyer_id: string
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
+          client_idempotency_key?: string | null
           created_at?: string
           delivery_address_id?: string | null
           delivery_fee?: number
           discount?: number
           id?: string
           notes?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -415,12 +419,14 @@ export type Database = {
           address_change_fee?: number
           buyer_id?: string
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
+          client_idempotency_key?: string | null
           created_at?: string
           delivery_address_id?: string | null
           delivery_fee?: number
           discount?: number
           id?: string
           notes?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -443,11 +449,63 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          callback_response: Json | null
+          created_at: string
+          id: string
+          order_id: string
+          payment_url: string | null
+          provider: string
+          provider_payment_id: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          str_id_pago: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          callback_response?: Json | null
+          created_at?: string
+          id?: string
+          order_id: string
+          payment_url?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          str_id_pago: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          callback_response?: Json | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          payment_url?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          str_id_pago?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_payments_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           buyer_type: string | null
           created_at: string
+          document_number: string | null
+          document_type: string | null
           email: string
           full_name: string
           id: string
@@ -462,6 +520,8 @@ export type Database = {
           avatar_url?: string | null
           buyer_type?: string | null
           created_at?: string
+          document_number?: string | null
+          document_type?: string | null
           email: string
           full_name: string
           id: string
@@ -476,6 +536,8 @@ export type Database = {
           avatar_url?: string | null
           buyer_type?: string | null
           created_at?: string
+          document_number?: string | null
+          document_type?: string | null
           email?: string
           full_name?: string
           id?: string

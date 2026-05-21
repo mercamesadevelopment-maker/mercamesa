@@ -23,6 +23,12 @@ import {
 } from 'lucide-react';
 
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import {
+  generateIdempotencyKey,
+  createOrderWithItems,
+  initiateZonapagosPayment,
+  getPaymentUrl,
+} from '@/src/features/payment/services/payment.service';
 
 export function Topbar({
   onCartOpen,
@@ -237,6 +243,9 @@ export function CartPanel({
 
   const router = useRouter();
 
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const storesInCart = Array.from(
     new Set(state.cart.map(i => i.storeId))
   );
@@ -303,6 +312,11 @@ export function CartPanel({
   };
 
   const handlePlaceOrder = async () => {
+    if (isPlacingOrder) return;
+
+    setIsPlacingOrder(true);
+    setErrorMessage(null);
+
     try {
       const supabase = createSupabaseBrowserClient();
 
@@ -315,78 +329,199 @@ export function CartPanel({
       }
 
       const buyerId = user.id;
+      const idempotencyKey = generateIdempotencyKey();
 
-      // For each store in cart, create an order
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, phone, document_number')
+        .eq('id', buyerId)
+        .single();
+
+      if (!profile) {
+        throw new Error('No se encontró el perfil del usuario');
+      }
+
+      if (!profile.document_number) {
+        throw new Error('El usuario no tiene documento registrado');
+      }
+
+      if (!profile.email) {
+        throw new Error('El usuario no tiene email registrado');
+      }
+
+      const { data: defaultAddress } = await supabase
+        .from('delivery_addresses')
+        .select('id')
+        .eq('buyer_id', buyerId)
+        .eq('is_default', true)
+        .single();
+
+      const nameParts = (profile.full_name || '').trim().split(' ');
+
+      const firstName = nameParts[0] || 'Cliente';
+
+      const lastName =
+        nameParts.slice(1).join(' ') || 'Mercamesa';
+
       for (const group of cartByStore) {
-        const orderData = {
-          buyer_id: buyerId,
-          buyer_type:
-            state.userRole === 'wholesale'
-              ? 'wholesale'
-              : 'retail',
-          status: 'pending',
-          subtotal: group.items.reduce(
-            (acc, i) => acc + getPrice(i) * i.qty,
-            0
-          ),
-          delivery_fee: 5000,
-          discount: 0,
-          total:
-            group.items.reduce(
-              (acc, i) => acc + getPrice(i) * i.qty,
-              0
-            ) + 5000,
-          notes: 'Pedido desde la web',
+        const subtotal = group.items.reduce(
+          (acc, i) => acc + getPrice(i) * i.qty,
+          0
+        );
+
+        const deliveryFee = 5000;
+
+        const total = subtotal + deliveryFee;
+
+        const orderPayload = {
+          order: {
+            buyer_id: buyerId,
+            buyer_type:
+              (
+                state.userRole === 'wholesale'
+                  ? 'wholesale'
+                  : 'retail'
+              ) as 'retail' | 'wholesale',
+
+            status: 'pending' as const,
+
+            payment_status: 'pending' as const,
+
+            subtotal,
+
+            delivery_fee: deliveryFee,
+
+            discount: 0,
+
+            total,
+
+            notes: 'Pedido desde la web',
+
+            delivery_address_id:
+              defaultAddress?.id || null,
+
+            client_idempotency_key:
+              `${idempotencyKey}-${group.store.id}`,
+          },
+
+          items: group.items.map(i => ({
+            store_product_id: String(i.id),
+
+            quantity: i.qty,
+
+            unit_price: getPrice(i),
+
+            total_price: getPrice(i) * i.qty,
+
+            catalog_name: i.name,
+
+            unit_name: i.unit || 'und',
+          })),
+
+          storeOrders: [
+            {
+              store_id: String(group.store.id),
+
+              order_id: '',
+
+              subtotal,
+
+              has_refrigerated: false,
+
+              notes: '',
+            },
+          ],
         };
 
-        const response = await fetch('/api/orders', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData),
-        });
+        const orderResult =
+          await createOrderWithItems(orderPayload);
 
-        if (!response.ok) {
-          const err = await response.json();
-          console.error(err);
-          throw new Error('Error creating order');
+        if (!orderResult?.data?.id) {
+          throw new Error(
+            'No se pudo crear la orden'
+          );
         }
 
-        const { data: order } =
-          await response.json();
+        const orderId = String(orderResult.data.id);
 
-        const orderItems = group.items.map(i => ({
-          order_id: order.id,
-          store_product_id: i.id,
-          quantity: i.qty,
-          unit_price: getPrice(i),
-          total_price: getPrice(i) * i.qty,
-          catalog_name: i.name,
-          unit_name: i.unit || 'und',
-        }));
+        const zonapagosPayload = {
+          idPago: Date.now().toString(),
 
-        await fetch('/api/order-items', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderItems),
-        });
+          orderId: orderId,
+
+          total,
+
+          iva: 0,
+
+          descripcion: `Pedido ${orderId} - ${group.store.name}`,
+
+          email: profile.email,
+
+          idCliente: String(profile.document_number),
+
+          tipoIdCliente: '1',
+
+          nombreCliente: firstName,
+
+          apellidoCliente: lastName,
+
+          telefonoCliente:
+            profile.phone || '0000000000',
+        };
+
+        console.log(
+          'zonapagosPayload',
+          zonapagosPayload
+        );
+
+        const zonapagosResult =
+          await initiateZonapagosPayment(
+            zonapagosPayload
+          );
+
+        console.log(
+          'zonapagosResult',
+          zonapagosResult
+        );
+
+        const paymentUrl =
+          getPaymentUrl(zonapagosResult);
+
+        if (paymentUrl) {
+          dispatch({ type: 'CLEAR_CART' });
+
+          window.location.href = paymentUrl;
+
+          return;
+        }
+
+        const errorMessage =
+          typeof zonapagosResult?.str_descripcion_error === 'string'
+            ? zonapagosResult.str_descripcion_error
+            : typeof zonapagosResult?.error === 'string'
+              ? zonapagosResult.error
+              : typeof zonapagosResult?.mensaje === 'string'
+                ? zonapagosResult.mensaje
+                : 'No se obtuvo URL de pago';
+
+        throw new Error(errorMessage);
       }
 
       dispatch({ type: 'CLEAR_CART' });
-
-      alert('¡Pedido realizado con éxito!');
 
       router.push('/orders');
 
       onClose();
     } catch (error) {
       console.error(error);
-      alert(
-        'Hubo un error procesando el pedido.'
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Hubo un error procesando el pedido.'
       );
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
@@ -465,6 +600,11 @@ export function CartPanel({
 
             {cartByStore.length > 0 && (
               <div className="p-6 bg-mm-gbg/50 border-t border-mm-crd/30">
+                {errorMessage && (
+                  <div className="mb-4 p-3 bg-rl rounded-xl text-r text-sm font-medium">
+                    {errorMessage}
+                  </div>
+                )}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-mm-txs text-sm">
                     <span>Subtotal</span>
@@ -479,7 +619,11 @@ export function CartPanel({
                     <span className="text-2xl font-bold text-mm-g">{fmt(total + (5000 * cartByStore.length))}</span>
                   </div>
                 </div>
-                <Button onClick={handlePlaceOrder} className="w-full py-4 text-lg">
+                <Button
+                  onClick={handlePlaceOrder}
+                  loading={isPlacingOrder}
+                  className="w-full py-4 text-lg"
+                >
                   Confirmar Pedido
                 </Button>
               </div>

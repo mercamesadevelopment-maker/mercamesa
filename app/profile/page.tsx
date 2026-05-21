@@ -1,6 +1,5 @@
-'use client';
-import React from 'react';
-import { BuyerProfileView } from '../../src/components/UserViews';
+import { ProfileLayout } from './components/profile-layout';
+
 export default function ProfilePage() {
-  return <BuyerProfileView />;
+  return <ProfileLayout />;
 }
