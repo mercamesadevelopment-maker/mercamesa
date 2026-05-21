@@ -1,98 +1,47 @@
-# Instrucciones de Integración: Pasarela de Pago Zonapagos
+La ruta a usar en el navegador es:  
+https://www.zonapagos.com/Ciclo_Pago/Pago.aspx?rut=6C44EA66B127D743C77B3247E9FE866A97C6A5730B86 
+303836BD52D257186599. 
+En donde el alfanumérico es el identificador del pago a procesar. Y es asignado por zonapagos. 
+7.1.3. RECEPCIÓN DE PARÁMETROS DE RESULTADO DEL PAGO    
+Al finalizar el pago se realizará un llamado (sea exitoso o fallido) a una ruta en el servidor del comercio, Esta ruta debe 
+ser informada a zonapagos para su configuración en el aplicativo. 
+A esta ruta se enviará la siguiente información en formato GET.
+Estos son los estados que maneja SONDA para los pagos:
+Si el proceso de SONDA retorna que el estado de la transacción es: 
+• 1: Exitosa/Aprobada 
+• 1000: Rechazada 
+• 1001: Error entre ACH y el Banco (Equivale a un pago Rechazado) 
+• 4000: Rechazada CR 
+• 4003: Error CR (Equivale a un pago rechazado) 
 
-Actúa como un desarrollador backend experto. Tu tarea es implementar el consumo de la API REST de Zonapagos para iniciar una transacción ("Inicio de Pago"). Debes construir el payload JSON y procesar la respuesta siguiendo estrictamente la información técnica descrita a continuación.
+Ruta: https://www.zonapagos.com/Apis_CicloPago/api/VerificaciónPago  
 
-## 1. Detalles del Endpoint
-* [cite_start]**Ruta de la API:** `https://www.zonapagos.com/Apis_CicloPago/api/InicioPago`[cite: 100].
-* **Método HTTP:** POST.
-
-## 2. Estructura del Payload (Parámetros de Entrada)
-El cuerpo de la petición debe incluir los siguientes objetos y listas.
-
-### Objeto: `Informacion Pago`
-[cite_start]Contiene los detalles de la venta y del cliente[cite: 103]:
-* [cite_start]`flt_total_con_iva` (Numérico, **Obligatorio**): Total a pagar con IVA incluido[cite: 105].
-* `flt_valor_iva` (Numérico, **Opcional**): Total IVA. [cite_start]Si no aplica, enviar 0[cite: 105].
-* [cite_start]`str_id_pago` (Alfanumérico, **Obligatorio**, máx 30 char): Identificador interno único del pago o factura[cite: 105].
-* [cite_start]`str_descripcion_pago` (Alfanumérico, **Obligatorio**): Concepto o descripción del pago[cite: 120].
-* [cite_start]`str_email` (Alfanumérico, **Opcional**): Correo del cliente[cite: 120].
-* [cite_start]`str_id_cliente` (Alfanumérico, **Obligatorio para PSE**): Número de documento del cliente[cite: 120].
-* [cite_start]`str_tipo_id` (Alfanumérico, **Obligatorio para PSE**): Equivalente al tipo de documento (ej. `1` para CC, `2` para CE, `3` para NIT)[cite: 120].
-* [cite_start]`str_nombre_cliente`, `str_apellido_cliente`, `str_telefono_cliente` (Alfanuméricos, **Opcionales**): Datos personales del cliente[cite: 120].
-* [cite_start]`str_opcional1` a `str_opcional5` (Alfanuméricos, **Opcionales**): Campos extra informativos[cite: 126].
-
-### Objeto: `Informacion Seguridad`
-[cite_start]Credenciales para autenticar la petición[cite: 138]:
-* [cite_start]`int_id_comercio` (Numérico, **Obligatorio**): Identificador único del comercio[cite: 140].
-* [cite_start]`str_usuario` (Alfanumérico, **Obligatorio**): Usuario validador entre el comercio y Zonapagos[cite: 140].
-* [cite_start]`str_clave` (Alfanumérico, **Obligatorio**): Clave de validación asignada al comercio[cite: 140].
-* [cite_start]`int_modalidad` (Numérico, **Obligatorio**): Siempre se debe enviar `-1`[cite: 140]. *(Nota: Algunos ejemplos heredados usan `1`[cite: 578], pero la tabla de parámetros exige `-1`)*.
-
-### Listas: `Adicionales Pago` y `Adicionales Configuracion`
-Arreglos de objetos para configuraciones específicas de la pasarela[cite: 157, 161]:
-* [cite_start]Se componen de los campos `int_codigo` y `str_valor`[cite: 159, 162].
-* [cite_start]**Código `50`** (**Obligatorio si se usa PSE**): Define el Código de servicio Principal[cite: 181].
-* [cite_start]**Código `104`** (**Opcional**): Define la URL de Retorno Cliente para redirigirlo en cualquier ciclo del pago[cite: 181].
-
-## 3. Estructura de la Respuesta (Parámetros de Retorno)
-[cite_start]Al consumir la API, recibirás un objeto con los siguientes campos[cite: 256]:
-* [cite_start]`int_codigo`: `1` indica que se ejecutó correctamente, `2` indica que ejecutó con error[cite: 257].
-* [cite_start]`str_cod_error`: `-1` si hubo error en validaciones o `0` si se encontraron pagos[cite: 257].
-* [cite_start]`str_descripcion_error`: Detalle en texto del error presentado[cite: 257].
-* [cite_start]`str_url`: URL generada a la que se debe redireccionar el navegador del usuario pagador[cite: 257]. [cite_start]Esta ruta contiene el identificador alfanumérico único asignado por Zonapagos para procesar el pago[cite: 270, 272, 273].
-
----
-
-## 4. Ejemplos de Consumo JSON
-
-### Ejemplo de Petición (Request JSON)
-```json
-{
-  "Informacion Pago": {
-    "flt_total_con_iva": 83000,
-    "flt_valor_iva": 833,
-    "str_id_pago": "180924",
-    "str_descripcion_pago": "camisa",
-    "str_email": "soporte9@zonavirtual.com",
-    "str_id_cliente": "123456789",
-    "str_tipo_id": "1",
-    "str_nombre_cliente": "Elsa",
-    "str_apellido_cliente": "Pito",
-    "str_telefono_cliente": "319632555648",
-    "str_opcional1": "opcion 11",
-    "str_opcional2": "opcion 12",
-    "str_opcional3": "opcion 13",
-    "str_opcional4": "opcion 14",
-    "str_opcional5": "opcion 15"
-  },
-  "Informacion Seguridad": {
-    "int_id_comercio": 678,
-    "str_usuario": "Usuario",
-    "str_clave": "Agosto17",
-    "int_modalidad": 1
-  },
-  "Adicionales Pago": [
-    {
-      "int_codigo": 111,
-      "str_valor": "0"
-    },
-    {
-      "int_codigo": 112,
-      "str_valor": "0"
-    }
-  ],
-  "Adicionales Configuracion": [
-    {
-      "int_codigo": 50,
-      "str_valor": "2701"
-    },
-    {
-      "int_codigo": 100,
-      "str_valor": "1"
-    },
-    {
-      "int_codigo": 104,
-      "str_valor": "[https://www.google.com.co/](https://www.google.com.co/)"
-    }
-  ]
+El JSON que debe enviarse para verificar un pago es:
+{ 
+"int_id_comercio": 678, 
+"str_usr_comercio": "Usuario", 
+"str_pwd_Comercio": "Agosto17", 
+"str_id_pago": "180921", 
+"int_no_pago":-1 
 }
+
+int_id_comercio: es un secret que ya se encuentra en supabase.
+str_usr_comercio: también es un secret que ya se encuentra en supabase.
+str_pwd_Comercio: secret que ya se encuentra en supabase.
+str_id_pago: El ID de pago que se crea al iniciar la transacción.
+int_no_pago: Esto dice la documentación:No. Pago retornado por zonapagos, para cada transacción ejecutada. Este valor es único por cada pago para un comercio determinado. Se utiliza para filtrar la consulta utilizando  el parámetro 
+“int_id_pago” y “int_no_pago”, es decir la información del pago que se retorna debe cumplir con estos dos parámetros. En caso de no enviar el No. Pago siempre se envía -1.
+
+el json de respuesta es:
+{  
+"int_estado": 1, 
+"int_error": 0, 
+"str_detalle": null, 
+"int_cantidad_pagos": 2, 
+"str_res_pago": " | 
+3772 |  | 200 | 1002 |  | 12500 |  |  | 123456789 | Cristina | Vargas | 319632555648 | soporte9@zonavirtual.com | opcion 11 
+| opcion 12 | opcion 13 |   |   |  |  | ;  
+31 | 3773 | 1 | 1 | 1 | 12500 | 12500 | 13 | camisa | 123456789 | Cristina | Vargas | 319632555648 | 
+soporte9@zonavirtual.com | opcion 11 | opcion 12 | opcion 13 |   |   | 9/11/2018 12:58:41 PM | 29 | 18092100031 | 2701 | 
+1022 | BANCO UNION COLOMBIANO | 1468228 | 3 | ; " 
+} 

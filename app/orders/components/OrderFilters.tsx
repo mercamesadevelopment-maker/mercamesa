@@ -11,8 +11,8 @@ interface Store {
 interface OrderFiltersProps {
   selectedStoreId: string | null;
   onStoreChange: (id: string | null) => void;
-  selectedStatus: string | null;
-  onStatusChange: (status: string | null) => void;
+  selectedStatus: OrderStatus | null;
+  onStatusChange: (status: OrderStatus | null) => void;
   onClear: () => void;
 }
 
@@ -34,10 +34,11 @@ export function OrderFilters({
       .catch((err) => console.error('Error fetching stores for filters:', err));
   }, []);
 
-  const statuses = Object.entries(ORDER_STATUS_LABELS).map(([id, label]) => ({
-    id,
-    label,
-  }));
+  const statuses: { id: OrderStatus; label: string }[] =
+    Object.entries(ORDER_STATUS_LABELS).map(([id, label]) => ({
+      id: id as OrderStatus,
+      label,
+    }));
 
   const hasFilters = selectedStoreId || selectedStatus;
 
@@ -64,10 +65,15 @@ export function OrderFilters({
 
         <select
           value={selectedStatus || ''}
-          onChange={(e) => onStatusChange(e.target.value || null)}
+          onChange={(e) =>
+            onStatusChange(
+              (e.target.value as OrderStatus) || null
+            )
+          }
           className="bg-mm-gbg/50 border-none rounded-xl px-4 py-2 text-sm text-mm-g outline-none focus:ring-2 ring-mm-g/20 transition-all cursor-pointer"
         >
           <option value="">Todos los estados</option>
+
           {statuses.map((status) => (
             <option key={status.id} value={status.id}>
               {status.label}

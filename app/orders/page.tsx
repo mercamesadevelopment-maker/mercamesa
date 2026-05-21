@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { ClipboardList } from 'lucide-react';
 import { useOrders } from './hooks/useOrders';
 import { useApp } from '@/src/store';
@@ -15,12 +15,13 @@ export default function OrdersPage() {
   const { state, dispatch } = useApp();
   const [page, setPage] = useState(1);
   const [storeId, setStoreId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<OrderStatus | null>(null);
 
   const { orders, meta, loading, error, stats } = useOrders({
     page,
     limit: 5,
     storeId,
+    status,
   });
 
   const [ratingStoreId, setRatingStoreId] = useState<string | null>(null);

@@ -54,7 +54,7 @@ serve(async (req) => {
         { "int_codigo": 101, "str_valor": "1" },
         { "int_codigo": 102, "str_valor": "1" },
         { "int_codigo": 103, "str_valor": "0" },
-        { "int_codigo": 104, "str_valor": `${appUrl}/orders` },
+        { "int_codigo": 104, "str_valor": `${appUrl}/orders/payment-status?order_id=${compraData.orderId}` },
         { "int_codigo": 105, "str_valor": "10000" },
         { "int_codigo": 106, "str_valor": "3" },
         { "int_codigo": 107, "str_valor": "0" },
