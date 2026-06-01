@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../store';
+import { useCart } from '../features/cart/hooks/use-cart';
 import { Plaza, Store, Product, Offer } from '../types';
 import { fmt, CAT_DATA } from '../constants';
 import { Button, Badge, cn } from './Shared';
@@ -14,6 +15,7 @@ import {
 
 export function MarketView() {
   const { state, dispatch } = useApp();
+  const { addToCart } = useCart();
   const [selectedPlaza, setSelectedPlaza] = useState<Plaza | null>(null);
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -935,7 +937,7 @@ export function MarketView() {
                           } else {
                             finalProduct.retailPrice = price;
                           }
-                          dispatch({ type: 'ADD_TO_CART', product: finalProduct });
+                          addToCart(finalProduct);
                         }}
                         disabled={product.stock === 0}
                         className="w-full rounded-2xl py-3"
@@ -1237,11 +1239,7 @@ export function MarketView() {
                     } else {
                       finalProduct.retailPrice = price;
                     }
-                    dispatch({ 
-                      type: 'ADD_TO_CART', 
-                      product: finalProduct,
-                      qty: modalQty 
-                    });
+                    addToCart(finalProduct, modalQty);
                     setSelectedProduct(null);
                   }}
                   disabled={selectedProduct.stock === 0 || modalQty <= 0}
@@ -1332,7 +1330,7 @@ export function MarketView() {
                         } else {
                           finalProduct.retailPrice = price;
                         }
-                        dispatch({ type: 'ADD_TO_CART', product: finalProduct });
+                        addToCart(finalProduct);
                       });
                       setSelectedOffer(null);
                     }}
@@ -1583,6 +1581,7 @@ export function AllStoresView() {
 
 export function AllProductsView() {
   const { state, dispatch } = useApp();
+  const { addToCart } = useCart();
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Todas');
   const [minPrice, setMinPrice] = useState<number>(0);
@@ -1731,7 +1730,7 @@ export function AllProductsView() {
                         } else {
                           finalProduct.retailPrice = price;
                         }
-                        dispatch({ type: 'ADD_TO_CART', product: finalProduct });
+                        addToCart(finalProduct);
                     }}
                     className="w-8 h-8 rounded-full bg-mm-g text-white flex items-center justify-center hover:bg-mm-oro hover:scale-110 transition-all shadow-sm active:scale-90"
                   >
@@ -1749,6 +1748,7 @@ export function AllProductsView() {
 
 export function AllOffersView() {
   const { state, dispatch } = useApp();
+  const { addToCart } = useCart();
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'all' | 'percentage' | 'fixed'>('all');
   const [plazaId, setPlazaId] = useState<number | 'all'>('all');
@@ -1977,7 +1977,7 @@ export function AllOffersView() {
                         } else {
                           finalProduct.retailPrice = price;
                         }
-                        dispatch({ type: 'ADD_TO_CART', product: finalProduct });
+                        addToCart(finalProduct);
                       });
                       setSelectedOffer(null);
                     }}

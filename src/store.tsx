@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { createSupabaseBrowserClient } from '../lib/supabase/client'; // ajusta la ruta a tu cliente browser
+import { fetchCart, revertCartDb, deleteCartForOrderDb } from './features/cart/services/cart.service';
 import { 
   Plaza, Store, Product, CartItem, Order, AppNotification, BuyerProfile, RoleKey, Offer, MasterProduct, StoreReview, Sale, SaleStatus 
 } from './types';
@@ -32,13 +33,12 @@ type AppAction =
   | { type: 'LOGIN'; role: RoleKey; profile?: Partial<BuyerProfile> }
   | { type: 'LOGOUT' }
   | { type: 'HYDRATE'; role: RoleKey; profile: Partial<BuyerProfile>; cart?: CartItem[] }
-  | { type: 'HYDRATE_GUEST'; cart?: CartItem[] }
   | { type: 'SET_SECTION'; section: string }
   | { type: 'ADD_TO_CART'; product: Product; qty?: number }
   | { type: 'REMOVE_FROM_CART'; productId: number }
   | { type: 'UPDATE_CART_QTY'; productId: number; qty: number }
   | { type: 'CLEAR_CART' }
-  | { type: 'RESTORE_CART'; items: CartItem[] }
+  | { type: 'HYDRATE_CART'; cart: CartItem[] }
   | { type: 'PLACE_ORDER'; orders: Order[] }
   | { type: 'UPDATE_ORDER_STATUS'; orderId: string; status: Order['status'] }
   | { type: 'ADD_NOTIF'; notif: AppNotification }
@@ -166,14 +166,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         _hydrated: true,
       };
 
-    case 'HYDRATE_GUEST':
-      return {
-        ...state,
-        isLoggedIn: false,
-        cart: action.cart ?? state.cart,
-        _hydrated: true,
-      };
-
     case 'SET_ROLE': {
       const defaultSection = action.role === 'admin' ? 'admin_analytics' : 
                             action.role === 'provider' ? 'dashboard' :
@@ -228,8 +220,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'CLEAR_CART':
       return { ...state, cart: [] };
 
-    case 'RESTORE_CART':
-      return { ...state, cart: action.items };
+    case 'HYDRATE_CART':
+      return { ...state, cart: action.cart };
 
     case 'PLACE_ORDER':
       return { ...state, orders: [...state.orders, ...action.orders], cart: [] };
@@ -368,21 +360,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const supabase = createSupabaseBrowserClient();
 
     const hydrate = async () => {
-      let savedCart: CartItem[] = [];
-      try {
-        const cartStr = localStorage.getItem('mercamesa_cart');
-        if (cartStr) savedCart = JSON.parse(cartStr);
-      } catch (e) {
-        console.error('Error loading cart from localStorage:', e);
-      }
-
       try {
         // getUser() verifica la sesión contra el servidor (no solo la cookie)
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (error || !user) {
-          // No hay sesión — marcamos como hidratado sin login pero cargando el carrito
-          dispatch({ type: 'HYDRATE_GUEST', cart: savedCart });
+          // No hay sesión — marcamos como hidratado sin login
+          dispatch({ type: 'LOGOUT' });
           return;
         }
 
@@ -394,13 +378,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (!profile) {
-          dispatch({ type: 'HYDRATE_GUEST', cart: savedCart });
+          dispatch({ type: 'LOGOUT' });
           return;
         }
 
         // Determina el RoleKey desde el nombre del rol en la BD
         const roleName = (profile.roles as any)?.name || 'retail';
         const roleKey: RoleKey = roleNameToKey[roleName] ?? 'retail';
+
+        // Cargar el carrito de la base de datos
+        let dbCart: CartItem[] = [];
+        try {
+          const isPaymentStatusPage = typeof window !== 'undefined' && window.location.pathname.includes('/orders/payment-status');
+          const pendingOrderId = typeof window !== 'undefined' ? sessionStorage.getItem('pending_checkout_order_id') : null;
+
+          if (pendingOrderId && !isPaymentStatusPage) {
+            try {
+              const { data: order } = await supabase
+                .from('orders')
+                .select('payment_status')
+                .eq('id', pendingOrderId)
+                .maybeSingle();
+
+              if (order?.payment_status === 'approved') {
+                await deleteCartForOrderDb(pendingOrderId);
+              } else {
+                await revertCartDb(pendingOrderId);
+              }
+            } catch (e) {
+              console.error('Error auto-reverting pending cart:', e);
+            } finally {
+              sessionStorage.removeItem('pending_checkout_order_id');
+            }
+          }
+
+          dbCart = await fetchCart(user.id);
+        } catch (e) {
+          console.error('Error loading cart from DB during hydration:', e);
+        }
 
         dispatch({
           type: 'HYDRATE',
@@ -412,11 +427,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             avatar: profile.avatar_url || '',
             role_id: profile.role_id,
           },
-          cart: savedCart,
+          cart: dbCart,
         });
       } catch (err) {
         console.error('Hydration error:', err);
-        dispatch({ type: 'HYDRATE_GUEST', cart: savedCart });
+        dispatch({ type: 'LOGOUT' });
       }
     };
 
@@ -432,19 +447,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
-  // Guardar en localStorage cada vez que el carrito cambia y la app está hidratada
-  useEffect(() => {
-    if (state._hydrated) {
-      try {
-        localStorage.setItem('mercamesa_cart', JSON.stringify(state.cart));
-      } catch (e) {
-        console.error('Error saving cart to localStorage:', e);
-      }
-    }
-  }, [state.cart, state._hydrated]);
+  // La persistencia se maneja en base de datos.
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

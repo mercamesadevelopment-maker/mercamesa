@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingCart, ShoppingBag, X, Trash2 } from 'lucide-react';
 import { useCheckout } from '../hooks/useCheckout';
+import { useCart } from '../hooks/use-cart';
 import { Button } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 
@@ -13,6 +14,7 @@ interface CartPanelProps {
 }
 
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
+  const { updateCartQty } = useCart();
   const {
     state,
     dispatch,
@@ -95,11 +97,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                             <div className="flex items-center gap-3 bg-mm-gbg rounded-full px-2 py-1">
                               <button
                                 onClick={() =>
-                                  dispatch({
-                                    type: 'UPDATE_CART_QTY',
-                                    productId: item.id,
-                                    qty: Math.max(0, item.qty - 1),
-                                  })
+                                  updateCartQty(item.id, Math.max(0, item.qty - 1))
                                 }
                                 className="w-6 h-6 flex items-center justify-center font-bold text-mm-txs hover:text-mm-g hover:bg-white rounded-full transition-colors"
                               >
@@ -110,11 +108,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                               </span>
                               <button
                                 onClick={() =>
-                                  dispatch({
-                                    type: 'UPDATE_CART_QTY',
-                                    productId: item.id,
-                                    qty: item.qty + 1,
-                                  })
+                                  updateCartQty(item.id, item.qty + 1)
                                 }
                                 className="w-6 h-6 flex items-center justify-center font-bold text-mm-txs hover:text-mm-g hover:bg-white rounded-full transition-colors"
                               >

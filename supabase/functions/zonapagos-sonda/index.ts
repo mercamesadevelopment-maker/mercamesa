@@ -110,6 +110,48 @@ serve(async (req) => {
           .update(orderUpdate)
           .eq('id', payment.order_id);
 
+        // 5. Sincronizar el carrito de base de datos
+        if (paymentStatus === 'approved') {
+          await supabase
+            .from('cart_items')
+            .delete()
+            .eq('order_id', payment.order_id);
+        } else if (paymentStatus === 'rejected') {
+          const { data: pendingItems } = await supabase
+            .from('cart_items')
+            .select('id, buyer_id, store_product_id, quantity')
+            .eq('order_id', payment.order_id);
+
+          if (pendingItems) {
+            for (const item of pendingItems) {
+              const { data: activeItem } = await supabase
+                .from('cart_items')
+                .select('id, quantity')
+                .eq('buyer_id', item.buyer_id)
+                .eq('store_product_id', item.store_product_id)
+                .eq('status', 'active')
+                .maybeSingle();
+
+              if (activeItem) {
+                await supabase
+                  .from('cart_items')
+                  .update({ quantity: activeItem.quantity + item.quantity, updated_at: new Date().toISOString() })
+                  .eq('id', activeItem.id);
+                
+                await supabase
+                  .from('cart_items')
+                  .delete()
+                  .eq('id', item.id);
+              } else {
+                await supabase
+                  .from('cart_items')
+                  .update({ status: 'active', order_id: null, updated_at: new Date().toISOString() })
+                  .eq('id', item.id);
+              }
+            }
+          }
+        }
+
         results.push({ orderId: payment.order_id, status: paymentStatus });
       } catch (err) {
         console.error(`Error syncing payment ${payment.str_id_pago}:`, err);

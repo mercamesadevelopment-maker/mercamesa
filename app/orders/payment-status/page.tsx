@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowLeft, RefreshCw } from 'lucide-react';
 import { syncPaymentStatus } from '@/src/features/payment/services/payment.service';
 import { useApp } from '@/src/store';
+import { deleteCartForOrderDb, revertCartDb, fetchCart } from '@/src/features/cart/services/cart.service';
 import Link from 'next/link';
 
 function PaymentStatusContent() {
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');
   
@@ -29,20 +30,28 @@ function PaymentStatusContent() {
       const result = await syncPaymentStatus(orderId);
       setStatus(result.paymentStatus);
 
-      const pendingCartKey = `pending_cart_${orderId}`;
       if (result.paymentStatus === 'approved') {
-        localStorage.removeItem(pendingCartKey);
-      } else if (result.paymentStatus === 'rejected') {
-        const savedPendingCart = localStorage.getItem(pendingCartKey);
-        if (savedPendingCart) {
-          try {
-            const items = JSON.parse(savedPendingCart);
-            dispatch({ type: 'RESTORE_CART', items });
-          } catch (e) {
-            console.error('Error parsing pending cart items:', e);
-          }
-          localStorage.removeItem(pendingCartKey);
+        try {
+          await deleteCartForOrderDb(orderId);
+        } catch (e) {
+          console.error('Error deleting pending cart items:', e);
         }
+      } else if (result.paymentStatus === 'rejected') {
+        try {
+          await revertCartDb(orderId);
+          // Refetch active cart from database
+          const buyerId = state.buyerProfile?.id;
+          if (buyerId) {
+            const items = await fetchCart(buyerId);
+            dispatch({ type: 'HYDRATE_CART', cart: items });
+          }
+        } catch (e) {
+          console.error('Error reverting pending cart items in DB:', e);
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('pending_checkout_order_id');
       }
     } catch (err: any) {
       console.error(err);

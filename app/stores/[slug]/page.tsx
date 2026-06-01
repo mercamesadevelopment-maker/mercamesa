@@ -7,11 +7,13 @@ import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, ShoppingCart, MapPi
 import { Badge, cn } from '@/src/components/Shared';
 import { usePublicProducts } from '@/app/sections/products/hooks/usePublicProducts';
 import { useApp } from '@/src/store';
+import { useCart } from '@/src/features/cart/hooks/use-cart';
 
 export default function StoreDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
   const { dispatch } = useApp();
+  const { addToCart } = useCart();
 
   const [store, setStore] = useState<any>(null);
   const [loadingStore, setLoadingStore] = useState(true);
@@ -66,23 +68,20 @@ export default function StoreDetailPage() {
 
   const handleAddToCart = (e: React.MouseEvent, p: any) => {
     e.stopPropagation();
-    dispatch({
-      type: 'ADD_TO_CART',
-      product: {
-        id: p.id,
-        name: p.catalog_products?.name || 'Producto',
-        cat: p.catalog_products?.categories?.name || 'Sin Categoría',
-        retailPrice: p.price_per_unit || 0,
-        wsPrice: p.price_per_unit || 0,
-        stock: 100, // mock
-        unit: p.measurement_units?.abbreviation || 'und',
-        emoji: '📦',
-        image: p.imageSignedUrl || null,
-        plazaId: store?.marketplace_id || 1,
-        storeId: store?.id,
-        storeName: store?.name || 'Tienda'
-      } as any
-    });
+    addToCart({
+      id: p.id,
+      name: p.catalog_products?.name || 'Producto',
+      cat: p.catalog_products?.categories?.name || 'Sin Categoría',
+      retailPrice: p.price_per_unit || 0,
+      wsPrice: p.price_per_unit || 0,
+      stock: 100, // mock
+      unit: p.measurement_units?.abbreviation || 'und',
+      emoji: '📦',
+      image: p.imageSignedUrl || null,
+      plazaId: store?.marketplace_id || 1,
+      storeId: store?.id,
+      storeName: store?.name || 'Tienda'
+    } as any);
   };
 
   const fmt = (val: number) => `$${val.toLocaleString('es-CO')}`;

@@ -6,10 +6,12 @@ import { Search, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePublicProducts } from './hooks/usePublicProducts';
 import { Badge, Button, cn } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
+import { useCart } from '@/src/features/cart/hooks/use-cart';
 
 export default function ProductsPage() {
   const { products, loading, error } = usePublicProducts();
   const { dispatch } = useApp();
+  const { addToCart } = useCart();
   
   const scrollRef = useRef<HTMLDivElement>(null);
   
@@ -57,23 +59,20 @@ export default function ProductsPage() {
 
   const handleAddToCart = (e: React.MouseEvent, p: any) => {
     e.stopPropagation();
-    dispatch({
-      type: 'ADD_TO_CART',
-      product: {
-        id: p.id,
-        name: p.catalog_products?.name || 'Producto',
-        cat: p.catalog_products?.categories?.name || 'Sin Categoría',
-        retailPrice: p.price_per_unit || 0,
-        wsPrice: p.price_per_unit || 0,
-        stock: 100, // mock
-        unit: p.measurement_units?.abbreviation || 'und',
-        emoji: '📦',
-        image: p.imageSignedUrl || null,
-        plazaId: 1, // mock if needed
-        storeId: p.store_id || 1,
-        storeName: p.stores?.name || 'Tienda'
-      } as any
-    });
+    addToCart({
+      id: p.id,
+      name: p.catalog_products?.name || 'Producto',
+      cat: p.catalog_products?.categories?.name || 'Sin Categoría',
+      retailPrice: p.price_per_unit || 0,
+      wsPrice: p.price_per_unit || 0,
+      stock: 100, // mock
+      unit: p.measurement_units?.abbreviation || 'und',
+      emoji: '📦',
+      image: p.imageSignedUrl || null,
+      plazaId: 1, // mock if needed
+      storeId: p.store_id || 1,
+      storeName: p.stores?.name || 'Tienda'
+    } as any);
   };
 
   const fmt = (val: number) => `$${val.toLocaleString('es-CO')}`;

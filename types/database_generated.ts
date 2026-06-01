@@ -32,6 +32,68 @@ export type Database = {
         }
         Relationships: []
       }
+      cart_items: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          order_id: string | null
+          quantity: number
+          status: Database["public"]["Enums"]["cart_item_status"]
+          store_product_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          quantity: number
+          status?: Database["public"]["Enums"]["cart_item_status"]
+          store_product_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          quantity?: number
+          status?: Database["public"]["Enums"]["cart_item_status"]
+          store_product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "cart_items_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_products: {
         Row: {
           category_id: string | null
@@ -1002,6 +1064,7 @@ export type Database = {
     Enums: {
       app_language: "es" | "en"
       buyer_type: "retail" | "wholesale"
+      cart_item_status: "active" | "pending"
       delivery_status:
         | "available"
         | "assigned"
@@ -1155,6 +1218,7 @@ export const Constants = {
     Enums: {
       app_language: ["es", "en"],
       buyer_type: ["retail", "wholesale"],
+      cart_item_status: ["active", "pending"],
       delivery_status: [
         "available",
         "assigned",

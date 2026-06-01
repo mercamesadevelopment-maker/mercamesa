@@ -11,6 +11,7 @@ import {
   getPaymentUrl,
 } from '@/src/features/payment/services/payment.service';
 import { CartItem } from '@/src/types';
+import { checkoutCartDb, clearCartDb } from '../services/cart.service';
 
 export function useCheckout() {
   const { state, dispatch } = useApp();
@@ -171,9 +172,13 @@ export function useCheckout() {
 
         if (paymentUrl) {
           try {
-            localStorage.setItem(`pending_cart_${orderId}`, JSON.stringify(state.cart));
+            const storeProductIds = group.items.map((i) => String(i.id));
+            await checkoutCartDb(buyerId, orderId, storeProductIds);
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('pending_checkout_order_id', orderId);
+            }
           } catch (e) {
-            console.error('Error saving pending cart:', e);
+            console.error('Error updating cart status to pending in DB:', e);
           }
           dispatch({ type: 'CLEAR_CART' });
           window.location.href = paymentUrl;
@@ -192,6 +197,11 @@ export function useCheckout() {
         throw new Error(errorMsg);
       }
 
+      try {
+        await clearCartDb(buyerId);
+      } catch (e) {
+        console.error('Error clearing cart in DB:', e);
+      }
       dispatch({ type: 'CLEAR_CART' });
       router.push('/orders');
       onClose();

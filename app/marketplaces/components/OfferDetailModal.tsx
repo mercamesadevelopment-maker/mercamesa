@@ -4,6 +4,7 @@ import { X, ShoppingCart } from 'lucide-react';
 import { StoreOffer } from '../../admin/offers/hooks/useOffers';
 import { Badge, Button } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
+import { useCart } from '@/src/features/cart/hooks/use-cart';
 
 interface OfferDetailModalProps {
   offer: StoreOffer | null;
@@ -12,6 +13,7 @@ interface OfferDetailModalProps {
 
 export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
   const { state, dispatch } = useApp();
+  const { addToCart } = useCart();
 
   if (!offer) return null;
 
@@ -25,23 +27,20 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
     // In a real app we need full product details. Here we construct a CartItem from what we have.
     const price = offer.special_price || 0; // fallback if not special price
     
-    dispatch({
-      type: 'ADD_TO_CART',
-      product: {
-        id: offer.store_products?.id || '',
-        name: product?.name || 'Producto en Oferta',
-        cat: 'Ofertas',
-        retailPrice: price,
-        wsPrice: price,
-        stock: 100, // mock
-        unit: 'und',
-        emoji: '🎁',
-        image: offer.imageSignedUrl || null,
-        plazaId: 1, // mock
-        storeId: 1, // mock
-        storeName: 'Tienda'
-      } as any // Cast for now to match your existing state structure
-    });
+    addToCart({
+      id: offer.store_products?.id || '',
+      name: product?.name || 'Producto en Oferta',
+      cat: 'Ofertas',
+      retailPrice: price,
+      wsPrice: price,
+      stock: 100, // mock
+      unit: 'und',
+      emoji: '🎁',
+      image: offer.imageSignedUrl || null,
+      plazaId: 1, // mock
+      storeId: 1, // mock
+      storeName: 'Tienda'
+    } as any);
     onClose();
   };
 
