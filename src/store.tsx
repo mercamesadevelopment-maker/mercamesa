@@ -31,12 +31,14 @@ type AppAction =
   | { type: 'SET_ROLE'; role: RoleKey }
   | { type: 'LOGIN'; role: RoleKey; profile?: Partial<BuyerProfile> }
   | { type: 'LOGOUT' }
-  | { type: 'HYDRATE'; role: RoleKey; profile: Partial<BuyerProfile> }
+  | { type: 'HYDRATE'; role: RoleKey; profile: Partial<BuyerProfile>; cart?: CartItem[] }
+  | { type: 'HYDRATE_GUEST'; cart?: CartItem[] }
   | { type: 'SET_SECTION'; section: string }
   | { type: 'ADD_TO_CART'; product: Product; qty?: number }
   | { type: 'REMOVE_FROM_CART'; productId: number }
   | { type: 'UPDATE_CART_QTY'; productId: number; qty: number }
   | { type: 'CLEAR_CART' }
+  | { type: 'RESTORE_CART'; items: CartItem[] }
   | { type: 'PLACE_ORDER'; orders: Order[] }
   | { type: 'UPDATE_ORDER_STATUS'; orderId: string; status: Order['status'] }
   | { type: 'ADD_NOTIF'; notif: AppNotification }
@@ -160,6 +162,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
         isLoggedIn: true,
         userRole: action.role,
         buyerProfile: { ...state.buyerProfile, ...action.profile },
+        cart: action.cart ?? state.cart,
+        _hydrated: true,
+      };
+
+    case 'HYDRATE_GUEST':
+      return {
+        ...state,
+        isLoggedIn: false,
+        cart: action.cart ?? state.cart,
         _hydrated: true,
       };
 
@@ -216,6 +227,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'CLEAR_CART':
       return { ...state, cart: [] };
+
+    case 'RESTORE_CART':
+      return { ...state, cart: action.items };
 
     case 'PLACE_ORDER':
       return { ...state, orders: [...state.orders, ...action.orders], cart: [] };
@@ -354,13 +368,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const supabase = createSupabaseBrowserClient();
 
     const hydrate = async () => {
+      let savedCart: CartItem[] = [];
+      try {
+        const cartStr = localStorage.getItem('mercamesa_cart');
+        if (cartStr) savedCart = JSON.parse(cartStr);
+      } catch (e) {
+        console.error('Error loading cart from localStorage:', e);
+      }
+
       try {
         // getUser() verifica la sesión contra el servidor (no solo la cookie)
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (error || !user) {
-          // No hay sesión — marcamos como hidratado sin login
-          dispatch({ type: 'LOGOUT' });
+          // No hay sesión — marcamos como hidratado sin login pero cargando el carrito
+          dispatch({ type: 'HYDRATE_GUEST', cart: savedCart });
           return;
         }
 
@@ -372,7 +394,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (!profile) {
-          dispatch({ type: 'LOGOUT' });
+          dispatch({ type: 'HYDRATE_GUEST', cart: savedCart });
           return;
         }
 
@@ -390,10 +412,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             avatar: profile.avatar_url || '',
             role_id: profile.role_id,
           },
+          cart: savedCart,
         });
       } catch (err) {
         console.error('Hydration error:', err);
-        dispatch({ type: 'LOGOUT' });
+        dispatch({ type: 'HYDRATE_GUEST', cart: savedCart });
       }
     };
 
@@ -411,6 +434,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Guardar en localStorage cada vez que el carrito cambia y la app está hidratada
+  useEffect(() => {
+    if (state._hydrated) {
+      try {
+        localStorage.setItem('mercamesa_cart', JSON.stringify(state.cart));
+      } catch (e) {
+        console.error('Error saving cart to localStorage:', e);
+      }
+    }
+  }, [state.cart, state._hydrated]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

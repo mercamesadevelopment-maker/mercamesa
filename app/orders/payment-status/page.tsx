@@ -4,9 +4,11 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowLeft, RefreshCw } from 'lucide-react';
 import { syncPaymentStatus } from '@/src/features/payment/services/payment.service';
+import { useApp } from '@/src/store';
 import Link from 'next/link';
 
 function PaymentStatusContent() {
+  const { dispatch } = useApp();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');
   
@@ -26,6 +28,22 @@ function PaymentStatusContent() {
     try {
       const result = await syncPaymentStatus(orderId);
       setStatus(result.paymentStatus);
+
+      const pendingCartKey = `pending_cart_${orderId}`;
+      if (result.paymentStatus === 'approved') {
+        localStorage.removeItem(pendingCartKey);
+      } else if (result.paymentStatus === 'rejected') {
+        const savedPendingCart = localStorage.getItem(pendingCartKey);
+        if (savedPendingCart) {
+          try {
+            const items = JSON.parse(savedPendingCart);
+            dispatch({ type: 'RESTORE_CART', items });
+          } catch (e) {
+            console.error('Error parsing pending cart items:', e);
+          }
+          localStorage.removeItem(pendingCartKey);
+        }
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Error al verificar el estado del pago');

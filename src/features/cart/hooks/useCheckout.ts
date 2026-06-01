@@ -170,6 +170,11 @@ export function useCheckout() {
         const paymentUrl = getPaymentUrl(zonapagosResult);
 
         if (paymentUrl) {
+          try {
+            localStorage.setItem(`pending_cart_${orderId}`, JSON.stringify(state.cart));
+          } catch (e) {
+            console.error('Error saving pending cart:', e);
+          }
           dispatch({ type: 'CLEAR_CART' });
           window.location.href = paymentUrl;
           return;

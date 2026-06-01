@@ -19,15 +19,25 @@ function mapZonaPagosMethod(code?: string | null) {
   switch (code) {
     case '2701':
       return 'pse';
-
     case '1000':
       return 'card';
-
     case '3000':
       return 'cash';
-
     default:
       return 'unknown';
+  }
+}
+
+function getPaymentMethodLabel(method: string, bankName?: string | null) {
+  switch (method) {
+    case 'pse':
+      return bankName ? `PSE - ${bankName}` : 'PSE';
+    case 'card':
+      return 'Tarjeta de Crédito/Débito';
+    case 'cash':
+      return 'Efectivo';
+    default:
+      return 'Otro';
   }
 }
 
@@ -43,45 +53,29 @@ serve(async (req) => {
       throw new Error('orderId is required');
     }
 
-    const supabaseUrl =
-      Deno.env.get('SUPABASE_URL') ?? '';
-
-    const supabaseServiceKey =
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseServiceKey
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     /**
      * Get payment
      */
-    const { data: payment, error: paymentError } =
-      await supabase
-        .from('payments')
-        .select('id, str_id_pago, order_id')
-        .eq('order_id', orderId)
-        .single();
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .select('id, str_id_pago, order_id')
+      .eq('order_id', orderId)
+      .single();
 
     if (paymentError || !payment) {
-      throw new Error(
-        'Payment not found for this order'
-      );
+      throw new Error(`Payment not found for order ${orderId}: ${paymentError?.message || 'No record'}`);
     }
 
     /**
      * ZonaPagos credentials
      */
-    const idComercio = parseInt(
-      Deno.env.get('ZONAPAGOS_ID_COMERCIO') || '0'
-    );
-
-    const usuario =
-      Deno.env.get('ZONAPAGOS_USUARIO');
-
-    const clave =
-      Deno.env.get('ZONAPAGOS_CLAVE');
+    const idComercio = parseInt(Deno.env.get('ZONAPAGOS_ID_COMERCIO') || '0');
+    const usuario = Deno.env.get('ZONAPAGOS_USUARIO');
+    const clave = Deno.env.get('ZONAPAGOS_CLAVE');
 
     /**
      * Payload
@@ -96,179 +90,123 @@ serve(async (req) => {
 
     /**
      * Call ZonaPagos
+     * Documentation says "VerificaciónPago" (with accent), but we try both if needed.
+     * We'll use the one from the documentation.
      */
     const response = await fetch(
       'https://www.zonapagos.com/Apis_CicloPago/api/VerificacionPago',
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(zonapagosPayload),
       }
     );
 
     if (!response.ok) {
-      throw new Error(
-        `ZonaPagos API responded with status: ${response.status}`
-      );
+      throw new Error(`ZonaPagos API responded with status: ${response.status}`);
     }
 
     const result = await response.json();
 
     /**
      * Parse str_res_pago
+     * The response is pipe-separated. IMPORTANT: Do NOT use .filter(Boolean) 
+     * as it shifts positional indexes when there are empty values.
      */
-    const responseParts =
-      result.str_res_pago
-        ?.split('|')
-        .map((p: string) => p.trim())
-        .filter(Boolean) || [];
+    const responseParts = result.str_res_pago
+      ?.split('|')
+      .map((p: string) => p.trim()) || [];
 
-    console.log('ZonaPagos responseParts:', responseParts);
+    console.log('ZonaPagos responseParts count:', responseParts.length);
 
-    /**
-     * IMPORTANT:
-     * Validate indexes against official ZonaPagos docs.
-     * These indexes are inferred from your sample payload.
-     */
-
-    const transactionCodeRaw =
-      responseParts[2];
-
-    const paymentMethodCode =
-      responseParts[22];
-
-    const bankCode =
-      responseParts[23];
-
-    const bankName =
-      responseParts[24];
+    // According to sample:
+    // 4: Transaction status code (int_estado_pago)
+    // 22: Payment method code (2701=PSE, etc)
+    // 24: Bank Name / Provider
+    const transactionCodeRaw = responseParts[4];
+    const paymentMethodCode = responseParts[22];
+    const bankName = responseParts[24];
 
     /**
      * Payment method mapping
      */
-    const paymentMethod =
-      mapZonaPagosMethod(paymentMethodCode);
-
-    const paymentProviderName =
-      bankName && bankName.length > 0
-        ? bankName
-        : null;
+    const paymentMethod = mapZonaPagosMethod(paymentMethodCode);
+    const paymentMethodLabel = getPaymentMethodLabel(paymentMethod, bankName);
 
     /**
      * Map payment status
      */
-    let paymentStatus: PaymentStatus =
-      'pending';
-
-    const transactionCode = parseInt(
-      transactionCodeRaw || '-1'
-    );
-
-    /**
-     * IMPORTANT:
-     * Validate these mappings according to ZonaPagos docs
-     */
+    let paymentStatus: PaymentStatus = 'pending';
+    const transactionCode = parseInt(transactionCodeRaw || '-1');
 
     if (transactionCode === 1) {
       paymentStatus = 'approved';
-
-    } else if (
-      [1000, 1001, 4000, 4003].includes(
-        transactionCode
-      )
-    ) {
+    } else if ([1000, 1001, 4000, 4003].includes(transactionCode)) {
       paymentStatus = 'rejected';
-
-    } else {
+    } else if (transactionCode !== -1) {
       paymentStatus = 'processing';
     }
 
     /**
      * Update payment
      */
-    const {
-      error: updatePaymentError,
-    } = await supabase
+    const { error: updatePaymentError } = await supabase
       .from('payments')
       .update({
         status: paymentStatus,
         payment_method: paymentMethod,
-        payment_provider_name:
-          paymentProviderName,
+        payment_method_label: paymentMethodLabel,
+        provider_payment_id: responseParts[21] || null, // Based on sample: 8812100013
         callback_response: result,
-        updated_at:
-          new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq('order_id', orderId);
 
-    if (updatePaymentError) {
-      throw updatePaymentError;
-    }
+    if (updatePaymentError) throw new Error(`Update payment error: ${updatePaymentError.message}`);
 
     /**
      * Update order
      */
-    const orderUpdate: Record<
-      string,
-      unknown
-    > = {
+    const orderUpdate: any = {
       payment_status: paymentStatus,
-      updated_at:
-        new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     if (paymentStatus === 'approved') {
       orderUpdate.status = 'confirmed';
     }
 
-    const {
-      error: updateOrderError,
-    } = await supabase
+    const { error: updateOrderError } = await supabase
       .from('orders')
       .update(orderUpdate)
       .eq('id', orderId);
 
-    if (updateOrderError) {
-      throw updateOrderError;
-    }
+    if (updateOrderError) throw new Error(`Update order error: ${updateOrderError.message}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         paymentStatus,
         paymentMethod,
-        paymentProviderName,
-        bankCode,
+        paymentMethodLabel,
+        bankName,
         rawResponse: result,
       }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type':
-            'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
 
   } catch (error) {
-    console.error(error);
+    console.error('Zonapagos Sync Error:', error);
 
     return new Response(
       JSON.stringify({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error',
+        error: error.message || String(error) || 'Unknown error',
       }),
       {
-        headers: {
-          ...corsHeaders,
-          'Content-Type':
-            'application/json',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
     );
