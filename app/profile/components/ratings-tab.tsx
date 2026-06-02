@@ -12,12 +12,12 @@ export function RatingsTab() {
   const profile = state.buyerProfile;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [ratingStoreId, setRatingStoreId] = useState<number | null>(null);
+  const [ratingStoreId, setRatingStoreId] = useState<number | string | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
 
-  const openRating = (storeId: number, orderId: string) => {
+  const openRating = (storeId: number | string, orderId: string) => {
     setRatingStoreId(storeId);
     setRatingOrderId(orderId);
     setRatingValue(5);
@@ -56,7 +56,7 @@ export function RatingsTab() {
         id: Math.random().toString(36).substr(2, 9),
         type: 'rating',
         title: '¡Gracias por tu calificación!',
-        msg: `Tu opinión sobre ${state.stores.find((s) => s.id === ratingStoreId)?.name} ha sido enviada.`,
+        msg: `Tu opinión sobre ${state.stores.find((s) => String(s.id) === String(ratingStoreId))?.name} ha sido enviada.`,
         time: 'Ahora',
         read: false,
       },
@@ -127,7 +127,7 @@ export function RatingsTab() {
           </h3>
           <div className="grid sm:grid-cols-2 gap-4">
             {Object.entries(profile.storeRatings).map(([storeId, rating]: [string, any]) => {
-              const store = state.stores.find((s) => s.id === parseInt(storeId));
+              const store = state.stores.find((s) => String(s.id) === String(storeId));
               if (!store) return null;
               return (
                 <div
@@ -191,14 +191,14 @@ export function RatingsTab() {
               </button>
 
               <div className="w-24 h-24 bg-mm-gbg rounded-3xl flex items-center justify-center text-5xl mx-auto mb-6 shadow-sm border border-mm-crd/50">
-                {state.stores.find((s) => s.id === ratingStoreId)?.emoji}
+                {state.stores.find((s) => String(s.id) === String(ratingStoreId))?.emoji}
               </div>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-2">¿Qué tal tu experiencia?</h2>
               <p className="text-mm-txs mb-8 font-medium">
                 Califica a{' '}
                 <span className="text-mm-g font-bold">
-                  {state.stores.find((s) => s.id === ratingStoreId)?.name}
+                  {state.stores.find((s) => String(s.id) === String(ratingStoreId))?.name}
                 </span>
               </p>
 

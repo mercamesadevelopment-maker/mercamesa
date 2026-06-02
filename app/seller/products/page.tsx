@@ -1,6 +1,8 @@
 'use client';
+
 import React from 'react';
-import { ProviderProductsView } from '../../../src/components/AdminViews';
+import { ProductsView } from './components/products-view';
+
 export default function SellerProductsPage() {
-  return <ProviderProductsView />;
+  return <ProductsView />;
 }

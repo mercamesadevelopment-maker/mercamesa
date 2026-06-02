@@ -36,7 +36,7 @@ export interface Plaza {
 
 export interface StoreReview {
   id: string;
-  storeId: number;
+  storeId: number | string;
   buyerId: string;
   buyerName: string;
   stars: number;
@@ -45,7 +45,7 @@ export interface StoreReview {
 }
 
 export interface Store {
-  id: number;
+  id: number | string;
   plazaId: number;
   emoji: string;
   name: string;
@@ -76,9 +76,9 @@ export interface MasterProduct {
 }
 
 export interface Product {
-  id: number;
+  id: number | string;
   plazaId: number;
-  storeId: number;
+  storeId: number | string;
   emoji: string;
   image?: string;
   name: string;
@@ -91,7 +91,7 @@ export interface Product {
   wsMin: number;
   stock: number;
   minStock: number;
-  masterId?: number;
+  masterId?: number | string;
   desc: string;
   status: 'active' | 'inactive';
 }
@@ -101,7 +101,7 @@ export interface CartItem extends Product {
 }
 
 export interface OrderItem {
-  id: number;
+  id: number | string;
   name: string;
   qty: number;
   price: number;
@@ -113,9 +113,9 @@ export interface OrderItem {
 export type SaleStatus = 'pedido' | 'preparado' | 'entregado' | 'pagado';
 
 export interface Sale {
-  id: number;
+  id: number | string;
   date: string;
-  storeId: number;
+  storeId: number | string;
   items: OrderItem[];
   total: number;
   status: SaleStatus;
@@ -126,8 +126,9 @@ export interface Sale {
 
 export interface Order {
   id: string;
+  storeOrderId?: string;
   date: string;
-  storeId: number;
+  storeId: number | string;
   storeName: string;
   storeEmoji: string;
   items: OrderItem[];
@@ -173,8 +174,8 @@ export interface BuyerProfile {
   loyaltyPoints: number;
   addresses: Address[];
   payments: PaymentMethod[];
-  storeRatings: Record<number, { stars: number; comment: string; date: string }>;
-  favoriteStores: number[];
+  storeRatings: Record<string | number, { stars: number; comment: string; date: string }>;
+  favoriteStores: (number | string)[];
   prefs: {
     orderNotif: boolean;
     promoNotif: boolean;
@@ -193,14 +194,14 @@ export interface AppNotification {
 }
 
 export interface Offer {
-  id: number;
-  storeId: number;
+  id: number | string;
+  storeId: number | string;
   plazaId: number;
   title: string;
   desc: string;
   type: 'percentage' | 'fixed';
   value: number; 
-  productIds: number[]; 
+  productIds: (number | string)[]; 
   status: 'active' | 'expired';
   endDate: string;
   image?: string;

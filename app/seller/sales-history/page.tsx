@@ -1,6 +1,8 @@
 'use client';
+
 import React from 'react';
-import { ProviderSalesHistoryView } from '../../../src/components/AdminViews';
+import { SalesHistoryView } from './components/sales-history-view';
+
 export default function SellerSalesHistoryPage() {
-  return <ProviderSalesHistoryView />;
+  return <SalesHistoryView />;
 }

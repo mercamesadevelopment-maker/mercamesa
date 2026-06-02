@@ -18,7 +18,9 @@ export async function GET(request: Request) {
     .from('role_permissions')
     .select(`
       module_id,
-      modules (*)
+      modules (*),
+      action_id,
+      actions (*)
     `)
     .eq('role_id', roleId);
 
@@ -26,16 +28,34 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Extract unique modules
+  // Extract unique modules and aggregate actions per module
   const modulesMap = new Map();
+  const permissions: Record<string, string[]> = {};
+
   data.forEach((rp: any) => {
-    if (rp.modules && rp.modules.is_active) {
-      modulesMap.set(rp.modules.id, rp.modules);
+    const module = rp.modules;
+    const action = rp.actions;
+    if (module && module.is_active) {
+      modulesMap.set(module.id, module);
+      
+      if (action && action.name) {
+        if (!permissions[module.key]) {
+          permissions[module.key] = [];
+        }
+        if (!permissions[module.key].includes(action.name)) {
+          permissions[module.key].push(action.name);
+        }
+      }
     }
   });
 
   const allowedModules = Array.from(modulesMap.values())
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-  return NextResponse.json({ data: allowedModules }, { status: 200 });
+  return NextResponse.json({ 
+    data: {
+      modules: allowedModules,
+      permissions
+    }
+  }, { status: 200 });
 }

@@ -99,6 +99,8 @@ export type Database = {
           category_id: string | null
           created_at: string
           created_by: string | null
+          dane_unit_code: string | null
+          dane_unit_name: string | null
           default_unit_id: string | null
           description: string | null
           id: string
@@ -115,6 +117,8 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           created_by?: string | null
+          dane_unit_code?: string | null
+          dane_unit_name?: string | null
           default_unit_id?: string | null
           description?: string | null
           id?: string
@@ -131,6 +135,8 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           created_by?: string | null
+          dane_unit_code?: string | null
+          dane_unit_name?: string | null
           default_unit_id?: string | null
           description?: string | null
           id?: string
@@ -211,6 +217,47 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          created_at: string
+          document_number: string
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_number: string
+          email?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_number?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_addresses: {
         Row: {
           address_line: string
@@ -255,6 +302,179 @@ export type Database = {
           {
             foreignKeyName: "delivery_addresses_buyer_id_fkey"
             columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invitation_type: Database["public"]["Enums"]["invitation_type_enum"]
+          invited_by: string | null
+          marketplace_id: string | null
+          role: string
+          store_id: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invitation_type: Database["public"]["Enums"]["invitation_type_enum"]
+          invited_by?: string | null
+          marketplace_id?: string | null
+          role: string
+          store_id?: string | null
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invitation_type?: Database["public"]["Enums"]["invitation_type_enum"]
+          invited_by?: string | null
+          marketplace_id?: string | null
+          role?: string
+          store_id?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_delivery_users: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          marketplace_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          marketplace_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          marketplace_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_delivery_users_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_delivery_users_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_delivery_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          invited_by: string | null
+          marketplace_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invited_by?: string | null
+          marketplace_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invited_by?: string | null
+          marketplace_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_members_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_members_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_members_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -729,6 +949,55 @@ export type Database = {
         }
         Relationships: []
       }
+      store_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          invited_by: string | null
+          role: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invited_by?: string | null
+          role: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invited_by?: string | null
+          role?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_members_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_offers: {
         Row: {
           created_at: string
@@ -1072,6 +1341,11 @@ export type Database = {
         | "in_transit"
         | "delivered"
         | "failed"
+      invitation_type_enum:
+        | "marketplace_member"
+        | "store_member"
+        | "delivery_user"
+        | "admin"
       order_status:
         | "pending"
         | "confirmed"
@@ -1226,6 +1500,12 @@ export const Constants = {
         "in_transit",
         "delivered",
         "failed",
+      ],
+      invitation_type_enum: [
+        "marketplace_member",
+        "store_member",
+        "delivery_user",
+        "admin",
       ],
       order_status: [
         "pending",

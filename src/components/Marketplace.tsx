@@ -103,7 +103,7 @@ export function MarketView() {
     return state.offers.filter(o => o.plazaId === selectedPlaza.id && o.status === 'active');
   }, [state.offers, selectedPlaza]);
 
-  const toggleFavorite = (e: React.MouseEvent, storeId: number) => {
+  const toggleFavorite = (e: React.MouseEvent, storeId: number | string) => {
     e.stopPropagation();
     const isFav = state.buyerProfile.favoriteStores.includes(storeId);
     let updated;

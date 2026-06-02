@@ -33,7 +33,7 @@ export function useCart() {
     }
   };
 
-  const updateCartQty = async (productId: number, qty: number) => {
+  const updateCartQty = async (productId: number | string, qty: number) => {
     if (!state.isLoggedIn || !buyerId) return;
 
     // Optimistic update
@@ -50,7 +50,7 @@ export function useCart() {
     }
   };
 
-  const removeFromCart = async (productId: number) => {
+  const removeFromCart = async (productId: number | string) => {
     if (!state.isLoggedIn || !buyerId) return;
 
     // Optimistic update

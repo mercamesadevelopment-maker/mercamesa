@@ -592,7 +592,7 @@ export function ProviderProductsView() {
       emoji: p.emoji,
       cat: p.cat,
       image: p.image || '',
-      masterId: p.masterId || 0
+      masterId: (p.masterId as any) || 0
     });
     setIsAddProductOpen(true);
   };
@@ -1217,12 +1217,12 @@ export function AdminView() {
     name: '', city: '', address: '', emoji: '🏛️', bg: '#F4F4E8', image: '',
     openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
   });
-  const [newProduct, setNewProduct] = useState({ name: '', storeId: 1, retailPrice: 0, stock: 0, unit: 'kg', emoji: '🍎', cat: 'Varios', image: '', masterId: 0 });
-  const [newOffer, setNewOffer] = useState({ title: '', desc: '', type: 'percentage' as 'percentage' | 'fixed', value: 0, productIds: [] as number[], emoji: '🏷️', storeId: 1, image: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', storeId: 1 as number | string, retailPrice: 0, stock: 0, unit: 'kg', emoji: '🍎', cat: 'Varios', image: '', masterId: 0 as any });
+  const [newOffer, setNewOffer] = useState({ title: '', desc: '', type: 'percentage' as 'percentage' | 'fixed', value: 0, productIds: [] as (number | string)[], emoji: '🏷️', storeId: 1 as number | string, image: '' });
   const [newCatalogItem, setNewCatalogItem] = useState({ name: '', cat: 'Varios', emoji: '📦', image: '', defaultUnit: 'kg' });
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
-  const [filterStoreId, setFilterStoreId] = useState<number | 'all'>('all');
-  const [stockStoreDetail, setStockStoreDetail] = useState<number | null>(null);
+  const [filterStoreId, setFilterStoreId] = useState<number | string | 'all'>('all');
+  const [stockStoreDetail, setStockStoreDetail] = useState<number | string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const isProvider = state.userRole === 'provider';
@@ -1449,7 +1449,7 @@ export function AdminView() {
   const groupedProducts = useMemo(() => {
     const groups: Record<string, {
       id: string;
-      masterId?: number;
+      masterId?: number | string;
       name: string;
       cat: string;
       unit: string;
@@ -3748,11 +3748,11 @@ export function ProviderSalesView() {
     });
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = (productId: number | string) => {
     setCart(prev => prev.filter(item => item.product.id !== productId));
   };
 
-  const toggleUnitMode = (productId: number) => {
+  const toggleUnitMode = (productId: number | string) => {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId && item.product.unit === 'kg') {
         return { ...item, unitMode: item.unitMode === 'base' ? 'alt' : 'base' };
@@ -3761,7 +3761,7 @@ export function ProviderSalesView() {
     }));
   };
 
-  const updateQtyValue = (productId: number, val: number) => {
+  const updateQtyValue = (productId: number | string, val: number) => {
     setCart(prev => prev.map(item => {
       if (item.product.id === productId) {
         // If mode is alt (grams), the input value 'val' is in grams, so we divide by 1000

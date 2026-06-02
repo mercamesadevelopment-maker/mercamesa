@@ -23,7 +23,7 @@ interface AppState {
   reviews: StoreReview[];
   sales: Sale[];
   selectedPlazaId?: number;
-  selectedStoreId?: number;
+  selectedStoreId?: number | string;
   // Flag para saber si ya intentamos hidratar desde Supabase
   _hydrated: boolean;
 }
@@ -35,8 +35,8 @@ type AppAction =
   | { type: 'HYDRATE'; role: RoleKey; profile: Partial<BuyerProfile>; cart?: CartItem[] }
   | { type: 'SET_SECTION'; section: string }
   | { type: 'ADD_TO_CART'; product: Product; qty?: number }
-  | { type: 'REMOVE_FROM_CART'; productId: number }
-  | { type: 'UPDATE_CART_QTY'; productId: number; qty: number }
+  | { type: 'REMOVE_FROM_CART'; productId: number | string }
+  | { type: 'UPDATE_CART_QTY'; productId: number | string; qty: number }
   | { type: 'CLEAR_CART' }
   | { type: 'HYDRATE_CART'; cart: CartItem[] }
   | { type: 'PLACE_ORDER'; orders: Order[] }
@@ -47,23 +47,23 @@ type AppAction =
   | { type: 'UPDATE_BUYER_PROFILE'; profile: Partial<BuyerProfile> }
   | { type: 'ADD_PRODUCT'; product: Product }
   | { type: 'UPDATE_PRODUCT'; product: Product }
-  | { type: 'DELETE_PRODUCT'; productId: number }
+  | { type: 'DELETE_PRODUCT'; productId: number | string }
   | { type: 'ADD_PLAZA'; plaza: Plaza }
   | { type: 'UPDATE_PLAZA'; plaza: Plaza }
   | { type: 'DELETE_PLAZA'; plazaId: number }
   | { type: 'ADD_STORE'; store: Store }
   | { type: 'UPDATE_STORE'; store: Store }
-  | { type: 'DELETE_STORE'; storeId: number }
+  | { type: 'DELETE_STORE'; storeId: number | string }
   | { type: 'ADD_OFFER'; offer: Offer }
   | { type: 'UPDATE_OFFER'; offer: Offer }
-  | { type: 'DELETE_OFFER'; offerId: number }
+  | { type: 'DELETE_OFFER'; offerId: number | string }
   | { type: 'ADD_CATALOG_ITEM'; item: MasterProduct }
   | { type: 'UPDATE_CATALOG_ITEM'; item: MasterProduct }
   | { type: 'DELETE_CATALOG_ITEM'; id: number }
   | { type: 'ADD_REVIEW'; review: StoreReview }
   | { type: 'ADD_SALE'; sale: Sale }
-  | { type: 'UPDATE_SALE_STATUS'; saleId: number; status: SaleStatus }
-  | { type: 'SELECT_STORE'; plazaId: number; storeId?: number }
+  | { type: 'UPDATE_SALE_STATUS'; saleId: number | string; status: SaleStatus }
+  | { type: 'SELECT_STORE'; plazaId: number; storeId?: number | string }
   | { type: 'CLEAR_STORE_SELECTION' };
 
 // Mapea el nombre del rol de Supabase al RoleKey de la app

@@ -15,11 +15,11 @@ export function OrdersView() {
   const { state, dispatch } = useApp();
   const [activeTab, setActiveTab] = useState<'active' | 'completed' | 'cancelled'>('active');
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [ratingStoreId, setRatingStoreId] = useState<number | null>(null);
+  const [ratingStoreId, setRatingStoreId] = useState<number | string | null>(null);
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
 
-  const handleOpenRating = (storeId: number) => {
+  const handleOpenRating = (storeId: number | string) => {
     setRatingStoreId(storeId);
     setRatingValue(5);
     setRatingComment('');
@@ -244,13 +244,13 @@ export function OrdersView() {
               </button>
 
               <div className="w-24 h-24 bg-mm-gbg rounded-3xl flex items-center justify-center text-5xl mx-auto mb-6 shadow-sm border border-mm-crd/50">
-                {state.stores.find(s => s.id === ratingStoreId)?.emoji}
+                {state.stores.find(s => String(s.id) === String(ratingStoreId))?.emoji}
               </div>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-2">
                 Â¿QuÃ© tal tu compra?
               </h2>
-              <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{state.stores.find(s => s.id === ratingStoreId)?.name}</span></p>
+              <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{state.stores.find(s => String(s.id) === String(ratingStoreId))?.name}</span></p>
 
               <div className="flex justify-center gap-2 mb-8">
                 {[1, 2, 3, 4, 5].map((star) => (

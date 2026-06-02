@@ -5,6 +5,7 @@ export type Module = Database['public']['Tables']['modules']['Row'];
 
 export function usePermissions(roleId?: string, hydrated?: boolean) {
   const [modules, setModules] = useState<Module[]>([]);
+  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
   // Empieza en true para no mostrar "Sin módulos" mientras hidrata
   const [loading, setLoading] = useState(true);
 
@@ -24,10 +25,12 @@ export function usePermissions(roleId?: string, hydrated?: boolean) {
         const res = await fetch(`/api/auth/permissions?role_id=${roleId}`);
         if (!res.ok) throw new Error('Failed to fetch permissions');
         const json = await res.json();
-        setModules(json.data || []);
+        setModules(json.data?.modules || []);
+        setPermissions(json.data?.permissions || {});
       } catch (err) {
         console.error('Error fetching permissions:', err);
         setModules([]);
+        setPermissions({});
       } finally {
         setLoading(false);
       }
@@ -36,5 +39,9 @@ export function usePermissions(roleId?: string, hydrated?: boolean) {
     fetchPermissions();
   }, [roleId, hydrated]);
 
-  return { modules, loading };
+  const hasPermission = (moduleKey: string, actionName: string) => {
+    return permissions[moduleKey]?.includes(actionName) ?? false;
+  };
+
+  return { modules, permissions, hasPermission, loading };
 }
