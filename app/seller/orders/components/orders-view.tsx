@@ -16,7 +16,22 @@ export function OrdersView() {
     setFilterStatus,
     stats,
     updateOrderStatus,
+    stores,
+    selectedStoreId,
+    setSelectedStoreId,
   } = useOrders();
+
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const ordersPerPage = 6;
+
+  // Reset page to 1 if filter or store changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, selectedStoreId]);
+
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const startIndex = (currentPage - 1) * ordersPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ordersPerPage);
 
   const getStatusConfig = (status: Order['status']) => {
     switch (status) {
@@ -67,9 +82,28 @@ export function OrdersView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Monitor de Pedidos</h1>
-          <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+          <div>
+            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Monitor de Pedidos</h1>
+            <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
+          </div>
+          {stores.length > 1 && (
+            <div className="flex flex-col gap-1 min-w-[200px]">
+              <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Filtrar por Tienda</label>
+              <select
+                value={selectedStoreId}
+                onChange={(e) => setSelectedStoreId(e.target.value)}
+                className="bg-white text-mm-g font-semibold text-sm border border-mm-crd rounded-xl px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-mm-g/20 cursor-pointer"
+              >
+                <option value="all">Todas las tiendas</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 bg-mm-gbg/50 p-1.5 rounded-2xl border border-mm-crd shadow-inner">
           {(['all', 'pending', 'preparing', 'on_the_way'] as const).map(s => (
@@ -114,7 +148,7 @@ export function OrdersView() {
       {/* Order Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence mode="popLayout">
-          {filteredOrders.map(order => {
+          {paginatedOrders.map(order => {
             const config = getStatusConfig(order.status);
             return (
               <motion.div
@@ -135,9 +169,16 @@ export function OrdersView() {
                     </Badge>
                   </div>
                   <h3 className="text-xl font-bold text-mm-g mb-1">Pedido #{order.id}</h3>
-                  <p className="text-xs text-mm-txs flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" /> {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs text-mm-txs">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {stores.length > 1 && (
+                      <span className="bg-mm-gbg text-mm-g px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-mm-crd/50">
+                        🏪 {order.storeName}
+                      </span>
+                    )}
+                  </div>
                   <div className="absolute top-8 right-16 opacity-0 group-hover:opacity-10 shadow-2xl transition-opacity">
                      <TrendingUp className="w-24 h-24 text-mm-g -rotate-12" />
                   </div>
@@ -197,6 +238,35 @@ export function OrdersView() {
           </div>
         )}
       </div>
+
+      {/* Pagination Footer */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white px-8 py-5 rounded-[32px] border border-mm-crd shadow-sm mt-8">
+          <span className="text-sm text-mm-txs">
+            Página <span className="font-bold text-mm-g">{currentPage}</span> de <span className="font-bold text-mm-g">{totalPages}</span>
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage <= 1}
+              className="rounded-xl px-5 h-10 border border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold disabled:opacity-50"
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
+              className="rounded-xl px-5 h-10 border border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold disabled:opacity-50"
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

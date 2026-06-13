@@ -18,6 +18,9 @@ export function OffersView() {
     setNewOffer,
     handleAddOffer,
     handleDeleteOffer,
+    stores,
+    storeId,
+    selectStore,
   } = useOffers();
 
   const columns = [
@@ -87,6 +90,22 @@ export function OffersView() {
             <h1 className="text-4xl font-fraunces text-mm-g mb-2">Ofertas por Tienda</h1>
             <p className="text-mm-txs">Registra y administra ofertas y promociones especiales.</p>
           </div>
+          {stores.length > 1 && (
+            <div className="flex flex-col gap-1 min-w-[200px] ml-4">
+              <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Tienda Activa</label>
+              <select
+                value={storeId || ''}
+                onChange={(e) => selectStore(e.target.value)}
+                className="bg-white text-mm-g font-semibold text-sm border border-mm-crd rounded-xl px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-mm-g/20 cursor-pointer"
+              >
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         
         <Button onClick={() => setIsModalOpen(true)} className="shadow-lg shadow-mm-g/10">

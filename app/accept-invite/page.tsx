@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Mail, Lock, User, Phone } from 'lucide-react';
+import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
 import Image from 'next/image';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -21,6 +21,8 @@ export default function AcceptInvite() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -28,7 +30,7 @@ export default function AcceptInvite() {
     const checkInvitation = async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        
+
         // Try getting existing session
         let { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
@@ -41,14 +43,14 @@ export default function AcceptInvite() {
           const params = new URLSearchParams(hash.substring(1));
           const access_token = params.get('access_token');
           const refresh_token = params.get('refresh_token');
-          
+
           if (access_token && refresh_token) {
             console.log('Explicitly setting session from URL hash...');
             const { data: { session: newSession }, error: setError } = await supabase.auth.setSession({
               access_token,
               refresh_token
             });
-            
+
             if (setError) {
               console.error('Error setting session from hash:', setError);
             } else {
@@ -190,7 +192,7 @@ export default function AcceptInvite() {
                 Tu perfil de vendedor ha sido creado exitosamente y has sido asignado como miembro de la tienda{' '}
                 <span className="font-bold text-mm-g">{storeName}</span>.
               </p>
-              <Button onClick={() => router.push('/seller')} size="lg" className="w-full">
+              <Button onClick={() => router.push('/seller/dashboard')} size="lg" className="w-full">
                 Ir a mi panel →
               </Button>
             </motion.div>
@@ -249,25 +251,39 @@ export default function AcceptInvite() {
                 <div className="relative">
                   <Input
                     label="Contraseña"
-                    type="password"
+                    type={showPass ? 'text' : 'password'}
                     name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-4 top-[38px] text-mm-txw hover:text-mm-g transition-colors"
+                  >
+                    {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
 
                 <div className="relative">
                   <Input
                     label="Confirmar Contraseña"
-                    type="password"
+                    type={showConfirmPass ? 'text' : 'password'}
                     name="confirmPassword"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repite tu contraseña"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                    className="absolute right-4 top-[38px] text-mm-txw hover:text-mm-g transition-colors"
+                  >
+                    {showConfirmPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
 
                 <div className="pt-4">

@@ -4,22 +4,51 @@ import { Order, OrderItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 
 export function useOrders() {
-  const { storeId, storeName } = useSellerStore();
+  const { stores, storeId, storeName, selectStore } = useSellerStore();
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
 
+  // Synchronize selectedStoreId with storeId when storeId loads,
+  // default to 'all' if there are multiple stores.
+  useEffect(() => {
+    if (storeId) {
+      if (stores.length > 1) {
+        setSelectedStoreId('all');
+      } else {
+        setSelectedStoreId(storeId);
+      }
+    }
+  }, [storeId, stores]);
+
+  // Sync back selectedStoreId to the global useSellerStore if it's a specific store
+  useEffect(() => {
+    if (selectedStoreId && selectedStoreId !== 'all' && selectedStoreId !== storeId) {
+      selectStore(selectedStoreId);
+    }
+  }, [selectedStoreId, storeId, selectStore]);
+
   const fetchStoreOrders = async () => {
-    if (!storeId) return;
+    if (stores.length === 0) return;
+
+    // Determine the store IDs to query based on selectedStoreId filter
+    const storeIdsToQuery = selectedStoreId === 'all'
+      ? stores.map(s => s.id)
+      : [selectedStoreId];
+
     const supabase = createSupabaseBrowserClient();
     try {
       setLoading(true);
 
-      // 1. Fetch store orders with parent order details
+      // 1. Fetch store orders with parent order details and store name
       const { data: storeOrdersData, error: storeOrdersError } = await supabase
         .from('store_orders')
         .select(`
           *,
+          stores (
+            name
+          ),
           orders (
             *,
             profiles (
@@ -28,14 +57,15 @@ export function useOrders() {
               phone
             ),
             delivery_addresses (
-              street,
+              label,
+              address_line,
               neighborhood,
-              city,
-              notes
+              municipality,
+              department
             )
           )
         `)
-        .eq('store_id', storeId)
+        .in('store_id', storeIdsToQuery)
         .order('created_at', { ascending: false });
 
       if (storeOrdersError) throw storeOrdersError;
@@ -57,7 +87,7 @@ export function useOrders() {
           )
         `)
         .in('order_id', orderIds)
-        .eq('store_products.store_id', storeId);
+        .in('store_products.store_id', storeIdsToQuery);
 
       if (itemsError) throw itemsError;
 
@@ -67,13 +97,15 @@ export function useOrders() {
         const buyer = parentOrder?.profiles;
         const addressObj = parentOrder?.delivery_addresses;
 
-        const addressStr = addressObj 
-          ? `${addressObj.street}, ${addressObj.neighborhood}, ${addressObj.city}` 
+        const addressStr = addressObj
+          ? `${addressObj.address_line ?? ''}, ${addressObj.neighborhood ?? ''}, ${addressObj.municipality ?? ''}, ${addressObj.department ?? ''}`
+            .replace(/,\s*,/g, ',')
+            .replace(/^,\s*|,\s*$/g, '')
           : 'Retiro en tienda';
 
-        // Filter and map items belonging to this store
+        // Filter and map items belonging to this order's store
         const storeItems: OrderItem[] = (itemsData || [])
-          .filter((item: any) => item.order_id === so.order_id)
+          .filter((item: any) => item.order_id === so.order_id && item.store_products?.store_id === so.store_id)
           .map((item: any) => ({
             id: item.id,
             name: item.catalog_name || 'Producto',
@@ -88,7 +120,7 @@ export function useOrders() {
           storeOrderId: so.id, // Store Order specific DB ID
           date: so.created_at || new Date().toISOString(),
           storeId: so.store_id,
-          storeName: storeName || 'Mi Tienda',
+          storeName: so.stores?.name || 'Mi Tienda',
           storeEmoji: '🏪',
           items: storeItems,
           total: Number(so.subtotal),
@@ -108,10 +140,10 @@ export function useOrders() {
   };
 
   useEffect(() => {
-    if (storeId) {
+    if (stores.length > 0) {
       fetchStoreOrders();
     }
-  }, [storeId]);
+  }, [stores, selectedStoreId]);
 
   const filteredOrders = useMemo(() => {
     return myOrders.filter(o => filterStatus === 'all' || o.status === filterStatus);
@@ -153,7 +185,10 @@ export function useOrders() {
     setFilterStatus,
     stats,
     updateOrderStatus,
-    loading: loading || !storeId,
+    loading: loading || stores.length === 0,
+    stores,
+    selectedStoreId,
+    setSelectedStoreId,
   };
 }
 

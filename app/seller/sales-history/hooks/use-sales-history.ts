@@ -22,7 +22,7 @@ export interface UnifiedHistoryItem {
 
 export function useSalesHistory() {
   const { state } = useApp();
-  const { storeId, storeName } = useSellerStore();
+  const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [onlineOrders, setOnlineOrders] = useState<UnifiedHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<UnifiedHistoryItem | null>(null);
@@ -47,10 +47,11 @@ export function useSalesHistory() {
               phone
             ),
             delivery_addresses (
-              street,
+              label,
+              address_line,
               neighborhood,
-              city,
-              notes
+              municipality,
+              department
             )
           )
         `)
@@ -87,8 +88,10 @@ export function useSalesHistory() {
         const buyer = parentOrder?.profiles;
         const addressObj = parentOrder?.delivery_addresses;
 
-        const addressStr = addressObj 
-          ? `${addressObj.street}, ${addressObj.neighborhood}, ${addressObj.city}` 
+        const addressStr = addressObj
+          ? `${addressObj.address_line ?? ''}, ${addressObj.neighborhood ?? ''}, ${addressObj.municipality ?? ''}, ${addressObj.department ?? ''}`
+            .replace(/,\s*,/g, ',')
+            .replace(/^,\s*|,\s*$/g, '')
           : 'Retiro en tienda';
 
         const storeItems: OrderItem[] = (itemsData || [])
@@ -181,6 +184,9 @@ export function useSalesHistory() {
     totalHistoricalRevenue,
     storeName: storeName || 'Mi Tienda',
     loading: loading || !storeId,
+    stores,
+    storeId,
+    selectStore,
   };
 }
 

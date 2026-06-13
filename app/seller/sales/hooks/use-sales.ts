@@ -8,7 +8,7 @@ import { useSellerStore } from '@/app/hooks/use-seller-store';
 
 export function useSales() {
   const { state, dispatch } = useApp();
-  const { storeId, storeName } = useSellerStore();
+  const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -189,6 +189,10 @@ export function useSales() {
     todayTotal,
     nextConsecutive: state.sales.length + 1001,
     loading: loading || !storeId,
+    stores,
+    storeId,
+    storeName,
+    selectStore,
   };
 }
 

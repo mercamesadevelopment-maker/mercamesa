@@ -3,7 +3,7 @@ import { Product, MasterProduct } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 
 export function useProducts() {
-  const { storeId, storeName } = useSellerStore();
+  const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [catalog, setCatalog] = useState<MasterProduct[]>([]);
   const [units, setUnits] = useState<{ id: string; name: string; abbreviation: string }[]>([]);
@@ -233,6 +233,10 @@ export function useProducts() {
     handleOpenEdit,
     handleAddProduct,
     handleDeleteProduct,
+    stores,
+    storeId,
+    storeName,
+    selectStore,
   };
 }
 

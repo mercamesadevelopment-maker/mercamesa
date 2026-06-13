@@ -3,7 +3,7 @@ import { Offer, Product } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 
 export function useOffers() {
-  const { storeId } = useSellerStore();
+  const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [myOffers, setMyOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,5 +158,9 @@ export function useOffers() {
     handleAddOffer,
     handleDeleteOffer,
     loading: loading || !storeId,
+    stores,
+    storeId,
+    storeName,
+    selectStore,
   };
 }
