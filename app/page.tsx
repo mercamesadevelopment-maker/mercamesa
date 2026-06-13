@@ -8,6 +8,7 @@ import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
 import { LoginModal } from './auth/LoginModal';
 import { RegisterModal } from './auth/RegisterModal';
 import { useApp } from '@/src/store';
+import Image from 'next/image';
 
 const roleRoutes: Record<string, string> = {
   retail: '/marketplaces',
@@ -36,16 +37,17 @@ export default function Page() {
       {/* Header */}
       <header className="fixed top-0 left-0 w-full h-20 bg-white/90 backdrop-blur-md z-50 border-b border-mm-gbg flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-2">
-          <img 
-            src="https://mercamesa.com/wp-content/uploads/2025/09/logo-mercamesa-opt.png" 
-            alt="Mercamesa" 
+          <Image
+            src="/logo-mercamesa.png"
+            alt="Mercamesa"
             className="h-12 w-auto"
-            referrerPolicy="no-referrer"
+            width={192}
+            height={192}
           />
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setIsLoginOpen(true)} 
+          <button
+            onClick={() => setIsLoginOpen(true)}
             className="text-mm-g font-bold hover:text-mm-gm transition-colors px-4 py-2"
           >
             Iniciar sesión
@@ -54,7 +56,7 @@ export default function Page() {
       </header>
 
       {/* Hero Section */}
-      <section 
+      <section
         className="relative pt-40 pb-28 px-6 lg:px-12 flex items-center min-h-[700px] overflow-hidden"
         style={{
           backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.65)), url("https://plus.unsplash.com/premium_photo-1661941056969-64b7b4f6adda?q=80&w=2801&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")',
@@ -64,7 +66,7 @@ export default function Page() {
         }}
       >
         <div className="max-w-7xl mx-auto text-center relative z-10">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl lg:text-7xl font-fraunces font-black text-white leading-tight mb-6 drop-shadow-2xl"
@@ -72,7 +74,7 @@ export default function Page() {
             Mercamesa: Plataforma de Integración Agroalimentaria. <br />
             <span className="text-mm-gll drop-shadow-md">Del campo a tu mesa, con dignidad.</span>
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -80,22 +82,22 @@ export default function Page() {
           >
             Mercamesa transforma el mercado en comunidad. Es una solución digital que conecta a todos los actores del sistema agroalimentario—campesinos, comerciantes, transportadores, consumidores y administradores—en una red viva, justa y trazable.
           </motion.p>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="flex flex-wrap justify-center gap-4 relative z-20"
           >
-            <Button 
-              onClick={() => setIsLoginOpen(true)} 
-              size="lg" 
+            <Button
+              onClick={() => setIsLoginOpen(true)}
+              size="lg"
               className="px-8 bg-mm-oro hover:bg-mm-oro/90 text-white border-none shadow-xl"
             >
               Iniciar sesión
             </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
+            <Button
+              variant="outline"
+              size="lg"
               className="px-8 border-white text-white hover:bg-white/10 backdrop-blur-sm"
               onClick={() => document.getElementById('descubre')?.scrollIntoView({ behavior: 'smooth' })}
             >
@@ -109,11 +111,21 @@ export default function Page() {
       <section className="py-12 bg-mm-gbg">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8">
           <div className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm">
-            <img src="https://mercamesa.com/wp-content/uploads/2025/12/icon-reconocimiento-shape.png" alt="" className="w-20 h-20" referrerPolicy="no-referrer" />
+            <Image
+              src="/icon-reconocimiento-shape.png"
+              alt="Reconocimiento"
+              width={192}
+              height={192}
+            />
             <p className="text-xl font-fraunces text-mm-g font-bold">Aquí, cada transacción es un acto de reconocimiento.</p>
           </div>
           <div className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm">
-            <img src="https://mercamesa.com/wp-content/uploads/2025/12/icon-comunicacion-shape.png" alt="" className="w-20 h-20" referrerPolicy="no-referrer" />
+            <Image
+              src="/icon-comunicacion-shape.png"
+              alt="Comunicación"
+              width={192}
+              height={192}
+            />
             <p className="text-xl font-fraunces text-mm-g font-bold">Cada producto, una historia que merece ser contada.</p>
           </div>
         </div>
@@ -136,14 +148,19 @@ export default function Page() {
             { title: "Para transportadores", desc: "Rutas visibles, propósito claro, reconocimiento.", img: "https://mercamesa.com/wp-content/uploads/2025/09/banner-2-1024x578.jpg" },
             { title: "Para administradores", desc: "Control operativo, armonía en la plaza, impacto social.", img: "https://mercamesa.com/wp-content/uploads/2025/09/banner-3-1024x578.jpg" }
           ].map((item, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               className="bg-white rounded-3xl overflow-hidden shadow-sm border border-mm-gbg hover:shadow-md transition-shadow"
             >
-              <img src={item.img} alt={item.title} className="w-full h-40 object-cover" referrerPolicy="no-referrer" />
+              <Image
+                src={item.img}
+                alt={item.title}
+                width={192}
+                height={192}
+              />
               <div className="p-6">
                 <h3 className="text-lg font-bold text-mm-g mb-2">{item.title}</h3>
                 <p className="text-sm text-mm-txs">{item.desc}</p>
@@ -164,8 +181,8 @@ export default function Page() {
               { icon: <Package className="w-10 h-10" />, title: "Descarga", desc: "Descargar la app y empezar a comprar con conciencia" },
               { icon: <Leaf className="w-10 h-10" />, title: "Conexión", desc: "Conectarte con quienes sostienen el sistema agroalimentario" }
             ].map((step, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={cn("flex flex-col items-center text-center group", step.onClick && "cursor-pointer")}
                 onClick={step.onClick}
               >
@@ -221,9 +238,9 @@ export default function Page() {
           <Button onClick={() => setIsLoginOpen(true)} size="lg" className="px-10">Iniciar sesión</Button>
         </div>
         <div className="relative">
-          <img 
-            src="https://mercamesa.com/wp-content/uploads/2025/09/image-mercado-local.jpg" 
-            alt="Mercado local" 
+          <img
+            src="https://mercamesa.com/wp-content/uploads/2025/09/image-mercado-local.jpg"
+            alt="Mercado local"
             className="rounded-[40px] shadow-2xl"
             referrerPolicy="no-referrer"
           />
@@ -234,11 +251,12 @@ export default function Page() {
       <footer className="bg-mm-g text-white py-16 px-6 lg:px-12">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
-            <img 
-              src="https://mercamesa.com/wp-content/uploads/2025/09/logo-mercamesa-opt.png" 
-              alt="Mercamesa" 
+            <Image
+              src="/logo-mercamesa.png"
+              alt="Mercamesa"
+              width={192}
+              height={192}
               className="h-10 w-auto brightness-0 invert"
-              referrerPolicy="no-referrer"
             />
           </div>
           <div className="flex gap-8 text-sm">

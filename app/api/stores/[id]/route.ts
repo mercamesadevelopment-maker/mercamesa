@@ -13,7 +13,16 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('stores')
-    .select('*, marketplaces ( name ), profiles ( full_name )')
+    .select(`
+      *,
+      marketplaces ( name ),
+      store_members (
+        id,
+        role_id,
+        roles ( name, label ),
+        profiles!user_id ( id, full_name, email )
+      )
+    `)
     .eq('id', id)
     .single();
 

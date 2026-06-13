@@ -13,7 +13,12 @@ export async function GET(request: Request) {
   let query = supabase.from('stores').select(`
     *,
     marketplaces ( name ),
-    profiles ( full_name )
+    store_members (
+      id,
+      role_id,
+      roles ( name, label ),
+      profiles!user_id ( id, full_name, email )
+    )
   `);
   
   if (active !== null) query = query.eq('is_active', active === 'true');
@@ -78,7 +83,6 @@ export async function POST(request: Request) {
       name,
       slug,
       marketplace_id,
-      owner_id: user.id, // For demo purposes, we assign the creator as owner. 
       description,
       contact_name,
       contact_email,
@@ -94,6 +98,82 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // Auto-assign or invite contact email as store_owner
+    if (contact_email) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', contact_email)
+        .maybeSingle();
+
+      const storeOwnerRoleId = '5cd37ab3-c7e2-40a7-8677-363935b51e5a'; // store_owner
+
+      if (profile) {
+        // Create store_member row
+        await supabase.from('store_members').insert({
+          store_id: storeId,
+          user_id: profile.id,
+          role_id: storeOwnerRoleId,
+          invited_by: user.id
+        });
+
+        // Trigger edge function
+        try {
+          const origin = request.headers.get('origin') || '';
+          const edgeUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/notify-store-assignment`;
+          await fetch(edgeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              email: contact_email,
+              fullName: contact_name || 'Miembro',
+              storeName: name,
+              roleLabel: 'Dueño de Tienda',
+              loginUrl: `${origin}`
+            })
+          });
+        } catch (efErr) {
+          console.error('Error invoking notify-store-assignment edge function:', efErr);
+        }
+      } else {
+        // Invite new user and record invitation
+        try {
+          // We need a service role client to run inviteUserByEmail. We will import/create it here.
+          const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+          const serviceSupabase = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+
+          const origin = request.headers.get('origin') || '';
+          const { error: inviteError } = await serviceSupabase.auth.admin.inviteUserByEmail(contact_email, {
+            redirectTo: `${origin}/accept-invite`
+          });
+
+          if (!inviteError) {
+            // Record in invitations
+            const expires = new Date();
+            expires.setDate(expires.getDate() + 7);
+
+            await supabase.from('invitations').insert({
+              email: contact_email,
+              store_id: storeId,
+              role: storeOwnerRoleId,
+              invitation_type: 'store_member',
+              invited_by: user.id,
+              token: crypto.randomUUID(),
+              expires_at: expires.toISOString()
+            });
+          }
+        } catch (inviteErr) {
+          console.error('Error inviting user:', inviteErr);
+        }
+      }
     }
 
     return NextResponse.json({ data }, { status: 201 });

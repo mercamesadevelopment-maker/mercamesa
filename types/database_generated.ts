@@ -427,27 +427,30 @@ export type Database = {
       }
       marketplace_members: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           invited_by: string | null
           marketplace_id: string
-          role: string
+          role_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           invited_by?: string | null
           marketplace_id: string
-          role: string
+          role_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           invited_by?: string | null
           marketplace_id?: string
-          role?: string
+          role_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -470,6 +473,13 @@ export type Database = {
             columns: ["marketplace_id"]
             isOneToOne: false
             referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
           {
@@ -951,27 +961,30 @@ export type Database = {
       }
       store_members: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           invited_by: string | null
-          role: string
+          role_id: string
           store_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           invited_by?: string | null
-          role: string
+          role_id: string
           store_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           invited_by?: string | null
-          role?: string
+          role_id?: string
           store_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -980,6 +993,13 @@ export type Database = {
             columns: ["invited_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
           {
@@ -1186,7 +1206,6 @@ export type Database = {
           logo_url: string | null
           marketplace_id: string
           name: string
-          owner_id: string
           phone: string | null
           reputation_score: number | null
           slug: string
@@ -1205,7 +1224,6 @@ export type Database = {
           logo_url?: string | null
           marketplace_id: string
           name: string
-          owner_id: string
           phone?: string | null
           reputation_score?: number | null
           slug: string
@@ -1224,7 +1242,6 @@ export type Database = {
           logo_url?: string | null
           marketplace_id?: string
           name?: string
-          owner_id?: string
           phone?: string | null
           reputation_score?: number | null
           slug?: string
@@ -1244,13 +1261,6 @@ export type Database = {
             columns: ["marketplace_id"]
             isOneToOne: false
             referencedRelation: "marketplaces_detail"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stores_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

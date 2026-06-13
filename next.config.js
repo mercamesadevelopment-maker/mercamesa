@@ -6,6 +6,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'zaqvcpehhmkiyjdbcufj.supabase.co',
       },
+      {
+        protocol: 'https',
+        hostname: 'mercamesa.com',
+      },
     ],
   },
 };
