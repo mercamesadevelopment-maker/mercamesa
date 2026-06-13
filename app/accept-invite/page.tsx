@@ -29,11 +29,33 @@ export default function AcceptInvite() {
       try {
         const supabase = createSupabaseBrowserClient();
         
-        // Wait for session recovery (which parses hash fragment `#access_token=...` and sets cookies)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+        // Try getting existing session
+        let { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
           console.error('Error checking session:', sessionError);
+        }
+
+        // Explicitly parse from the URL hash fragment if present (implicit flow)
+        const hash = window.location.hash;
+        if (hash) {
+          const params = new URLSearchParams(hash.substring(1));
+          const access_token = params.get('access_token');
+          const refresh_token = params.get('refresh_token');
+          
+          if (access_token && refresh_token) {
+            console.log('Explicitly setting session from URL hash...');
+            const { data: { session: newSession }, error: setError } = await supabase.auth.setSession({
+              access_token,
+              refresh_token
+            });
+            
+            if (setError) {
+              console.error('Error setting session from hash:', setError);
+            } else {
+              console.log('Session set successfully from hash');
+              session = newSession;
+            }
+          }
         }
 
         // Fetch verification from GET api endpoint
@@ -47,6 +69,8 @@ export default function AcceptInvite() {
             setHasInvite(true);
             setStoreName(result.storeName);
           }
+        } else {
+          console.log('API verification response:', result);
         }
       } catch (err) {
         console.error('Error checking invitation:', err);
