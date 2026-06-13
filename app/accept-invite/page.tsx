@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, ShieldCheck, Mail, Lock, User, Phone } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { CheckCircle2, Mail, Lock, User, Phone } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
+import Image from 'next/image';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function AcceptInvite() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function AcceptInvite() {
   const [hasInvite, setHasInvite] = useState(false);
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
-  
+
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -26,10 +27,19 @@ export default function AcceptInvite() {
   useEffect(() => {
     const checkInvitation = async () => {
       try {
+        const supabase = createSupabaseBrowserClient();
+        
+        // Wait for session recovery (which parses hash fragment `#access_token=...` and sets cookies)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error checking session:', sessionError);
+        }
+
         // Fetch verification from GET api endpoint
         const res = await fetch('/api/auth/accept-invite');
         const result = await res.json();
-        
+
         if (res.ok && result.authenticated) {
           setAuthenticated(true);
           setEmail(result.email);
@@ -44,13 +54,8 @@ export default function AcceptInvite() {
         setChecking(false);
       }
     };
-    
-    // Small delay to allow Supabase Auth SDK to parse search params hash if redirected
-    const timer = setTimeout(() => {
-      checkInvitation();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
+
+    checkInvitation();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,22 +115,24 @@ export default function AcceptInvite() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-mm-gbg rounded-full blur-3xl opacity-60 pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-mm-gbg rounded-full blur-3xl opacity-60 pointer-events-none" />
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md bg-white border border-mm-crd rounded-[32px] shadow-2xl p-8 relative z-10 flex flex-col items-center"
       >
         {/* System logo */}
-        <img 
-          src="https://mercamesa.com/wp-content/uploads/2025/09/logo-mercamesa-opt.png" 
-          alt="Mercamesa Logo" 
-          className="h-12 object-contain mb-8"
+        <Image
+          src="/logo-mercamesa.png"
+          alt="Mercamesa Logo"
+          className="object-contain mb-8"
+          width={148}
+          height={48}
         />
 
         <AnimatePresence mode="wait">
           {!authenticated || !hasInvite ? (
-            <motion.div 
+            <motion.div
               key="invalid-invite"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -137,7 +144,7 @@ export default function AcceptInvite() {
               </div>
               <h2 className="text-2xl font-fraunces text-mm-g mb-3">Enlace Inválido o Expirado</h2>
               <p className="text-sm text-mm-txw leading-relaxed mb-6">
-                Este enlace de invitación no es válido, ya ha sido utilizado o ha expirado. 
+                Este enlace de invitación no es válido, ya ha sido utilizado o ha expirado.
                 Por favor, solicita al administrador de tu plaza que te envíe una nueva invitación.
               </p>
               <Button onClick={() => router.push('/')} className="w-full">
@@ -145,7 +152,7 @@ export default function AcceptInvite() {
               </Button>
             </motion.div>
           ) : success ? (
-            <motion.div 
+            <motion.div
               key="success-invite"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -164,7 +171,7 @@ export default function AcceptInvite() {
               </Button>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="form-invite"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -194,8 +201,8 @@ export default function AcceptInvite() {
                 </div>
 
                 <div className="relative">
-                  <Input 
-                    label="Nombre Completo" 
+                  <Input
+                    label="Nombre Completo"
                     name="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -205,8 +212,8 @@ export default function AcceptInvite() {
                 </div>
 
                 <div className="relative">
-                  <Input 
-                    label="Celular / Teléfono" 
+                  <Input
+                    label="Celular / Teléfono"
                     name="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -216,8 +223,8 @@ export default function AcceptInvite() {
                 </div>
 
                 <div className="relative">
-                  <Input 
-                    label="Contraseña" 
+                  <Input
+                    label="Contraseña"
                     type="password"
                     name="password"
                     value={password}
@@ -228,8 +235,8 @@ export default function AcceptInvite() {
                 </div>
 
                 <div className="relative">
-                  <Input 
-                    label="Confirmar Contraseña" 
+                  <Input
+                    label="Confirmar Contraseña"
                     type="password"
                     name="confirmPassword"
                     value={confirmPassword}

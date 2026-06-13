@@ -12,9 +12,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const isLanding = pathname === '/';
+  const isNoLayoutPage = pathname === '/' || pathname === '/accept-invite';
 
-  if (isLanding) return <>{children}</>;
+  if (isNoLayoutPage) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-[#FAFAF5]">
