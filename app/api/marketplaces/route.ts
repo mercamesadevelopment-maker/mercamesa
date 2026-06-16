@@ -21,7 +21,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  return NextResponse.json({ data }, { status: 200 })
+  const dataWithUrls = data?.map((plaza) => {
+    const coverSignedUrl = plaza.cover_image_url
+      ? supabase.storage.from('plazas').getPublicUrl(plaza.cover_image_url).data.publicUrl
+      : null;
+    const logoSignedUrl = plaza.logo_url
+      ? supabase.storage.from('plazas').getPublicUrl(plaza.logo_url).data.publicUrl
+      : null;
+    return {
+      ...plaza,
+      coverSignedUrl,
+      logoSignedUrl,
+    };
+  });
+
+  return NextResponse.json({ data: dataWithUrls }, { status: 200 })
 }
 
 export async function POST(request: Request) {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Search, MapPin, Store as StoreIcon, Building2 } from 'lucide-react';
 import { Badge } from '@/src/components/Shared';
 import { usePublicMarketplaces } from '../hooks/usePublicMarketplaces';
@@ -53,14 +54,28 @@ export function PlazaList() {
           >
             <div className="h-40 flex items-center justify-center text-6xl group-hover:scale-105 transition-transform overflow-hidden relative bg-mm-gbg">
               {plaza.coverSignedUrl ? (
-                <img src={plaza.coverSignedUrl} alt={plaza.name} className="w-full h-full object-cover" />
+                <Image 
+                  src={plaza.coverSignedUrl} 
+                  alt={plaza.name} 
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover"
+                  loading="lazy"
+                />
               ) : (
                 <Building2 className="w-12 h-12 text-mm-crd" />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-              <div className="absolute bottom-4 left-4 w-12 h-12 bg-white rounded-xl p-1 shadow-md">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-[1]" />
+              <div className="absolute bottom-4 left-4 w-12 h-12 bg-white rounded-xl p-1 shadow-md z-[2] flex items-center justify-center">
                 {plaza.logoSignedUrl ? (
-                  <img src={plaza.logoSignedUrl} alt={plaza.name} className="w-full h-full object-cover rounded-lg" />
+                  <Image 
+                    src={plaza.logoSignedUrl} 
+                    alt={plaza.name} 
+                    width={40} 
+                    height={40} 
+                    className="object-cover rounded-lg" 
+                    loading="lazy"
+                  />
                 ) : (
                   <Building2 className="w-full h-full text-mm-txw p-2" />
                 )}

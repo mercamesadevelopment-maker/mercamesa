@@ -124,6 +124,16 @@ export interface Sale {
   customerEmail?: string;
 }
 
+export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'confirmed' | 'paid' | 'packing' | 'at_collection' | 'dispatched' | 'delivered' | 'cancelled' | 'returned';
+
+export interface OrderStatusHistoryItem {
+  id: string;
+  status: OrderStatus;
+  notes: string | null;
+  createdAt: string;
+  changedByName: string | null;
+}
+
 export interface Order {
   id: string;
   storeOrderId?: string;
@@ -133,10 +143,20 @@ export interface Order {
   storeEmoji: string;
   items: OrderItem[];
   total: number;
-  status: 'pending' | 'preparing' | 'on_the_way' | 'delivered' | 'cancelled';
+  status: OrderStatus;
   buyerId: string;
   address: string;
   paymentMethod: string;
+  buyerName?: string;
+  buyerPhone?: string | null;
+  buyerEmail?: string | null;
+  buyerDocument?: string | null;
+  notes?: string | null;
+  paymentStatus?: string;
+  discount?: number;
+  deliveryFee?: number;
+  subtotal?: number;
+  history?: OrderStatusHistoryItem[];
 }
 
 export interface Address {

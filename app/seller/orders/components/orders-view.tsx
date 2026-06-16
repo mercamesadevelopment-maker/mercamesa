@@ -7,7 +7,9 @@ import {
 import { useOrders } from '../hooks/use-orders';
 import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
-import { Order } from '@/src/types';
+import { Order, OrderStatus } from '@/src/types';
+import { OrderDetailModal } from './order-detail-modal';
+import { StatusNoteModal } from './status-note-modal';
 
 export function OrdersView() {
   const {
@@ -22,6 +24,14 @@ export function OrdersView() {
   } = useOrders();
 
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [selectedOrderForDetail, setSelectedOrderForDetail] = React.useState<Order | null>(null);
+  const [statusChangeRequest, setStatusChangeRequest] = React.useState<{
+    orderId: string;
+    nextStatus: OrderStatus;
+    nextStatusLabel: string;
+    actionLabel: string;
+  } | null>(null);
+
   const ordersPerPage = 6;
 
   // Reset page to 1 if filter or store changes
@@ -33,60 +43,128 @@ export function OrdersView() {
   const startIndex = (currentPage - 1) * ordersPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ordersPerPage);
 
-  const getStatusConfig = (status: Order['status']) => {
+  const getStatusConfig = (status: OrderStatus) => {
     switch (status) {
-      case 'pending': 
-        return { 
-          label: 'Nuevo', 
-          color: 'bg-mm-oro text-white', 
-          icon: Bell, 
-          action: 'Preparar', 
-          next: 'preparing' as const 
+      case 'pending':
+        return {
+          label: 'Nuevo',
+          color: 'bg-mm-oro text-white',
+          icon: Bell,
+          action: 'Confirmar',
+          next: 'confirmed' as const,
         };
-      case 'preparing': 
-        return { 
-          label: 'Preparando', 
-          color: 'bg-blue text-white', 
-          icon: Loader2, 
-          action: 'Despachar', 
-          next: 'on_the_way' as const 
+      case 'confirmed':
+        return {
+          label: 'Confirmado',
+          color: 'bg-indigo-600 text-white',
+          icon: CheckCircle2,
+          action: 'Preparar',
+          next: 'packing' as const,
         };
-      case 'on_the_way': 
-        return { 
-          label: 'En Camino', 
-          color: 'bg-mm-g text-white', 
-          icon: Truck, 
-          action: 'Entregado', 
-          next: 'delivered' as const 
+      case 'paid':
+        return {
+          label: 'Pagado',
+          color: 'bg-emerald-600 text-white',
+          icon: CheckCircle2,
+          action: 'Preparar',
+          next: 'packing' as const,
         };
-      case 'delivered': 
-        return { 
-          label: 'Entregado', 
-          color: 'bg-mm-gbg text-mm-txs', 
-          icon: CheckCircle2, 
-          action: null, 
-          next: null 
+      case 'packing':
+        return {
+          label: 'Empacando',
+          color: 'bg-blue text-white',
+          icon: Loader2,
+          action: 'Listo Recogida',
+          next: 'at_collection' as const,
         };
-      default: 
-        return { 
-          label: 'Cancelado', 
-          color: 'bg-r text-white', 
-          icon: XCircle, 
-          action: null, 
-          next: null 
+      case 'at_collection':
+        return {
+          label: 'Listo Recogida',
+          color: 'bg-purple-600 text-white',
+          icon: ClipboardList,
+          action: 'Despachar',
+          next: 'dispatched' as const,
+        };
+      case 'dispatched':
+        return {
+          label: 'En Camino',
+          color: 'bg-mm-g text-white',
+          icon: Truck,
+          action: 'Entregado',
+          next: 'delivered' as const,
+        };
+      case 'delivered':
+        return {
+          label: 'Entregado',
+          color: 'bg-mm-gbg text-mm-txs',
+          icon: CheckCircle2,
+          action: null,
+          next: null,
+        };
+      case 'returned':
+        return {
+          label: 'Devuelto',
+          color: 'bg-slate-500 text-white',
+          icon: History,
+          action: null,
+          next: null,
+        };
+      default: // cancelled
+        return {
+          label: 'Cancelado',
+          color: 'bg-r text-white',
+          icon: XCircle,
+          action: null,
+          next: null,
         };
     }
   };
+
+  const handleConfirmStatusChange = async (notes: string) => {
+    if (statusChangeRequest) {
+      await updateOrderStatus(
+        statusChangeRequest.orderId, 
+        statusChangeRequest.nextStatus, 
+        notes
+      );
+      
+      // Si el modal de detalle está abierto, actualizamos la orden seleccionada para refrescar el historial
+      if (selectedOrderForDetail && selectedOrderForDetail.id === statusChangeRequest.orderId) {
+        // Buscamos la orden actualizada en filteredOrders (la cual tendrá el nuevo historial tras refetch)
+        const updated = filteredOrders.find(o => o.id === statusChangeRequest.orderId);
+        if (updated) {
+          // Asignamos el estado actualizado
+          setSelectedOrderForDetail({
+            ...updated,
+            status: statusChangeRequest.nextStatus
+          });
+        }
+      }
+      
+      setStatusChangeRequest(null);
+    }
+  };
+
+  // Sincronizar el modal de detalle cuando cambian las órdenes en tiempo real
+  React.useEffect(() => {
+    if (selectedOrderForDetail) {
+      const current = filteredOrders.find(o => o.id === selectedOrderForDetail.id);
+      if (current) {
+        setSelectedOrderForDetail(current);
+      }
+    }
+  }, [filteredOrders, selectedOrderForDetail?.id]);
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-          <div>
-            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Monitor de Pedidos</h1>
-            <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
-          </div>
+        <div>
+          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Monitor de Pedidos</h1>
+          <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-4">
           {stores.length > 1 && (
             <div className="flex flex-col gap-1 min-w-[200px]">
               <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Filtrar por Tienda</label>
@@ -104,42 +182,60 @@ export function OrdersView() {
               </select>
             </div>
           )}
-        </div>
-        <div className="flex gap-2 bg-mm-gbg/50 p-1.5 rounded-2xl border border-mm-crd shadow-inner">
-          {(['all', 'pending', 'preparing', 'on_the_way'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={cn(
-                "px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-widest",
-                filterStatus === s ? "bg-white text-mm-g shadow-sm border border-mm-crd" : "text-mm-txw hover:text-mm-g"
-              )}
+
+          <div className="flex flex-col gap-1 min-w-[200px]">
+            <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Filtrar por Estado</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="bg-white text-mm-g font-semibold text-sm border border-mm-crd rounded-xl px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-mm-g/20 cursor-pointer"
             >
-              {s === 'all' ? 'Todos' : s === 'on_the_way' ? 'Ruta' : s}
-            </button>
-          ))}
+              <option value="all">Todos los estados</option>
+              <option value="pending">Nuevo</option>
+              <option value="confirmed">Confirmado</option>
+              <option value="paid">Pagado</option>
+              <option value="packing">Empacando</option>
+              <option value="at_collection">Listo Recojo</option>
+              <option value="dispatched">En Ruta</option>
+              <option value="delivered">Entregado</option>
+              <option value="cancelled">Cancelado</option>
+              <option value="returned">Devuelto</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Live Stats Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
         {[
-          { label: 'Ingresando', val: stats.pending, color: 'mm-oro', icon: Bell },
-          { label: 'En Cocina/Prep', val: stats.preparing, color: 'blue', icon: Package },
-          { label: 'En Reparto', val: stats.dispatch, color: 'mm-g', icon: Truck },
+          { label: 'Nuevo', val: stats.pending, color: 'mm-oro', icon: Bell },
+          { label: 'Confirmado', val: stats.confirmed, color: 'indigo', icon: CheckCircle2 },
+          { label: 'Pagado', val: stats.paid, color: 'emerald', icon: ClipboardList },
+          { label: 'Empacando', val: stats.packing, color: 'blue', icon: Package },
+          { label: 'Listo Recojo', val: stats.at_collection, color: 'purple', icon: ClipboardList },
+          { label: 'En Camino', val: stats.dispatched, color: 'mm-g', icon: Truck },
+          { label: 'Entregado', val: stats.delivered, color: 'green', icon: CheckCircle2 },
+          { label: 'Cancelado', val: stats.cancelled, color: 'red', icon: XCircle },
+          { label: 'Devuelto', val: stats.returned, color: 'slate', icon: History },
           { label: 'Pedidos Hoy', val: stats.totalToday, color: 'mm-txw', icon: History },
         ].map((item, i) => (
-          <div key={i} className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm flex items-center gap-4">
-             <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", 
-               item.color === 'mm-oro' ? 'bg-mm-orl text-mm-oro' : 
-               item.color === 'blue' ? 'bg-bluel text-blue' : 
-               item.color === 'mm-g' ? 'bg-mm-gbg text-mm-g' : 'bg-mm-crd/20 text-mm-txw'
+          <div key={i} className="bg-white p-5 rounded-[24px] border border-mm-crd shadow-sm flex items-center gap-3.5 hover:shadow-md transition-shadow">
+             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm", 
+               item.color === 'mm-oro' ? 'bg-mm-orl text-mm-oro border border-mm-oro/10' : 
+               item.color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 
+               item.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+               item.color === 'blue' ? 'bg-bluel text-blue border border-blue/10' : 
+               item.color === 'purple' ? 'bg-purple-50 text-purple-600 border border-purple-100' : 
+               item.color === 'mm-g' ? 'bg-mm-gbg text-mm-g border border-mm-g/10' : 
+               item.color === 'green' ? 'bg-green-50 text-green-600 border border-green-100' : 
+               item.color === 'red' ? 'bg-red-50 text-red-600 border border-red-100' : 
+               item.color === 'slate' ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-mm-crd/20 text-mm-txw border border-mm-crd/35'
              )}>
-                <item.icon className="w-6 h-6" />
+                <item.icon className="w-5 h-5" />
              </div>
-             <div>
-                <p className="text-2xl font-bold text-mm-g">{item.val}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-mm-txw">{item.label}</p>
+             <div className="min-w-0">
+                <p className="text-xl font-bold text-mm-g leading-tight">{item.val}</p>
+                <p className="text-[9px] font-black uppercase tracking-wider text-mm-txw truncate">{item.label}</p>
              </div>
           </div>
         ))}
@@ -216,15 +312,30 @@ export function OrdersView() {
                     <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest mb-1">Valor Total</p>
                     <p className="text-xl font-bold text-mm-g">{fmt(order.total)}</p>
                   </div>
-                  {config.next && (
-                    <Button 
-                      size="sm" 
-                      className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10"
-                      onClick={() => updateOrderStatus(order.id, config.next!)}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl px-4 h-10 border border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold"
+                      onClick={() => setSelectedOrderForDetail(order)}
                     >
-                      {config.action}
+                      Ver Detalle
                     </Button>
-                  )}
+                    {config.next && (
+                      <Button 
+                        size="sm" 
+                        className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10"
+                        onClick={() => setStatusChangeRequest({
+                          orderId: order.id,
+                          nextStatus: config.next!,
+                          nextStatusLabel: getStatusConfig(config.next!).label,
+                          actionLabel: config.action!
+                        })}
+                      >
+                        {config.action}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );
@@ -267,6 +378,29 @@ export function OrdersView() {
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <OrderDetailModal
+        isOpen={!!selectedOrderForDetail}
+        onClose={() => setSelectedOrderForDetail(null)}
+        order={selectedOrderForDetail}
+        onStartStatusChange={(orderId, status, nextStatusLabel, actionLabel) => setStatusChangeRequest({
+          orderId,
+          nextStatus: status,
+          nextStatusLabel,
+          actionLabel
+        })}
+      />
+
+      {/* Status Note Prompt Modal */}
+      <StatusNoteModal
+        isOpen={!!statusChangeRequest}
+        onClose={() => setStatusChangeRequest(null)}
+        onConfirm={handleConfirmStatusChange}
+        title="Cambiar Estado del Pedido"
+        actionLabel={statusChangeRequest?.actionLabel || 'Confirmar'}
+        nextStatusLabel={statusChangeRequest?.nextStatusLabel || ''}
+      />
     </div>
   );
 }

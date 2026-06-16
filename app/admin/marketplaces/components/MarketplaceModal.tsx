@@ -35,6 +35,15 @@ export function MarketplaceModal({
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [logoImage, setLogoImage] = useState<File | null>(null);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+  const [previewCover, setPreviewCover] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const getPublicUrl = (path: string | null | undefined) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zaqvcpehhmkiyjdbcufj.supabase.co';
+    return `${baseUrl}/storage/v1/object/public/plazas/${path}`;
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -49,6 +58,12 @@ export function MarketplaceModal({
         longitude: initialData.longitude?.toString() || '',
         is_active: initialData.is_active,
       });
+
+      // Set initial logo and cover image previews
+      const initialLogo = (initialData as any).logoSignedUrl || getPublicUrl(initialData.logo_url);
+      const initialCover = (initialData as any).coverSignedUrl || getPublicUrl(initialData.cover_image_url);
+      setPreviewLogo(initialLogo);
+      setPreviewCover(initialCover);
     } else {
       setFormData({
         name: '',
@@ -61,11 +76,13 @@ export function MarketplaceModal({
         longitude: '',
         is_active: true,
       });
+      setPreviewLogo(null);
+      setPreviewCover(null);
     }
 
-    setPreviewLogo(null);
     setCoverImage(null);
     setLogoImage(null);
+    setErrors({});
   }, [initialData, isOpen]);
 
   const handleChange = (
@@ -84,15 +101,22 @@ export function MarketplaceModal({
         [name]: value,
       }));
     }
+
+    // Clear validation error when typing
+    if (errors[name]) {
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
   };
 
   const handleLogoChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = e.target.files?.[0] || null;
-
     setLogoImage(file);
-
     if (file) {
       setPreviewLogo(URL.createObjectURL(file));
     } else {
@@ -100,8 +124,40 @@ export function MarketplaceModal({
     }
   };
 
+  const handleCoverChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0] || null;
+    setCoverImage(file);
+    if (file) {
+      setPreviewCover(URL.createObjectURL(file));
+    } else {
+      setPreviewCover(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Coordinate validation to prevent database overflow/invalid coordinate range
+    const newErrors: Record<string, string> = {};
+    if (formData.latitude) {
+      const latVal = parseFloat(formData.latitude);
+      if (isNaN(latVal) || latVal < -90 || latVal > 90) {
+        newErrors.latitude = 'La latitud debe ser un número entre -90 y 90';
+      }
+    }
+    if (formData.longitude) {
+      const lngVal = parseFloat(formData.longitude);
+      if (isNaN(lngVal) || lngVal < -180 || lngVal > 180) {
+        newErrors.longitude = 'La longitud debe ser un número entre -180 y 180';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
     const data = new FormData();
 
@@ -145,13 +201,12 @@ export function MarketplaceModal({
                 {previewLogo ? (
                   <img
                     src={previewLogo}
-                    alt="Preview"
+                    alt="Preview Logo"
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="flex flex-col items-center gap-1">
                     <ImageIcon className="w-6 h-6 text-mm-txw" />
-
                     <span className="text-[10px] text-mm-txw font-bold uppercase">
                       Subir
                     </span>
@@ -230,6 +285,7 @@ export function MarketplaceModal({
               value={formData.latitude}
               onChange={handleChange}
               placeholder="6.2442"
+              error={errors.latitude}
             />
 
             <Input
@@ -240,6 +296,7 @@ export function MarketplaceModal({
               value={formData.longitude}
               onChange={handleChange}
               placeholder="-75.5812"
+              error={errors.longitude}
             />
           </div>
 
@@ -259,17 +316,25 @@ export function MarketplaceModal({
           </div>
 
           {/* Imagen de Portada */}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium text-mm-txs ml-1">
               Imagen de Portada
             </label>
 
+            {previewCover && (
+              <div className="w-full h-32 rounded-2xl overflow-hidden border border-mm-crd mb-2 relative">
+                <img 
+                  src={previewCover} 
+                  alt="Preview Cover" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+            )}
+
             <input
               type="file"
               accept="image/*"
-              onChange={e =>
-                setCoverImage(e.target.files?.[0] || null)
-              }
+              onChange={handleCoverChange}
               className="w-full bg-mm-gbg border-none rounded-2xl py-2 px-4 text-mm-g font-medium focus:ring-2 ring-mm-g/20 transition-all outline-none"
             />
           </div>

@@ -1062,6 +1062,48 @@ export type Database = {
           },
         ]
       }
+      store_order_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          store_order_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          store_order_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          store_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_status_history_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_orders: {
         Row: {
           created_at: string

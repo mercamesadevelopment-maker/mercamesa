@@ -46,14 +46,18 @@ export async function GET(
       ? data.stores
       : [];
 
-    const storesWithPublicUrls = stores.map((store: Store) => ({
-      ...store,
-      logoUrl: store.logo_url
+    const storesWithPublicUrls = stores.map((store: Store) => {
+      const logoUrl = store.logo_url
         ? supabase.storage
             .from('stores')
             .getPublicUrl(store.logo_url).data.publicUrl
-        : null,
-    }));
+        : null;
+      return {
+        ...store,
+        logoUrl,
+        logoSignedUrl: logoUrl,
+      };
+    });
 
     return NextResponse.json(
       {
@@ -61,6 +65,8 @@ export async function GET(
           ...data,
           coverImageUrl,
           logoUrl,
+          coverSignedUrl: coverImageUrl,
+          logoSignedUrl: logoUrl,
           stores: storesWithPublicUrls,
         },
       },

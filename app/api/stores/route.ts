@@ -30,7 +30,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ data }, { status: 200 });
+  const dataWithUrls = data?.map((store) => {
+    const logoSignedUrl = store.logo_url
+      ? supabase.storage.from('stores').getPublicUrl(store.logo_url).data.publicUrl
+      : null;
+    const coverSignedUrl = store.cover_image_url
+      ? supabase.storage.from('stores').getPublicUrl(store.cover_image_url).data.publicUrl
+      : null;
+    return {
+      ...store,
+      logoSignedUrl,
+      coverSignedUrl,
+    };
+  });
+
+  return NextResponse.json({ data: dataWithUrls }, { status: 200 });
 }
 
 export async function POST(request: Request) {

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { Badge, Button } from '@/src/components/Shared';
 import { usePublicOffers } from './hooks/usePublicOffers';
 import { OfferDetailModal } from './components/OfferDetailModal';
@@ -9,6 +10,7 @@ import { StoreOffer } from '../admin/offers/hooks/useOffers';
 import { PlazaList } from './components/PlazaList';
 
 export default function MarketplacesPage() {
+  const router = useRouter();
   const { offers, loading } = usePublicOffers();
   const [selectedOffer, setSelectedOffer] = useState<StoreOffer | null>(null);
 
@@ -23,10 +25,16 @@ export default function MarketplacesPage() {
                 <h2 className="text-2xl font-fraunces text-mm-g leading-tight">Ofertas del Día 🔥</h2>
                 <p className="text-sm text-mm-txs">Ahorra con estos descuentos exclusivos de nuestras tiendas.</p>
               </div>
-              <Button variant="ghost" className="text-mm-g font-bold">Ver todas <ChevronRight className="w-4 h-4" /></Button>
+              <Button 
+                variant="ghost" 
+                className="text-mm-g font-bold"
+                onClick={() => router.push('/promotions')}
+              >
+                Ver todas <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
             <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide -mx-2 px-2">
-              {offers.map(offer => {
+              {offers.slice(0, 3).map(offer => {
                 const product = offer.store_products?.catalog_products;
                 return (
                   <motion.div 

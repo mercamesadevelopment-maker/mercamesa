@@ -140,7 +140,10 @@ export default function PlazaDetailPage() {
                   <div className="flex items-center gap-1 text-mm-oro text-xs font-bold">
                     <Star className="w-3 h-3 fill-mm-oro" /> {(store.reputation_score || 5.0).toFixed(1)}
                   </div>
-                  <button className="text-xs font-bold text-mm-g hover:underline flex items-center gap-1">
+                  <button 
+                    onClick={() => router.push(`/stores/${store.slug}`)}
+                    className="text-xs font-bold text-mm-g hover:underline flex items-center gap-1"
+                  >
                     Visitar Tienda <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Order, OrderItem } from '@/src/types';
+import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 
 export function useOrders() {
@@ -8,7 +8,7 @@ export function useOrders() {
   const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
 
   // Synchronize selectedStoreId with storeId when storeId loads,
   // default to 'all' if there are multiple stores.
@@ -41,7 +41,7 @@ export function useOrders() {
     try {
       setLoading(true);
 
-      // 1. Fetch store orders with parent order details and store name
+      // 1. Fetch store orders with parent order details, store name and status history
       const { data: storeOrdersData, error: storeOrdersError } = await supabase
         .from('store_orders')
         .select(`
@@ -52,9 +52,17 @@ export function useOrders() {
           orders (
             *,
             profiles (
+              id,
               full_name,
               email,
-              phone
+              phone,
+              document_number,
+              clients (
+                document_number,
+                full_name,
+                email,
+                phone
+              )
             ),
             delivery_addresses (
               label,
@@ -62,6 +70,15 @@ export function useOrders() {
               neighborhood,
               municipality,
               department
+            )
+          ),
+          store_order_status_history (
+            id,
+            status,
+            notes,
+            created_at,
+            profiles:changed_by (
+              full_name
             )
           )
         `)
@@ -115,6 +132,20 @@ export function useOrders() {
             emoji: getEmojiForName(item.catalog_name),
           }));
 
+        const client = (buyer?.clients && Array.isArray(buyer.clients) && buyer.clients.length > 0)
+          ? buyer.clients[0]
+          : null;
+
+        const historyData: OrderStatusHistoryItem[] = (so.store_order_status_history || [])
+          .map((h: any) => ({
+            id: h.id,
+            status: h.status as OrderStatus,
+            notes: h.notes,
+            createdAt: h.created_at,
+            changedByName: h.profiles?.full_name || null,
+          }))
+          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
         return {
           id: so.order_id,
           storeOrderId: so.id, // Store Order specific DB ID
@@ -124,10 +155,20 @@ export function useOrders() {
           storeEmoji: '🏪',
           items: storeItems,
           total: Number(so.subtotal),
-          status: mapDbStatusToFrontend(so.status),
+          status: so.status as OrderStatus,
           buyerId: buyer?.full_name || parentOrder?.buyer_id || 'Cliente',
           address: addressStr,
           paymentMethod: parentOrder?.payment_status === 'approved' ? 'Tarjeta (Aprobado)' : 'Pendiente de Pago',
+          buyerName: client?.full_name || buyer?.full_name || 'Cliente',
+          buyerPhone: client?.phone || buyer?.phone || null,
+          buyerEmail: client?.email || buyer?.email || null,
+          buyerDocument: client?.document_number || buyer?.document_number || null,
+          notes: so.notes || parentOrder?.notes || null,
+          paymentStatus: parentOrder?.payment_status || 'pending',
+          discount: parentOrder?.discount ? Number(parentOrder.discount) : 0,
+          deliveryFee: parentOrder?.delivery_fee ? Number(parentOrder.delivery_fee) : 0,
+          subtotal: Number(so.subtotal),
+          history: historyData,
         };
       });
 
@@ -153,26 +194,47 @@ export function useOrders() {
     const todayStr = new Date().toLocaleDateString();
     return {
       pending: myOrders.filter(o => o.status === 'pending').length,
-      preparing: myOrders.filter(o => o.status === 'preparing').length,
-      dispatch: myOrders.filter(o => o.status === 'on_the_way').length,
+      confirmed: myOrders.filter(o => o.status === 'confirmed').length,
+      paid: myOrders.filter(o => o.status === 'paid').length,
+      packing: myOrders.filter(o => o.status === 'packing').length,
+      at_collection: myOrders.filter(o => o.status === 'at_collection').length,
+      dispatched: myOrders.filter(o => o.status === 'dispatched').length,
+      delivered: myOrders.filter(o => o.status === 'delivered').length,
+      cancelled: myOrders.filter(o => o.status === 'cancelled').length,
+      returned: myOrders.filter(o => o.status === 'returned').length,
       totalToday: myOrders.filter(o => new Date(o.date).toLocaleDateString() === todayStr).length
     };
   }, [myOrders]);
 
-  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus, notes?: string) => {
     const supabase = createSupabaseBrowserClient();
     try {
       const order = myOrders.find(o => o.id === orderId);
       if (!order || !order.storeOrderId) return;
 
-      const dbStatus = mapFrontendStatusToDb(status);
-
-      const { error } = await supabase
+      // 1. Actualizar el estado en store_orders
+      const { error: updateError } = await supabase
         .from('store_orders')
-        .update({ status: dbStatus })
+        .update({ status })
         .eq('id', order.storeOrderId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // 2. Obtener el usuario autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 3. Crear el registro en el historial
+      const { error: historyError } = await supabase
+        .from('store_order_status_history')
+        .insert({
+          store_order_id: order.storeOrderId,
+          status,
+          notes: notes || null,
+          changed_by: user?.id || null
+        });
+
+      if (historyError) throw historyError;
+
       await fetchStoreOrders();
     } catch (err) {
       console.error('Error updating store order status:', err);
@@ -190,31 +252,6 @@ export function useOrders() {
     selectedStoreId,
     setSelectedStoreId,
   };
-}
-
-function mapDbStatusToFrontend(dbStatus: string): Order['status'] {
-  switch (dbStatus) {
-    case 'pending': return 'pending';
-    case 'confirmed':
-    case 'paid':
-    case 'packing':
-      return 'preparing';
-    case 'at_collection':
-    case 'dispatched':
-      return 'on_the_way';
-    case 'delivered': return 'delivered';
-    default: return 'cancelled';
-  }
-}
-
-function mapFrontendStatusToDb(feStatus: Order['status']): string {
-  switch (feStatus) {
-    case 'pending': return 'pending';
-    case 'preparing': return 'confirmed';
-    case 'on_the_way': return 'dispatched';
-    case 'delivered': return 'delivered';
-    default: return 'cancelled';
-  }
 }
 
 function getEmojiForName(name?: string): string {
