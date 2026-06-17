@@ -34,6 +34,10 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
   // Map database response to CartItem type
   return data.map((item: any) => {
     const sp = item.store_products;
+    const imageUrl = sp.catalog_products?.image_url
+      ? supabase.storage.from('products').getPublicUrl(sp.catalog_products.image_url).data.publicUrl
+      : null;
+
     return {
       id: sp.id,
       name: sp.catalog_products?.name || 'Producto',
@@ -43,7 +47,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
       stock: sp.stock || 0,
       unit: sp.measurement_units?.abbreviation || 'und',
       emoji: sp.catalog_products?.emoji || '📦',
-      image: sp.catalog_products?.image_url || null,
+      image: imageUrl,
       plazaId: 1, // Default or mock if not present
       storeId: sp.store_id,
       storeName: sp.stores?.name || 'Tienda',
