@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Package, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, Search } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
@@ -20,13 +20,46 @@ export default function ProductsAdmin() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  // States for search and filtering
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<Database['public']['Tables']['categories']['Row'][]>([]);
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Fetch categories for filtering dropdown
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) setCategories(data.data);
+      })
+      .catch((err) => console.error('Error fetching categories:', err));
+  }, []);
+
+  // Filter products by search query and category
+  const filteredProducts = React.useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, selectedCategory]);
+
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
-  } = useTable({ initialData: products });
+  } = useTable({ initialData: filteredProducts });
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedCategory, setPage]);
 
   const columns = [
     {
@@ -91,6 +124,34 @@ export default function ProductsAdmin() {
         <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nuevo Item
         </Button>
+      </div>
+
+      {/* Filtros de Búsqueda y Categoría */}
+      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm">
+        <div className="flex-1 relative flex items-center">
+          <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o descripción..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"
+          />
+        </div>
+        <div className="w-full sm:w-64">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="" className="text-mm-txw">Todas las categorías</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <Table

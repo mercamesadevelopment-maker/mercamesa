@@ -58,8 +58,10 @@ export function useSales() {
 
   const filteredProducts = useMemo(() => {
     return myProducts.filter(p =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.cat.toLowerCase().includes(search.toLowerCase())
+      p.retailPrice > 0 &&
+      p.stock > 0 &&
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+       p.cat.toLowerCase().includes(search.toLowerCase()))
     );
   }, [myProducts, search]);
 

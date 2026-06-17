@@ -38,6 +38,8 @@ export async function POST(request: Request) {
     const category_id = formData.get('category_id') as string | null;
     const default_unit_id = formData.get('default_unit_id') as string | null;
     const description = formData.get('description') as string | null;
+    const dane_unit_code = formData.get('dane_unit_code') as string | null;
+    const dane_unit_name = formData.get('dane_unit_name') as string | null;
     
     const is_active = formData.get('is_active') === 'true';
     const is_ancestral_food = formData.get('is_ancestral_food') === 'true';
@@ -70,6 +72,8 @@ export async function POST(request: Request) {
       is_medicinal_plant,
       is_non_food,
       image_url,
+      dane_unit_code: dane_unit_code || null,
+      dane_unit_name: dane_unit_name || null,
       created_by: user.id
     };
 

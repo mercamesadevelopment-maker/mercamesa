@@ -23,7 +23,6 @@ export function ProductsView() {
     newProduct,
     setNewProduct,
     catalog,
-    handleImageUpload,
     handleOpenAdd,
     handleOpenEdit,
     handleAddProduct,
@@ -311,7 +310,6 @@ export function ProductsView() {
         catalog={catalog}
         newProduct={newProduct}
         setNewOfferProduct={setNewProduct}
-        onImageUpload={handleImageUpload}
         onSubmit={handleAddProduct}
       />
     </div>

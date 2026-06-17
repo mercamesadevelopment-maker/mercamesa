@@ -4,6 +4,7 @@ import { Image as ImageIcon } from 'lucide-react';
 import { Database } from '../../../../types/database_generated';
 import { Input, Button} from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
+import { getStoragePublicUrl } from '@/lib/supabase/utils';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
@@ -38,13 +39,6 @@ export function MarketplaceModal({
   const [previewCover, setPreviewCover] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const getPublicUrl = (path: string | null | undefined) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zaqvcpehhmkiyjdbcufj.supabase.co';
-    return `${baseUrl}/storage/v1/object/public/plazas/${path}`;
-  };
-
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -60,8 +54,8 @@ export function MarketplaceModal({
       });
 
       // Set initial logo and cover image previews
-      const initialLogo = (initialData as any).logoSignedUrl || getPublicUrl(initialData.logo_url);
-      const initialCover = (initialData as any).coverSignedUrl || getPublicUrl(initialData.cover_image_url);
+      const initialLogo = (initialData as any).logoSignedUrl || getStoragePublicUrl('plazas', initialData.logo_url);
+      const initialCover = (initialData as any).coverSignedUrl || getStoragePublicUrl('plazas', initialData.cover_image_url);
       setPreviewLogo(initialLogo);
       setPreviewCover(initialCover);
     } else {
@@ -141,16 +135,25 @@ export function MarketplaceModal({
 
     // Coordinate validation to prevent database overflow/invalid coordinate range
     const newErrors: Record<string, string> = {};
+    let latitudeStr = formData.latitude;
+    let longitudeStr = formData.longitude;
+
     if (formData.latitude) {
       const latVal = parseFloat(formData.latitude);
       if (isNaN(latVal) || latVal < -90 || latVal > 90) {
         newErrors.latitude = 'La latitud debe ser un número entre -90 y 90';
+      } else {
+        // Truncate to 7 decimal places matching numeric(10, 7) scale
+        latitudeStr = latVal.toFixed(7);
       }
     }
     if (formData.longitude) {
       const lngVal = parseFloat(formData.longitude);
       if (isNaN(lngVal) || lngVal < -180 || lngVal > 180) {
         newErrors.longitude = 'La longitud debe ser un número entre -180 y 180';
+      } else {
+        // Truncate to 7 decimal places matching numeric(10, 7) scale
+        longitudeStr = lngVal.toFixed(7);
       }
     }
 
@@ -162,7 +165,13 @@ export function MarketplaceModal({
     const data = new FormData();
 
     Object.entries(formData).forEach(([key, value]) => {
-      data.append(key, value.toString());
+      if (key === 'latitude') {
+        data.append(key, latitudeStr);
+      } else if (key === 'longitude') {
+        data.append(key, longitudeStr);
+      } else {
+        data.append(key, value.toString());
+      }
     });
 
     if (coverImage) {

@@ -1,15 +1,33 @@
 import { useState, useCallback } from 'react';
 import { Database } from '../../../../types/database_generated';
 
-type Store = Database['public']['Tables']['stores']['Row'] & {
+export type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
   logoSignedUrl?: string | null;
   marketplaces?: { name: string } | null;
-  profiles?: { full_name: string } | null;
+  store_documents?: Array<{
+    status: string;
+    document_type_id: string;
+    document_types: { is_required: boolean } | null;
+  }> | null;
+  store_members?: Array<{
+    id: string;
+    role_id: string;
+    roles: { name: string; label: string } | null;
+    profiles: { id: string; full_name: string; email: string } | null;
+  }> | null;
+  is_verified?: boolean;
 };
+
+export interface RequiredDocumentType {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 export function useStores() {
   const [stores, setStores] = useState<Store[]>([]);
+  const [requiredDocumentTypes, setRequiredDocumentTypes] = useState<RequiredDocumentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,16 +45,15 @@ export function useStores() {
         storesData.map(async (store: Store) => {
           if (!store.logo_url) return store;
           try {
-             // For simplicity, we fetch individual details only if needed, but here we can just use the GET /api/stores/[id] to get signed urls or build a batch endpoint.
-             // We'll rely on a basic placeholder or the actual DB logic handled via Next backend.
              return store;
           } catch (e) {
-            return store;
+             return store;
           }
         })
       );
 
       setStores(storesWithSignedUrls);
+      setRequiredDocumentTypes(result.requiredDocumentTypes || []);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error fetching stores';
       setError(msg);
@@ -83,6 +100,7 @@ export function useStores() {
 
   return {
     stores,
+    requiredDocumentTypes,
     loading,
     error,
     fetchStores,

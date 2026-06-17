@@ -308,6 +308,30 @@ export type Database = {
           },
         ]
       }
+      document_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -958,6 +982,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      store_documents: {
+        Row: {
+          created_at: string
+          document_type_id: string
+          file_url: string
+          id: string
+          status: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_type_id: string
+          file_url: string
+          id?: string
+          status?: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_type_id?: string
+          file_url?: string
+          id?: string
+          status?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_documents_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "document_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_documents_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_members: {
         Row: {

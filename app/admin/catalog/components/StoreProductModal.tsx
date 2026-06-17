@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 type StoreProduct = Database['public']['Tables']['store_products']['Row'];
 type CatalogProduct = Database['public']['Tables']['catalog_products']['Row'];
@@ -88,14 +89,19 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
         
         {/* Producto y Tienda */}
         <div className="grid sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-mm-txs ml-1">Producto del Catálogo</label>
-            <select name="catalog_product_id" value={formData.catalog_product_id} onChange={handleChange} required disabled={!!initialData}
-              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm disabled:opacity-50">
-              <option value="">Selecciona un producto</option>
-              {catalogProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Producto del Catálogo"
+            required
+            disabled={!!initialData}
+            value={formData.catalog_product_id}
+            onChange={(val) => setFormData(prev => ({ ...prev, catalog_product_id: val }))}
+            placeholder="Selecciona un producto"
+            options={catalogProducts.map((p) => ({
+              value: p.id,
+              label: p.name,
+              group: (p as any).categories?.name || undefined,
+            }))}
+          />
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-mm-txs ml-1">Tienda</label>
             <select name="store_id" value={formData.store_id} onChange={handleChange} required disabled={!!initialData}

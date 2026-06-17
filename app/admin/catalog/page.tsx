@@ -1,17 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Plus, Package, Edit2, Trash2, Store as StoreIcon, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Package, Edit2, Trash2, Store as StoreIcon, ChevronRight, Search } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useStoreProducts } from './hooks/useStoreProducts';
 import { StoreProductModal } from './components/StoreProductModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
-import { createSupabaseBrowserClient } from '../../../lib/supabase/client';
+import { getStoragePublicUrl } from '@/lib/supabase/utils';
 
 type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
-  catalog_products?: { name: string; image_url: string | null; categories?: { name: string } | null } | null;
+  catalog_products?: { 
+    name: string; 
+    image_url: string | null; 
+    description: string | null;
+    category_id: string | null;
+    categories?: { name: string } | null;
+  } | null;
   stores?: { name: string; marketplaces?: { name: string } | null } | null;
   measurement_units?: { abbreviation: string } | null;
 };
@@ -33,66 +39,100 @@ export default function CatalogAdmin() {
   const { storeProducts, loading, error, fetchStoreProducts, deleteStoreProduct, saveStoreProduct } = useStoreProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
-  const [groupedProducts, setGroupedProducts] = useState<GroupedProduct[]>([]);
+
+  // States for search and filtering
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStore, setSelectedStore] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<Database['public']['Tables']['categories']['Row'][]>([]);
+  const [stores, setStores] = useState<Database['public']['Tables']['stores']['Row'][]>([]);
 
   useEffect(() => {
     fetchStoreProducts();
   }, [fetchStoreProducts]);
 
-  // Group products by catalog_product_id
+  // Fetch categories and stores for filtering dropdowns
   useEffect(() => {
-    const groupData = async () => {
-      const groups = new Map<string, GroupedProduct>();
-      const supabase = createSupabaseBrowserClient();
-      
-      for (const item of storeProducts) {
-        const catId = item.catalog_product_id;
-        if (!groups.has(catId)) {
-          let signedUrl = null;
-          if (item.catalog_products?.image_url) {
-            const { data } = await supabase.storage.from('products').createSignedUrl(item.catalog_products.image_url, 3600);
-            signedUrl = data?.signedUrl || null;
-          }
-          
-          groups.set(catId, {
-            id: catId,
-            name: item.catalog_products?.name || 'Desconocido',
-            cat: item.catalog_products?.categories?.name || 'Sin categoría',
-            image_url: item.catalog_products?.image_url || null,
-            imageSignedUrl: signedUrl,
-            items: [],
-            totalStock: 0,
-            avgPrice: 0,
-            unit: item.measurement_units?.abbreviation || '',
-          });
-        }
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) setCategories(data.data);
+      })
+      .catch((err) => console.error('Error fetching categories:', err));
+
+    fetch('/api/stores')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) setStores(data.data);
+      })
+      .catch((err) => console.error('Error fetching stores:', err));
+  }, []);
+
+  // Filter raw storeProducts by selected filters
+  const filteredStoreProducts = useMemo(() => {
+    return storeProducts.filter((item) => {
+      // 1. Search Query: matches catalog product name or description
+      const matchesSearch =
+        !searchQuery ||
+        (item.catalog_products?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.catalog_products?.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+      // 2. Store: matches store ID
+      const matchesStore = !selectedStore || item.store_id === selectedStore;
+
+      // 3. Category: matches category ID
+      const matchesCategory = !selectedCategory || item.catalog_products?.category_id === selectedCategory;
+
+      return matchesSearch && matchesStore && matchesCategory;
+    });
+  }, [storeProducts, searchQuery, selectedStore, selectedCategory]);
+
+  // Group the filtered storeProducts by catalog_product_id synchronously
+  const groupedProducts = useMemo(() => {
+    const groups = new Map<string, GroupedProduct>();
+    
+    for (const item of filteredStoreProducts) {
+      const catId = item.catalog_product_id;
+      if (!groups.has(catId)) {
+        const publicUrl = getStoragePublicUrl('products', item.catalog_products?.image_url);
         
-        const group = groups.get(catId)!;
-        group.items.push(item);
-        group.totalStock += item.stock;
+        groups.set(catId, {
+          id: catId,
+          name: item.catalog_products?.name || 'Desconocido',
+          cat: item.catalog_products?.categories?.name || 'Sin categoría',
+          image_url: item.catalog_products?.image_url || null,
+          imageSignedUrl: publicUrl,
+          items: [],
+          totalStock: 0,
+          avgPrice: 0,
+          unit: item.measurement_units?.abbreviation || '',
+        });
       }
-
-      // Calculate averages
-      for (const group of groups.values()) {
-        if (group.items.length > 0) {
-          const sum = group.items.reduce((acc, curr) => acc + curr.price_per_unit, 0);
-          group.avgPrice = Math.round(sum / group.items.length);
-        }
-      }
-
-      setGroupedProducts(Array.from(groups.values()));
-    };
-
-    if (storeProducts.length > 0) {
-      groupData();
-    } else {
-      setGroupedProducts([]);
+      
+      const group = groups.get(catId)!;
+      group.items.push(item);
+      group.totalStock += item.stock;
     }
-  }, [storeProducts]);
+
+    // Calculate averages
+    for (const group of groups.values()) {
+      if (group.items.length > 0) {
+        const sum = group.items.reduce((acc, curr) => acc + curr.price_per_unit, 0);
+        group.avgPrice = Math.round(sum / group.items.length);
+      }
+    }
+
+    return Array.from(groups.values());
+  }, [filteredStoreProducts]);
 
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
   } = useTable({ initialData: groupedProducts });
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStore, selectedCategory, setPage]);
 
   const fmt = (price: number) => `$${price.toLocaleString('es-CO')}`;
 
@@ -202,6 +242,53 @@ export default function CatalogAdmin() {
         <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Asignar a Tienda
         </Button>
+      </div>
+
+      {/* Filtros de Búsqueda, Tienda y Categoría */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm animate-fade-up">
+        {/* Buscador */}
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar por producto o descripción..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"
+          />
+        </div>
+
+        {/* Tienda */}
+        <div>
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="" className="text-mm-txw">Todas las tiendas</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Categoría */}
+        <div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="" className="text-mm-txw">Todas las categorías</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <Table

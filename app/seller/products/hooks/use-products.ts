@@ -21,6 +21,9 @@ export function useProducts() {
     cat: 'Varios',
     image: '',
     masterId: '' as any, // catalog_product_id UUID
+    wholesalePrice: 0,
+    wholesaleMinQty: 10,
+    minOrderQty: 1,
   });
 
   // Cargar productos de la tienda
@@ -101,20 +104,23 @@ export function useProducts() {
     }
   }, [storeId]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProduct(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+
 
   const handleOpenAdd = () => {
     setEditingProduct(null);
-    setNewProduct({ name: '', retailPrice: 0, stock: 0, unit: 'kg', emoji: '🍎', cat: 'Varios', image: '', masterId: '' });
+    setNewProduct({
+      name: '',
+      retailPrice: 0,
+      stock: 0,
+      unit: 'kg',
+      emoji: '🍎',
+      cat: 'Varios',
+      image: '',
+      masterId: '',
+      wholesalePrice: 0,
+      wholesaleMinQty: 10,
+      minOrderQty: 1,
+    });
     setIsModalOpen(true);
   };
 
@@ -128,7 +134,10 @@ export function useProducts() {
       emoji: p.emoji,
       cat: p.cat,
       image: p.image || '',
-      masterId: p.masterId as string
+      masterId: p.masterId as string,
+      wholesalePrice: p.wsPrice || 0,
+      wholesaleMinQty: p.wsMin || 10,
+      minOrderQty: p.minStock || 1,
     });
     setIsModalOpen(true);
   };
@@ -136,6 +145,12 @@ export function useProducts() {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeId || !newProduct.masterId) return;
+
+    // Validation to ensure wholesale price is lower than or equal to retail price
+    if (newProduct.wholesalePrice > newProduct.retailPrice) {
+      alert('El precio mayorista no puede ser mayor que el precio minorista.');
+      return;
+    }
 
     // Buscar el unit_id que corresponde a la abreviatura de la unidad seleccionada
     const matchedMaster = catalog.find(c => c.id === newProduct.masterId);
@@ -156,8 +171,9 @@ export function useProducts() {
           body: JSON.stringify({
             price_per_unit: newProduct.retailPrice,
             stock: newProduct.stock,
-            wholesale_price: Math.floor(newProduct.retailPrice * 0.8),
-            wholesale_min_qty: 10,
+            min_order_qty: newProduct.minOrderQty,
+            wholesale_price: newProduct.wholesalePrice,
+            wholesale_min_qty: newProduct.wholesaleMinQty,
           }),
         });
 
@@ -173,8 +189,9 @@ export function useProducts() {
             unit_id: unitId,
             price_per_unit: newProduct.retailPrice,
             stock: newProduct.stock,
-            wholesale_price: Math.floor(newProduct.retailPrice * 0.8),
-            wholesale_min_qty: 10,
+            min_order_qty: newProduct.minOrderQty,
+            wholesale_price: newProduct.wholesalePrice,
+            wholesale_min_qty: newProduct.wholesaleMinQty,
           }),
         });
 
@@ -184,7 +201,19 @@ export function useProducts() {
       await fetchStoreProducts();
       setIsModalOpen(false);
       setEditingProduct(null);
-      setNewProduct({ name: '', retailPrice: 0, stock: 0, unit: 'kg', emoji: '🍎', cat: 'Varios', image: '', masterId: '' });
+      setNewProduct({
+        name: '',
+        retailPrice: 0,
+        stock: 0,
+        unit: 'kg',
+        emoji: '🍎',
+        cat: 'Varios',
+        image: '',
+        masterId: '',
+        wholesalePrice: 0,
+        wholesaleMinQty: 10,
+        minOrderQty: 1,
+      });
     } catch (err) {
       console.error(err);
     }
@@ -228,7 +257,6 @@ export function useProducts() {
     setNewProduct,
     catalog,
     loading: loading || !storeId,
-    handleImageUpload,
     handleOpenAdd,
     handleOpenEdit,
     handleAddProduct,

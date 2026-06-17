@@ -53,13 +53,15 @@ export async function PUT(
       'category_id',
       'default_unit_id',
       'description',
+      'dane_unit_code',
+      'dane_unit_name',
     ];
 
     fields.forEach((field) => {
       const val = formData.get(field as string);
 
       if (val !== null) {
-        (updateData as Record<string, unknown>)[field] = String(val);
+        (updateData as Record<string, unknown>)[field] = val === '' ? null : String(val);
       }
     });
 

@@ -1,34 +1,24 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Store as StoreIcon, Edit2, Trash2, Users } from 'lucide-react';
-import { Database } from '../../../types/database_generated';
-import { useStores } from './hooks/useStores';
+import { Plus, Store as StoreIcon, Edit2, Trash2, Users, FileText } from 'lucide-react';
+import { useStores, Store } from './hooks/useStores';
 import { StoreModal } from './components/StoreModal';
 import { StoreMembersModal } from './components/StoreMembersModal';
+import { StoreDocumentsModal } from './components/StoreDocumentsModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
 import { AnimatePresence } from 'framer-motion';
 
-type Store = Database['public']['Tables']['stores']['Row'] & {
-  coverSignedUrl?: string | null;
-  logoSignedUrl?: string | null;
-  marketplaces?: { name: string } | null;
-  store_members?: Array<{
-    id: string;
-    role_id: string;
-    roles: { name: string; label: string } | null;
-    profiles: { id: string; full_name: string; email: string } | null;
-  }> | null;
-};
-
 export default function StoresAdmin() {
-  const { stores, loading, error, fetchStores, deleteStore, saveStore } = useStores();
+  const { stores, requiredDocumentTypes, loading, error, fetchStores, deleteStore, saveStore } = useStores();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [selectedStoreForMembers, setSelectedStoreForMembers] = useState<Store | null>(null);
+  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
+  const [selectedStoreForDocs, setSelectedStoreForDocs] = useState<Store | null>(null);
 
   useEffect(() => {
     fetchStores();
@@ -37,6 +27,18 @@ export default function StoresAdmin() {
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
   } = useTable({ initialData: stores });
+
+  const isStoreVerified = (store: Store) => {
+    const requiredIds = requiredDocumentTypes.map((t) => t.id);
+    if (requiredIds.length === 0) return false;
+
+    const storeDocs = store.store_documents || [];
+    const approvedTypeIds = storeDocs
+      .filter((d) => d.status === 'approved')
+      .map((d) => d.document_type_id);
+
+    return requiredIds.every((id) => approvedTypeIds.includes(id));
+  };
 
   const columns = [
     {
@@ -72,6 +74,19 @@ export default function StoresAdmin() {
       render: (item: Store) => {
         const owner = item.store_members?.find(m => m.roles?.name === 'store_owner');
         return <span className="text-sm text-mm-txs">{owner?.profiles?.full_name || item.contact_name || 'Sin dueño'}</span>;
+      }
+    },
+    {
+      key: 'verification',
+      label: 'Documentos',
+      sortable: false,
+      render: (item: Store) => {
+        const verified = isStoreVerified(item);
+        return (
+          <Badge variant={verified ? 'success' : 'warning'}>
+            {verified ? 'Verificada' : 'Pendiente'}
+          </Badge>
+        );
       }
     },
     {
@@ -115,9 +130,21 @@ export default function StoresAdmin() {
         actions={(item: Store) => (
           <div className="flex gap-2">
             <button 
-              onClick={() => { setSelectedStoreForMembers(item); setIsMembersModalOpen(true); }}
+              onClick={() => { setSelectedStoreForDocs(item); setIsDocsModalOpen(true); }}
               className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-              title="Miembros"
+              title="Documentos"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => { setSelectedStoreForMembers(item); setIsMembersModalOpen(true); }}
+              disabled={!isStoreVerified(item)}
+              className={`p-2 rounded-full transition-colors ${
+                isStoreVerified(item)
+                  ? 'hover:bg-mm-gbg text-mm-txw hover:text-mm-g'
+                  : 'opacity-40 cursor-not-allowed text-mm-txw/50'
+              }`}
+              title={isStoreVerified(item) ? "Miembros" : "Verificación de documentos requerida"}
             >
               <Users className="w-4 h-4" />
             </button>
@@ -157,6 +184,18 @@ export default function StoresAdmin() {
             onClose={() => { setIsMembersModalOpen(false); setSelectedStoreForMembers(null); }}
             storeId={selectedStoreForMembers.id}
             storeName={selectedStoreForMembers.name}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isDocsModalOpen && selectedStoreForDocs && (
+          <StoreDocumentsModal
+            isOpen={isDocsModalOpen}
+            onClose={() => { setIsDocsModalOpen(false); setSelectedStoreForDocs(null); }}
+            storeId={selectedStoreForDocs.id}
+            storeName={selectedStoreForDocs.name}
+            onSaved={fetchStores}
           />
         )}
       </AnimatePresence>

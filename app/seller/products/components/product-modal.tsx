@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Image as ImageIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input, Badge } from '@/src/components/Shared';
 import { MasterProduct, Product } from '@/src/types';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -19,6 +19,9 @@ interface ProductModalProps {
     cat: string;
     image: string;
     masterId: any;
+    wholesalePrice: number;
+    wholesaleMinQty: number;
+    minOrderQty: number;
   };
   setNewOfferProduct: React.Dispatch<React.SetStateAction<{
     name: string;
@@ -29,8 +32,10 @@ interface ProductModalProps {
     cat: string;
     image: string;
     masterId: any;
+    wholesalePrice: number;
+    wholesaleMinQty: number;
+    minOrderQty: number;
   }>>;
-  onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -41,7 +46,6 @@ export function ProductModal({
   catalog,
   newProduct,
   setNewOfferProduct,
-  onImageUpload,
   onSubmit,
 }: ProductModalProps) {
   return (
@@ -54,77 +58,46 @@ export function ProductModal({
         <div className="space-y-2">
           <label className="text-sm font-medium text-mm-txs ml-1">Imagen del Producto</label>
           <div className="flex gap-4">
-            <div className="w-24 h-24 bg-mm-gbg/20 rounded-3xl flex items-center justify-center text-4xl shrink-0 overflow-hidden border-2 border-dashed border-mm-crd group relative">
+            <div className="w-24 h-24 bg-mm-gbg/10 rounded-3xl flex items-center justify-center text-4xl shrink-0 overflow-hidden border border-mm-crd relative">
               {newProduct.image ? (
                 <img src={newProduct.image} alt="Preview" className="w-full h-full object-cover" />
               ) : (
-                <div className="flex flex-col items-center gap-1">
-                  <ImageIcon className="w-6 h-6 text-mm-txw" />
-                  <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
-                </div>
+                <span className="text-3xl">{newProduct.emoji || '📦'}</span>
               )}
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={onImageUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
             </div>
             <div className="flex-grow flex flex-col justify-center">
-              <p className="text-[10px] text-mm-txw leading-tight">Sube una foto real de tu producto para generar más confianza.</p>
-              {newProduct.masterId > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  type="button"
-                  className="mt-2 text-[10px] h-7 w-fit border border-mm-crd"
-                  onClick={() => {
-                    const master = catalog.find(i => i.id === newProduct.masterId);
-                    if (master) setNewOfferProduct(prev => ({ ...prev, image: master.image || '' }));
-                  }}
-                >
-                  Usar imagen del catálogo
-                </Button>
-              )}
+              <p className="text-xs text-mm-txs leading-tight font-medium">La imagen y categoría se asignan automáticamente según el producto del catálogo oficial.</p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-mm-txs ml-1">Nombre del Producto</label>
-          <select 
-            value={newProduct.masterId}
-            onChange={e => {
-              const mid = e.target.value;
-              const master = catalog.find(i => String(i.id) === String(mid));
-              if (master) {
-                setNewOfferProduct(prev => ({
-                  ...prev,
-                  masterId: mid,
-                  name: master.name,
-                  cat: master.cat,
-                  image: master.image || '',
-                  unit: master.defaultUnit,
-                  emoji: master.emoji
-                }));
-              }
-            }}
-            className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
-            required
-          >
-            <option value="">Seleccione un producto...</option>
-            {Array.from(new Set(catalog.map(i => i.cat))).map(cat => (
-              <optgroup key={cat} label={cat}>
-                {catalog
-                  .filter(i => i.cat === cat)
-                  .map(item => (
-                    <option key={item.id} value={item.id}>{item.emoji} {item.name}</option>
-                  ))
-                }
-              </optgroup>
-            ))}
-          </select>
-        </div>
+        <SearchableSelect
+          label="Nombre del Producto"
+          required
+          disabled={!!editingProduct}
+          value={newProduct.masterId}
+          onChange={(mid) => {
+            const master = catalog.find(i => String(i.id) === String(mid));
+            if (master) {
+              setNewOfferProduct(prev => ({
+                ...prev,
+                masterId: mid,
+                name: master.name,
+                cat: master.cat,
+                image: master.image || '',
+                unit: master.defaultUnit,
+                emoji: master.emoji
+              }));
+            }
+          }}
+          placeholder="Seleccione un producto..."
+          options={catalog.map((item) => ({
+            value: String(item.id),
+            label: item.name,
+            group: item.cat,
+            emoji: item.emoji,
+          }))}
+        />
 
         {newProduct.name && (
           <motion.div 
@@ -179,6 +152,30 @@ export function ProductModal({
             onChange={e => setNewOfferProduct(prev => ({ ...prev, stock: Number(e.target.value) }))}
             placeholder="0"
             required
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <Input 
+            label="Precio Mayorista ($)" 
+            type="number"
+            value={newProduct.wholesalePrice || ''} 
+            onChange={e => setNewOfferProduct(prev => ({ ...prev, wholesalePrice: Number(e.target.value) }))}
+            placeholder="Opcional"
+          />
+          <Input 
+            label="Mínimo Mayorista" 
+            type="number"
+            value={newProduct.wholesaleMinQty || ''} 
+            onChange={e => setNewOfferProduct(prev => ({ ...prev, wholesaleMinQty: Number(e.target.value) }))}
+            placeholder="Ej: 10"
+          />
+          <Input 
+            label="Pedido Mínimo (Retail)" 
+            type="number"
+            value={newProduct.minOrderQty || ''} 
+            onChange={e => setNewOfferProduct(prev => ({ ...prev, minOrderQty: Number(e.target.value) }))}
+            placeholder="Ej: 1"
           />
         </div>
 
