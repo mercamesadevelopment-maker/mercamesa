@@ -706,9 +706,11 @@ export type Database = {
       orders: {
         Row: {
           address_change_fee: number
-          buyer_id: string
+          buyer_id: string | null
           buyer_type: Database["public"]["Enums"]["buyer_type"]
+          client_id: string | null
           client_idempotency_key: string | null
+          consecutive: number
           created_at: string
           delivery_address_id: string | null
           delivery_fee: number
@@ -723,9 +725,11 @@ export type Database = {
         }
         Insert: {
           address_change_fee?: number
-          buyer_id: string
+          buyer_id?: string | null
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
+          client_id?: string | null
           client_idempotency_key?: string | null
+          consecutive?: number
           created_at?: string
           delivery_address_id?: string | null
           delivery_fee?: number
@@ -740,9 +744,11 @@ export type Database = {
         }
         Update: {
           address_change_fee?: number
-          buyer_id?: string
+          buyer_id?: string | null
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
+          client_id?: string | null
           client_idempotency_key?: string | null
+          consecutive?: number
           created_at?: string
           delivery_address_id?: string | null
           delivery_fee?: number
@@ -761,6 +767,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {

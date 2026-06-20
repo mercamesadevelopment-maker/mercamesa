@@ -5,12 +5,121 @@ import { CustomerState } from '../components/customer-autocomplete';
 import { saveClient } from '../services/sales.service';
 import { fmt } from '@/src/constants';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function useSales() {
   const { state, dispatch } = useApp();
   const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [dbSales, setDbSales] = useState<Sale[]>([]);
+  const [nextConsecutive, setNextConsecutive] = useState(1001);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Cargar ventas locales de hoy desde la base de datos
+  const fetchTodayDbSales = async () => {
+    if (!storeId) return;
+    const supabase = createSupabaseBrowserClient();
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Query store_orders created today
+      const { data: todayOrders, error } = await supabase
+        .from('store_orders')
+        .select(`
+          *,
+          orders (
+            *,
+            clients (
+              full_name,
+              email,
+              phone,
+              document_number
+            )
+          )
+        `)
+        .eq('store_id', storeId)
+        .gte('created_at', todayStart.toISOString());
+
+      if (error) throw error;
+
+      if (!todayOrders || todayOrders.length === 0) {
+        setDbSales([]);
+        return;
+      }
+
+      // Also fetch items for these orders
+      const orderIds = todayOrders.map((x: any) => x.order_id);
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select(`
+          *,
+          store_products!inner (
+            store_id
+          )
+        `)
+        .in('order_id', orderIds)
+        .eq('store_products.store_id', storeId);
+
+      if (itemsError) throw itemsError;
+
+      const mapped: Sale[] = todayOrders.map((so: any) => {
+        const parentOrder = so.orders as any;
+        const client = parentOrder?.clients;
+        
+        const storeItems: OrderItem[] = (itemsData || [])
+          .filter((item: any) => item.order_id === so.order_id)
+          .map((item: any) => ({
+            id: item.id,
+            name: item.catalog_name || 'Producto',
+            qty: Number(item.quantity),
+            price: Number(item.unit_price),
+            unit: item.unit_name || 'unid',
+            emoji: '📦',
+          }));
+
+        return {
+          id: parentOrder?.consecutive || 1000 + so.id.substring(0, 4),
+          date: so.created_at,
+          storeId: so.store_id,
+          items: storeItems,
+          total: Number(so.subtotal),
+          status: 'pagado',
+          customerName: client?.full_name || undefined,
+          customerID: client?.document_number || undefined,
+          customerEmail: client?.email || undefined
+        };
+      });
+
+      setDbSales(mapped);
+    } catch (err) {
+      console.error('Error fetching today db sales:', err);
+    }
+  };
+
+  // Cargar el máximo consecutivo actual
+  const fetchNextConsecutive = async () => {
+    const supabase = createSupabaseBrowserClient();
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('consecutive')
+        .order('consecutive', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data && data.consecutive) {
+        setNextConsecutive(data.consecutive + 1);
+      } else {
+        setNextConsecutive(1001);
+      }
+    } catch (err) {
+      console.error('Error fetching max consecutive:', err);
+    }
+  };
 
   // Cargar productos de la tienda desde la base de datos
   useEffect(() => {
@@ -50,6 +159,8 @@ export function useSales() {
       }
     };
     fetchStoreProducts();
+    fetchTodayDbSales();
+    fetchNextConsecutive();
   }, [storeId]);
 
   const [search, setSearch] = useState('');
@@ -104,12 +215,15 @@ export function useSales() {
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cart.length === 0 || !storeId) return;
+    if (cart.length === 0 || !storeId || isSubmitting) return;
+
+    setIsSubmitting(true);
 
     // 1. Guardar cliente si hay datos de documento
+    let savedClient = null;
     if (customer.id.trim() && customer.name.trim()) {
       try {
-        await saveClient({
+        savedClient = await saveClient({
           profile_id: customer.profile_id || null,
           document_number: customer.id.trim(),
           full_name: customer.name.trim(),
@@ -121,53 +235,109 @@ export function useSales() {
       }
     }
 
-    // 2. Definir estado de la venta/pedido.
-    // Si el rol es 'retail', la orden/venta queda en estado 'pagado' o 'preparado' automáticamente (confirmada)
-    const saleStatus: SaleStatus = state.userRole === 'retail' ? 'pagado' : 'pedido';
+    // 2. Definir payload de la orden
+    const client_id = savedClient?.id || null;
+    const client_idempotency_key = crypto.randomUUID();
 
-    const newSale: Sale = {
-      id: state.sales.length + 1001,
-      date: new Date().toISOString(),
-      storeId: storeId,
+    const orderPayload = {
+      order: {
+        buyer_id: customer.profile_id || null,
+        client_id: client_id,
+        buyer_type: 'retail',
+        status: 'delivered',
+        payment_status: 'approved',
+        delivery_fee: 0,
+        client_idempotency_key: client_idempotency_key,
+        notes: 'Venta física registrada en sitio'
+      },
       items: cart.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        qty: item.qty,
-        price: item.product.retailPrice,
-        unit: item.product.unit,
-        emoji: item.product.emoji,
-        image: item.product.image
+        store_product_id: item.product.id,
+        quantity: item.qty,
+        catalog_name: item.product.name,
+        unit_name: item.product.unit
       })),
-      total,
-      status: saleStatus,
-      customerName: customer.name.trim() || undefined,
-      customerID: customer.id.trim() || undefined,
-      customerEmail: customer.email.trim() || undefined
+      storeOrders: [
+        {
+          store_id: storeId,
+          status: 'delivered',
+          has_refrigerated: false,
+          notes: 'Venta física'
+        }
+      ]
     };
 
-    dispatch({ type: 'ADD_SALE', sale: newSale });
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
 
-    setCart([]);
-    setCustomer({ name: '', id: '', email: '', phone: '' });
-    setSearch('');
-
-    dispatch({
-      type: 'ADD_NOTIF',
-      notif: {
-        id: `sale-${Date.now()}`,
-        type: 'order_new',
-        title: 'Venta Registrada',
-        msg: `Venta #${newSale.id} por ${fmt(total)} registrada con éxito (${state.userRole === 'retail' ? 'Confirmada' : 'Pendiente'}).`,
-        time: new Date().toISOString(),
-        read: false
+      if (!response.ok) {
+        const errorJson = await response.json();
+        throw new Error(errorJson.error || 'Error al guardar la venta en la base de datos');
       }
-    });
+
+      // Re-cargar productos de la tienda (para obtener el stock actualizado descontado por el trigger)
+      const fetchStoreProducts = async () => {
+        try {
+          const res = await fetch(`/api/store-products?store_id=${storeId}`);
+          if (res.ok) {
+            const json = await res.json();
+            const mapped: Product[] = (json.data || []).map((item: any) => ({
+              id: item.id,
+              plazaId: 1, // Default
+              storeId: item.store_id,
+              emoji: getEmojiForCategory(item.catalog_products?.categories?.name),
+              image: item.imageSignedUrl || item.catalog_products?.image_url || '',
+              name: item.catalog_products?.name || '',
+              cat: item.catalog_products?.categories?.name || 'Varios',
+              unit: item.measurement_units?.abbreviation || 'kg',
+              retailPrice: Number(item.price_per_unit),
+              wsPrice: Number(item.wholesale_price || item.price_per_unit * 0.8),
+              ws20: Number(item.price_per_unit * 0.75),
+              ws50: Number(item.price_per_unit * 0.75),
+              wsMin: Number(item.wholesale_min_qty || 10),
+              stock: Number(item.stock),
+              minStock: Number(item.min_order_qty || 1),
+              masterId: item.catalog_product_id,
+              desc: item.catalog_products?.description || '',
+              status: item.is_active ? 'active' : 'inactive',
+            }));
+            setMyProducts(mapped.filter(p => p.status === 'active'));
+          }
+        } catch (err) {
+          console.error('Error refreshing products stock:', err);
+        }
+      };
+      await fetchStoreProducts();
+      await fetchTodayDbSales();
+      await fetchNextConsecutive();
+
+      setCart([]);
+      setCustomer({ name: '', id: '', email: '', phone: '' });
+      setSearch('');
+
+      dispatch({
+        type: 'ADD_NOTIF',
+        notif: {
+          id: `sale-${Date.now()}`,
+          type: 'order_new',
+          title: 'Venta Registrada',
+          msg: `Venta física por ${fmt(total)} registrada con éxito en la base de datos.`,
+          time: new Date().toISOString(),
+          read: false
+        }
+      });
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Error al guardar la venta');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const mySales = useMemo(() => {
-    if (!storeId) return [];
-    return state.sales.filter(s => s.storeId === storeId);
-  }, [state.sales, storeId]);
+  const mySales = dbSales;
 
   const todayTotal = useMemo(() => {
     return mySales.reduce((acc, s) => acc + s.total, 0);
@@ -187,9 +357,10 @@ export function useSales() {
     updateQtyValue,
     total,
     handleCheckout,
+    isSubmitting,
     mySales,
     todayTotal,
-    nextConsecutive: state.sales.length + 1001,
+    nextConsecutive,
     loading: loading || !storeId,
     stores,
     storeId,

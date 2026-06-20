@@ -46,6 +46,12 @@ export function useSalesHistory() {
               email,
               phone
             ),
+            clients (
+              full_name,
+              email,
+              phone,
+              document_number
+            ),
             delivery_addresses (
               label,
               address_line,
@@ -84,15 +90,20 @@ export function useSalesHistory() {
       if (itemsError) throw itemsError;
 
       const mapped: UnifiedHistoryItem[] = storeOrdersData.map((so: any) => {
-        const parentOrder = so.orders;
+        const parentOrder = so.orders as any;
         const buyer = parentOrder?.profiles;
+        const client = parentOrder?.clients;
         const addressObj = parentOrder?.delivery_addresses;
 
-        const addressStr = addressObj
-          ? `${addressObj.address_line ?? ''}, ${addressObj.neighborhood ?? ''}, ${addressObj.municipality ?? ''}, ${addressObj.department ?? ''}`
-            .replace(/,\s*,/g, ',')
-            .replace(/^,\s*|,\s*$/g, '')
-          : 'Retiro en tienda';
+        const isLocal = !parentOrder?.buyer_id;
+
+        const addressStr = isLocal
+          ? 'Venta física (Local)'
+          : (addressObj
+              ? `${addressObj.address_line ?? ''}, ${addressObj.neighborhood ?? ''}, ${addressObj.municipality ?? ''}, ${addressObj.department ?? ''}`
+                .replace(/,\s*,/g, ',')
+                .replace(/^,\s*|,\s*$/g, '')
+              : 'Retiro en tienda');
 
         const storeItems: OrderItem[] = (itemsData || [])
           .filter((item: any) => item.order_id === so.order_id)
@@ -109,25 +120,29 @@ export function useSalesHistory() {
         if (so.status === 'delivered') statusLabel = 'Entregado';
 
         return {
-          id: `Digital #${so.order_id.substring(0, 8)}`,
+          id: isLocal
+            ? `Físico #${parentOrder?.consecutive || so.id.substring(0, 4)}`
+            : `Digital #${parentOrder?.consecutive || so.order_id.substring(0, 8)}`,
           rawId: so.order_id,
-          type: 'online',
-          customerName: buyer?.full_name || 'Cliente Online',
-          customerID: buyer?.phone || undefined,
-          customerEmail: buyer?.email || undefined,
+          type: isLocal ? ('local' as const) : ('online' as const),
+          customerName: isLocal
+            ? (client?.full_name || 'Consumidor Final')
+            : (buyer?.full_name || 'Cliente Online'),
+          customerID: isLocal ? (client?.document_number || undefined) : (buyer?.phone || undefined),
+          customerEmail: isLocal ? (client?.email || undefined) : (buyer?.email || undefined),
           date: so.created_at,
           items: storeItems,
           total: Number(so.subtotal),
           status: statusLabel,
           paymentStatus: parentOrder?.payment_status === 'approved' ? 'Pagado' : 'Aprobado',
-          paymentMethod: 'Tarjeta de Crédito',
+          paymentMethod: isLocal ? 'Efectivo' : 'Tarjeta de Crédito',
           address: addressStr,
         };
       });
 
       setOnlineOrders(mapped);
     } catch (err) {
-      console.error('Error fetching online orders history:', err);
+      console.error('Error fetching orders history:', err);
     } finally {
       setLoading(false);
     }
@@ -139,32 +154,10 @@ export function useSalesHistory() {
     }
   }, [storeId]);
 
-  // Cargar ventas locales desde el estado global reactivo (ventas registradas en sitio)
+  // Cargar ventas locales desde el estado global reactivo (vacío ya que ahora se cargan de la DB)
   const localHistoryItems = useMemo(() => {
-    if (!storeId) return [];
-    return state.sales
-      .filter(s => s.storeId === storeId && (s.status === 'pagado' || s.status === 'entregado' || s.status === 'preparado'))
-      .map(s => {
-        let statusLabel = 'Confirmado';
-        if (s.status === 'entregado') statusLabel = 'Entregado';
-        else if (s.status === 'pagado') statusLabel = 'Pagado';
-
-        return {
-          id: `Físico #${s.id}`,
-          rawId: s.id,
-          type: 'local' as const,
-          customerName: s.customerName || 'Consumidor Final',
-          customerID: s.customerID,
-          customerEmail: s.customerEmail,
-          date: s.date,
-          items: s.items,
-          total: s.total,
-          status: statusLabel,
-          paymentStatus: s.status === 'pagado' ? 'Pagado' : 'Aprobado',
-          paymentMethod: 'Efectivo',
-        };
-      });
-  }, [state.sales, storeId]);
+    return [] as UnifiedHistoryItem[];
+  }, []);
 
   // Unificación de colecciones
   const unifiedHistory = useMemo(() => {

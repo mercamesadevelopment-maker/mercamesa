@@ -25,6 +25,7 @@ export function SalesView() {
     updateQtyValue,
     total,
     handleCheckout,
+    isSubmitting,
     mySales,
     todayTotal,
     nextConsecutive,
@@ -286,10 +287,19 @@ export function SalesView() {
               <Button 
                 type="submit" 
                 size="lg" 
-                className="w-full py-7 text-lg shadow-xl shadow-mm-g/20 disabled:opacity-50 transition-all"
-                disabled={cart.length === 0}
+                className="w-full py-7 text-lg shadow-xl shadow-mm-g/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                disabled={cart.length === 0 || isSubmitting}
               >
-                Registrar Venta <ArrowUpRight className="ml-2 w-5 h-5" />
+                {isSubmitting ? (
+                  <>
+                    Registrando... 
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  </>
+                ) : (
+                  <>
+                    Registrar Venta <ArrowUpRight className="w-5 h-5" />
+                  </>
+                )}
               </Button>
             </div>
           </form>

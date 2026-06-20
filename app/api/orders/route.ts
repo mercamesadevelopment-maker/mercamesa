@@ -45,7 +45,6 @@ export async function POST(request: Request) {
       .from('orders')
       .select('*, order_items (*)')
       .eq('client_idempotency_key', order.client_idempotency_key)
-      .eq('buyer_id', user.id)
       .single();
 
     if (idempotencyError && idempotencyError.code !== 'PGRST116') {
@@ -57,18 +56,17 @@ export async function POST(request: Request) {
     }
 
     // --- SECURE PRICE VALIDATION & RE-CALCULATION ON SERVER SIDE ---
-    // 1. Fetch profile to check buyer type (retail vs wholesale) securely from the database
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('buyer_type')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'No se encontró el perfil del usuario' }, { status: 400 });
+    // 1. Check buyer type (retail vs wholesale) securely from the database
+    let isWS = false;
+    const buyerIdToCheck = order.buyer_id || user.id;
+    if (buyerIdToCheck) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('buyer_type')
+        .eq('id', buyerIdToCheck)
+        .single();
+      isWS = profile?.buyer_type === 'wholesale';
     }
-
-    const isWS = profile.buyer_type === 'wholesale';
 
     // 2. Query actual prices for all items in the request
     const productIds = items.map(item => item.store_product_id);
@@ -139,26 +137,29 @@ export async function POST(request: Request) {
       };
     });
 
-    const totalDeliveryFee = deliveryFeePerStore * storeOrders.length;
+    const totalDeliveryFee = order.delivery_fee !== undefined ? Number(order.delivery_fee) : (deliveryFeePerStore * storeOrders.length);
     const recalculatedTotal = recalculatedSubtotal + totalDeliveryFee;
 
     // --- END SECURE RE-CALCULATION ---
 
+    const orderInsertData: any = {
+      buyer_id: order.buyer_id || null,
+      client_id: (order as any).client_id || null,
+      buyer_type: isWS ? 'wholesale' : 'retail',
+      status: order.status,
+      payment_status: order.payment_status,
+      subtotal: recalculatedSubtotal,
+      delivery_fee: totalDeliveryFee,
+      discount: 0,
+      total: recalculatedTotal,
+      notes: order.notes,
+      delivery_address_id: order.delivery_address_id,
+      client_idempotency_key: order.client_idempotency_key,
+    };
+
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        buyer_id: user.id,
-        buyer_type: isWS ? 'wholesale' : 'retail',
-        status: order.status,
-        payment_status: order.payment_status,
-        subtotal: recalculatedSubtotal,
-        delivery_fee: totalDeliveryFee,
-        discount: 0,
-        total: recalculatedTotal,
-        notes: order.notes,
-        delivery_address_id: order.delivery_address_id,
-        client_idempotency_key: order.client_idempotency_key,
-      })
+      .insert(orderInsertData)
       .select()
       .single();
 
