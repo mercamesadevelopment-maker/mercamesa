@@ -6,6 +6,7 @@ import {
 import { useProducts } from '../hooks/use-products';
 import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
+import { StockMovementModal } from './StockMovementModal';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
@@ -33,6 +34,7 @@ export function ProductsView() {
     handleOpenEdit,
     handleAddProduct,
     handleDeleteProduct,
+    fetchStoreProducts,
     stores,
     storeId,
     selectStore,
@@ -40,6 +42,8 @@ export function ProductsView() {
 
   const [selectedProductForHistory, setSelectedProductForHistory] = React.useState<any | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
+  const [selectedProductForMovement, setSelectedProductForMovement] = React.useState<any | null>(null);
+  const [isMovementOpen, setIsMovementOpen] = React.useState(false);
 
   const {
     page,
@@ -108,6 +112,16 @@ export function ProductsView() {
 
   const actions = (item: any) => (
     <div className="flex gap-2">
+      <button 
+        className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+        onClick={() => {
+          setSelectedProductForMovement(item);
+          setIsMovementOpen(true);
+        }}
+        title="Registrar Movimiento de Inventario"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
       <button 
         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
         onClick={() => {
@@ -361,6 +375,17 @@ export function ProductsView() {
           setSelectedProductForHistory(null);
         }}
         product={selectedProductForHistory}
+      />
+
+      {/* Stock Movement Modal */}
+      <StockMovementModal 
+        isOpen={isMovementOpen}
+        onClose={() => {
+          setIsMovementOpen(false);
+          setSelectedProductForMovement(null);
+        }}
+        onSuccess={fetchStoreProducts}
+        product={selectedProductForMovement}
       />
     </div>
   );

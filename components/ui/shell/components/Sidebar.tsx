@@ -51,6 +51,7 @@ export function Sidebar({
     sales: '/seller/sales',
     sales_history:
       '/seller/sales-history',
+    clients: '/seller/clients',
     routes: '/delivery',
     history: '/delivery/history',
     earnings: '/delivery/earnings',

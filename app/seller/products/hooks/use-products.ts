@@ -319,6 +319,7 @@ export function useProducts() {
     handleOpenEdit,
     handleAddProduct,
     handleDeleteProduct,
+    fetchStoreProducts,
     stores,
     storeId,
     storeName,
