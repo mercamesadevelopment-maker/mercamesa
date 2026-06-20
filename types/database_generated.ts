@@ -842,6 +842,67 @@ export type Database = {
           },
         ]
       }
+      product_stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          reference_type: string | null
+          registered_by: string | null
+          store_id: string
+          store_product_id: string
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity: number
+          reference_id?: string | null
+          reference_type?: string | null
+          registered_by?: string | null
+          store_id: string
+          store_product_id: string
+          type: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          registered_by?: string | null
+          store_id?: string
+          store_product_id?: string
+          type?: Database["public"]["Enums"]["stock_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_movements_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1484,6 +1545,7 @@ export type Database = {
         | "rejected"
         | "refunded"
         | "disputed"
+      stock_movement_type: "entry" | "exit" | "adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1647,6 +1709,7 @@ export const Constants = {
         "refunded",
         "disputed",
       ],
+      stock_movement_type: ["entry", "exit", "adjustment"],
     },
   },
 } as const

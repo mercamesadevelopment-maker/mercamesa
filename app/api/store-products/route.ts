@@ -72,6 +72,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    if (data && Number(data.stock) > 0) {
+      const { error: movementError } = await supabase.from('product_stock_movements').insert({
+        store_product_id: data.id,
+        store_id: data.store_id,
+        type: 'entry',
+        quantity: Number(data.stock),
+        notes: body.notes || 'Carga inicial de inventario',
+        registered_by: user.id
+      });
+      
+      if (movementError) {
+        console.error('Failed to log initial stock movement:', movementError.message);
+      }
+    }
+
     return NextResponse.json({ data }, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';

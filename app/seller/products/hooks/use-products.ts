@@ -12,6 +12,27 @@ export function useProducts() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  const [selectedStore, setSelectedStore] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Sync selectedStore filter with active storeId initially and on change
+  useEffect(() => {
+    if (storeId && !selectedStore) {
+      setSelectedStore(storeId);
+    }
+  }, [storeId]);
+
+  // Fetch categories for filtering dropdown
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) setCategories(data.data);
+      })
+      .catch((err) => console.error('Error fetching categories:', err));
+  }, []);
+
   const [newProduct, setNewProduct] = useState({
     name: '',
     retailPrice: 0,
@@ -26,15 +47,21 @@ export function useProducts() {
     minOrderQty: 1,
   });
 
-  // Cargar productos de la tienda
+  // Cargar productos de todas las tiendas asociadas al vendedor
   const fetchStoreProducts = async () => {
-    if (!storeId) return;
+    if (stores.length === 0) return;
     try {
-      const response = await fetch(`/api/store-products?store_id=${storeId}`);
-      if (!response.ok) throw new Error('Error al cargar productos de la tienda');
-      const json = await response.json();
+      setLoading(true);
+      const promises = stores.map(store => fetch(`/api/store-products?store_id=${store.id}`));
+      const responses = await Promise.all(promises);
+      const jsonResults = await Promise.all(responses.map(res => {
+        if (!res.ok) throw new Error('Error al cargar productos de la tienda');
+        return res.json();
+      }));
       
-      const mapped: Product[] = (json.data || []).map((item: any) => ({
+      const allItems = jsonResults.flatMap(json => json.data || []);
+      
+      const mapped: Product[] = allItems.map((item: any) => ({
         id: item.id,
         plazaId: 1, // Default
         storeId: item.store_id,
@@ -42,6 +69,7 @@ export function useProducts() {
         image: item.imageSignedUrl || item.catalog_products?.image_url || '',
         name: item.catalog_products?.name || '',
         cat: item.catalog_products?.categories?.name || 'Varios',
+        categoryId: item.catalog_products?.category_id || '',
         unit: item.measurement_units?.abbreviation || 'kg',
         retailPrice: Number(item.price_per_unit),
         wsPrice: Number(item.wholesale_price || item.price_per_unit * 0.8),
@@ -57,6 +85,8 @@ export function useProducts() {
       setMyProducts(mapped);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,12 +127,12 @@ export function useProducts() {
     fetchCatalogAndUnits();
   }, []);
 
-  // Cargar productos cada vez que storeId cambie
+  // Cargar productos cada vez que la lista de tiendas cambie
   useEffect(() => {
-    if (storeId) {
+    if (stores.length > 0) {
       fetchStoreProducts();
     }
-  }, [storeId]);
+  }, [stores]);
 
 
 
@@ -232,17 +262,40 @@ export function useProducts() {
   };
 
   const filteredProducts = useMemo(() => {
-    return myProducts.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-  }, [myProducts, search]);
+    return myProducts.filter((p) => {
+      // 1. Search Query: matches product name or description
+      const matchesSearch =
+        !search ||
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.desc.toLowerCase().includes(search.toLowerCase());
+
+      // 2. Store: matches store ID
+      const matchesStore = !selectedStore || p.storeId === selectedStore;
+
+      // 3. Category: matches category ID
+      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+
+      return matchesSearch && matchesStore && matchesCategory;
+    });
+  }, [myProducts, search, selectedStore, selectedCategory]);
 
   const lowStockProducts = useMemo(() => {
-    return myProducts.filter(p => p.stock <= (p.minStock || 10));
-  }, [myProducts]);
+    return myProducts.filter(p => {
+      const matchesStore = !selectedStore || p.storeId === selectedStore;
+      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+      return matchesStore && matchesCategory && p.stock <= (p.minStock || 10);
+    });
+  }, [myProducts, selectedStore, selectedCategory]);
 
   const lowestStockItem = useMemo(() => {
-    if (myProducts.length === 0) return null;
-    return [...myProducts].sort((a, b) => a.stock - b.stock)[0];
-  }, [myProducts]);
+    const storeAndCatProducts = myProducts.filter(p => {
+      const matchesStore = !selectedStore || p.storeId === selectedStore;
+      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+      return matchesStore && matchesCategory;
+    });
+    if (storeAndCatProducts.length === 0) return null;
+    return [...storeAndCatProducts].sort((a, b) => a.stock - b.stock)[0];
+  }, [myProducts, selectedStore, selectedCategory]);
 
   return {
     filteredProducts,
@@ -250,6 +303,11 @@ export function useProducts() {
     lowestStockItem,
     search,
     setSearch,
+    selectedStore,
+    setSelectedStore,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
     isModalOpen,
     setIsModalOpen,
     editingProduct,

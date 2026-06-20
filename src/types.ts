@@ -83,6 +83,7 @@ export interface Product {
   image?: string;
   name: string;
   cat: string;
+  categoryId?: string;
   unit: string;
   retailPrice: number;
   wsPrice: number;

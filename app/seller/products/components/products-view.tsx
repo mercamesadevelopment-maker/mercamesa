@@ -1,10 +1,11 @@
 import React from 'react';
-import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
 import { useProducts } from '../hooks/use-products';
 import { ProductModal } from './product-modal';
+import { StockHistoryModal } from './StockHistoryModal';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
@@ -17,6 +18,11 @@ export function ProductsView() {
     lowestStockItem,
     search,
     setSearch,
+    selectedStore,
+    setSelectedStore,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
     isModalOpen,
     setIsModalOpen,
     editingProduct,
@@ -31,6 +37,9 @@ export function ProductsView() {
     storeId,
     selectStore,
   } = useProducts();
+
+  const [selectedProductForHistory, setSelectedProductForHistory] = React.useState<any | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
 
   const {
     page,
@@ -101,6 +110,16 @@ export function ProductsView() {
     <div className="flex gap-2">
       <button 
         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+        onClick={() => {
+          setSelectedProductForHistory(item);
+          setIsHistoryOpen(true);
+        }}
+        title="Ver Bitácora de Inventario"
+      >
+        <History className="w-4 h-4" />
+      </button>
+      <button 
+        className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
         onClick={() => handleOpenEdit(item)}
       >
         <Edit2 className="w-4 h-4" />
@@ -118,42 +137,63 @@ export function ProductsView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-          <div>
-            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Inventario</h1>
-            <p className="text-mm-txs">Gestiona tus productos, precios y existencias.</p>
-          </div>
-          {stores.length > 1 && (
-            <div className="flex flex-col gap-1 min-w-[200px]">
-              <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Tienda Activa</label>
-              <select
-                value={storeId || ''}
-                onChange={(e) => selectStore(e.target.value)}
-                className="bg-white text-mm-g font-semibold text-sm border border-mm-crd rounded-xl px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-mm-g/20 cursor-pointer"
-              >
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        <div>
+          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Inventario</h1>
+          <p className="text-mm-txs">Gestiona tus productos, precios y existencias.</p>
         </div>
-        <div className="flex gap-3">
-          <div className="relative w-64">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="Buscar producto..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all shadow-sm"
-            />
-          </div>
-          <Button onClick={handleOpenAdd} className="shadow-lg shadow-mm-g/10">
-            <Plus className="w-5 h-5 mr-1" /> Agregar
-          </Button>
+        <Button onClick={handleOpenAdd} className="shadow-lg shadow-mm-g/10">
+          <Plus className="w-5 h-5 mr-1" /> Agregar
+        </Button>
+      </div>
+
+      {/* Filtros de Búsqueda, Tienda y Categoría */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm animate-fade-up">
+        {/* Buscador */}
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar por producto o descripción..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"
+          />
+        </div>
+
+        {/* Tienda */}
+        <div>
+          <select
+            value={selectedStore}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedStore(val);
+              if (val) selectStore(val);
+            }}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="" className="text-mm-txw">Todas las tiendas</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Categoría */}
+        <div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="" className="text-mm-txw">Todas las categorías</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -311,6 +351,16 @@ export function ProductsView() {
         newProduct={newProduct}
         setNewOfferProduct={setNewProduct}
         onSubmit={handleAddProduct}
+      />
+
+      {/* Stock History Modal */}
+      <StockHistoryModal 
+        isOpen={isHistoryOpen}
+        onClose={() => {
+          setIsHistoryOpen(false);
+          setSelectedProductForHistory(null);
+        }}
+        product={selectedProductForHistory}
       />
     </div>
   );
