@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, ShoppingCart, MapPin } from 'lucide-react';
-import { Badge, Button, cn } from '@/src/components/Shared';
+import { Badge, cn } from '@/src/components/Shared';
 import { usePublicProducts } from '@/app/sections/products/hooks/usePublicProducts';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
@@ -25,13 +25,6 @@ export default function StoreDetailPage() {
 
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Todas');
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 10;
-
-  // Reset page to 1 when search or category changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, activeCat]);
 
   useEffect(() => {
     if (!slug) return;
@@ -72,12 +65,6 @@ export default function StoreDetailPage() {
       return matchSearch && matchCat;
     });
   }, [products, search, activeCat]);
-
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const paginatedProducts = useMemo(() => {
-    return filteredProducts.slice(startIndex, startIndex + productsPerPage);
-  }, [filteredProducts, startIndex]);
 
   const handleAddToCart = (e: React.MouseEvent, p: any) => {
     e.stopPropagation();
@@ -188,9 +175,9 @@ export default function StoreDetailPage() {
 
         {loadingProducts ? (
           <div className="py-12 text-center text-mm-txs">Cargando productos...</div>
-        ) : paginatedProducts.length > 0 ? (
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-            {paginatedProducts.map(product => (
+            {filteredProducts.map(product => (
               <motion.div
                 key={product.id}
                 whileHover={{ y: -5 }}
@@ -232,35 +219,6 @@ export default function StoreDetailPage() {
         ) : (
           <div className="py-12 bg-mm-gbg/30 rounded-3xl border border-mm-crd text-center text-mm-txw">
             No se encontraron productos con los filtros seleccionados.
-          </div>
-        )}
-
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white px-8 py-5 rounded-[32px] border border-mm-crd shadow-sm mt-8">
-            <span className="text-sm text-mm-txs font-semibold">
-              Página <span className="font-bold text-mm-g">{currentPage}</span> de <span className="font-bold text-mm-g">{totalPages}</span>
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage <= 1}
-                className="rounded-xl px-5 h-10 border border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold disabled:opacity-50"
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage >= totalPages}
-                className="rounded-xl px-5 h-10 border border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold disabled:opacity-50"
-              >
-                Siguiente
-              </Button>
-            </div>
           </div>
         )}
       </div>

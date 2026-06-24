@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 
 import { Database } from '../../../../types/database_generated';
-import { Input, Button} from '@/src/components/Shared';
+import { Input, Button } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
 import { getStoragePublicUrl } from '@/lib/supabase/utils';
 
@@ -246,7 +246,7 @@ export function MarketplaceModal({
           {/* Slug + Departamento */}
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Slug"
+              label="Identificador"
               name="slug"
               value={formData.slug}
               onChange={handleChange}
@@ -332,10 +332,10 @@ export function MarketplaceModal({
 
             {previewCover && (
               <div className="w-full h-32 rounded-2xl overflow-hidden border border-mm-crd mb-2 relative">
-                <img 
-                  src={previewCover} 
-                  alt="Preview Cover" 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={previewCover}
+                  alt="Preview Cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             )}

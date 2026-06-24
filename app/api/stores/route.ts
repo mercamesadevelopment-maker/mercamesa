@@ -13,16 +13,16 @@ export async function GET(request: Request) {
   let query = supabase.from('stores').select(`
     *,
     marketplaces ( name ),
-    store_documents (
-      status,
-      document_type_id,
-      document_types ( is_required )
-    ),
     store_members (
       id,
       role_id,
       roles ( name, label ),
       profiles!user_id ( id, full_name, email )
+    ),
+    store_documents (
+      id,
+      document_type_id,
+      status
     )
   `);
   
@@ -35,43 +35,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Fetch all required document types to compute verified status dynamically
-  const { data: reqTypes } = await supabase
+  // Fetch required document types
+  const { data: requiredDocumentTypes, error: typesError } = await supabase
     .from('document_types')
-    .select('id, name, slug')
+    .select('id, name, slug, is_required')
     .eq('is_required', true);
-  const requiredTypeIds = reqTypes?.map((t) => t.id) || [];
 
-  const dataWithUrls = data?.map((store) => {
-    const logoSignedUrl = store.logo_url
-      ? supabase.storage.from('stores').getPublicUrl(store.logo_url).data.publicUrl
-      : null;
-    const coverSignedUrl = store.cover_image_url
-      ? supabase.storage.from('stores').getPublicUrl(store.cover_image_url).data.publicUrl
-      : null;
+  if (typesError) {
+    return NextResponse.json({ error: typesError.message }, { status: 400 });
+  }
 
-    // Check if store has approved all required documents
-    const storeDocs = store.store_documents || [];
-    const approvedDocTypeIds = storeDocs
-      .filter((d) => d.status === 'approved')
-      .map((d) => d.document_type_id);
-
-    const isVerified = requiredTypeIds.length > 0
-      ? requiredTypeIds.every((id) => approvedDocTypeIds.includes(id))
-      : false;
-
-    return {
-      ...store,
-      logoSignedUrl,
-      coverSignedUrl,
-      is_verified: isVerified,
-    };
-  });
-
-  return NextResponse.json({ 
-    data: dataWithUrls,
-    requiredDocumentTypes: reqTypes || []
-  }, { status: 200 });
+  return NextResponse.json({ data, requiredDocumentTypes }, { status: 200 });
 }
 
 export async function POST(request: Request) {

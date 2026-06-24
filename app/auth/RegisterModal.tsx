@@ -93,7 +93,7 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   exit={{ opacity: 0, x: -20 }}
                 >
                   <h2 className="text-3xl font-fraunces text-mm-g mb-2 text-center">Elige tu rol</h2>
-                  <p className="text-mm-txs mb-8 text-center">Selecciona cómo quieres participar en Mercamesa.</p>
+                  <p className="text-mm-txs mb-8 text-center">Selecciona cómo quieres participar en MercaMesa.</p>
                   
                   <div className="grid sm:grid-cols-2 gap-4">
                     {ROLES.filter(r => r.k !== 'admin').map((r) => (
@@ -161,7 +161,7 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 >
                   <div className="text-8xl mb-6 animate-pop-in inline-block">{ROLES.find(r => r.k === role)?.emoji}</div>
                   <h2 className="text-4xl font-fraunces text-mm-g mb-4">¡Listo, bienvenido! 🎉</h2>
-                  <p className="text-mm-txs mb-10 max-w-md mx-auto">Tu cuenta de {ROLES.find(r => r.k === role)?.title} ha sido creada con éxito. Ya puedes empezar a disfrutar de Mercamesa.</p>
+                  <p className="text-mm-txs mb-10 max-w-md mx-auto">Tu cuenta de {ROLES.find(r => r.k === role)?.title} ha sido creada con éxito. Ya puedes empezar a disfrutar de MercaMesa.</p>
                   
                   <div className="grid sm:grid-cols-2 gap-4 mb-10 text-left">
                     {ROLES.find(r => r.k === role)?.perks.map((perk, i) => (

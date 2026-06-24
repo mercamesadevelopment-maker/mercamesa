@@ -30,7 +30,7 @@ export default function AcceptInvite() {
     const checkInvitation = async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-
+        
         // Try getting existing session
         let { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
@@ -43,14 +43,14 @@ export default function AcceptInvite() {
           const params = new URLSearchParams(hash.substring(1));
           const access_token = params.get('access_token');
           const refresh_token = params.get('refresh_token');
-
+          
           if (access_token && refresh_token) {
             console.log('Explicitly setting session from URL hash...');
             const { data: { session: newSession }, error: setError } = await supabase.auth.setSession({
               access_token,
               refresh_token
             });
-
+            
             if (setError) {
               console.error('Error setting session from hash:', setError);
             } else {
@@ -192,7 +192,7 @@ export default function AcceptInvite() {
                 Tu perfil de vendedor ha sido creado exitosamente y has sido asignado como miembro de la tienda{' '}
                 <span className="font-bold text-mm-g">{storeName}</span>.
               </p>
-              <Button onClick={() => router.push('/seller/dashboard')} size="lg" className="w-full">
+              <Button onClick={() => router.push('/seller')} size="lg" className="w-full">
                 Ir a mi panel →
               </Button>
             </motion.div>

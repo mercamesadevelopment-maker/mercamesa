@@ -103,7 +103,7 @@ export function useCheckout() {
 
       const nameParts = (profile.full_name || '').trim().split(' ');
       const firstName = nameParts[0] || 'Cliente';
-      const lastName = nameParts.slice(1).join(' ') || 'Mercamesa';
+      const lastName = nameParts.slice(1).join(' ') || 'MercaMesa';
 
       for (const group of cartByStore) {
         const groupSubtotal = group.items.reduce(

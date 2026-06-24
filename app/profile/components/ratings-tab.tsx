@@ -80,7 +80,7 @@ export function RatingsTab() {
       >
         <div>
           <h2 className="text-3xl font-fraunces text-mm-g mb-2">Calificaciones</h2>
-          <p className="text-mm-txs">Tu opinión ayuda a mejorar la comunidad de Mercamesa.</p>
+          <p className="text-mm-txs">Tu opinión ayuda a mejorar la comunidad de MercaMesa.</p>
         </div>
 
         {/* Pendientes */}

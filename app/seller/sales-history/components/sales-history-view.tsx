@@ -35,7 +35,7 @@ export function SalesHistoryView() {
       `*Productos:*\n${itemsText}\n\n` +
       `*TOTAL:* ${fmt(item.total)}\n\n` +
       `*Cliente:* ${item.customerName}\n` +
-      `¡Gracias por tu compra en Mercamesa! 🍎🥕`;
+      `¡Gracias por tu compra en MercaMesa! 🍎🥕`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');

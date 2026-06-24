@@ -1038,7 +1038,7 @@ export function ProviderProductsView() {
 export function WhatsAppBot() {
   const { state, dispatch } = useApp();
   const [messages, setMessages] = useState([
-    { id: 1, text: "¡Hola! Soy el bot de Mercamesa. 🌿", sender: 'bot', time: '10:00 AM' },
+    { id: 1, text: "¡Hola! Soy el bot de MercaMesa. 🌿", sender: 'bot', time: '10:00 AM' },
     { id: 2, text: "Puedes usar comandos para actualizar tu tienda:\n• /precio [producto] [valor]\n• /stock [producto] [cantidad]\n• lista\n• pedidos", sender: 'bot', time: '10:00 AM' },
   ]);
   const [input, setInput] = useState('');
@@ -1105,7 +1105,7 @@ export function WhatsAppBot() {
             <Leaf className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="font-bold">Mercamesa Bot</h2>
+            <h2 className="font-bold">MercaMesa Bot</h2>
             <p className="text-xs text-white/70 font-bold flex items-center gap-1">
               {isTyping ? 'escribiendo...' : 'En línea'}
             </p>
@@ -1374,7 +1374,7 @@ export function AdminView() {
       emoji: master?.emoji || '📦',
       image: newProduct.image,
       cat: newProduct.cat,
-      desc: 'Nuevo producto en Mercamesa',
+      desc: 'Nuevo producto en MercaMesa',
       status: 'active'
     };
     dispatch({ type: 'ADD_PRODUCT', product });
@@ -1394,7 +1394,7 @@ export function AdminView() {
       cat: newStore.cat,
       rating: 5.0,
       reviewCount: 0,
-      desc: 'Nueva tienda en Mercamesa',
+      desc: 'Nueva tienda en MercaMesa',
       ownerName: 'Nuevo Dueño',
       open: true,
       status: 'active',
@@ -1630,7 +1630,7 @@ export function AdminView() {
           <p className="text-mm-txs">
             {isProvider ? `Gestionando el rendimiento de tu tienda en tiempo real.` : 
              isSuperAdmin ? `Bienvenido, ${state.buyerProfile.name}. Gestionando ${state.plazas.length} plazas y ${state.stores.length} tiendas.` :
-             'Gestión global de la plataforma Mercamesa.'}
+             'Gestión global de la plataforma MercaMesa.'}
           </p>
         </div>
       </div>
@@ -4091,7 +4091,7 @@ export function ProviderSalesHistoryView() {
       `*Productos:*\n${items}\n\n` +
       `*TOTAL:* ${fmt(sale.total)}\n\n` +
       `*Cliente:* ${sale.customerName || 'Consumidor Final'}\n` +
-      `¡Gracias por tu compra en Mercamesa! 🍎🥕`;
+      `¡Gracias por tu compra en MercaMesa! 🍎🥕`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');

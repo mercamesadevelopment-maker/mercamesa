@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   let query = supabase.from('store_products').select(`
     *,
-    catalog_products ( name, image_url, description, category_id, categories ( name ) ),
+    catalog_products ( name, image_url, categories ( name ) ),
     stores ( name, marketplaces ( name ) ),
     measurement_units ( abbreviation )
   `);
@@ -70,21 +70,6 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    if (data && Number(data.stock) > 0) {
-      const { error: movementError } = await supabase.from('product_stock_movements').insert({
-        store_product_id: data.id,
-        store_id: data.store_id,
-        type: 'entry',
-        quantity: Number(data.stock),
-        notes: body.notes || 'Carga inicial de inventario',
-        registered_by: user.id
-      });
-      
-      if (movementError) {
-        console.error('Failed to log initial stock movement:', movementError.message);
-      }
     }
 
     return NextResponse.json({ data }, { status: 201 });

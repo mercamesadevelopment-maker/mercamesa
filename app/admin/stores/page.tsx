@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Store as StoreIcon, Edit2, Trash2, Users, FileText } from 'lucide-react';
+import { Plus, Store as StoreIcon, Edit2, Trash2, Users, FileText, Search } from 'lucide-react';
 import { useStores, Store } from './hooks/useStores';
 import { StoreModal } from './components/StoreModal';
 import { StoreMembersModal } from './components/StoreMembersModal';
@@ -10,6 +10,9 @@ import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
 import { AnimatePresence } from 'framer-motion';
+import { Database } from '../../../types/database_generated';
+
+type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
 export default function StoresAdmin() {
   const { stores, requiredDocumentTypes, loading, error, fetchStores, deleteStore, saveStore } = useStores();
@@ -20,13 +23,35 @@ export default function StoresAdmin() {
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
   const [selectedStoreForDocs, setSelectedStoreForDocs] = useState<Store | null>(null);
 
+  const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMarketplace, setSelectedMarketplace] = useState('');
+
   useEffect(() => {
     fetchStores();
   }, [fetchStores]);
 
+  useEffect(() => {
+    fetch('/api/marketplaces')
+      .then(res => res.json())
+      .then(data => { if (data.data) setMarketplaces(data.data); });
+  }, []);
+
+  const filteredStores = React.useMemo(() => {
+    return stores.filter(store => {
+      const matchesName = store.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesMarketplace = !selectedMarketplace || store.marketplace_id === selectedMarketplace;
+      return matchesName && matchesMarketplace;
+    });
+  }, [stores, searchTerm, selectedMarketplace]);
+
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
-  } = useTable({ initialData: stores });
+  } = useTable({ initialData: filteredStores });
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedMarketplace, setPage]);
 
   const isStoreVerified = (store: Store) => {
     const requiredIds = requiredDocumentTypes.map((t) => t.id);
@@ -114,6 +139,37 @@ export default function StoresAdmin() {
         <Button size="sm" onClick={() => { setEditingStore(null); setIsModalOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nueva Tienda
         </Button>
+      </div>
+
+      {/* Filtros de Búsqueda y Plaza */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm">
+        {/* Buscador por Nombre */}
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar tienda por nombre..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"
+          />
+        </div>
+
+        {/* Plaza / Marketplace */}
+        <div>
+          <select
+            value={selectedMarketplace}
+            onChange={(e) => setSelectedMarketplace(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="" className="text-mm-txw">Todas las plazas</option>
+            {marketplaces.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <Table

@@ -3,8 +3,8 @@ import { AppProvider } from '../src/store';
 import AppShell from './app-shell';
 
 export const metadata = {
-  title: 'Mercamesa',
-  description: 'Mercamesa App',
+  title: 'MercaMesa',
+  description: 'MercaMesa App',
 };
 
 export default function RootLayout({

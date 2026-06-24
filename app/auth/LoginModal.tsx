@@ -101,7 +101,7 @@ export function LoginModal({
 
             <div>
               <h1 className="font-fraunces text-2xl font-bold text-mm-g">
-                Mercamesa
+                MercaMesa
               </h1>
 
               <p className="text-sm text-mm-txs">

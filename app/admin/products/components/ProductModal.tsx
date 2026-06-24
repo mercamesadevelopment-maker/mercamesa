@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
-import { SearchableSelect } from '@/components/ui/searchable-select';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -22,13 +21,12 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-
+  
   const [formData, setFormData] = useState({
     name: '', slug: '', category_id: '', default_unit_id: '', description: '',
-    dane_unit_code: '', dane_unit_name: '',
     is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false
   });
-
+  
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -45,8 +43,6 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
         category_id: initialData.category_id || '',
         default_unit_id: initialData.default_unit_id || '',
         description: initialData.description || '',
-        dane_unit_code: initialData.dane_unit_code || '',
-        dane_unit_name: initialData.dane_unit_name || '',
         is_active: initialData.is_active,
         is_ancestral_food: initialData.is_ancestral_food,
         is_medicinal_plant: initialData.is_medicinal_plant,
@@ -56,7 +52,6 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
     } else {
       setFormData({
         name: '', slug: '', category_id: '', default_unit_id: '', description: '',
-        dane_unit_code: '', dane_unit_name: '',
         is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false
       });
       setImagePreview(null);
@@ -115,9 +110,9 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
               {imagePreview
                 ? <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 : <div className="flex flex-col items-center gap-1">
-                  <ImageIcon className="w-6 h-6 text-mm-txw" />
-                  <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
-                </div>
+                    <ImageIcon className="w-6 h-6 text-mm-txw" />
+                    <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
+                  </div>
               }
               <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
@@ -133,17 +128,14 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
 
         {/* Categoría + Unidad */}
         <div className="grid sm:grid-cols-2 gap-4">
-          <SearchableSelect
-            label="Categoría"
-            required
-            value={formData.category_id}
-            onChange={(val) => setFormData(prev => ({ ...prev, category_id: val }))}
-            placeholder="Selecciona una categoría"
-            options={categories.map((c) => ({
-              value: c.id,
-              label: c.name,
-            }))}
-          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-mm-txs ml-1">Categoría</label>
+            <select name="category_id" value={formData.category_id} onChange={handleChange} required
+              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+              <option value="">Selecciona una categoría</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-mm-txs ml-1">Unidad por Defecto</label>
             <select name="default_unit_id" value={formData.default_unit_id} onChange={handleChange} required
@@ -152,12 +144,6 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
               {units.map(u => <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>)}
             </select>
           </div>
-        </div>
-
-        {/* Código DANE + Nombre Unidad DANE */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Input label="Código de Unidad DANE" name="dane_unit_code" value={formData.dane_unit_code} onChange={handleChange} placeholder="Ej: 1" />
-          <Input label="Nombre de Unidad DANE" name="dane_unit_name" value={formData.dane_unit_name} onChange={handleChange} placeholder="Ej: Hortalizas" />
         </div>
 
         {/* Descripción */}

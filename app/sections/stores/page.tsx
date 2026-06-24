@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Search, MapPin, Store as StoreIcon, Star } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { usePublicStores } from './hooks/usePublicStores';
@@ -88,16 +87,9 @@ export default function StoresSectionPage() {
             className="bg-white rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-6 flex flex-col group"
           >
             <div className="flex items-start gap-4 mb-4">
-              <div className="w-16 h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform relative">
+              <div className="w-16 h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform">
                 {store.logoSignedUrl ? (
-                  <Image 
-                    src={store.logoSignedUrl} 
-                    alt={store.name} 
-                    width={64} 
-                    height={64} 
-                    className="w-full h-full object-cover" 
-                    loading="lazy"
-                  />
+                  <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover" />
                 ) : (
                   <StoreIcon className="w-6 h-6 text-mm-txw" />
                 )}

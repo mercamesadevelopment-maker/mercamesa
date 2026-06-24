@@ -46,7 +46,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
           </div>
 
           <span className="text-xl font-bold font-fraunces hidden sm:block">
-            Mercamesa
+            MercaMesa
           </span>
         </div>
       </div>

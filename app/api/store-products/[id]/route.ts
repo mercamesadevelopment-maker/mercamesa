@@ -19,17 +19,6 @@ export async function PUT(
 
     const body = await request.json();
     
-    // Fetch the existing product to check old stock
-    const { data: existingProduct, error: fetchError } = await supabase
-      .from('store_products')
-      .select('stock, store_id')
-      .eq('id', id)
-      .single();
-
-    if (fetchError || !existingProduct) {
-      return NextResponse.json({ error: fetchError?.message || 'Product not found' }, { status: 404 });
-    }
-    
     const updateData: StoreProductUpdate = {};
     
     if (body.price_per_unit !== undefined) updateData.price_per_unit = Number(body.price_per_unit);
@@ -48,31 +37,6 @@ export async function PUT(
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    if (body.stock !== undefined) {
-      const oldStock = Number(existingProduct.stock || 0);
-      const newStock = Number(body.stock);
-      const diff = newStock - oldStock;
-
-      if (diff !== 0) {
-        const movementType = diff > 0 ? 'entry' : 'exit';
-        const quantity = Math.abs(diff);
-
-        const { error: movementError } = await supabase.from('product_stock_movements').insert({
-          store_product_id: id,
-          store_id: existingProduct.store_id,
-          type: movementType,
-          quantity: quantity,
-          reference_type: 'adjustment_manual',
-          notes: body.notes || 'Ajuste manual de inventario',
-          registered_by: user.id
-        });
-
-        if (movementError) {
-          console.error('Failed to log stock adjustment movement:', movementError.message);
-        }
-      }
     }
 
     return NextResponse.json({ data }, { status: 200 });

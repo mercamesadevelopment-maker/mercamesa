@@ -2,13 +2,7 @@ import { useState, useCallback } from 'react';
 import { Database } from '../../../../types/database_generated';
 
 type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
-  catalog_products?: { 
-    name: string; 
-    image_url: string | null; 
-    description: string | null;
-    category_id: string | null;
-    categories?: { name: string } | null;
-  } | null;
+  catalog_products?: { name: string; image_url: string | null; categories?: { name: string } | null } | null;
   stores?: { name: string; marketplaces?: { name: string } | null } | null;
   measurement_units?: { abbreviation: string } | null;
 };

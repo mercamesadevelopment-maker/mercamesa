@@ -109,9 +109,9 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
               {logoPreview
                 ? <img src={logoPreview} alt="Preview" className="w-full h-full object-cover" />
                 : <div className="flex flex-col items-center gap-1">
-                    <ImageIcon className="w-6 h-6 text-mm-txw" />
-                    <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
-                  </div>
+                  <ImageIcon className="w-6 h-6 text-mm-txw" />
+                  <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
+                </div>
               }
               <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
@@ -122,7 +122,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         {/* Nombre + Slug */}
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Nombre de la Tienda" name="name" value={formData.name} onChange={handleChange} required placeholder="Ej: Frutas y Verduras Don Pepe" />
-          <Input label="Slug (URL)" name="slug" value={formData.slug} onChange={handleChange} required placeholder="ej-frutas-don-pepe" />
+          <Input label="Identificador" name="slug" value={formData.slug} onChange={handleChange} required placeholder="ej-frutas-don-pepe" />
         </div>
 
         {/* Marketplace */}

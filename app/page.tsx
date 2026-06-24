@@ -71,7 +71,7 @@ export default function Page() {
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl lg:text-7xl font-fraunces font-black text-white leading-tight mb-6 drop-shadow-2xl"
           >
-            Mercamesa: Plataforma de Integración Agroalimentaria. <br />
+            MercaMesa: Plataforma de Integración Agroalimentaria. <br />
             <span className="text-mm-gll drop-shadow-md">Del campo a tu mesa, con dignidad.</span>
           </motion.h1>
           <motion.p
@@ -80,7 +80,7 @@ export default function Page() {
             transition={{ delay: 0.1 }}
             className="text-lg lg:text-3xl text-white max-w-4xl mx-auto mb-10 font-medium drop-shadow-xl"
           >
-            Mercamesa transforma el mercado en comunidad. Es una solución digital que conecta a todos los actores del sistema agroalimentario—campesinos, comerciantes, transportadores, consumidores y administradores—en una red viva, justa y trazable.
+            MercaMesa transforma el mercado en comunidad. Es una solución digital que conecta a todos los actores del sistema agroalimentario—campesinos, comerciantes, transportadores, consumidores y administradores—en una red viva, justa y trazable.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -206,7 +206,7 @@ export default function Page() {
           <div className="space-y-8">
             <h2 className="text-4xl lg:text-5xl font-fraunces text-mm-g">MKM: El altar de la memoria campesina</h2>
             <p className="text-lg text-mm-txs">
-              Dentro de Mercamesa vive MKM, un espacio simbólico donde cada producto lleva consigo la historia de quienes lo cultivan.
+              Dentro de MercaMesa vive MKM, un espacio simbólico donde cada producto lleva consigo la historia de quienes lo cultivan.
             </p>
             <div className="grid sm:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl shadow-sm flex items-center gap-4">

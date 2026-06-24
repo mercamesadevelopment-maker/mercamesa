@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../store';
 import { Order, StoreReview } from '../types';
@@ -297,7 +297,7 @@ export function OrdersView() {
 
 export function SupportChatView() {
   const [messages, setMessages] = useState([
-    { id: 1, text: "Â¡Hola! Bienvenido al soporte de Mercamesa. ðŸŒ¿", sender: 'bot', time: '10:00 AM' },
+    { id: 1, text: "Â¡Hola! Bienvenido al soporte de MercaMesa. ðŸŒ¿", sender: 'bot', time: '10:00 AM' },
     { id: 2, text: "Â¿En quÃ© podemos ayudarte hoy?", sender: 'bot', time: '10:00 AM' },
   ]);
   const [input, setInput] = useState('');
@@ -322,7 +322,7 @@ export function SupportChatView() {
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-mm-g rounded-full flex items-center justify-center text-2xl">ðŸŒ¿</div>
           <div>
-            <h2 className="font-bold text-mm-g">Soporte Mercamesa</h2>
+            <h2 className="font-bold text-mm-g">Soporte MercaMesa</h2>
             <p className="text-xs text-ok font-bold flex items-center gap-1">
               <span className="w-2 h-2 bg-ok rounded-full animate-pulse" /> En lÃ­nea ahora
             </p>
