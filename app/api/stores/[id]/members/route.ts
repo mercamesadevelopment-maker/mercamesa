@@ -153,7 +153,7 @@ export async function POST(
             fullName: profile.full_name,
             storeName: storeData?.name || 'Tienda',
             roleLabel: roleData?.label || 'Miembro',
-            loginUrl: `${origin}`
+            loginUrl: `${origin}/seller/onboarding`
           })
         });
       } catch (efErr) {

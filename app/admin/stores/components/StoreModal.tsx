@@ -26,6 +26,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/marketplaces')
@@ -34,6 +35,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   }, []);
 
   useEffect(() => {
+    setEmailError(null);
     if (initialData) {
       setFormData({
         name: initialData.name || '', slug: initialData.slug || '',
@@ -69,6 +71,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
+    if (name === 'contact_email') setEmailError(null);
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
@@ -82,6 +85,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailError(null);
     setLoading(true);
     try {
       const submitData = new FormData();
@@ -89,9 +93,14 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       if (logoFile) submitData.append('logo', logoFile);
       await onSave(initialData?.id || null, submitData);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Error al guardar la tienda');
+      const errMsg = err.message || '';
+      if (errMsg.includes('correo de contacto ya está registrado') || errMsg.includes('Correo de Contacto ya está registrado')) {
+        setEmailError(errMsg);
+      } else {
+        alert(errMsg || 'Error al guardar la tienda');
+      }
     } finally {
       setLoading(false);
     }
@@ -138,10 +147,9 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         {/* Descripción */}
         <Input label="Descripción" name="description" value={formData.description} onChange={handleChange} placeholder="Breve descripción de la tienda" />
 
-        {/* Contacto */}
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Nombre de Contacto" name="contact_name" value={formData.contact_name} onChange={handleChange} placeholder="Ej: José Pérez" />
-          <Input label="Correo de Contacto" name="contact_email" type="email" value={formData.contact_email} onChange={handleChange} placeholder="tienda@correo.com" />
+          <Input label="Correo de Contacto" name="contact_email" type="email" value={formData.contact_email} onChange={handleChange} placeholder="tienda@correo.com" error={emailError || undefined} />
         </div>
 
         {/* Teléfono + WhatsApp */}

@@ -20,4 +20,9 @@ export interface TableProps<T> {
   emptyMessage?: string;
   actions?: (item: T) => React.ReactNode;
   expandableContent?: (item: T) => React.ReactNode;
+
+  // Selection props
+  selectedKeys?: Set<string | number>;
+  onSelectionChange?: (keys: Set<string | number>) => void;
+  getRowKey?: (item: T) => string | number;
 }

@@ -54,6 +54,28 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
+    if (Array.isArray(body)) {
+      const inserts = body.map((item: any) => ({
+        catalog_product_id: item.catalog_product_id,
+        store_id: item.store_id,
+        unit_id: item.unit_id,
+        price_per_unit: Number(item.price_per_unit || 0),
+        stock: Number(item.stock || 0),
+        min_order_qty: Number(item.min_order_qty || 1),
+        wholesale_price: item.wholesale_price ? Number(item.wholesale_price) : null,
+        wholesale_min_qty: item.wholesale_min_qty ? Number(item.wholesale_min_qty) : null,
+        is_active: item.is_active ?? true,
+      }));
+
+      const { data, error } = await supabase.from('store_products').insert(inserts).select();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      return NextResponse.json({ data }, { status: 201 });
+    }
+    
     const insertData: StoreProductInsert = {
       catalog_product_id: body.catalog_product_id,
       store_id: body.store_id,

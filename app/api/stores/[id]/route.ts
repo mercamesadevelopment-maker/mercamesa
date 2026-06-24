@@ -81,6 +81,20 @@ export async function PUT(
       }
     });
 
+    if (updateData.contact_email) {
+      const { data: existingStore, error: checkError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('contact_email', updateData.contact_email)
+        .neq('id', id)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existingStore) {
+        return NextResponse.json({ error: 'El correo de contacto ya está registrado en otra tienda.' }, { status: 400 });
+      }
+    }
+
     const coverImage = formData.get('cover_image') as File | null;
     if (coverImage && coverImage.size > 0) {
       const path = `imgs/${id}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`;

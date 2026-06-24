@@ -5,6 +5,7 @@ import { Plus, Package, Edit2, Trash2, Store as StoreIcon, ChevronRight, Search 
 import { Database } from '../../../types/database_generated';
 import { useStoreProducts, StoreProduct } from './hooks/useStoreProducts';
 import { StoreProductModal } from './components/StoreProductModal';
+import { BatchAssignModal } from './components/BatchAssignModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
@@ -27,6 +28,10 @@ export default function CatalogAdmin() {
   const { storeProducts, loading, error, fetchStoreProducts, deleteStoreProduct, saveStoreProduct } = useStoreProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
+  
+  // Selection states
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string | number>>(new Set());
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
   // States for search and filtering
   const [searchQuery, setSearchQuery] = useState('');
@@ -259,9 +264,16 @@ export default function CatalogAdmin() {
           <h2 className="text-2xl font-fraunces text-mm-g">Inventarios Consolidados</h2>
           <p className="text-sm text-mm-txs mt-1">Existencias y precios de los productos en cada tienda.</p>
         </div>
-        <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> Asignar a Tienda
-        </Button>
+        <div className="flex gap-3">
+          {selectedProductIds.size > 0 && (
+            <Button size="sm" variant="oro" onClick={() => setIsBatchModalOpen(true)}>
+              Asignar Seleccionados ({selectedProductIds.size})
+            </Button>
+          )}
+          <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> Asignar a Tienda
+          </Button>
+        </div>
       </div>
 
       {/* Filtros de Búsqueda, Tienda y Categoría */}
@@ -323,6 +335,9 @@ export default function CatalogAdmin() {
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
         expandableContent={renderExpandableContent}
+        selectedKeys={selectedProductIds}
+        onSelectionChange={setSelectedProductIds}
+        getRowKey={(item) => item.id}
       />
 
       {isModalOpen && (
@@ -331,6 +346,18 @@ export default function CatalogAdmin() {
           onClose={() => { setIsModalOpen(false); setEditingProduct(null); }}
           onSave={saveStoreProduct}
           initialData={editingProduct}
+        />
+      )}
+
+      {isBatchModalOpen && (
+        <BatchAssignModal
+          isOpen={isBatchModalOpen}
+          onClose={() => { 
+            setIsBatchModalOpen(false); 
+            setSelectedProductIds(new Set()); 
+          }}
+          selectedProductIds={Array.from(selectedProductIds) as string[]}
+          onSave={(payload) => saveStoreProduct(null, payload)}
         />
       )}
     </div>

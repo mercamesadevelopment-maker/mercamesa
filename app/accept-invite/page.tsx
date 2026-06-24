@@ -192,7 +192,7 @@ export default function AcceptInvite() {
                 Tu perfil de vendedor ha sido creado exitosamente y has sido asignado como miembro de la tienda{' '}
                 <span className="font-bold text-mm-g">{storeName}</span>.
               </p>
-              <Button onClick={() => router.push('/seller')} size="lg" className="w-full">
+              <Button onClick={() => router.push('/seller/onboarding')} size="lg" className="w-full">
                 Ir a mi panel →
               </Button>
             </motion.div>

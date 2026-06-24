@@ -21,10 +21,11 @@ export function useStores() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStores = useCallback(async () => {
+  const fetchStores = useCallback(async (memberOnly?: boolean) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/stores');
+      const url = memberOnly ? '/api/stores?member_only=true' : '/api/stores';
+      const response = await fetch(url);
       const result = await response.json();
       
       if (!response.ok) throw new Error(result.error);

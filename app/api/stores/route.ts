@@ -9,8 +9,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const active = searchParams.get('is_active');
   const marketplaceId = searchParams.get('marketplace_id');
+  const memberOnly = searchParams.get('member_only') === 'true';
 
-  let query = supabase.from('stores').select(`
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let selectStr = `
     *,
     marketplaces ( name ),
     store_members (
@@ -24,10 +27,31 @@ export async function GET(request: Request) {
       document_type_id,
       status
     )
-  `);
+  `;
+
+  if (memberOnly && user) {
+    selectStr = `
+      *,
+      marketplaces ( name ),
+      store_members!inner (
+        id,
+        role_id,
+        roles ( name, label ),
+        profiles!user_id ( id, full_name, email )
+      ),
+      store_documents (
+        id,
+        document_type_id,
+        status
+      )
+    `;
+  }
+
+  let query = supabase.from('stores').select(selectStr);
   
   if (active !== null) query = query.eq('is_active', active === 'true');
   if (marketplaceId) query = query.eq('marketplace_id', marketplaceId);
+  if (memberOnly && user) query = query.eq('store_members.user_id', user.id);
 
   const { data, error } = await query;
 
@@ -72,6 +96,19 @@ export async function POST(request: Request) {
 
     if (!name || !slug || !marketplace_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (contact_email) {
+      const { data: existingStore, error: checkError } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('contact_email', contact_email)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existingStore) {
+        return NextResponse.json({ error: 'El correo de contacto ya está registrado en otra tienda.' }, { status: 400 });
+      }
     }
 
     let cover_image_url: string | null = null;
@@ -149,7 +186,7 @@ export async function POST(request: Request) {
               fullName: contact_name || 'Miembro',
               storeName: name,
               roleLabel: 'Dueño de Tienda',
-              loginUrl: `${origin}`
+              loginUrl: `${origin}/seller/onboarding`
             })
           });
         } catch (efErr) {

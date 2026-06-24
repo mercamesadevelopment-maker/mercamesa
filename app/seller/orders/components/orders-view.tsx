@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Bell, Loader2, Truck, CheckCircle2, XCircle, History, 
-  Clock, ClipboardList, TrendingUp, Package 
+import {
+  Bell, Loader2, Truck, CheckCircle2, XCircle, History,
+  Clock, ClipboardList, TrendingUp, Package
 } from 'lucide-react';
 import { useOrders } from '../hooks/use-orders';
 import { Button, Badge, cn } from '@/src/components/Shared';
@@ -123,11 +123,11 @@ export function OrdersView() {
   const handleConfirmStatusChange = async (notes: string) => {
     if (statusChangeRequest) {
       await updateOrderStatus(
-        statusChangeRequest.orderId, 
-        statusChangeRequest.nextStatus, 
+        statusChangeRequest.orderId,
+        statusChangeRequest.nextStatus,
         notes
       );
-      
+
       // Si el modal de detalle está abierto, actualizamos la orden seleccionada para refrescar el historial
       if (selectedOrderForDetail && selectedOrderForDetail.id === statusChangeRequest.orderId) {
         // Buscamos la orden actualizada en filteredOrders (la cual tendrá el nuevo historial tras refetch)
@@ -140,7 +140,7 @@ export function OrdersView() {
           });
         }
       }
-      
+
       setStatusChangeRequest(null);
     }
   };
@@ -163,7 +163,7 @@ export function OrdersView() {
           <h1 className="text-4xl font-fraunces text-mm-g mb-2">Monitor de Pedidos</h1>
           <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-4">
           {stores.length > 1 && (
             <div className="flex flex-col gap-1 min-w-[200px]">
@@ -220,23 +220,23 @@ export function OrdersView() {
           { label: 'Pedidos Hoy', val: stats.totalToday, color: 'mm-txw', icon: History },
         ].map((item, i) => (
           <div key={i} className="bg-white p-5 rounded-[24px] border border-mm-crd shadow-sm flex items-center gap-3.5 hover:shadow-md transition-shadow">
-             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm", 
-               item.color === 'mm-oro' ? 'bg-mm-orl text-mm-oro border border-mm-oro/10' : 
-               item.color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 
-               item.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
-               item.color === 'blue' ? 'bg-bluel text-blue border border-blue/10' : 
-               item.color === 'purple' ? 'bg-purple-50 text-purple-600 border border-purple-100' : 
-               item.color === 'mm-g' ? 'bg-mm-gbg text-mm-g border border-mm-g/10' : 
-               item.color === 'green' ? 'bg-green-50 text-green-600 border border-green-100' : 
-               item.color === 'red' ? 'bg-red-50 text-red-600 border border-red-100' : 
-               item.color === 'slate' ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-mm-crd/20 text-mm-txw border border-mm-crd/35'
-             )}>
-                <item.icon className="w-5 h-5" />
-             </div>
-             <div className="min-w-0">
-                <p className="text-xl font-bold text-mm-g leading-tight">{item.val}</p>
-                <p className="text-[9px] font-black uppercase tracking-wider text-mm-txw truncate">{item.label}</p>
-             </div>
+            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm",
+              item.color === 'mm-oro' ? 'bg-mm-orl text-mm-oro border border-mm-oro/10' :
+                item.color === 'indigo' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
+                  item.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                    item.color === 'blue' ? 'bg-bluel text-blue border border-blue/10' :
+                      item.color === 'purple' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
+                        item.color === 'mm-g' ? 'bg-mm-gbg text-mm-g border border-mm-g/10' :
+                          item.color === 'green' ? 'bg-green-50 text-green-600 border border-green-100' :
+                            item.color === 'red' ? 'bg-red-50 text-red-600 border border-red-100' :
+                              item.color === 'slate' ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-mm-crd/20 text-mm-txw border border-mm-crd/35'
+            )}>
+              <item.icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xl font-bold text-mm-g leading-tight">{item.val}</p>
+              <p className="text-[9px] font-black uppercase tracking-wider text-mm-txw truncate">{item.label}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -264,7 +264,7 @@ export function OrdersView() {
                       {config.label}
                     </Badge>
                   </div>
-                  <h3 className="text-xl font-bold text-mm-g mb-1">Pedido #{order.id}</h3>
+                  <h3 className="text-xl font-bold text-mm-g mb-1">Pedido #{order.storeOrderId.substring(0, 8)}</h3>
                   <div className="flex flex-wrap items-center gap-2.5 text-xs text-mm-txs">
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3 h-3" /> {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -276,7 +276,7 @@ export function OrdersView() {
                     )}
                   </div>
                   <div className="absolute top-8 right-16 opacity-0 group-hover:opacity-10 shadow-2xl transition-opacity">
-                     <TrendingUp className="w-24 h-24 text-mm-g -rotate-12" />
+                    <TrendingUp className="w-24 h-24 text-mm-g -rotate-12" />
                   </div>
                 </div>
 
@@ -284,26 +284,26 @@ export function OrdersView() {
                   <div className="bg-mm-gbg/30 p-4 rounded-3xl border border-mm-crd/50">
                     <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest mb-3">Contenido</p>
                     <div className="space-y-2">
-                       {order.items.slice(0, 3).map((item, idx) => (
-                         <div key={idx} className="flex justify-between text-xs font-bold text-mm-g">
-                            <span className="truncate pr-4">{item.qty}{item.unit} {item.name}</span>
-                            <span className="shrink-0">{fmt(item.price * item.qty)}</span>
-                         </div>
-                       ))}
-                       {order.items.length > 3 && (
-                         <p className="text-[10px] text-mm-txw font-bold italic">+{order.items.length - 3} productos más...</p>
-                       )}
+                      {order.items.slice(0, 3).map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-xs font-bold text-mm-g">
+                          <span className="truncate pr-4">{item.qty}{item.unit} {item.name}</span>
+                          <span className="shrink-0">{fmt(item.price * item.qty)}</span>
+                        </div>
+                      ))}
+                      {order.items.length > 3 && (
+                        <p className="text-[10px] text-mm-txw font-bold italic">+{order.items.length - 3} productos más...</p>
+                      )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 px-1">
-                     <div className="w-8 h-8 rounded-full bg-mm-gbg flex items-center justify-center text-[10px] font-black border border-mm-crd">
-                        {order.buyerId.substring(0, 2).toUpperCase()}
-                     </div>
-                     <div className="overflow-hidden">
-                        <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest leading-none mb-1">Entregar en</p>
-                        <p className="text-[11px] text-mm-txs truncate font-medium">{order.address}</p>
-                     </div>
+                    <div className="w-8 h-8 rounded-full bg-mm-gbg flex items-center justify-center text-[10px] font-black border border-mm-crd">
+                      {order.buyerId.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest leading-none mb-1">Entregar en</p>
+                      <p className="text-[11px] text-mm-txs truncate font-medium">{order.address}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -322,8 +322,8 @@ export function OrdersView() {
                       Ver Detalle
                     </Button>
                     {config.next && (
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10"
                         onClick={() => setStatusChangeRequest({
                           orderId: order.id,
@@ -343,9 +343,9 @@ export function OrdersView() {
         </AnimatePresence>
         {filteredOrders.length === 0 && (
           <div className="col-span-full py-32 text-center opacity-30">
-             <ClipboardList className="w-32 h-32 mx-auto mb-6" />
-             <h3 className="text-2xl font-fraunces">Bandeja de Entrada Vacía</h3>
-             <p className="max-w-xs mx-auto mt-2 italic font-medium">Los nuevos pedidos aparecerán aquí automáticamente.</p>
+            <ClipboardList className="w-32 h-32 mx-auto mb-6" />
+            <h3 className="text-2xl font-fraunces">Bandeja de Entrada Vacía</h3>
+            <p className="max-w-xs mx-auto mt-2 italic font-medium">Los nuevos pedidos aparecerán aquí automáticamente.</p>
           </div>
         )}
       </div>

@@ -36,7 +36,7 @@ export function useStoreProducts() {
     }
   }, []);
 
-  const saveStoreProduct = async (id: string | null, data: Partial<StoreProduct>) => {
+  const saveStoreProduct = async (id: string | null, data: Partial<StoreProduct> | any[]) => {
     try {
       const url = id ? `/api/store-products/${id}` : '/api/store-products';
       const method = id ? 'PUT' : 'POST';

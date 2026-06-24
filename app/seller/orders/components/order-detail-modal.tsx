@@ -3,11 +3,11 @@ import { Modal } from '@/components/ui/modal/modal';
 import { Button, Badge } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
-import { 
-  User, Phone, Mail, FileText, MapPin, 
-  CreditCard, Calendar, Clock, ShoppingBag, 
-  MessageSquare, ChevronRight, CheckCircle2, 
-  AlertCircle, ShieldAlert 
+import {
+  User, Phone, Mail, FileText, MapPin,
+  CreditCard, Calendar, Clock, ShoppingBag,
+  MessageSquare, ChevronRight, CheckCircle2,
+  AlertCircle, ShieldAlert
 } from 'lucide-react';
 
 interface OrderDetailModalProps {
@@ -107,9 +107,9 @@ export function OrderDetailModal({
   const handleAction = () => {
     if (statusConfig.next) {
       onStartStatusChange(
-        order.id, 
-        statusConfig.next, 
-        getStatusConfig(statusConfig.next).label, 
+        order.id,
+        statusConfig.next,
+        getStatusConfig(statusConfig.next).label,
         statusConfig.action || 'Confirmar'
       );
     }
@@ -123,17 +123,12 @@ export function OrderDetailModal({
       maxWidth="max-w-4xl"
     >
       <div className="p-8 space-y-8 bg-slate-50/50">
-        
+
         {/* Top Header Panel */}
         <div className="bg-white rounded-3xl border border-mm-crd p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
-              <span className="text-xl font-bold text-mm-g">Pedido #{order.id}</span>
-              {order.storeOrderId && (
-                <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider">
-                  Interno: #{order.storeOrderId.substring(0, 8)}
-                </Badge>
-              )}
+              <span className="text-xl font-bold text-mm-g">Pedido #{order.storeOrderId.substring(0, 8)}</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mm-txs">
               <span className="flex items-center gap-1.5">
@@ -155,10 +150,10 @@ export function OrderDetailModal({
 
         {/* Two Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column (Products, Notes, History Timeline) - 7 cols */}
           <div className="lg:col-span-7 space-y-6">
-            
+
             {/* Products List Card */}
             <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm">
               <div className="flex items-center gap-2.5 mb-6 border-b border-mm-crd/65 pb-4">
@@ -173,8 +168,8 @@ export function OrderDetailModal({
 
               <div className="space-y-4">
                 {order.items.map((item, idx) => (
-                  <div 
-                    key={item.id || idx} 
+                  <div
+                    key={item.id || idx}
                     className="flex items-center justify-between p-3.5 rounded-2xl bg-mm-gbg/10 border border-mm-crd/40 hover:border-mm-g/20 transition-all"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -247,9 +242,8 @@ export function OrderDetailModal({
                     return (
                       <div key={h.id || i} className="relative">
                         {/* Timeline Dot */}
-                        <div className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 border-white ${
-                          h.status === order.status ? 'bg-mm-g scale-125 ring-4 ring-mm-gbg' : 'bg-mm-crd'
-                        }`} />
+                        <div className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 border-white ${h.status === order.status ? 'bg-mm-g scale-125 ring-4 ring-mm-gbg' : 'bg-mm-crd'
+                          }`} />
 
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -285,7 +279,7 @@ export function OrderDetailModal({
 
           {/* Right Column (Client Info, Billing Summary) - 5 cols */}
           <div className="lg:col-span-5 space-y-6">
-            
+
             {/* Customer Details Card */}
             <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm">
               <div className="flex items-center gap-2.5 mb-6 border-b border-mm-crd/65 pb-4">
@@ -299,7 +293,7 @@ export function OrderDetailModal({
               </div>
 
               <div className="space-y-4 text-xs font-semibold text-mm-g">
-                
+
                 {/* Initials & Name */}
                 <div className="flex items-center gap-3 pb-3 border-b border-mm-crd/30">
                   <div className="w-12 h-12 bg-mm-gbg text-mm-g font-black text-base rounded-2xl flex items-center justify-center border border-mm-crd shadow-inner">
@@ -328,8 +322,8 @@ export function OrderDetailModal({
                     <Phone className="w-4 h-4 text-mm-txw flex-shrink-0" />
                     <div>
                       <p className="text-[9px] text-mm-txw font-black uppercase tracking-wider leading-none mb-0.5">Teléfono</p>
-                      <a 
-                        href={`tel:${order.buyerPhone}`} 
+                      <a
+                        href={`tel:${order.buyerPhone}`}
                         className="text-xs text-mm-g hover:text-mm-gm underline underline-offset-2 transition-colors font-bold"
                       >
                         {order.buyerPhone}
@@ -344,8 +338,8 @@ export function OrderDetailModal({
                     <Mail className="w-4 h-4 text-mm-txw flex-shrink-0" />
                     <div className="min-w-0">
                       <p className="text-[9px] text-mm-txw font-black uppercase tracking-wider leading-none mb-0.5">Correo Electrónico</p>
-                      <a 
-                        href={`mailto:${order.buyerEmail}`} 
+                      <a
+                        href={`mailto:${order.buyerEmail}`}
                         className="text-xs text-mm-g hover:text-mm-gm underline underline-offset-2 transition-colors font-bold truncate block"
                       >
                         {order.buyerEmail}
@@ -368,7 +362,7 @@ export function OrderDetailModal({
 
             {/* Financial Summary & Payment */}
             <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm space-y-5">
-              
+
               {/* Payment Info */}
               <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-mm-crd/40">
                 <div className="flex items-center gap-2">
@@ -377,11 +371,10 @@ export function OrderDetailModal({
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs font-bold text-mm-g leading-tight">{order.paymentMethod}</span>
-                  <span className={`text-[9px] font-black uppercase tracking-wider mt-0.5 ${
-                    order.paymentStatus === 'approved' || order.paymentStatus === 'paid'
-                      ? 'text-green-600' 
+                  <span className={`text-[9px] font-black uppercase tracking-wider mt-0.5 ${order.paymentStatus === 'approved' || order.paymentStatus === 'paid'
+                      ? 'text-green-600'
                       : 'text-amber-500'
-                  }`}>
+                    }`}>
                     {order.paymentStatus === 'approved' || order.paymentStatus === 'paid' ? 'Aprobado' : 'Pendiente'}
                   </span>
                 </div>
@@ -393,7 +386,7 @@ export function OrderDetailModal({
                   <span>Subtotal Tienda</span>
                   <span className="text-mm-g font-bold">{fmt(order.subtotal || order.total)}</span>
                 </div>
-                
+
                 {order.discount !== undefined && order.discount > 0 && (
                   <div className="flex justify-between text-red-500 font-bold">
                     <span>Descuento Aplicado</span>
@@ -428,7 +421,7 @@ export function OrderDetailModal({
           >
             Cerrar Detalle
           </Button>
-          
+
           {statusConfig.next && (
             <Button
               variant="primary"
