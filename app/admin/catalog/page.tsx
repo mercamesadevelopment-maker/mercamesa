@@ -8,7 +8,7 @@ import { StoreProductModal } from './components/StoreProductModal';
 import { BatchAssignModal } from './components/BatchAssignModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button, Badge, normalizeText } from '@/src/components/Shared';
 import { getStoragePublicUrl } from '@/lib/supabase/utils';
 
 // Grouped data type for the table
@@ -97,8 +97,8 @@ export default function CatalogAdmin() {
       // 1. Search Query: matches catalog product name or description
       const matchesSearch =
         !searchQuery ||
-        (item.catalog_products?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.catalog_products?.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+        normalizeText(item.catalog_products?.name || '').includes(normalizeText(searchQuery)) ||
+        normalizeText(item.catalog_products?.description || '').includes(normalizeText(searchQuery));
 
       // 2. Store: matches store ID
       const matchesStore = !selectedStore || item.store_id === selectedStore;

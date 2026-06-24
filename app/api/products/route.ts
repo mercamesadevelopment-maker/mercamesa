@@ -18,21 +18,19 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Generar URLs firmadas para las imágenes de los productos
-  const productsWithSignedUrls = await Promise.all((data || []).map(async (product) => {
+  // Generar URLs públicas para las imágenes de los productos (síncrono sin llamadas de red)
+  const productsWithPublicUrls = (data || []).map((product) => {
     let imageSignedUrl = null;
     if (product.image_url) {
-      const { data: signedData } = await supabase.storage
+      const { data: publicData } = supabase.storage
         .from('products')
-        .createSignedUrl(product.image_url, 60 * 60);
-      if (signedData?.signedUrl) {
-        imageSignedUrl = signedData.signedUrl;
-      }
+        .getPublicUrl(product.image_url);
+      imageSignedUrl = publicData.publicUrl;
     }
     return { ...product, imageSignedUrl };
-  }));
+  });
 
-  return NextResponse.json({ data: productsWithSignedUrls }, { status: 200 });
+  return NextResponse.json({ data: productsWithPublicUrls }, { status: 200 });
 }
 
 export async function POST(request: Request) {

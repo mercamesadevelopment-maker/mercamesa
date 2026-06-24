@@ -3,8 +3,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 import { usePublicProducts } from './hooks/usePublicProducts';
-import { Badge, Button, cn } from '@/src/components/Shared';
+import { Badge, Button, cn, normalizeText } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 
@@ -20,13 +21,14 @@ export default function ProductsPage() {
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [activeCat, setActiveCat] = useState('Todas');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'' | 'asc' | 'desc'>('');
 
   const ITEMS_PER_PAGE = 20;
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, minPrice, maxPrice, activeCat]);
+  }, [search, minPrice, maxPrice, activeCat, sortBy]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -39,8 +41,8 @@ export default function ProductsPage() {
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const matchSearch = p.catalog_products?.name?.toLowerCase().includes(search.toLowerCase()) || false;
+    const filtered = products.filter(p => {
+      const matchSearch = normalizeText(p.catalog_products?.name).includes(normalizeText(search));
       const matchCat = activeCat === 'Todas' || p.catalog_products?.categories?.name === activeCat;
       
       const price = p.price_per_unit || 0;
@@ -49,7 +51,19 @@ export default function ProductsPage() {
 
       return matchSearch && matchCat && matchMin && matchMax;
     });
-  }, [products, search, activeCat, minPrice, maxPrice]);
+
+    if (sortBy === 'asc') {
+      return [...filtered].sort((a, b) => 
+        (a.catalog_products?.name || '').localeCompare(b.catalog_products?.name || '')
+      );
+    } else if (sortBy === 'desc') {
+      return [...filtered].sort((a, b) => 
+        (b.catalog_products?.name || '').localeCompare(a.catalog_products?.name || '')
+      );
+    }
+
+    return filtered;
+  }, [products, search, activeCat, minPrice, maxPrice, sortBy]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -128,6 +142,18 @@ export default function ProductsPage() {
                 placeholder="Max"
              />
           </div>
+          <div className="flex items-center gap-2 bg-white p-2 border border-mm-crd rounded-full px-4">
+             <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Ordenar:</span>
+             <select 
+                value={sortBy} 
+                onChange={e => setSortBy(e.target.value as '' | 'asc' | 'desc')}
+                className="text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g border-none cursor-pointer text-mm-txs pr-2"
+             >
+                <option value="">Ninguno</option>
+                <option value="asc">A - Z</option>
+                <option value="desc">Z - A</option>
+             </select>
+          </div>
         </div>
         
         <div className="relative group flex items-center">
@@ -172,7 +198,14 @@ export default function ProductsPage() {
             >
               <div className="h-40 bg-mm-gbg flex items-center justify-center text-5xl relative overflow-hidden">
                 {product.imageSignedUrl ? (
-                  <img src={product.imageSignedUrl} alt={product.catalog_products?.name || 'Producto'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <Image 
+                    src={product.imageSignedUrl} 
+                    alt={product.catalog_products?.name || 'Producto'} 
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                    className="object-cover group-hover:scale-110 transition-transform duration-500" 
+                    loading="lazy"
+                  />
                 ) : (
                   <span className="group-hover:scale-125 transition-transform duration-500">📦</span>
                 )}

@@ -6,6 +6,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function normalizeText(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 export function Spinner({ className }: { className?: string }) {
   return (
     <div className={cn("w-4.5 h-4.5 border-2.5 border-white/30 border-t-white rounded-full animate-spin", className)} />

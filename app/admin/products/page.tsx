@@ -7,7 +7,8 @@ import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button, Badge, normalizeText } from '@/src/components/Shared';
+import Image from 'next/image';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -69,12 +70,11 @@ export default function ProductsAdmin() {
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [categories]);
 
-  // Filter products by search query and category
   const filteredProducts = React.useMemo(() => {
     return products.filter((product) => {
       const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+        normalizeText(product.name).includes(normalizeText(searchQuery)) ||
+        normalizeText(product.description || '').includes(normalizeText(searchQuery));
       
       const matchesCategory =
         !selectedCategory ||
@@ -100,9 +100,16 @@ export default function ProductsAdmin() {
       sortable: true,
       render: (item: Product) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-mm-gbg rounded-lg flex items-center justify-center text-2xl overflow-hidden border border-mm-crd shrink-0">
+          <div className="w-10 h-10 bg-mm-gbg rounded-lg flex items-center justify-center text-2xl overflow-hidden border border-mm-crd shrink-0 relative">
             {item.imageSignedUrl ? (
-              <img src={item.imageSignedUrl} alt={item.name} className="w-full h-full object-cover" />
+              <Image 
+                src={item.imageSignedUrl} 
+                alt={item.name} 
+                fill 
+                sizes="40px"
+                className="object-cover" 
+                loading="lazy"
+              />
             ) : (
               <Package className="w-6 h-6 text-mm-txw" />
             )}
