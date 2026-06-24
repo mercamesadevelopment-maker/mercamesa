@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   let query = supabase.from('store_products').select(`
     *,
-    catalog_products ( name, image_url, categories ( name ) ),
+    catalog_products ( name, image_url, description, category_id, categories ( name ) ),
     stores ( name, marketplaces ( name ) ),
     measurement_units ( abbreviation )
   `);

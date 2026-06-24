@@ -39,6 +39,36 @@ export default function ProductsAdmin() {
       .catch((err) => console.error('Error fetching categories:', err));
   }, []);
 
+  // Helper to get selected category and all its subcategories recursively
+  const selectedCategoryIds = React.useMemo(() => {
+    if (!selectedCategory) return [];
+    const result = [selectedCategory];
+    const queue = [selectedCategory];
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      const children = categories.filter(c => c.parent_id === currentId).map(c => c.id);
+      for (const childId of children) {
+        if (!result.includes(childId)) {
+          result.push(childId);
+          queue.push(childId);
+        }
+      }
+    }
+    return result;
+  }, [selectedCategory, categories]);
+
+  // Sort and build hierarchy paths for categories dropdown
+  const sortedCategories = React.useMemo(() => {
+    return [...categories]
+      .map(c => ({
+        ...c,
+        displayName: c.parent_id 
+          ? `${categories.find(p => p.id === c.parent_id)?.name || ''} > ${c.name}` 
+          : c.name
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [categories]);
+
   // Filter products by search query and category
   const filteredProducts = React.useMemo(() => {
     return products.filter((product) => {
@@ -46,11 +76,13 @@ export default function ProductsAdmin() {
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
+      const matchesCategory =
+        !selectedCategory ||
+        (product.category_id && selectedCategoryIds.includes(product.category_id));
       
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, selectedCategory]);
+  }, [products, searchQuery, selectedCategory, selectedCategoryIds]);
 
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
@@ -145,9 +177,9 @@ export default function ProductsAdmin() {
             className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
           >
             <option value="" className="text-mm-txw">Todas las categorías</option>
-            {categories.map((c) => (
+            {sortedCategories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.displayName}
               </option>
             ))}
           </select>

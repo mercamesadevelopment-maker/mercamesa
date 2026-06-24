@@ -3,24 +3,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Plus, Package, Edit2, Trash2, Store as StoreIcon, ChevronRight, Search } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
-import { useStoreProducts } from './hooks/useStoreProducts';
+import { useStoreProducts, StoreProduct } from './hooks/useStoreProducts';
 import { StoreProductModal } from './components/StoreProductModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
 import { getStoragePublicUrl } from '@/lib/supabase/utils';
-
-type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
-  catalog_products?: { 
-    name: string; 
-    image_url: string | null; 
-    description: string | null;
-    category_id: string | null;
-    categories?: { name: string } | null;
-  } | null;
-  stores?: { name: string; marketplaces?: { name: string } | null } | null;
-  measurement_units?: { abbreviation: string } | null;
-};
 
 // Grouped data type for the table
 type GroupedProduct = {
@@ -68,6 +56,36 @@ export default function CatalogAdmin() {
       .catch((err) => console.error('Error fetching stores:', err));
   }, []);
 
+  // Helper to get selected category and all its subcategories recursively
+  const selectedCategoryIds = useMemo(() => {
+    if (!selectedCategory) return [];
+    const result = [selectedCategory];
+    const queue = [selectedCategory];
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      const children = categories.filter(c => c.parent_id === currentId).map(c => c.id);
+      for (const childId of children) {
+        if (!result.includes(childId)) {
+          result.push(childId);
+          queue.push(childId);
+        }
+      }
+    }
+    return result;
+  }, [selectedCategory, categories]);
+
+  // Sort and build hierarchy paths for categories dropdown
+  const sortedCategories = useMemo(() => {
+    return [...categories]
+      .map(c => ({
+        ...c,
+        displayName: c.parent_id 
+          ? `${categories.find(p => p.id === c.parent_id)?.name || ''} > ${c.name}` 
+          : c.name
+      }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [categories]);
+
   // Filter raw storeProducts by selected filters
   const filteredStoreProducts = useMemo(() => {
     return storeProducts.filter((item) => {
@@ -81,11 +99,13 @@ export default function CatalogAdmin() {
       const matchesStore = !selectedStore || item.store_id === selectedStore;
 
       // 3. Category: matches category ID
-      const matchesCategory = !selectedCategory || item.catalog_products?.category_id === selectedCategory;
+      const matchesCategory =
+        !selectedCategory ||
+        (item.catalog_products?.category_id && selectedCategoryIds.includes(item.catalog_products.category_id));
 
       return matchesSearch && matchesStore && matchesCategory;
     });
-  }, [storeProducts, searchQuery, selectedStore, selectedCategory]);
+  }, [storeProducts, searchQuery, selectedStore, selectedCategory, selectedCategoryIds]);
 
   // Group the filtered storeProducts by catalog_product_id synchronously
   const groupedProducts = useMemo(() => {
@@ -282,9 +302,9 @@ export default function CatalogAdmin() {
             className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
           >
             <option value="" className="text-mm-txw">Todas las categorías</option>
-            {categories.map((c) => (
+            {sortedCategories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.displayName}
               </option>
             ))}
           </select>
