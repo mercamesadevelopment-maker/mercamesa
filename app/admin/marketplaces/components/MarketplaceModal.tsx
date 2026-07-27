@@ -5,6 +5,11 @@ import { Database } from '../../../../types/database_generated';
 import { Input, Button } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
 import { getStoragePublicUrl } from '@/lib/supabase/utils';
+import {
+  WeeklyHoursEditor,
+  createDefaultBusinessHours,
+  type BusinessHours,
+} from '@/components/ui/business-hours/business-hours-editor';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
@@ -33,6 +38,7 @@ export function MarketplaceModal({
     is_active: true,
   });
 
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(createDefaultBusinessHours());
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [logoImage, setLogoImage] = useState<File | null>(null);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
@@ -53,6 +59,13 @@ export function MarketplaceModal({
         is_active: initialData.is_active,
       });
 
+      const initialHours = (initialData as any).business_hours;
+      setBusinessHours(
+        Array.isArray(initialHours) && initialHours.length === 7
+          ? initialHours
+          : createDefaultBusinessHours()
+      );
+
       // Set initial logo and cover image previews
       const initialLogo = (initialData as any).logoSignedUrl || getStoragePublicUrl('plazas', initialData.logo_url);
       const initialCover = (initialData as any).coverSignedUrl || getStoragePublicUrl('plazas', initialData.cover_image_url);
@@ -70,6 +83,7 @@ export function MarketplaceModal({
         longitude: '',
         is_active: true,
       });
+      setBusinessHours(createDefaultBusinessHours());
       setPreviewLogo(null);
       setPreviewCover(null);
     }
@@ -173,6 +187,8 @@ export function MarketplaceModal({
         data.append(key, value.toString());
       }
     });
+
+    data.append('business_hours', JSON.stringify(businessHours));
 
     if (coverImage) {
       data.append('cover_image', coverImage);
@@ -323,6 +339,9 @@ export function MarketplaceModal({
               className="w-full bg-mm-gbg border-none rounded-2xl py-3 px-4 text-mm-g font-medium focus:ring-2 ring-mm-g/20 transition-all outline-none resize-none h-24"
             />
           </div>
+
+          {/* Horario de atención */}
+          <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
 
           {/* Imagen de Portada */}
           <div className="space-y-2">

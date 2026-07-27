@@ -96,7 +96,7 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                   <p className="text-mm-txs mb-8 text-center">Selecciona cómo quieres participar en MercaMesa.</p>
                   
                   <div className="grid sm:grid-cols-2 gap-4">
-                    {ROLES.filter(r => r.k !== 'admin').map((r) => (
+                    {ROLES.filter(r => r.k !== 'admin' && r.k !== 'retail' && r.k !== 'wholesale').map((r) => (
                       <button
                         key={r.k}
                         onClick={() => { setRole(r.k); setStep(1); }}

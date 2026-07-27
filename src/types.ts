@@ -73,6 +73,7 @@ export interface MasterProduct {
   emoji: string;
   image?: string;
   defaultUnit: string;
+  defaultUnitId?: string;
 }
 
 export interface Product {
@@ -85,6 +86,8 @@ export interface Product {
   cat: string;
   categoryId?: string;
   unit: string;
+  unitId?: string;
+  isFeatured?: boolean;
   retailPrice: number;
   wsPrice: number;
   ws20: number;
@@ -173,7 +176,7 @@ export interface Address {
 
 export interface PaymentMethod {
   id: string;
-  type: 'card' | 'cash' | 'nequi' | 'daviplata';
+  type: 'card' | 'nequi' | 'daviplata';
   label: string;
   brand?: string;
   last4?: string;

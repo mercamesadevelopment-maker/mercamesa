@@ -1,20 +1,29 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, Store as StoreIcon, Star } from 'lucide-react';
+import { Search, MapPin, Store as StoreIcon, Star, Heart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { usePublicStores } from './hooks/usePublicStores';
 import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';
+import { useApp } from '@/src/store';
+import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 
 export default function StoresSectionPage() {
   const router = useRouter();
+  const { state } = useApp();
   const { stores, loading: loadingStores, error } = usePublicStores();
   const { marketplaces, loading: loadingPlazas } = usePublicMarketplaces();
-  
+  const { isFavorite, toggleFavorite, fetchFavoriteIds } = useFavorites();
+
   const [search, setSearch] = useState('');
   const [plazaId, setPlazaId] = useState<string>('all');
   const [activeCat, setActiveCat] = useState('Todas');
+
+  useEffect(() => {
+    if (state.isLoggedIn) fetchFavoriteIds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isLoggedIn]);
 
   const loading = loadingStores || loadingPlazas;
 
@@ -84,8 +93,25 @@ export default function StoresSectionPage() {
             key={store.id}
             whileHover={{ y: -8 }}
             onClick={() => router.push(`/stores/${store.slug}`)}
-            className="bg-white rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-6 flex flex-col group"
+            className="relative bg-white rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-6 flex flex-col group"
           >
+            {state.isLoggedIn && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(store.id);
+                }}
+                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all"
+              >
+                <Heart
+                  className={cn(
+                    'w-4.5 h-4.5 transition-colors',
+                    isFavorite(store.id) ? 'fill-r text-r' : 'text-mm-txw'
+                  )}
+                />
+              </button>
+            )}
+
             <div className="flex items-start gap-4 mb-4">
               <div className="w-16 h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform">
                 {store.logoSignedUrl ? (

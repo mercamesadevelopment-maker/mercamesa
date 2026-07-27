@@ -9,8 +9,13 @@ app/
 ├── api/
 ├── admin/
 ├── seller/
-├── customer/
+├── profile/
+├── orders/
+├── marketplaces/
+├── auth/
 ```
+
+`app/{admin,seller,customer}` son ejemplos, no una lista cerrada: **cualquier ruta de primer nivel bajo `app/` es una feature** y debe seguir la misma estructura modular. `app/profile` es hoy el ejemplo más completo del patrón: una sola feature (el perfil del comprador) con varias secciones (`components/addresses-tab.tsx`, `components/payments-tab.tsx`, etc.), cada sección con su propio archivo en `hooks/`, `services/` y `types/` (ej. `hooks/use-payments.ts` + `services/payments.service.ts` + `types/payment.types.ts` para medios de pago).
 
 Cada módulo debe contener:
 

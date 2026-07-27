@@ -62,6 +62,9 @@ export async function POST(request: Request) {
     const latitude = formData.get('latitude') ? parseFloat(formData.get('latitude') as string) : null
     const longitude = formData.get('longitude') ? parseFloat(formData.get('longitude') as string) : null
     const is_active = formData.get('is_active') === 'true'
+    const business_hours = formData.get('business_hours')
+      ? JSON.parse(formData.get('business_hours') as string)
+      : null
 
     if (!name || !slug || !city || !department) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -107,6 +110,7 @@ export async function POST(request: Request) {
       is_active,
       cover_image_url,
       logo_url,
+      business_hours,
       created_by: user.id
     }
 

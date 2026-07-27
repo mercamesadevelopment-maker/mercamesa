@@ -4,6 +4,9 @@ import { Database } from '../../../types/database_generated';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
+const MAX_FEATURED_PER_STORE = 5;
+const MAX_FEATURED_MESSAGE = `Ya tienes ${MAX_FEATURED_PER_STORE} productos destacados. Quita uno para destacar otro.`;
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
@@ -19,6 +22,10 @@ export async function GET(request: Request) {
   if (storeId) {
     query = query.eq('store_id', storeId);
   }
+
+  query = query
+    .order('is_featured', { ascending: false })
+    .order('featured_at', { ascending: false });
 
   const { data, error } = await query;
 
@@ -76,6 +83,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ data }, { status: 201 });
     }
     
+    const isFeatured = body.is_featured === true;
+
+    if (isFeatured) {
+      const { count, error: countError } = await supabase
+        .from('store_products')
+        .select('id', { count: 'exact', head: true })
+        .eq('store_id', body.store_id)
+        .eq('is_featured', true);
+
+      if (countError) {
+        return NextResponse.json({ error: countError.message }, { status: 400 });
+      }
+
+      if ((count ?? 0) >= MAX_FEATURED_PER_STORE) {
+        return NextResponse.json({ error: MAX_FEATURED_MESSAGE }, { status: 400 });
+      }
+    }
+
     const insertData: StoreProductInsert = {
       catalog_product_id: body.catalog_product_id,
       store_id: body.store_id,
@@ -86,6 +111,8 @@ export async function POST(request: Request) {
       wholesale_price: body.wholesale_price ? Number(body.wholesale_price) : null,
       wholesale_min_qty: body.wholesale_min_qty ? Number(body.wholesale_min_qty) : null,
       is_active: body.is_active ?? true,
+      is_featured: isFeatured,
+      featured_at: isFeatured ? new Date().toISOString() : null,
     };
 
     const { data, error } = await supabase.from('store_products').insert(insertData).select().single();

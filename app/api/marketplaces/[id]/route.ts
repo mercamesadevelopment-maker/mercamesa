@@ -97,6 +97,11 @@ export async function PUT(
       updateData.is_active = formData.get('is_active') === 'true'
     }
 
+    if (formData.has('business_hours')) {
+      const businessHours = formData.get('business_hours') as string
+      updateData.business_hours = businessHours ? JSON.parse(businessHours) : null
+    }
+
     // Handle Cover Image Upload
     const coverImage = formData.get('cover_image') as File | null
     if (coverImage && coverImage.size > 0) {

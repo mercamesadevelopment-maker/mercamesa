@@ -3,17 +3,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, ShoppingCart, MapPin } from 'lucide-react';
+import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, ShoppingCart, MapPin, Heart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { usePublicProducts } from '@/app/sections/products/hooks/usePublicProducts';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 
 export default function StoreDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite, fetchFavoriteIds } = useFavorites();
 
   const [store, setStore] = useState<any>(null);
   const [loadingStore, setLoadingStore] = useState(true);
@@ -47,6 +49,11 @@ export default function StoreDetailPage() {
     
     fetchDetail();
   }, [slug]);
+
+  useEffect(() => {
+    if (state.isLoggedIn) fetchFavoriteIds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isLoggedIn]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -100,6 +107,20 @@ export default function StoreDetailPage() {
 
       {/* Store Header */}
       <div className="bg-white p-8 rounded-[32px] border border-mm-crd shadow-sm mb-10 flex flex-col md:flex-row gap-8 items-center overflow-hidden relative">
+        {state.isLoggedIn && (
+          <button
+            onClick={() => toggleFavorite(store.id)}
+            className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-white hover:bg-mm-gbg border border-mm-crd shadow-sm transition-all"
+          >
+            <Heart
+              className={cn(
+                'w-5 h-5 transition-colors',
+                isFavorite(store.id) ? 'fill-r text-r' : 'text-mm-txw'
+              )}
+            />
+          </button>
+        )}
+
         <div className="w-32 h-32 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden bg-mm-gbg border border-mm-crd/30">
           {store.logoSignedUrl ? (
             <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover p-2" />

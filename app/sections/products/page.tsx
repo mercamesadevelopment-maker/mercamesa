@@ -44,7 +44,7 @@ export default function ProductsPage() {
     const filtered = products.filter(p => {
       const matchSearch = normalizeText(p.catalog_products?.name).includes(normalizeText(search));
       const matchCat = activeCat === 'Todas' || p.catalog_products?.categories?.name === activeCat;
-      
+
       const price = p.price_per_unit || 0;
       const matchMin = minPrice === '' || price >= minPrice;
       const matchMax = maxPrice === '' || price <= maxPrice;
@@ -52,17 +52,24 @@ export default function ProductsPage() {
       return matchSearch && matchCat && matchMin && matchMax;
     });
 
-    if (sortBy === 'asc') {
-      return [...filtered].sort((a, b) => 
-        (a.catalog_products?.name || '').localeCompare(b.catalog_products?.name || '')
-      );
-    } else if (sortBy === 'desc') {
-      return [...filtered].sort((a, b) => 
-        (b.catalog_products?.name || '').localeCompare(a.catalog_products?.name || '')
-      );
-    }
+    const sortGroup = (items: typeof filtered) => {
+      if (sortBy === 'asc') {
+        return [...items].sort((a, b) =>
+          (a.catalog_products?.name || '').localeCompare(b.catalog_products?.name || '')
+        );
+      }
+      if (sortBy === 'desc') {
+        return [...items].sort((a, b) =>
+          (b.catalog_products?.name || '').localeCompare(a.catalog_products?.name || '')
+        );
+      }
+      return items;
+    };
 
-    return filtered;
+    const featured = filtered.filter(p => p.is_featured);
+    const rest = filtered.filter(p => !p.is_featured);
+
+    return [...sortGroup(featured), ...sortGroup(rest)];
   }, [products, search, activeCat, minPrice, maxPrice, sortBy]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -197,6 +204,11 @@ export default function ProductsPage() {
               className="bg-white rounded-[28px] border border-mm-crd shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col group border-b-4 border-b-mm-crd hover:border-b-mm-g duration-200"
             >
               <div className="h-40 bg-mm-gbg flex items-center justify-center text-5xl relative overflow-hidden">
+                {product.is_featured && (
+                  <Badge variant="oro" className="absolute top-2 left-2 z-10">
+                    Destacado
+                  </Badge>
+                )}
                 {product.imageSignedUrl ? (
                   <Image 
                     src={product.imageSignedUrl} 

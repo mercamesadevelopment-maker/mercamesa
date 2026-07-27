@@ -30,6 +30,7 @@ export function ProductsView() {
     newProduct,
     setNewProduct,
     catalog,
+    units,
     handleOpenAdd,
     handleOpenEdit,
     handleAddProduct,
@@ -103,9 +104,12 @@ export function ProductsView() {
       key: 'status',
       label: 'Estado',
       render: (item: any) => (
-        <Badge variant={item.status === 'active' ? 'success' : 'default'}>
-          {item.status === 'active' ? 'Activo' : 'Inactivo'}
-        </Badge>
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={item.status === 'active' ? 'success' : 'default'}>
+            {item.status === 'active' ? 'Activo' : 'Inactivo'}
+          </Badge>
+          {item.isFeatured && <Badge variant="oro">Destacado</Badge>}
+        </div>
       )
     }
   ];
@@ -362,6 +366,7 @@ export function ProductsView() {
         onClose={() => setIsModalOpen(false)}
         editingProduct={editingProduct}
         catalog={catalog}
+        units={units}
         newProduct={newProduct}
         setNewOfferProduct={setNewProduct}
         onSubmit={handleAddProduct}

@@ -149,7 +149,7 @@ export default function AcceptInvite() {
       >
         {/* System logo */}
         <Image
-          src="/logo-mercamesa.png"
+          src="/logo_MercaMesa_Ful.jpg"
           alt="Mercamesa Logo"
           className="object-contain mb-8"
           width={148}

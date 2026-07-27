@@ -223,7 +223,12 @@ export default function CatalogAdmin() {
               <StoreIcon className="w-4 h-4 text-mm-txw" />
             </div>
             <div>
-              <p className="text-xs font-bold text-mm-g leading-tight">{storeProd.stores?.name}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold text-mm-g leading-tight">{storeProd.stores?.name}</p>
+                {(storeProd as any).is_featured && (
+                  <Badge variant="oro" className="text-[8px] px-1.5 py-0">Destacado</Badge>
+                )}
+              </div>
               <p className="text-[9px] text-mm-txw font-bold uppercase tracking-tighter">
                 {storeProd.stores?.marketplaces?.name}
               </p>

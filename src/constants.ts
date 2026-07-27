@@ -141,10 +141,7 @@ export const DEFAULT_BUYER_PROFILE: BuyerProfile = {
     { id: "a1", label: "Casa", street: "Cra 70 #45-12", neighborhood: "Laureles", city: "Medellín", notes: "Apto 302, timbre azul", isDefault: true, icon: "🏠" },
     { id: "a2", label: "Trabajo", street: "Cl 10 #43-01", neighborhood: "El Centro", city: "Medellín", notes: "Piso 4, preguntar por María", isDefault: false, icon: "🏢" },
   ],
-  payments: [
-    { id: "p1", type: "card", label: "Visa terminada en 4242", brand: "VISA", last4: "4242", exp: "12/26", isDefault: true },
-    { id: "p2", type: "cash", label: "Efectivo", isDefault: false },
-  ],
+  payments: [],
   storeRatings: { 1: { stars: 5, comment: "Excelente calidad", date: "2024-03-15" } },
   favoriteStores: [1, 3, 6],
   prefs: { orderNotif: true, promoNotif: false, stockNotif: true, whatsappNotif: true },

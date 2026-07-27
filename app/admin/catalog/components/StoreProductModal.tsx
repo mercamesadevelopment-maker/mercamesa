@@ -32,6 +32,7 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
     wholesale_price: '',
     wholesale_min_qty: '',
     is_active: true,
+    is_featured: false,
   });
 
   useEffect(() => {
@@ -52,12 +53,14 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
         wholesale_price: initialData.wholesale_price?.toString() || '',
         wholesale_min_qty: initialData.wholesale_min_qty?.toString() || '',
         is_active: initialData.is_active,
+        is_featured: (initialData as any).is_featured || false,
       });
     } else {
       setFormData({
         catalog_product_id: '', store_id: '', unit_id: '',
         price_per_unit: '', stock: '0', min_order_qty: '1',
         wholesale_price: '', wholesale_min_qty: '', is_active: true,
+        is_featured: false,
       });
     }
   }, [initialData]);
@@ -135,6 +138,13 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
         <div className="flex items-center gap-2 px-1">
           <input type="checkbox" id="is_active" name="is_active" checked={formData.is_active} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
           <label htmlFor="is_active" className="text-sm font-medium text-mm-txs">Disponible para la venta</label>
+        </div>
+
+        <div className="flex items-center gap-2 px-1">
+          <input type="checkbox" id="is_featured" name="is_featured" checked={formData.is_featured} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
+          <label htmlFor="is_featured" className="text-sm font-medium text-mm-txs">
+            Destacar producto <span className="text-mm-txw">(máx. 5 por tienda)</span>
+          </label>
         </div>
 
         <div className="pt-2 flex gap-3 pb-2">

@@ -4,6 +4,9 @@ import { Database } from '../../../../types/database_generated';
 
 type StoreProductUpdate = Database['public']['Tables']['store_products']['Update'];
 
+const MAX_FEATURED_PER_STORE = 5;
+const MAX_FEATURED_MESSAGE = `Ya tienes ${MAX_FEATURED_PER_STORE} productos destacados. Quita uno para destacar otro.`;
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -18,9 +21,9 @@ export async function PUT(
     }
 
     const body = await request.json();
-    
+
     const updateData: StoreProductUpdate = {};
-    
+
     if (body.price_per_unit !== undefined) updateData.price_per_unit = Number(body.price_per_unit);
     if (body.stock !== undefined) updateData.stock = Number(body.stock);
     if (body.min_order_qty !== undefined) updateData.min_order_qty = Number(body.min_order_qty);
@@ -30,6 +33,39 @@ export async function PUT(
     if (body.unit_id !== undefined) updateData.unit_id = body.unit_id;
     if (body.store_id !== undefined) updateData.store_id = body.store_id;
     if (body.catalog_product_id !== undefined) updateData.catalog_product_id = body.catalog_product_id;
+
+    if (body.is_featured !== undefined) {
+      const wantsFeatured = Boolean(body.is_featured);
+
+      const { data: current, error: currentError } = await supabase
+        .from('store_products')
+        .select('store_id, is_featured')
+        .eq('id', id)
+        .single();
+
+      if (currentError) {
+        return NextResponse.json({ error: currentError.message }, { status: 400 });
+      }
+
+      if (wantsFeatured && !current.is_featured) {
+        const { count, error: countError } = await supabase
+          .from('store_products')
+          .select('id', { count: 'exact', head: true })
+          .eq('store_id', current.store_id)
+          .eq('is_featured', true);
+
+        if (countError) {
+          return NextResponse.json({ error: countError.message }, { status: 400 });
+        }
+
+        if ((count ?? 0) >= MAX_FEATURED_PER_STORE) {
+          return NextResponse.json({ error: MAX_FEATURED_MESSAGE }, { status: 400 });
+        }
+      }
+
+      updateData.is_featured = wantsFeatured;
+      updateData.featured_at = wantsFeatured ? new Date().toISOString() : null;
+    }
 
     updateData.last_price_update = new Date().toISOString();
 

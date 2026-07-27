@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -31,6 +31,53 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      buyer_payment_methods: {
+        Row: {
+          brand: string | null
+          buyer_id: string
+          created_at: string
+          exp: string | null
+          id: string
+          is_default: boolean
+          label: string
+          last4: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          buyer_id: string
+          created_at?: string
+          exp?: string | null
+          id?: string
+          is_default?: boolean
+          label: string
+          last4?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          buyer_id?: string
+          created_at?: string
+          exp?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string
+          last4?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_payment_methods_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cart_items: {
         Row: {
@@ -518,6 +565,7 @@ export type Database = {
       marketplaces: {
         Row: {
           address: string | null
+          business_hours: Json | null
           city: string
           cover_image_url: string | null
           created_at: string
@@ -535,6 +583,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          business_hours?: Json | null
           city?: string
           cover_image_url?: string | null
           created_at?: string
@@ -552,6 +601,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          business_hours?: Json | null
           city?: string
           cover_image_url?: string | null
           created_at?: string
@@ -792,6 +842,48 @@ export type Database = {
           },
         ]
       }
+      password_reset_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          request_ip: string | null
+          reset_token: string | null
+          reset_token_expires_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -919,7 +1011,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          business_name: string | null
           buyer_type: string | null
+          contact_name: string | null
           created_at: string
           document_number: string | null
           document_type: string | null
@@ -928,14 +1022,19 @@ export type Database = {
           id: string
           is_active: boolean
           language: Database["public"]["Enums"]["app_language"]
+          person_type: string | null
           phone: string | null
           reputation_score: number | null
           role_id: string
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          business_name?: string | null
           buyer_type?: string | null
+          contact_name?: string | null
           created_at?: string
           document_number?: string | null
           document_type?: string | null
@@ -944,14 +1043,19 @@ export type Database = {
           id: string
           is_active?: boolean
           language?: Database["public"]["Enums"]["app_language"]
+          person_type?: string | null
           phone?: string | null
           reputation_score?: number | null
           role_id: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          business_name?: string | null
           buyer_type?: string | null
+          contact_name?: string | null
           created_at?: string
           document_number?: string | null
           document_type?: string | null
@@ -960,9 +1064,12 @@ export type Database = {
           id?: string
           is_active?: boolean
           language?: Database["public"]["Enums"]["app_language"]
+          person_type?: string | null
           phone?: string | null
           reputation_score?: number | null
           role_id?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1095,6 +1202,42 @@ export type Database = {
           },
           {
             foreignKeyName: "store_documents_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_favorites: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          store_id: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          store_id: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_favorites_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_favorites_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1309,8 +1452,10 @@ export type Database = {
         Row: {
           catalog_product_id: string
           created_at: string
+          featured_at: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           last_price_update: string | null
           min_order_qty: number
           price_per_unit: number
@@ -1325,8 +1470,10 @@ export type Database = {
         Insert: {
           catalog_product_id: string
           created_at?: string
+          featured_at?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           last_price_update?: string | null
           min_order_qty?: number
           price_per_unit: number
@@ -1341,8 +1488,10 @@ export type Database = {
         Update: {
           catalog_product_id?: string
           created_at?: string
+          featured_at?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           last_price_update?: string | null
           min_order_qty?: number
           price_per_unit?: number
@@ -1380,6 +1529,7 @@ export type Database = {
       }
       stores: {
         Row: {
+          business_hours: Json | null
           contact_email: string | null
           contact_name: string | null
           cover_image_url: string | null
@@ -1398,6 +1548,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          business_hours?: Json | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
@@ -1416,6 +1567,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          business_hours?: Json | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null

@@ -38,6 +38,8 @@ export function useProducts() {
     retailPrice: 0,
     stock: 0,
     unit: 'kg',
+    unitId: '',
+    isFeatured: false,
     emoji: '🍎',
     cat: 'Varios',
     image: '',
@@ -71,6 +73,8 @@ export function useProducts() {
         cat: item.catalog_products?.categories?.name || 'Varios',
         categoryId: item.catalog_products?.category_id || '',
         unit: item.measurement_units?.abbreviation || 'kg',
+        unitId: item.unit_id || '',
+        isFeatured: Boolean(item.is_featured),
         retailPrice: Number(item.price_per_unit),
         wsPrice: Number(item.wholesale_price || item.price_per_unit * 0.8),
         ws20: Number(item.price_per_unit * 0.75),
@@ -109,6 +113,7 @@ export function useProducts() {
             emoji: getEmojiForCategory(item.categories?.name),
             image: item.image_url || '',
             defaultUnit: item.measurement_units?.abbreviation || 'kg',
+            defaultUnitId: item.default_unit_id || '',
           }));
           setCatalog(mappedCat);
         }
@@ -143,6 +148,8 @@ export function useProducts() {
       retailPrice: 0,
       stock: 0,
       unit: 'kg',
+      unitId: '',
+      isFeatured: false,
       emoji: '🍎',
       cat: 'Varios',
       image: '',
@@ -161,6 +168,8 @@ export function useProducts() {
       retailPrice: p.retailPrice,
       stock: p.stock,
       unit: p.unit,
+      unitId: p.unitId || '',
+      isFeatured: p.isFeatured || false,
       emoji: p.emoji,
       cat: p.cat,
       image: p.image || '',
@@ -182,15 +191,10 @@ export function useProducts() {
       return;
     }
 
-    // Buscar el unit_id que corresponde a la abreviatura de la unidad seleccionada
-    const matchedMaster = catalog.find(c => c.id === newProduct.masterId);
-    
-    // Obtener catálogo original para sacar default_unit_id si está disponible
-    const rawResponse = await fetch('/api/products');
-    const rawJson = await rawResponse.json();
-    const rawCatalogProduct = rawJson.data?.find((x: any) => x.id === newProduct.masterId);
-    
-    const unitId = rawCatalogProduct?.default_unit_id || units[0]?.id;
+    if (!newProduct.unitId) {
+      alert('Selecciona una unidad de medida.');
+      return;
+    }
 
     try {
       if (editingProduct) {
@@ -199,15 +203,20 @@ export function useProducts() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            unit_id: newProduct.unitId,
             price_per_unit: newProduct.retailPrice,
             stock: newProduct.stock,
             min_order_qty: newProduct.minOrderQty,
             wholesale_price: newProduct.wholesalePrice,
             wholesale_min_qty: newProduct.wholesaleMinQty,
+            is_featured: newProduct.isFeatured,
           }),
         });
 
-        if (!response.ok) throw new Error('Error al actualizar producto');
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => null);
+          throw new Error(errJson?.error || 'Error al actualizar producto');
+        }
       } else {
         // Agregar
         const response = await fetch('/api/store-products', {
@@ -216,16 +225,20 @@ export function useProducts() {
           body: JSON.stringify({
             catalog_product_id: newProduct.masterId,
             store_id: storeId,
-            unit_id: unitId,
+            unit_id: newProduct.unitId,
             price_per_unit: newProduct.retailPrice,
             stock: newProduct.stock,
             min_order_qty: newProduct.minOrderQty,
             wholesale_price: newProduct.wholesalePrice,
             wholesale_min_qty: newProduct.wholesaleMinQty,
+            is_featured: newProduct.isFeatured,
           }),
         });
 
-        if (!response.ok) throw new Error('Error al agregar producto');
+        if (!response.ok) {
+          const errJson = await response.json().catch(() => null);
+          throw new Error(errJson?.error || 'Error al agregar producto');
+        }
       }
 
       await fetchStoreProducts();
@@ -236,6 +249,8 @@ export function useProducts() {
         retailPrice: 0,
         stock: 0,
         unit: 'kg',
+        unitId: '',
+        isFeatured: false,
         emoji: '🍎',
         cat: 'Varios',
         image: '',
@@ -246,6 +261,7 @@ export function useProducts() {
       });
     } catch (err) {
       console.error(err);
+      alert(err instanceof Error ? err.message : 'Error al guardar el producto');
     }
   };
 
@@ -314,6 +330,7 @@ export function useProducts() {
     newProduct,
     setNewProduct,
     catalog,
+    units,
     loading: loading || !storeId,
     handleOpenAdd,
     handleOpenEdit,

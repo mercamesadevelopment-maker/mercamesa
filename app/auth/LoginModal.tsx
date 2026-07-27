@@ -12,9 +12,13 @@ import { useAuthHooks } from '../hooks/useAuth';
 export function LoginModal({
   isOpen,
   onClose,
+  onRegisterClick,
+  onForgotPasswordClick,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onRegisterClick?: () => void;
+  onForgotPasswordClick?: () => void;
 }) {
   const { dispatch } = useApp();
   const router = useRouter();
@@ -160,6 +164,18 @@ export function LoginModal({
               </button>
             </div>
 
+            {onForgotPasswordClick && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={onForgotPasswordClick}
+                  className="text-sm font-medium text-mm-g hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full py-4 text-lg"
@@ -169,6 +185,19 @@ export function LoginModal({
               <ArrowRight className="h-5 w-5" />
             </Button>
           </form>
+
+          {onRegisterClick && (
+            <p className="mt-6 text-center text-sm text-mm-txs">
+              ¿No tienes cuenta?{' '}
+              <button
+                type="button"
+                onClick={onRegisterClick}
+                className="font-medium text-mm-g hover:underline"
+              >
+                Regístrate como comprador
+              </button>
+            </p>
+          )}
         </div>
       </motion.div>
     </div>

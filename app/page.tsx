@@ -7,6 +7,8 @@ import { Button, cn } from '@/src/components/Shared';
 import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
 import { LoginModal } from './auth/LoginModal';
 import { RegisterModal } from './auth/RegisterModal';
+import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
+import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
 import Image from 'next/image';
 
@@ -23,6 +25,8 @@ export default function Page() {
   const router = useRouter();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isBuyerRegisterOpen, setIsBuyerRegisterOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   useEffect(() => {
     if (state.isLoggedIn) {
@@ -38,7 +42,7 @@ export default function Page() {
       <header className="fixed top-0 left-0 w-full h-20 bg-white/90 backdrop-blur-md z-50 border-b border-mm-gbg flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-2">
           <Image
-            src="/logo-mercamesa.png"
+            src="/logo_MercaMesa_Ful.jpg"
             alt="Mercamesa"
             className="h-12 w-auto"
             width={192}
@@ -252,7 +256,7 @@ export default function Page() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
             <Image
-              src="/logo-mercamesa.png"
+              src="/logo_MercaMesa_Ful.jpg"
               alt="Mercamesa"
               width={192}
               height={192}
@@ -270,8 +274,31 @@ export default function Page() {
 
       {/* Modals */}
       <AnimatePresence>
-        {isLoginOpen && <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />}
+        {isLoginOpen && (
+          <LoginModal
+            isOpen={isLoginOpen}
+            onClose={() => setIsLoginOpen(false)}
+            onRegisterClick={() => {
+              setIsLoginOpen(false);
+              setIsBuyerRegisterOpen(true);
+            }}
+            onForgotPasswordClick={() => {
+              setIsLoginOpen(false);
+              setIsForgotPasswordOpen(true);
+            }}
+          />
+        )}
         {isRegisterOpen && <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />}
+        {isBuyerRegisterOpen && (
+          <BuyerRegisterModal isOpen={isBuyerRegisterOpen} onClose={() => setIsBuyerRegisterOpen(false)} />
+        )}
+        {isForgotPasswordOpen && (
+          <ForgotPasswordModal
+            isOpen={isForgotPasswordOpen}
+            onClose={() => setIsForgotPasswordOpen(false)}
+            onBackToLogin={() => setIsLoginOpen(true)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

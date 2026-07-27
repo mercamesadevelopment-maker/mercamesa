@@ -10,11 +10,14 @@ interface ProductModalProps {
   onClose: () => void;
   editingProduct: Product | null;
   catalog: MasterProduct[];
+  units: { id: string; name: string; abbreviation: string }[];
   newProduct: {
     name: string;
     retailPrice: number;
     stock: number;
     unit: string;
+    unitId: string;
+    isFeatured: boolean;
     emoji: string;
     cat: string;
     image: string;
@@ -28,6 +31,8 @@ interface ProductModalProps {
     retailPrice: number;
     stock: number;
     unit: string;
+    unitId: string;
+    isFeatured: boolean;
     emoji: string;
     cat: string;
     image: string;
@@ -44,6 +49,7 @@ export function ProductModal({
   onClose,
   editingProduct,
   catalog,
+  units,
   newProduct,
   setNewOfferProduct,
   onSubmit,
@@ -86,6 +92,7 @@ export function ProductModal({
                 cat: master.cat,
                 image: master.image || '',
                 unit: master.defaultUnit,
+                unitId: master.defaultUnitId || '',
                 emoji: master.emoji
               }));
             }
@@ -121,13 +128,28 @@ export function ProductModal({
         )}
         
         <div className="grid grid-cols-2 gap-4">
-          <Input 
-            label="Unidad" 
-            value={newProduct.unit} 
-            onChange={e => setNewOfferProduct(prev => ({ ...prev, unit: e.target.value }))}
-            placeholder="Ej: kg, lb, unidad"
-            required
-          />
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-medium text-mm-txs ml-1">Unidad</label>
+            <select
+              value={newProduct.unitId}
+              onChange={e => {
+                const unitId = e.target.value;
+                const selected = units.find(u => u.id === unitId);
+                setNewOfferProduct(prev => ({
+                  ...prev,
+                  unitId,
+                  unit: selected?.abbreviation || prev.unit,
+                }));
+              }}
+              className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
+              required
+            >
+              <option value="">Selecciona una unidad</option>
+              {units.map(u => (
+                <option key={u.id} value={u.id}>{u.name} ({u.abbreviation})</option>
+              ))}
+            </select>
+          </div>
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-sm font-medium text-mm-txs ml-1">Categoría</label>
             <div className="px-4 py-3 bg-mm-gbg/10 border border-mm-crd rounded-xl text-sm text-mm-txs font-bold">
@@ -177,6 +199,19 @@ export function ProductModal({
             onChange={e => setNewOfferProduct(prev => ({ ...prev, minOrderQty: Number(e.target.value) }))}
             placeholder="Ej: 1"
           />
+        </div>
+
+        <div className="flex items-center gap-3 p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
+          <input
+            type="checkbox"
+            id="isFeatured"
+            checked={newProduct.isFeatured}
+            onChange={e => setNewOfferProduct(prev => ({ ...prev, isFeatured: e.target.checked }))}
+            className="w-5 h-5 rounded border-mm-crd text-mm-g focus:ring-mm-g"
+          />
+          <label htmlFor="isFeatured" className="text-sm font-bold text-mm-g cursor-pointer">
+            Destacar este producto <span className="font-normal text-mm-txs">(máx. 5 por tienda)</span>
+          </label>
         </div>
 
         <div className="pt-4 flex gap-3 border-t border-mm-gbg">

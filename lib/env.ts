@@ -16,3 +16,15 @@ export function getServiceRoleKey(): string {
   if (!key) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
   return key;
 }
+
+export function getResendApiKey(): string {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error('Missing RESEND_API_KEY');
+  return key;
+}
+
+export function getResendFromEmail(): string {
+  const email = process.env.RESEND_FROM_EMAIL;
+  if (!email) throw new Error('Missing RESEND_FROM_EMAIL');
+  return email;
+}
