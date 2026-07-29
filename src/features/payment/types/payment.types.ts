@@ -37,6 +37,7 @@ export interface OrderItemInput {
   total_price: number
   catalog_name: string
   unit_name: string
+  notes?: string | null
 }
 
 export interface StoreOrderInput {

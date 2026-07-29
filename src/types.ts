@@ -102,6 +102,12 @@ export interface Product {
 
 export interface CartItem extends Product {
   qty: number;
+  unitId?: string;
+  unitName?: string;
+  offerId?: string | null;
+  offerExpired?: boolean;
+  originalOfferPrice?: number;
+  notes?: string;
 }
 
 export interface OrderItem {
@@ -112,6 +118,7 @@ export interface OrderItem {
   unit: string;
   emoji: string;
   image?: string;
+  notes?: string;
 }
 
 export type SaleStatus = 'pedido' | 'preparado' | 'entregado' | 'pagado';

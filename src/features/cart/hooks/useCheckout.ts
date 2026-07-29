@@ -133,6 +133,7 @@ export function useCheckout() {
             total_price: getPrice(i) * i.qty,
             catalog_name: i.name,
             unit_name: i.unit || 'und',
+            notes: i.notes || null,
           })),
           storeOrders: [
             {

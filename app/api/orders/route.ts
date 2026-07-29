@@ -117,6 +117,7 @@ export async function POST(request: Request) {
         total_price: totalPrice,
         catalog_name: dbProd.catalog_products?.name || item.catalog_name,
         unit_name: dbProd.measurement_units?.abbreviation || item.unit_name,
+        notes: item.notes || null,
       };
     });
 

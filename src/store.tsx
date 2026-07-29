@@ -37,6 +37,7 @@ type AppAction =
   | { type: 'ADD_TO_CART'; product: Product; qty?: number }
   | { type: 'REMOVE_FROM_CART'; productId: number | string }
   | { type: 'UPDATE_CART_QTY'; productId: number | string; qty: number }
+  | { type: 'UPDATE_CART_ITEM_NOTES'; productId: number | string; notes: string }
   | { type: 'CLEAR_CART' }
   | { type: 'HYDRATE_CART'; cart: CartItem[] }
   | { type: 'PLACE_ORDER'; orders: Order[] }
@@ -215,6 +216,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         cart: state.cart.map(i => i.id === action.productId ? { ...i, qty: Math.max(0, action.qty) } : i).filter(i => i.qty > 0)
+      };
+
+    case 'UPDATE_CART_ITEM_NOTES':
+      return {
+        ...state,
+        cart: state.cart.map(i => i.id === action.productId ? { ...i, notes: action.notes } : i)
       };
 
     case 'CLEAR_CART':

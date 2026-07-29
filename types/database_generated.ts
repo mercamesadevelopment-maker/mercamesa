@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -84,6 +84,8 @@ export type Database = {
           buyer_id: string
           created_at: string
           id: string
+          notes: string | null
+          offer_id: string | null
           order_id: string | null
           quantity: number
           status: Database["public"]["Enums"]["cart_item_status"]
@@ -94,6 +96,8 @@ export type Database = {
           buyer_id: string
           created_at?: string
           id?: string
+          notes?: string | null
+          offer_id?: string | null
           order_id?: string | null
           quantity: number
           status?: Database["public"]["Enums"]["cart_item_status"]
@@ -104,6 +108,8 @@ export type Database = {
           buyer_id?: string
           created_at?: string
           id?: string
+          notes?: string | null
+          offer_id?: string | null
           order_id?: string | null
           quantity?: number
           status?: Database["public"]["Enums"]["cart_item_status"]
@@ -116,6 +122,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "store_offers"
             referencedColumns: ["id"]
           },
           {
@@ -700,6 +713,7 @@ export type Database = {
           catalog_name: string
           created_at: string
           id: string
+          notes: string | null
           order_id: string
           quantity: number
           store_product_id: string
@@ -711,6 +725,7 @@ export type Database = {
           catalog_name: string
           created_at?: string
           id?: string
+          notes?: string | null
           order_id: string
           quantity: number
           store_product_id: string
@@ -722,6 +737,7 @@ export type Database = {
           catalog_name?: string
           created_at?: string
           id?: string
+          notes?: string | null
           order_id?: string
           quantity?: number
           store_product_id?: string

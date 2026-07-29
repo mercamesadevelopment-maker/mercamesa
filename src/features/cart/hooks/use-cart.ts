@@ -8,13 +8,14 @@ import {
   removeFromCartDb,
   clearCartDb,
   fetchCart,
+  updateCartItemNotesDb,
 } from '../services/cart.service';
 
 export function useCart() {
   const { state, dispatch } = useApp();
   const buyerId = state.buyerProfile?.id;
 
-  const addToCart = async (product: Product, qty: number = 1) => {
+  const addToCart = async (product: Product, qty: number = 1, offerId?: string | null) => {
     if (!state.isLoggedIn || !buyerId) {
       alert('Debes iniciar sesión para añadir productos al carrito');
       return;
@@ -27,7 +28,7 @@ export function useCart() {
       // Get current quantity in the state cart
       const existing = state.cart.find((i) => i.id === product.id);
       const newQty = existing ? existing.qty + qty : qty;
-      await addToCartDb(buyerId, String(product.id), newQty);
+      await addToCartDb(buyerId, String(product.id), newQty, offerId);
     } catch (e) {
       console.error('Error adding to cart in DB:', e);
     }
@@ -47,6 +48,19 @@ export function useCart() {
       }
     } catch (e) {
       console.error('Error updating cart qty in DB:', e);
+    }
+  };
+
+  const updateCartItemNotes = async (productId: number | string, notes: string) => {
+    if (!state.isLoggedIn || !buyerId) return;
+
+    // Optimistic update
+    dispatch({ type: 'UPDATE_CART_ITEM_NOTES', productId, notes });
+
+    try {
+      await updateCartItemNotesDb(buyerId, String(productId), notes);
+    } catch (e) {
+      console.error('Error updating cart item notes in DB:', e);
     }
   };
 
@@ -91,6 +105,7 @@ export function useCart() {
     cart: state.cart,
     addToCart,
     updateCartQty,
+    updateCartItemNotes,
     removeFromCart,
     clearCart,
     syncCart,

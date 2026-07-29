@@ -3,24 +3,31 @@ import { CartItem } from '@/src/types';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 
 /**
- * Fetch active cart items for a given buyer from Supabase and map them to full CartItem objects.
+ * Fetch active cart items for a given buyer from Supabase and map them to full CartItem objects,
+ * verifying offer validity and measurement units.
  */
 export async function fetchCart(buyerId: string): Promise<CartItem[]> {
   const supabase = createSupabaseBrowserClient();
+  const now = new Date();
 
   const { data, error } = await supabase
     .from('cart_items')
     .select(`
+      id,
       quantity,
+      offer_id,
+      notes,
       store_products (
         id,
         price_per_unit,
         wholesale_price,
         stock,
         store_id,
+        unit_id,
         catalog_products ( name, image_url, categories ( name ) ),
         stores ( name, marketplace_id ),
-        measurement_units ( abbreviation )
+        measurement_units ( id, name, abbreviation ),
+        store_offers ( id, discount_pct, special_price, label, starts_at, ends_at, is_active )
       )
     `)
     .eq('buyer_id', buyerId)
@@ -32,42 +39,117 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
 
   if (!data) return [];
 
-  // Map database response to CartItem type
-  return data.map((item: any) => {
+  const itemsToUpdateOfferNull: string[] = [];
+
+  const resultCart: CartItem[] = data.map((item: any) => {
     const sp = item.store_products;
-    const imageUrl = sp.catalog_products?.image_url
+    const imageUrl = sp?.catalog_products?.image_url
       ? getSupabaseImageUrl('products', sp.catalog_products.image_url, PRESET_THUMBNAIL)
       : null;
 
+    let retailPrice = Number(sp?.price_per_unit || 0);
+    let wsPrice = Number(sp?.wholesale_price || sp?.price_per_unit || 0);
+    let offerExpired = false;
+    let originalOfferPrice: number | undefined = undefined;
+    let validOfferId: string | null = item.offer_id || null;
+
+    // Verificar si el ítem tenía una oferta vinculada o si hay ofertas en store_offers
+    const offersList = Array.isArray(sp?.store_offers) ? sp.store_offers : [];
+
+    if (item.offer_id) {
+      const linkedOffer = offersList.find((o: any) => o.id === item.offer_id);
+
+      const isStillValid =
+        linkedOffer &&
+        linkedOffer.is_active &&
+        new Date(linkedOffer.starts_at) <= now &&
+        (!linkedOffer.ends_at || new Date(linkedOffer.ends_at) >= now);
+
+      if (isStillValid) {
+        if (linkedOffer.special_price != null) {
+          retailPrice = Number(linkedOffer.special_price);
+        } else if (linkedOffer.discount_pct != null) {
+          retailPrice = Math.round(retailPrice * (1 - Number(linkedOffer.discount_pct) / 100));
+        }
+      } else {
+        // La oferta expiró durante la permanencia en el carrito
+        offerExpired = true;
+        validOfferId = null;
+        if (linkedOffer) {
+          originalOfferPrice = linkedOffer.special_price != null ? Number(linkedOffer.special_price) : undefined;
+        }
+        itemsToUpdateOfferNull.push(item.id);
+      }
+    } else {
+      // Buscar si existe alguna oferta activa vigente para aplicar por defecto
+      const activeOffer = offersList.find(
+        (o: any) =>
+          o.is_active &&
+          new Date(o.starts_at) <= now &&
+          (!o.ends_at || new Date(o.ends_at) >= now)
+      );
+
+      if (activeOffer) {
+        validOfferId = activeOffer.id;
+        if (activeOffer.special_price != null) {
+          retailPrice = Number(activeOffer.special_price);
+        } else if (activeOffer.discount_pct != null) {
+          retailPrice = Math.round(retailPrice * (1 - Number(activeOffer.discount_pct) / 100));
+        }
+      }
+    }
+
     return {
-      id: sp.id,
-      name: sp.catalog_products?.name || 'Producto',
-      cat: sp.catalog_products?.categories?.name || 'Sin Categoría',
-      retailPrice: sp.price_per_unit || 0,
-      wsPrice: sp.wholesale_price || sp.price_per_unit || 0,
-      stock: sp.stock || 0,
-      unit: sp.measurement_units?.abbreviation || 'und',
-      emoji: sp.catalog_products?.emoji || '📦',
+      id: sp?.id || item.id,
+      name: sp?.catalog_products?.name || 'Producto',
+      cat: sp?.catalog_products?.categories?.name || 'Sin Categoría',
+      retailPrice,
+      wsPrice,
+      ws20: Math.floor(retailPrice * 0.75),
+      ws50: Math.floor(retailPrice * 0.7),
+      stock: Number(sp?.stock || 0),
+      unit: sp?.measurement_units?.abbreviation || 'und',
+      unitId: sp?.unit_id || sp?.measurement_units?.id || '',
+      unitName: sp?.measurement_units?.name || '',
+      emoji: sp?.catalog_products?.emoji || '📦',
       image: imageUrl,
-      plazaId: 1, // Default or mock if not present
-      storeId: sp.store_id,
-      storeName: sp.stores?.name || 'Tienda',
+      plazaId: 1,
+      storeId: sp?.store_id || '',
+      storeName: sp?.stores?.name || 'Tienda',
       qty: item.quantity,
-      wsMin: sp.wholesale_min_qty || 0,
-      minStock: sp.min_order_qty || 0,
-      desc: sp.description || '',
-      status: sp.is_active ? 'active' : 'inactive',
+      wsMin: Number(sp?.wholesale_min_qty || 0),
+      minStock: Number(sp?.min_order_qty || 0),
+      desc: sp?.description || '',
+      status: sp?.is_active ? 'active' : 'inactive',
+      offerId: validOfferId,
+      offerExpired,
+      originalOfferPrice,
+      notes: item.notes || '',
     } as unknown as CartItem;
   });
+
+  // Limpiar asincrónicamente los offer_id vencidos en la base de datos
+  if (itemsToUpdateOfferNull.length > 0) {
+    supabase
+      .from('cart_items')
+      .update({ offer_id: null })
+      .in('id', itemsToUpdateOfferNull)
+      .then(({ error }) => {
+        if (error) console.error('Error desvinculando offer_id vencidos:', error);
+      });
+  }
+
+  return resultCart;
 }
 
 /**
- * Insert or update a cart item quantity in the database.
+ * Insert or update a cart item quantity in the database with optional offerId.
  */
 export async function addToCartDb(
   buyerId: string,
   storeProductId: string,
-  quantity: number
+  quantity: number,
+  offerId?: string | null
 ): Promise<void> {
   const supabase = createSupabaseBrowserClient();
 
@@ -87,6 +169,7 @@ export async function addToCartDb(
       .from('cart_items')
       .update({
         quantity: existing.quantity + quantity,
+        offer_id: offerId || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', existing.id);
@@ -99,6 +182,7 @@ export async function addToCartDb(
         buyer_id: buyerId,
         store_product_id: storeProductId,
         quantity,
+        offer_id: offerId || null,
         status: 'active',
       });
 
@@ -115,6 +199,22 @@ export async function updateCartQtyDb(buyerId: string, storeProductId: string, q
   const { error } = await supabase
     .from('cart_items')
     .update({ quantity: quantity, updated_at: new Date().toISOString() })
+    .eq('buyer_id', buyerId)
+    .eq('store_product_id', storeProductId)
+    .eq('status', 'active');
+
+  if (error) throw error;
+}
+
+/**
+ * Update the buyer notes/specifications for a cart item.
+ */
+export async function updateCartItemNotesDb(buyerId: string, storeProductId: string, notes: string): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+
+  const { error } = await supabase
+    .from('cart_items')
+    .update({ notes: notes || null, updated_at: new Date().toISOString() })
     .eq('buyer_id', buyerId)
     .eq('store_product_id', storeProductId)
     .eq('status', 'active');
