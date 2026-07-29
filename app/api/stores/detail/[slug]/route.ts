@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../../lib/supabase/supabase-image';
 
 export async function GET(
   request: Request,
@@ -23,19 +24,14 @@ export async function GET(
       return NextResponse.json({ error: storeError?.message || 'Store not found' }, { status: 404 });
     }
 
-    // Get signed URLs for the store
-    let coverSignedUrl = null;
-    let logoSignedUrl = null;
+    // Usar transformaciones de Supabase (síncrono, cacheable)
+    const coverSignedUrl = store.cover_image_url
+      ? getSupabaseImageUrl('stores', store.cover_image_url, PRESET_COVER_DETAIL)
+      : null;
 
-    if (store.cover_image_url) {
-      const { data: signedData } = await supabase.storage.from('stores').createSignedUrl(store.cover_image_url, 3600);
-      coverSignedUrl = signedData?.signedUrl;
-    }
-
-    if (store.logo_url) {
-      const { data: signedData } = await supabase.storage.from('stores').createSignedUrl(store.logo_url, 3600);
-      logoSignedUrl = signedData?.signedUrl;
-    }
+    const logoSignedUrl = store.logo_url
+      ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
+      : null;
 
     return NextResponse.json({ 
       data: { 
@@ -49,3 +45,4 @@ export async function GET(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+

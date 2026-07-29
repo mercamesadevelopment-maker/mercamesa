@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 import { Database } from '../../../types/database_generated'
+import { getSupabaseImageUrl, PRESET_COVER, PRESET_LOGO } from '../../../lib/supabase/supabase-image'
 
 type MarketplaceInsert = Database['public']['Tables']['marketplaces']['Insert']
 
@@ -23,10 +24,10 @@ export async function GET(request: Request) {
 
   const dataWithUrls = data?.map((plaza) => {
     const coverSignedUrl = plaza.cover_image_url
-      ? supabase.storage.from('plazas').getPublicUrl(plaza.cover_image_url).data.publicUrl
+      ? getSupabaseImageUrl('plazas', plaza.cover_image_url, PRESET_COVER)
       : null;
     const logoSignedUrl = plaza.logo_url
-      ? supabase.storage.from('plazas').getPublicUrl(plaza.logo_url).data.publicUrl
+      ? getSupabaseImageUrl('plazas', plaza.logo_url, PRESET_LOGO)
       : null;
     return {
       ...plaza,

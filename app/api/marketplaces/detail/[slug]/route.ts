@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getMarketplaceDetail } from '@/app/services/marketplaces/marketplaces.service';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '@/lib/supabase/supabase-image';
 
 type Store = {
   id: string;
@@ -31,15 +32,11 @@ export async function GET(
     }
 
     const coverImageUrl = data.cover_image_url
-      ? supabase.storage
-          .from('plazas')
-          .getPublicUrl(data.cover_image_url).data.publicUrl
+      ? getSupabaseImageUrl('plazas', data.cover_image_url, PRESET_COVER_DETAIL)
       : null;
 
     const logoUrl = data.logo_url
-      ? supabase.storage
-          .from('plazas')
-          .getPublicUrl(data.logo_url).data.publicUrl
+      ? getSupabaseImageUrl('plazas', data.logo_url, PRESET_LOGO)
       : null;
 
     const stores = Array.isArray(data.stores)
@@ -47,15 +44,13 @@ export async function GET(
       : [];
 
     const storesWithPublicUrls = stores.map((store: Store) => {
-      const logoUrl = store.logo_url
-        ? supabase.storage
-            .from('stores')
-            .getPublicUrl(store.logo_url).data.publicUrl
+      const storeLogo = store.logo_url
+        ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
         : null;
       return {
         ...store,
-        logoUrl,
-        logoSignedUrl: logoUrl,
+        logoUrl: storeLogo,
+        logoSignedUrl: storeLogo,
       };
     });
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { Database } from '../../../../types/database_generated'
+import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../lib/supabase/supabase-image'
 
 type MarketplaceUpdate = Database['public']['Tables']['marketplaces']['Update']
 
@@ -21,23 +22,14 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 404 })
   }
 
-  // Get signed URLs for private images
-  let coverSignedUrl = null
-  let logoSignedUrl = null
+  // Usar transformaciones de Supabase (síncrono, cacheable)
+  const coverSignedUrl = data.cover_image_url
+    ? getSupabaseImageUrl('plazas', data.cover_image_url, PRESET_COVER_DETAIL)
+    : null
 
-  if (data.cover_image_url) {
-    const { data: signedData } = await supabase.storage
-      .from('plazas')
-      .createSignedUrl(data.cover_image_url, 3600) // 1 hour
-    coverSignedUrl = signedData?.signedUrl
-  }
-
-  if (data.logo_url) {
-    const { data: signedData } = await supabase.storage
-      .from('plazas')
-      .createSignedUrl(data.logo_url, 3600)
-    logoSignedUrl = signedData?.signedUrl
-  }
+  const logoSignedUrl = data.logo_url
+    ? getSupabaseImageUrl('plazas', data.logo_url, PRESET_LOGO)
+    : null
 
   return NextResponse.json({ 
     data: { 

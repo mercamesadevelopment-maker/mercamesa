@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
-import Image from 'next/image';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export default function AcceptInvite() {
@@ -30,7 +29,7 @@ export default function AcceptInvite() {
     const checkInvitation = async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        
+
         // Try getting existing session
         let { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
@@ -43,14 +42,14 @@ export default function AcceptInvite() {
           const params = new URLSearchParams(hash.substring(1));
           const access_token = params.get('access_token');
           const refresh_token = params.get('refresh_token');
-          
+
           if (access_token && refresh_token) {
             console.log('Explicitly setting session from URL hash...');
             const { data: { session: newSession }, error: setError } = await supabase.auth.setSession({
               access_token,
               refresh_token
             });
-            
+
             if (setError) {
               console.error('Error setting session from hash:', setError);
             } else {
@@ -148,12 +147,10 @@ export default function AcceptInvite() {
         className="w-full max-w-md bg-white border border-mm-crd rounded-[32px] shadow-2xl p-8 relative z-10 flex flex-col items-center"
       >
         {/* System logo */}
-        <Image
-          src="/logo_MercaMesa_Ful.jpg"
+        <img
+          src="/logo_MercaMesa_Ful.svg"
           alt="Mercamesa Logo"
-          className="object-contain mb-8"
-          width={148}
-          height={48}
+          className="object-contain mb-8 h-12 w-auto"
         />
 
         <AnimatePresence mode="wait">

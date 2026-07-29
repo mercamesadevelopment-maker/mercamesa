@@ -8,7 +8,6 @@ import { ProductModal } from './components/ProductModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge, normalizeText } from '@/src/components/Shared';
-import Image from 'next/image';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -102,12 +101,10 @@ export default function ProductsAdmin() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-mm-gbg rounded-lg flex items-center justify-center text-2xl overflow-hidden border border-mm-crd shrink-0 relative">
             {item.imageSignedUrl ? (
-              <Image 
-                src={item.imageSignedUrl} 
-                alt={item.name} 
-                fill 
-                sizes="40px"
-                className="object-cover" 
+              <img
+                src={item.imageSignedUrl}
+                alt={item.name}
+                className="absolute inset-0 w-full h-full object-cover"
                 loading="lazy"
               />
             ) : (

@@ -3,8 +3,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
 import { usePublicProducts } from './hooks/usePublicProducts';
+
 import { Badge, Button, cn, normalizeText } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
@@ -210,12 +210,10 @@ export default function ProductsPage() {
                   </Badge>
                 )}
                 {product.imageSignedUrl ? (
-                  <Image 
-                    src={product.imageSignedUrl} 
-                    alt={product.catalog_products?.name || 'Producto'} 
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                    className="object-cover group-hover:scale-110 transition-transform duration-500" 
+                  <img
+                    src={product.imageSignedUrl}
+                    alt={product.catalog_products?.name || 'Producto'}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
                   />
                 ) : (

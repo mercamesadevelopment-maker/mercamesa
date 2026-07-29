@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { Database } from '../../../../types/database_generated';
+import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../lib/supabase/supabase-image';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
@@ -30,18 +31,14 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 404 });
   }
 
-  let coverSignedUrl = null;
-  let logoSignedUrl = null;
+  // Usar transformaciones de Supabase (síncrono, cacheable)
+  const coverSignedUrl = data.cover_image_url
+    ? getSupabaseImageUrl('stores', data.cover_image_url, PRESET_COVER_DETAIL)
+    : null;
 
-  if (data.cover_image_url) {
-    const { data: signedData } = await supabase.storage.from('stores').createSignedUrl(data.cover_image_url, 3600);
-    coverSignedUrl = signedData?.signedUrl;
-  }
-
-  if (data.logo_url) {
-    const { data: signedData } = await supabase.storage.from('stores').createSignedUrl(data.logo_url, 3600);
-    logoSignedUrl = signedData?.signedUrl;
-  }
+  const logoSignedUrl = data.logo_url
+    ? getSupabaseImageUrl('stores', data.logo_url, PRESET_LOGO)
+    : null;
 
   return NextResponse.json({ data: { ...data, coverSignedUrl, logoSignedUrl } }, { status: 200 });
 }

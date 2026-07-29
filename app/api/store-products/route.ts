@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
+import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/supabase-image';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
@@ -33,19 +34,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Generate signed URLs for product images
-  const productsWithSignedUrls = await Promise.all(data.map(async (product) => {
-    let imageSignedUrl = null;
-    if (product.catalog_products?.image_url) {
-      const { data: signedData } = await supabase.storage
-        .from('products')
-        .createSignedUrl(product.catalog_products.image_url, 60 * 60); // 1 hour expiration
-      if (signedData?.signedUrl) {
-        imageSignedUrl = signedData.signedUrl;
-      }
-    }
+  // Generar URLs con transformación de Supabase (síncrono, cacheable)
+  const productsWithSignedUrls = data.map((product) => {
+    const imageSignedUrl = product.catalog_products?.image_url
+      ? getSupabaseImageUrl('products', product.catalog_products.image_url, PRESET_THUMBNAIL)
+      : null;
     return { ...product, imageSignedUrl };
-  }));
+  });
 
   return NextResponse.json({ data: productsWithSignedUrls }, { status: 200 });
 }

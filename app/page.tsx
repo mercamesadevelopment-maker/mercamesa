@@ -10,7 +10,6 @@ import { RegisterModal } from './auth/RegisterModal';
 import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
-import Image from 'next/image';
 
 const roleRoutes: Record<string, string> = {
   retail: '/marketplaces',
@@ -41,12 +40,10 @@ export default function Page() {
       {/* Header */}
       <header className="fixed top-0 left-0 w-full h-20 bg-white/90 backdrop-blur-md z-50 border-b border-mm-gbg flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-2">
-          <Image
-            src="/logo_MercaMesa_Ful.jpg"
+          <img
+            src="/logo_MercaMesa_Ful.svg"
             alt="Mercamesa"
             className="h-12 w-auto"
-            width={192}
-            height={192}
           />
         </div>
         <div className="flex items-center gap-4">
@@ -115,20 +112,18 @@ export default function Page() {
       <section className="py-12 bg-mm-gbg">
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-8">
           <div className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm">
-            <Image
+            <img
               src="/icon-reconocimiento-shape.png"
               alt="Reconocimiento"
-              width={192}
-              height={192}
+              className="w-24 h-24 object-contain"
             />
             <p className="text-xl font-fraunces text-mm-g font-bold">Aquí, cada transacción es un acto de reconocimiento.</p>
           </div>
           <div className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm">
-            <Image
+            <img
               src="/icon-comunicacion-shape.png"
               alt="Comunicación"
-              width={192}
-              height={192}
+              className="w-24 h-24 object-contain"
             />
             <p className="text-xl font-fraunces text-mm-g font-bold">Cada producto, una historia que merece ser contada.</p>
           </div>
@@ -159,11 +154,11 @@ export default function Page() {
               transition={{ delay: i * 0.1 }}
               className="bg-white rounded-3xl overflow-hidden shadow-sm border border-mm-gbg hover:shadow-md transition-shadow"
             >
-              <Image
+              <img
                 src={item.img}
                 alt={item.title}
-                width={192}
-                height={192}
+                className="w-full h-48 object-cover"
+                loading="lazy"
               />
               <div className="p-6">
                 <h3 className="text-lg font-bold text-mm-g mb-2">{item.title}</h3>
@@ -255,11 +250,9 @@ export default function Page() {
       <footer className="bg-mm-g text-white py-16 px-6 lg:px-12">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
-            <Image
-              src="/logo_MercaMesa_Ful.jpg"
+            <img
+              src="/logo_MercaMesa_Ful.svg"
               alt="Mercamesa"
-              width={192}
-              height={192}
               className="h-10 w-auto brightness-0 invert"
             />
           </div>

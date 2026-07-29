@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
+import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/supabase-image';
 
 type ProductInsert = Database['public']['Tables']['catalog_products']['Insert'];
 
@@ -18,20 +19,17 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Generar URLs públicas para las imágenes de los productos (síncrono sin llamadas de red)
+  // Generar URLs con transformación de Supabase (cacheable, sin llamadas de red adicionales)
   const productsWithPublicUrls = (data || []).map((product) => {
-    let imageSignedUrl = null;
-    if (product.image_url) {
-      const { data: publicData } = supabase.storage
-        .from('products')
-        .getPublicUrl(product.image_url);
-      imageSignedUrl = publicData.publicUrl;
-    }
+    const imageSignedUrl = product.image_url
+      ? getSupabaseImageUrl('products', product.image_url, PRESET_THUMBNAIL)
+      : null;
     return { ...product, imageSignedUrl };
   });
 
   return NextResponse.json({ data: productsWithPublicUrls }, { status: 200 });
 }
+
 
 export async function POST(request: Request) {
   try {

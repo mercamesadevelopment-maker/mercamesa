@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { Database } from '../../../../types/database_generated';
+import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../../lib/supabase/supabase-image';
 
 type ProductUpdate = Database['public']['Tables']['catalog_products']['Update'];
 
@@ -21,12 +22,10 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 404 });
   }
 
-  let imageSignedUrl = null;
-
-  if (data.image_url) {
-    const { data: signedData } = await supabase.storage.from('products').createSignedUrl(data.image_url, 3600);
-    imageSignedUrl = signedData?.signedUrl;
-  }
+  // Usar transformación de Supabase (cacheable, síncrono sin red)
+  const imageSignedUrl = data.image_url
+    ? getSupabaseImageUrl('products', data.image_url, PRESET_PRODUCT_CARD)
+    : null;
 
   return NextResponse.json({ data: { ...data, imageSignedUrl } }, { status: 200 });
 }

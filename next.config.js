@@ -1,17 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'zaqvcpehhmkiyjdbcufj.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: 'mercamesa.com',
-      },
-    ],
+    // Optimización de Vercel desactivada. Las imágenes de Supabase Storage
+    // se transforman y cachean directamente con Supabase Image Transformations
+    // (plan Pro). Las imágenes estáticas locales se sirven sin optimización.
+    unoptimized: true,
   },
 };
 
-export default nextConfig;
+export default nextConfig;

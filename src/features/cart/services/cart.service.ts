@@ -1,5 +1,6 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { CartItem } from '@/src/types';
+import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 
 /**
  * Fetch active cart items for a given buyer from Supabase and map them to full CartItem objects.
@@ -35,7 +36,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
   return data.map((item: any) => {
     const sp = item.store_products;
     const imageUrl = sp.catalog_products?.image_url
-      ? supabase.storage.from('products').getPublicUrl(sp.catalog_products.image_url).data.publicUrl
+      ? getSupabaseImageUrl('products', sp.catalog_products.image_url, PRESET_THUMBNAIL)
       : null;
 
     return {

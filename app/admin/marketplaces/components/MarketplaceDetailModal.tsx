@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { Building2, MapPin, Store as StoreIcon } from 'lucide-react';
 
 import { Modal } from '@/components/ui/modal/modal';
@@ -80,13 +79,10 @@ export function MarketplaceDetailModal({
           {/* Header / Cover */}
           <div className="relative h-48 sm:h-64 bg-mm-gbg w-full shrink-0 overflow-hidden">
             {data.coverImageUrl ? (
-              <Image
+              <img
                 src={data.coverImageUrl}
                 alt={`Cover de ${data.name || 'Marketplace'}`}
-                fill
-                className="object-cover"
-                sizes="100vw"
-                priority
+                className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-mm-gbg/50">
@@ -101,12 +97,10 @@ export function MarketplaceDetailModal({
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-white rounded-3xl p-2 shadow-xl shrink-0">
                 <div className="relative w-full h-full rounded-2xl overflow-hidden bg-mm-gbg flex items-center justify-center border border-mm-crd/20">
                   {data.logoUrl ? (
-                    <Image
+                    <img
                       src={data.logoUrl}
                       alt={data.name || ''}
-                      fill
-                      className="object-cover"
-                      sizes="128px"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <Building2 className="w-8 h-8 text-mm-txw" />
@@ -167,12 +161,10 @@ export function MarketplaceDetailModal({
                     >
                       <div className="relative w-12 h-12 bg-mm-gbg rounded-xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden">
                         {store.logoSignedUrl ? (
-                          <Image
+                          <img
                             src={store.logoSignedUrl}
                             alt={store.name}
-                            fill
-                            className="object-cover"
-                            sizes="48px"
+                            className="absolute inset-0 w-full h-full object-cover"
                           />
                         ) : (
                           <StoreIcon className="w-5 h-5 text-mm-txw" />

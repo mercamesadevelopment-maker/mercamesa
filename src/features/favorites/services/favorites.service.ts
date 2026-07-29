@@ -1,5 +1,6 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { FavoriteStore } from '../types/favorite.types';
+import { getSupabaseImageUrl, PRESET_LOGO } from '@/lib/supabase/supabase-image';
 
 /**
  * Fetch favorite stores for a buyer, joined with the store info needed to display them.
@@ -27,7 +28,7 @@ export async function fetchFavoriteStores(buyerId: string): Promise<FavoriteStor
     .map((row: any) => {
       const store = row.stores;
       const logoUrl = store.logo_url
-        ? supabase.storage.from('stores').getPublicUrl(store.logo_url).data.publicUrl
+        ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
         : null;
 
       return {
