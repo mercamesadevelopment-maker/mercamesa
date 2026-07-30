@@ -42,6 +42,7 @@ export function Sidebar({
     orders: '/orders',
     profile: '/profile',
     profile_ratings: '/profile',
+    profile_account: '/profile',
     support: '/support',
     dashboard: '/seller/dashboard',
     products: '/seller/products',

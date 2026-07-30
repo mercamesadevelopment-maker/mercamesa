@@ -10,14 +10,7 @@ import { RegisterModal } from './auth/RegisterModal';
 import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
-
-const roleRoutes: Record<string, string> = {
-  retail: '/marketplaces',
-  wholesale: '/marketplaces',
-  provider: '/seller/dashboard',
-  delivery: '/delivery',
-  admin: '/admin/marketplaces',
-};
+import { ROLE_ROUTES } from '@/src/constants';
 
 export default function Page() {
   const { state } = useApp();
@@ -29,7 +22,7 @@ export default function Page() {
 
   useEffect(() => {
     if (state.isLoggedIn) {
-      const route = roleRoutes[state.userRole] || '/marketplaces';
+      const route = ROLE_ROUTES[state.userRole] || '/marketplaces';
       router.replace(route);
     }
   }, [state.isLoggedIn, state.userRole, router]);

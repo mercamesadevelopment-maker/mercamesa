@@ -1,4 +1,4 @@
-import { Role, Plaza, Product, Store, BuyerProfile, MasterProduct, StoreReview } from './types';
+import { Role, Plaza, Product, Store, BuyerProfile, MasterProduct, StoreReview, RoleKey } from './types';
 
 export const C = {
   g: "#2A4E12", gm: "#3E7023", gl: "#6FA33E", gll: "#C8E6A0", gbg: "#F2F7EC",
@@ -12,6 +12,15 @@ export const C = {
 };
 
 export const fmt = (n: number) => "$" + Number(n || 0).toLocaleString("es-CO");
+
+// A dónde redirigir a cada rol tras iniciar sesión (LoginModal.tsx, app/page.tsx)
+export const ROLE_ROUTES: Record<RoleKey, string> = {
+  retail: '/marketplaces',
+  wholesale: '/marketplaces',
+  provider: '/seller/dashboard',
+  delivery: '/delivery',
+  admin: '/admin/marketplaces',
+};
 
 export const ROLES: Role[] = [
   {

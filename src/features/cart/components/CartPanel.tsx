@@ -30,6 +30,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   } = useCheckout();
 
   const [deletingItem, setDeletingItem] = React.useState<CartItem | null>(null);
+  const [showOrderWarning, setShowOrderWarning] = React.useState(false);
 
   const handleDecrement = (item: CartItem) => {
     if (item.qty === 1) {
@@ -213,7 +214,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   </div>
                 </div>
                 <Button
-                  onClick={() => handlePlaceOrder(onClose)}
+                  onClick={() => setShowOrderWarning(true)}
                   loading={isPlacingOrder}
                   className="w-full py-4 text-lg"
                 >
@@ -226,6 +227,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
 
       {/* ConfirmModal para eliminar producto de canasta */}
       <ConfirmModal
+        key="confirm-delete-item"
         isOpen={deletingItem !== null}
         onClose={() => setDeletingItem(null)}
         onConfirm={() => {
@@ -239,6 +241,22 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
         confirmText="Sí, eliminar"
         cancelText="Cancelar"
         variant="danger"
+      />
+
+      {/* ConfirmModal de advertencia antes de finalizar el pedido */}
+      <ConfirmModal
+        key="confirm-order-warning"
+        isOpen={showOrderWarning}
+        onClose={() => setShowOrderWarning(false)}
+        onConfirm={() => {
+          setShowOrderWarning(false);
+          handlePlaceOrder(onClose);
+        }}
+        title="¡Ojo pues!"
+        message='Te recomiendo que revises muy bien tu listado de productos y las cantidades antes de finalizar el pedido. Pilas que no se te quede faltando nada, porque una vez realices el pago ya no vas a poder agregar más productos a esa orden. Si después necesitas pedir algo adicional, tendrás que hacerlo en una orden aparte.'
+        confirmText="Sí, finalizar pedido"
+        cancelText="Revisar de nuevo"
+        variant="warning"
       />
     </AnimatePresence>
   );

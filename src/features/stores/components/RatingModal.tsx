@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, X } from 'lucide-react';
 import { Button, cn } from '@/src/components/Shared';
@@ -7,13 +7,30 @@ interface RatingModalProps {
   isOpen: boolean;
   storeId: string | null;
   storeName?: string;
+  initialStars?: number;
+  initialComment?: string;
   onClose: () => void;
   onSave: (data: { stars: number; comment: string }) => void;
 }
 
-export function RatingModal({ isOpen, storeId, storeName, onClose, onSave }: RatingModalProps) {
-  const [ratingValue, setRatingValue] = useState(5);
-  const [ratingComment, setRatingComment] = useState('');
+export function RatingModal({
+  isOpen,
+  storeId,
+  storeName,
+  initialStars = 5,
+  initialComment = '',
+  onClose,
+  onSave,
+}: RatingModalProps) {
+  const [ratingValue, setRatingValue] = useState(initialStars);
+  const [ratingComment, setRatingComment] = useState(initialComment);
+
+  useEffect(() => {
+    if (isOpen) {
+      setRatingValue(initialStars);
+      setRatingComment(initialComment);
+    }
+  }, [isOpen, initialStars, initialComment]);
 
   const handleSave = () => {
     onSave({ stars: ratingValue, comment: ratingComment });

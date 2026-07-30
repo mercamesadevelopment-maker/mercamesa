@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
-import { useApp } from '@/src/store';
 import { Button, Input } from '@/src/components/Shared';
+import { ROLE_ROUTES } from '@/src/constants';
 import { useAuthHooks } from '../hooks/useAuth';
 
 export function LoginModal({
@@ -20,7 +20,6 @@ export function LoginModal({
   onRegisterClick?: () => void;
   onForgotPasswordClick?: () => void;
 }) {
-  const { dispatch } = useApp();
   const router = useRouter();
 
   const { login, loading, error } = useAuthHooks();
@@ -36,31 +35,11 @@ export function LoginModal({
     const password = formData.get('password') as string;
 
     try {
-      const user = await login(email, password);
-
-      // Si tu hook ya maneja el estado global,
-      // puedes eliminar este dispatch
-      if (user) {
-        dispatch({
-          type: 'LOGIN',
-          role: user.role || user.role_id || 'retail',
-          profile: user.profile || user,
-        });
-      }
+      const result = await login(email, password);
 
       onClose();
 
-      const role = user?.role || user?.role_id;
-
-      if (role === 'admin') {
-        router.push('/admin/marketplaces');
-      } else if (role === 'provider') {
-        router.push('/seller/dashboard');
-      } else if (role === 'delivery') {
-        router.push('/delivery');
-      } else {
-        router.push('/marketplaces');
-      }
+      router.push(ROLE_ROUTES[result.roleKey] || '/marketplaces');
     } catch (err) {
       // El error ya se maneja en el hook
       console.error(err);

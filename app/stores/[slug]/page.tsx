@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, MapPin, Heart } from 'lucide-react';
-import { Badge, cn } from '@/src/components/Shared';
+import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, MapPin, Heart, MessageSquare } from 'lucide-react';
+import { Badge, Button, cn } from '@/src/components/Shared';
 import { usePublicProducts } from '@/app/sections/products/hooks/usePublicProducts';
 import { useApp } from '@/src/store';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 import { ProductCard } from '@/src/features/products/components/ProductCard';
+import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
+import { RatingModal } from '@/src/features/stores/components/RatingModal';
 
 export default function StoreDetailPage() {
   const { slug } = useParams();
@@ -25,33 +27,47 @@ export default function StoreDetailPage() {
 
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Todas');
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+
+  const { reviews, myReview, submitReview, fetchReviews } = useStoreReviews(storeId);
+
+  const fetchDetail = async () => {
+    if (!slug) return;
+    try {
+      setLoadingStore(true);
+      const res = await fetch(`/api/stores/detail/${slug}`);
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error);
+
+      setStore(data.data);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error fetching store details');
+    } finally {
+      setLoadingStore(false);
+    }
+  };
 
   useEffect(() => {
-    if (!slug) return;
-    
-    const fetchDetail = async () => {
-      try {
-        setLoadingStore(true);
-        const res = await fetch(`/api/stores/detail/${slug}`);
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.error);
-        
-        setStore(data.data);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Error fetching store details');
-      } finally {
-        setLoadingStore(false);
-      }
-    };
-    
     fetchDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   useEffect(() => {
     if (state.isLoggedIn) fetchFavoriteIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.isLoggedIn]);
+
+  useEffect(() => {
+    if (storeId) fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId]);
+
+  const handleSaveReview = async (data: { stars: number; comment: string }) => {
+    if (!storeId) return;
+    const ok = await submitReview(storeId, data);
+    if (ok) fetchDetail(); // refresca reputation_score con el nuevo promedio
+  };
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
@@ -134,7 +150,14 @@ export default function StoreDetailPage() {
           <div className="text-3xl font-bold text-mm-oro flex items-center justify-center md:justify-end gap-2 mb-1">
             <Star className="w-8 h-8 fill-mm-oro" /> {(store.reputation_score || 5.0).toFixed(1)}
           </div>
-          <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">Calificación</p>
+          <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-3">
+            Calificación ({reviews.length} {reviews.length === 1 ? 'reseña' : 'reseñas'})
+          </p>
+          {state.isLoggedIn && (
+            <Button size="sm" variant="outline" onClick={() => setIsRatingModalOpen(true)}>
+              {myReview ? 'Editar mi reseña' : 'Calificar esta tienda'}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -186,6 +209,45 @@ export default function StoreDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Reviews */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-fraunces text-mm-g mb-6 flex items-center gap-2">
+          <MessageSquare className="w-6 h-6" /> Reseñas
+        </h2>
+
+        {reviews.length === 0 ? (
+          <div className="py-12 bg-mm-gbg/30 rounded-3xl border border-mm-crd text-center text-mm-txw">
+            Todavía no hay reseñas para esta tienda.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <div key={review.id} className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-bold text-mm-g">{review.profiles?.full_name || 'Comprador'}</p>
+                  <div className="flex items-center gap-1 text-mm-oro">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={cn('w-4 h-4', i < review.stars ? 'fill-mm-oro' : 'text-mm-crd')} />
+                    ))}
+                  </div>
+                </div>
+                {review.comment && <p className="text-sm text-mm-txs">{review.comment}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <RatingModal
+        isOpen={isRatingModalOpen}
+        storeId={storeId || null}
+        storeName={store.name}
+        initialStars={myReview?.stars ?? 5}
+        initialComment={myReview?.comment ?? ''}
+        onClose={() => setIsRatingModalOpen(false)}
+        onSave={handleSaveReview}
+      />
     </div>
   );
 }

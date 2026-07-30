@@ -42,6 +42,8 @@ export function ProfileLayout() {
   useEffect(() => {
     if (state.currentSection === 'profile_ratings') {
       setActiveTab('ratings');
+    } else if (state.currentSection === 'profile_account') {
+      setActiveTab('account');
     }
   }, [state.currentSection]);
 
@@ -70,13 +72,13 @@ export function ProfileLayout() {
         {/* Content */}
         <div className="flex-grow min-w-0">
           <AnimatePresence mode="wait">
-            {activeTab === 'dashboard' && <DashboardTab />}
-            {activeTab === 'addresses' && <AddressesTab />}
-            {activeTab === 'payments' && <PaymentsTab />}
-            {activeTab === 'ratings' && <RatingsTab />}
-            {activeTab === 'favorites' && <FavoritesTab />}
-            {activeTab === 'prefs' && <PreferencesTab />}
-            {activeTab === 'account' && <AccountTab />}
+            {activeTab === 'dashboard' && <DashboardTab key="dashboard" />}
+            {activeTab === 'addresses' && <AddressesTab key="addresses" />}
+            {activeTab === 'payments' && <PaymentsTab key="payments" />}
+            {activeTab === 'ratings' && <RatingsTab key="ratings" />}
+            {activeTab === 'favorites' && <FavoritesTab key="favorites" />}
+            {activeTab === 'prefs' && <PreferencesTab key="prefs" />}
+            {activeTab === 'account' && <AccountTab key="account" />}
           </AnimatePresence>
         </div>
       </div>

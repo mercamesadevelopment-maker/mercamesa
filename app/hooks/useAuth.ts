@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { authService } from '../services/auth.service';
-import { useApp } from '@/src/store';
+import { useApp, resolveRoleKey } from '@/src/store';
 import { RoleKey } from '@/src/types';
 
 export function useAuthHooks() {
@@ -17,10 +17,11 @@ const login = async (email: string, password: string) => {
 
     const profile = data.profile || {};
     const user = data.user || {};
+    const roleKey = resolveRoleKey(profile.roles?.name, profile.buyer_type);
 
     dispatch({
       type: 'LOGIN',
-      role: profile.role?.name,
+      role: roleKey,
       profile: {
         id: user.id,
         email,
@@ -30,7 +31,7 @@ const login = async (email: string, password: string) => {
       },
     });
 
-    return data;
+    return { ...data, roleKey };
   } catch (err: unknown) {
     const message =
       err instanceof Error

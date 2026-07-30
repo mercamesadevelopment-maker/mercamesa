@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     if (userId) {
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, roles(name)')
         .eq('id', userId)
         .single()
       profile = profileData

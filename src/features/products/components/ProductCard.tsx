@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShoppingCart } from 'lucide-react';
-import { Badge } from '@/src/components/Shared';
+import { Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
@@ -34,7 +34,7 @@ export function ProductCard({ product }: { product: StoreProduct }) {
       cat: product.catalog_products?.categories?.name || 'Sin Categoría',
       retailPrice: product.price_per_unit || 0,
       wsPrice: product.price_per_unit || 0,
-      stock: 100, // mock
+      stock: product.stock ?? 0,
       unit: product.measurement_units?.abbreviation || 'und',
       emoji: '📦',
       image: product.imageSignedUrl || null,
@@ -77,8 +77,16 @@ export function ProductCard({ product }: { product: StoreProduct }) {
           <h3 className="font-bold text-mm-g mb-0.5 line-clamp-1 group-hover:text-mm-oro transition-colors text-sm sm:text-base">
             {product.catalog_products?.name}
           </h3>
-          <p className="text-[10px] text-mm-txw mb-3 font-medium uppercase tracking-widest">
+          <p className="text-[10px] text-mm-txw mb-1 font-medium uppercase tracking-widest">
             {product.catalog_products?.categories?.name}
+          </p>
+          <p
+            className={cn(
+              'text-[10px] font-bold uppercase tracking-widest mb-3',
+              product.stock > 0 ? 'text-mm-g/70' : 'text-r'
+            )}
+          >
+            {product.stock > 0 ? `Stock: ${product.stock} ${product.measurement_units?.abbreviation || 'und'}` : 'Sin stock'}
           </p>
         </div>
 

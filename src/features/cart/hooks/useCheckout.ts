@@ -208,11 +208,15 @@ export function useCheckout() {
       onClose();
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'Hubo un error procesando el pedido.'
-      );
+      const message = error instanceof Error ? error.message : 'Hubo un error procesando el pedido.';
+
+      if (message === 'El usuario no tiene documento registrado' || message === 'El usuario no tiene email registrado') {
+        dispatch({ type: 'SET_SECTION', section: 'profile_account' });
+        router.push('/profile?incomplete=1');
+        return;
+      }
+
+      setErrorMessage(message);
     } finally {
       setIsPlacingOrder(false);
     }

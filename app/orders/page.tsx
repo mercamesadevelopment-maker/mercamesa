@@ -8,7 +8,8 @@ import { OrderStats } from './components/OrderStats';
 import { OrderFilters } from './components/OrderFilters';
 import { OrderCard } from './components/OrderCard';
 import { Pagination } from './components/Pagination';
-import { RatingModal } from './components/RatingModal';
+import { RatingModal } from '@/src/features/stores/components/RatingModal';
+import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
 import { OrderStatus } from './types/order.types';
 
 export default function OrdersPage() {
@@ -26,6 +27,7 @@ export default function OrdersPage() {
 
   const [ratingStoreId, setRatingStoreId] = useState<string | null>(null);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const { submitReview } = useStoreReviews();
 
   // Reset page when filters change
   useEffect(() => {
@@ -103,7 +105,9 @@ export default function OrdersPage() {
         storeId={ratingStoreId}
         storeName={orders.find(o => o.store_id === ratingStoreId)?.store_name || undefined}
         onClose={() => setIsRatingModalOpen(false)}
-        onSave={(data) => console.log('Rating saved:', data)}
+        onSave={(data) => {
+          if (ratingStoreId) submitReview(ratingStoreId, data);
+        }}
       />
     </div>
   );

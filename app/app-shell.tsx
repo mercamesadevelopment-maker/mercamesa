@@ -1,19 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Topbar } from '@/src/features/layout/components/Topbar';
 import { Sidebar } from '@/src/features/layout/components/Sidebar';
 import { CartPanel } from '@/src/features/cart/components/CartPanel';
 import { CartStoreConflictModal } from '@/src/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/src/components/Shared';
+import { useApp } from '@/src/store';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { state } = useApp();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const isNoLayoutPage = pathname === '/' || pathname === '/accept-invite';
+
+  // Si la sesión se cae mientras ya estamos en una página protegida (token
+  // vencido, logout desde otra pestaña), saca al usuario en vez de dejarlo
+  // viendo una página "muerta" hasta la próxima navegación.
+  useEffect(() => {
+    if (state._hydrated && !state.isLoggedIn && !isNoLayoutPage) {
+      router.replace('/');
+    }
+  }, [state._hydrated, state.isLoggedIn, isNoLayoutPage, router]);
 
   if (isNoLayoutPage) return <>{children}</>;
 

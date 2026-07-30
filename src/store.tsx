@@ -71,15 +71,28 @@ type AppAction =
   | { type: 'SET_CART_STORE_CONFLICT'; currentStoreName: string }
   | { type: 'CLEAR_CART_STORE_CONFLICT' };
 
-// Mapea el nombre del rol de Supabase al RoleKey de la app
+// Mapea el nombre de rol real de la BD (roles.name) al RoleKey interno de la app.
+// 'buyer' no tiene una entrada fija: se resuelve con buyer_type (retail/wholesale).
 const roleNameToKey: Record<string, RoleKey> = {
   admin: 'admin',
   superadmin: 'admin',
+  seller: 'provider',
+  store_owner: 'provider',
   provider: 'provider',
   delivery: 'delivery',
   wholesale: 'wholesale',
   retail: 'retail',
 };
+
+export function resolveRoleKey(
+  roleName: string | null | undefined,
+  buyerType?: string | null
+): RoleKey {
+  if (roleName === 'buyer') {
+    return buyerType === 'wholesale' ? 'wholesale' : 'retail';
+  }
+  return roleNameToKey[roleName ?? ''] ?? 'retail';
+}
 
 const initialState: AppState = {
   plazas: SEED_PLAZAS,
@@ -391,7 +404,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Tenemos usuario, busca su perfil para obtener role_id
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, avatar_url, role_id, roles(name)')
+          .select('full_name, avatar_url, role_id, buyer_type, roles(name)')
           .eq('id', user.id)
           .single();
 
@@ -400,9 +413,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Determina el RoleKey desde el nombre del rol en la BD
-        const roleName = (profile.roles as any)?.name || 'retail';
-        const roleKey: RoleKey = roleNameToKey[roleName] ?? 'retail';
+        // Determina el RoleKey desde el nombre del rol en la BD (+ buyer_type si es comprador)
+        const roleName = (profile.roles as any)?.name;
+        const roleKey: RoleKey = resolveRoleKey(roleName, profile.buyer_type);
 
         // Cargar el carrito de la base de datos
         let dbCart: CartItem[] = [];
