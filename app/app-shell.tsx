@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Topbar } from '@/src/features/layout/components/Topbar';
 import { Sidebar } from '@/src/features/layout/components/Sidebar';
 import { CartPanel } from '@/src/features/cart/components/CartPanel';
+import { CartStoreConflictModal } from '@/src/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/src/components/Shared';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <CartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartStoreConflictModal />
     </div>
   );
 }

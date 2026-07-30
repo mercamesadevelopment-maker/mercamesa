@@ -9,7 +9,7 @@ import { BatchAssignModal } from './components/BatchAssignModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge, normalizeText } from '@/src/components/Shared';
-import { getStoragePublicUrl } from '@/lib/supabase/utils';
+import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 
 // Grouped data type for the table
 type GroupedProduct = {
@@ -119,7 +119,9 @@ export default function CatalogAdmin() {
     for (const item of filteredStoreProducts) {
       const catId = item.catalog_product_id;
       if (!groups.has(catId)) {
-        const publicUrl = getStoragePublicUrl('products', item.catalog_products?.image_url);
+        const publicUrl = item.catalog_products?.image_url
+          ? getSupabaseImageUrl('products', item.catalog_products.image_url, PRESET_THUMBNAIL)
+          : null;
         
         groups.set(catId, {
           id: catId,
@@ -170,7 +172,18 @@ export default function CatalogAdmin() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-mm-gbg rounded-lg flex items-center justify-center text-mm-txw overflow-hidden shrink-0 border border-mm-crd">
             {item.imageSignedUrl ? (
-              <img src={item.imageSignedUrl} alt={item.name} className="w-full h-full object-cover" />
+              <img
+                src={item.imageSignedUrl}
+                alt={item.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Red de seguridad: si el derivado WebP aún no existe, cae al original.
+                  const img = e.currentTarget;
+                  if (img.dataset.fallback) return;
+                  img.dataset.fallback = '1';
+                  img.src = item.image_url ? getSupabaseImageUrl('products', item.image_url) : '';
+                }}
+              />
             ) : (
               <Package className="w-6 h-6 text-mm-txw" />
             )}

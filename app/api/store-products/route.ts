@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
-import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/supabase-image';
+import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/supabase-image';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   // Generar URLs con transformación de Supabase (síncrono, cacheable)
   const productsWithSignedUrls = data.map((product) => {
     const imageSignedUrl = product.catalog_products?.image_url
-      ? getSupabaseImageUrl('products', product.catalog_products.image_url, PRESET_THUMBNAIL)
+      ? getSupabaseImageUrl('products', product.catalog_products.image_url, PRESET_PRODUCT_CARD)
       : null;
     return { ...product, imageSignedUrl };
   });

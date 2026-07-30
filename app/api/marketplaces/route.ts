@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 import { Database } from '../../../types/database_generated'
 import { getSupabaseImageUrl, PRESET_COVER, PRESET_LOGO } from '../../../lib/supabase/supabase-image'
+import { uploadVariants } from '../../../lib/images/generate'
 
 type MarketplaceInsert = Database['public']['Tables']['marketplaces']['Insert']
 
@@ -78,24 +79,28 @@ export async function POST(request: Request) {
     const coverImage = formData.get('cover_image') as File | null
     if (coverImage && coverImage.size > 0) {
       const path = `imgs/${marketplaceId}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`
+      const buffer = Buffer.from(await coverImage.arrayBuffer())
       const { error: uploadError } = await supabase.storage
         .from('plazas')
-        .upload(path, coverImage)
-      
+        .upload(path, buffer, { contentType: coverImage.type || undefined })
+
       if (uploadError) throw uploadError
       cover_image_url = path
+      await uploadVariants(supabase, 'plazas', path, buffer, ['cover'])
     }
 
     // Handle Logo Upload
     const logoImage = formData.get('logo') as File | null
     if (logoImage && logoImage.size > 0) {
       const path = `imgs/${marketplaceId}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`
+      const buffer = Buffer.from(await logoImage.arrayBuffer())
       const { error: uploadError } = await supabase.storage
         .from('plazas')
-        .upload(path, logoImage)
-      
+        .upload(path, buffer, { contentType: logoImage.type || undefined })
+
       if (uploadError) throw uploadError
       logo_url = path
+      await uploadVariants(supabase, 'plazas', path, buffer, ['logo'])
     }
 
     const insertData: MarketplaceInsert = {

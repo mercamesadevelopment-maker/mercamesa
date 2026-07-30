@@ -8,7 +8,7 @@ import { useOrders } from '../hooks/use-orders';
 import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
-import { OrderDetailModal } from './order-detail-modal';
+import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
 import { StatusNoteModal } from './status-note-modal';
 
 export function OrdersView() {
@@ -394,6 +394,7 @@ export function OrdersView() {
           nextStatusLabel,
           actionLabel
         })}
+        variant="admin"
       />
 
       {/* Status Note Prompt Modal */}

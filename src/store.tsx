@@ -26,6 +26,8 @@ interface AppState {
   selectedStoreId?: number | string;
   // Flag para saber si ya intentamos hidratar desde Supabase
   _hydrated: boolean;
+  // Aviso de "solo una tienda por pedido" al intentar mezclar tiendas en el carrito
+  cartStoreConflict: { currentStoreName: string } | null;
 }
 
 type AppAction =
@@ -65,7 +67,9 @@ type AppAction =
   | { type: 'ADD_SALE'; sale: Sale }
   | { type: 'UPDATE_SALE_STATUS'; saleId: number | string; status: SaleStatus }
   | { type: 'SELECT_STORE'; plazaId: number; storeId?: number | string }
-  | { type: 'CLEAR_STORE_SELECTION' };
+  | { type: 'CLEAR_STORE_SELECTION' }
+  | { type: 'SET_CART_STORE_CONFLICT'; currentStoreName: string }
+  | { type: 'CLEAR_CART_STORE_CONFLICT' };
 
 // Mapea el nombre del rol de Supabase al RoleKey de la app
 const roleNameToKey: Record<string, RoleKey> = {
@@ -152,6 +156,7 @@ const initialState: AppState = {
     }
   ],
   _hydrated: false,
+  cartStoreConflict: null,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -348,6 +353,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'CLEAR_STORE_SELECTION':
       return { ...state, selectedPlazaId: undefined, selectedStoreId: undefined };
+
+    case 'SET_CART_STORE_CONFLICT':
+      return { ...state, cartStoreConflict: { currentStoreName: action.currentStoreName } };
+
+    case 'CLEAR_CART_STORE_CONFLICT':
+      return { ...state, cartStoreConflict: null };
 
     default:
       return state;

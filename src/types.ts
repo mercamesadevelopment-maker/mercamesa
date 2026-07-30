@@ -80,6 +80,7 @@ export interface Product {
   id: number | string;
   plazaId: number;
   storeId: number | string;
+  storeName?: string;
   emoji: string;
   image?: string;
   name: string;

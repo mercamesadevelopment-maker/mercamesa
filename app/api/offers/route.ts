@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
+import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/supabase-image';
 
 type StoreOfferInsert = Database['public']['Tables']['store_offers']['Insert'];
 
@@ -28,20 +29,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Get signed URLs for the products
-  const offersWithSignedUrls = await Promise.all(
-    (data || []).map(async (offer: any) => {
-      let imageSignedUrl = null;
-      const imgPath = offer.store_products?.catalog_products?.image_url;
-      if (imgPath) {
-        const { data: signedData } = await supabase.storage.from('products').createSignedUrl(imgPath, 3600);
-        imageSignedUrl = signedData?.signedUrl;
-      }
-      return { ...offer, imageSignedUrl };
-    })
-  );
+  // URLs públicas de los derivados pre-generados (síncrono, sin llamadas de red
+  // ni cupo de transformaciones — antes usaba createSignedUrl por oferta, lo
+  // que además impedía cualquier caché de CDN al cambiar en cada request).
+  const offersWithImageUrls = (data || []).map((offer: any) => {
+    const imgPath = offer.store_products?.catalog_products?.image_url;
+    const imageSignedUrl = imgPath ? getSupabaseImageUrl('products', imgPath, PRESET_PRODUCT_CARD) : null;
+    return { ...offer, imageSignedUrl };
+  });
 
-  return NextResponse.json({ data: offersWithSignedUrls }, { status: 200 });
+  return NextResponse.json({ data: offersWithImageUrls }, { status: 200 });
 }
 
 export async function POST(request: Request) {

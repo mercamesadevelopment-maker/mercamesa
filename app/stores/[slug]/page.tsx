@@ -1,20 +1,18 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'motion/react';
-import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, ShoppingCart, MapPin, Heart } from 'lucide-react';
+import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, MapPin, Heart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { usePublicProducts } from '@/app/sections/products/hooks/usePublicProducts';
 import { useApp } from '@/src/store';
-import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
+import { ProductCard } from '@/src/features/products/components/ProductCard';
 
 export default function StoreDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
-  const { state, dispatch } = useApp();
-  const { addToCart } = useCart();
+  const { state } = useApp();
   const { isFavorite, toggleFavorite, fetchFavoriteIds } = useFavorites();
 
   const [store, setStore] = useState<any>(null);
@@ -72,26 +70,6 @@ export default function StoreDetailPage() {
       return matchSearch && matchCat;
     });
   }, [products, search, activeCat]);
-
-  const handleAddToCart = (e: React.MouseEvent, p: any) => {
-    e.stopPropagation();
-    addToCart({
-      id: p.id,
-      name: p.catalog_products?.name || 'Producto',
-      cat: p.catalog_products?.categories?.name || 'Sin Categoría',
-      retailPrice: p.price_per_unit || 0,
-      wsPrice: p.price_per_unit || 0,
-      stock: 100, // mock
-      unit: p.measurement_units?.abbreviation || 'und',
-      emoji: '📦',
-      image: p.imageSignedUrl || null,
-      plazaId: store?.marketplace_id || 1,
-      storeId: store?.id,
-      storeName: store?.name || 'Tienda'
-    } as any);
-  };
-
-  const fmt = (val: number) => `$${val.toLocaleString('es-CO')}`;
 
   if (loadingStore) return <div className="p-12 text-center text-mm-txs">Cargando tienda...</div>;
   if (error || !store) return <div className="p-12 text-center text-r">{error || 'No encontrada'}</div>;
@@ -199,42 +177,7 @@ export default function StoreDetailPage() {
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
             {filteredProducts.map(product => (
-              <motion.div
-                key={product.id}
-                whileHover={{ y: -5 }}
-                className="bg-white rounded-[28px] border border-mm-crd shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col group border-b-4 border-b-mm-crd hover:border-b-mm-g duration-200"
-              >
-                <div className="h-40 bg-mm-gbg flex items-center justify-center text-5xl relative overflow-hidden">
-                  {product.imageSignedUrl ? (
-                    <img src={product.imageSignedUrl} alt={product.catalog_products?.name || 'Producto'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  ) : (
-                    <span className="group-hover:scale-125 transition-transform duration-500">📦</span>
-                  )}
-                </div>
-                <div className="p-4 flex flex-col flex-grow">
-                  <div className="flex-grow">
-                    <h3 className="font-bold text-mm-g mb-0.5 line-clamp-1 group-hover:text-mm-oro transition-colors text-sm sm:text-base">{product.catalog_products?.name}</h3>
-                    <p className="text-[10px] text-mm-txw mb-3 font-medium uppercase tracking-widest">{product.catalog_products?.categories?.name}</p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
-                    <div className="flex flex-col">
-                      <p className="font-bold text-mm-g text-lg sm:text-xl tracking-tight leading-none">
-                        {fmt(product.price_per_unit || 0)}
-                      </p>
-                      <p className="text-[9px] text-mm-txs font-bold uppercase tracking-wider mt-0.5">
-                        / {product.measurement_units?.abbreviation}
-                      </p>
-                    </div>
-                    <button 
-                      onClick={(e) => handleAddToCart(e, product)}
-                      className="w-10 h-10 sm:w-12 sm:h-12 bg-mm-g text-white rounded-2xl flex items-center justify-center hover:bg-mm-oro hover:-translate-y-1 hover:shadow-lg transition-all active:scale-95 shrink-0"
-                    >
-                      <ShoppingCart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (

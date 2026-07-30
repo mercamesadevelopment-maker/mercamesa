@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
+import { uploadVariants } from '../../../lib/images/generate';
+import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 
@@ -69,7 +71,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: typesError.message }, { status: 400 });
   }
 
-  return NextResponse.json({ data, requiredDocumentTypes }, { status: 200 });
+  const dataWithUrls = data?.map((store: any) => ({
+    ...store,
+    logoSignedUrl: store.logo_url ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO) : null,
+    coverSignedUrl: store.cover_image_url ? getSupabaseImageUrl('stores', store.cover_image_url, PRESET_COVER_DETAIL) : null,
+  }));
+
+  return NextResponse.json({ data: dataWithUrls, requiredDocumentTypes }, { status: 200 });
 }
 
 export async function POST(request: Request) {
@@ -117,17 +125,25 @@ export async function POST(request: Request) {
     const coverImage = formData.get('cover_image') as File | null;
     if (coverImage && coverImage.size > 0) {
       const path = `imgs/${storeId}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`;
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, coverImage);
+      const buffer = Buffer.from(await coverImage.arrayBuffer());
+      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
+        contentType: coverImage.type || undefined,
+      });
       if (uploadError) throw uploadError;
       cover_image_url = path;
+      await uploadVariants(supabase, 'stores', path, buffer, ['cover']);
     }
 
     const logoImage = formData.get('logo') as File | null;
     if (logoImage && logoImage.size > 0) {
       const path = `imgs/${storeId}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`;
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, logoImage);
+      const buffer = Buffer.from(await logoImage.arrayBuffer());
+      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
+        contentType: logoImage.type || undefined,
+      });
       if (uploadError) throw uploadError;
       logo_url = path;
+      await uploadVariants(supabase, 'stores', path, buffer, ['logo']);
     }
 
     const insertData: StoreInsert = {

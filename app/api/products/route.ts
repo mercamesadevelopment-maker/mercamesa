@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/supabase-image';
+import { uploadVariants } from '../../../lib/images/generate';
+import { PRODUCT_IMAGE_VARIANTS } from '../../../lib/images/variants';
 
 type ProductInsert = Database['public']['Tables']['catalog_products']['Insert'];
 
@@ -65,9 +67,13 @@ export async function POST(request: Request) {
     const image = formData.get('image') as File | null;
     if (image && image.size > 0) {
       const path = `imgs/${productId}/img-${Date.now()}.${image.name.split('.').pop()}`;
-      const { error: uploadError } = await supabase.storage.from('products').upload(path, image);
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const { error: uploadError } = await supabase.storage.from('products').upload(path, buffer, {
+        contentType: image.type || undefined,
+      });
       if (uploadError) throw uploadError;
       image_url = path;
+      await uploadVariants(supabase, 'products', path, buffer, PRODUCT_IMAGE_VARIANTS);
     }
 
     const insertData: ProductInsert = {

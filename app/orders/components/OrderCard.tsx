@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Package,
@@ -21,13 +21,14 @@ import {
 } from '../types/order.types';
 
 import { Button, cn } from '@/src/components/Shared';
+import { OrderDetailModal } from './OrderDetailModal';
 
 interface OrderCardProps {
   order: OrderDetail;
   onRate?: (storeId: string) => void;
 }
 
-const ORDER_STATUS_CONFIG: Record<OrderStatus, { color: string; icon: any }> = {
+export const ORDER_STATUS_CONFIG: Record<OrderStatus, { color: string; icon: any }> = {
   pending: { color: 'bg-warnl text-warn', icon: Clock },
   confirmed: { color: 'bg-bluel text-blue', icon: CheckCircle2 },
   paid: { color: 'bg-okl text-ok', icon: CreditCard },
@@ -39,7 +40,7 @@ const ORDER_STATUS_CONFIG: Record<OrderStatus, { color: string; icon: any }> = {
   returned: { color: 'bg-mm-gbg text-mm-txw', icon: XCircle },
 };
 
-const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { color: string; icon: any }> = {
+export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { color: string; icon: any }> = {
   pending: { color: 'bg-warnl text-warn', icon: Clock },
   processing: { color: 'bg-bluel text-blue', icon: CreditCard },
   approved: { color: 'bg-okl text-ok', icon: CheckCircle2 },
@@ -69,6 +70,8 @@ export function OrderCard({
     : { label: 'Desconocido', color: 'bg-mm-gbg text-mm-txw', icon: Clock };
 
   const products = (order.products as any[]) || [];
+
+  const [showDetail, setShowDetail] = useState(false);
 
   return (
     <motion.div
@@ -230,8 +233,8 @@ export function OrderCard({
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
-            Ver factura
+          <Button variant="outline" size="sm" onClick={() => setShowDetail(true)}>
+            Ver detalles
           </Button>
 
           {order.status === 'delivered' &&
@@ -257,6 +260,12 @@ export function OrderCard({
           )}
         </div>
       </div>
+
+      <OrderDetailModal
+        isOpen={showDetail}
+        onClose={() => setShowDetail(false)}
+        order={order}
+      />
     </motion.div>
   );
 }

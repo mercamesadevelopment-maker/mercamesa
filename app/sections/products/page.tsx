@@ -1,19 +1,15 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Search, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePublicProducts } from './hooks/usePublicProducts';
 
-import { Badge, Button, cn, normalizeText } from '@/src/components/Shared';
-import { useApp } from '@/src/store';
-import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { Button, cn, normalizeText } from '@/src/components/Shared';
+import { ProductCard } from '@/src/features/products/components/ProductCard';
 
 export default function ProductsPage() {
   const { products, loading, error } = usePublicProducts();
-  const { dispatch } = useApp();
-  const { addToCart } = useCart();
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const [search, setSearch] = useState('');
@@ -77,26 +73,6 @@ export default function ProductsPage() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-
-  const handleAddToCart = (e: React.MouseEvent, p: any) => {
-    e.stopPropagation();
-    addToCart({
-      id: p.id,
-      name: p.catalog_products?.name || 'Producto',
-      cat: p.catalog_products?.categories?.name || 'Sin Categoría',
-      retailPrice: p.price_per_unit || 0,
-      wsPrice: p.price_per_unit || 0,
-      stock: 100, // mock
-      unit: p.measurement_units?.abbreviation || 'und',
-      emoji: '📦',
-      image: p.imageSignedUrl || null,
-      plazaId: 1, // mock if needed
-      storeId: p.store_id || 1,
-      storeName: p.stores?.name || 'Tienda'
-    } as any);
-  };
-
-  const fmt = (val: number) => `$${val.toLocaleString('es-CO')}`;
 
   const scroll = (offset: number) => {
     if (scrollRef.current) {
@@ -196,57 +172,9 @@ export default function ProductsPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-        {paginatedProducts.map(product => {
-          return (
-            <motion.div
-              key={product.id}
-              whileHover={{ y: -5 }}
-              className="bg-white rounded-[28px] border border-mm-crd shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col group border-b-4 border-b-mm-crd hover:border-b-mm-g duration-200"
-            >
-              <div className="h-40 bg-mm-gbg flex items-center justify-center text-5xl relative overflow-hidden">
-                {product.is_featured && (
-                  <Badge variant="oro" className="absolute top-2 left-2 z-10">
-                    Destacado
-                  </Badge>
-                )}
-                {product.imageSignedUrl ? (
-                  <img
-                    src={product.imageSignedUrl}
-                    alt={product.catalog_products?.name || 'Producto'}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="group-hover:scale-125 transition-transform duration-500">📦</span>
-                )}
-              </div>
-              <div className="p-4 flex flex-col flex-grow">
-                <div className="flex-grow">
-                  <p className="text-[10px] text-mm-txw font-bold uppercase tracking-tighter mb-1 line-clamp-1">{product.stores?.name}</p>
-                  <h3 className="font-bold text-mm-g mb-0.5 line-clamp-1 group-hover:text-mm-oro transition-colors text-sm sm:text-base">{product.catalog_products?.name}</h3>
-                  <p className="text-[10px] text-mm-txw mb-3 font-medium uppercase tracking-widest">{product.catalog_products?.categories?.name}</p>
-                </div>
-                
-                <div className="flex items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
-                  <div className="flex flex-col">
-                    <p className="font-bold text-mm-g text-lg sm:text-xl tracking-tight leading-none">
-                      {fmt(product.price_per_unit || 0)}
-                    </p>
-                    <p className="text-[9px] text-mm-txs font-bold uppercase tracking-wider mt-0.5">
-                      / {product.measurement_units?.abbreviation}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={(e) => handleAddToCart(e, product)}
-                    className="w-10 h-10 sm:w-12 sm:h-12 bg-mm-g text-white rounded-2xl flex items-center justify-center hover:bg-mm-oro hover:-translate-y-1 hover:shadow-lg transition-all active:scale-95 shrink-0"
-                  >
-                    <ShoppingCart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+        {paginatedProducts.map(product => (
+          <ProductCard key={product.id} product={product} />
+        ))}
         {filteredProducts.length === 0 && (
           <div className="col-span-full py-12 text-center text-mm-txw">
             No se encontraron productos con estos filtros.

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Badge } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
@@ -5,8 +6,7 @@ import { Order, OrderStatus } from '@/src/types';
 import {
   User, Phone, Mail, FileText, MapPin,
   CreditCard, Calendar, Clock, ShoppingBag,
-  MessageSquare, ChevronRight, CheckCircle2,
-  AlertCircle
+  MessageSquare, ChevronRight
 } from 'lucide-react';
 
 interface OrderDetailModalProps {
@@ -14,6 +14,7 @@ interface OrderDetailModalProps {
   onClose: () => void;
   order: Order | null;
   onStartStatusChange: (orderId: string, status: OrderStatus, nextStatusLabel: string, actionLabel: string) => void;
+  variant?: 'seller' | 'admin';
 }
 
 export function OrderDetailModal({
@@ -21,6 +22,7 @@ export function OrderDetailModal({
   onClose,
   order,
   onStartStatusChange,
+  variant = 'seller',
 }: OrderDetailModalProps) {
   if (!order) return null;
 
@@ -127,11 +129,17 @@ export function OrderDetailModal({
         <div className="bg-white rounded-3xl border border-mm-crd p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
           <div>
             <div className="flex items-center gap-3 mb-1.5">
-              <span className="text-xl font-bold text-mm-g">Pedido #{order.id}</span>
-              {order.storeOrderId && (
-                <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider">
-                  Interno: #{order.storeOrderId.substring(0, 8)}
-                </Badge>
+              {variant === 'admin' ? (
+                <>
+                  <span className="text-xl font-bold text-mm-g">Pedido #{order.id}</span>
+                  {order.storeOrderId && (
+                    <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider">
+                      Interno: #{order.storeOrderId.substring(0, 8)}
+                    </Badge>
+                  )}
+                </>
+              ) : (
+                <span className="text-xl font-bold text-mm-g">Pedido #{order.storeOrderId?.substring(0, 8)}</span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-mm-txs">

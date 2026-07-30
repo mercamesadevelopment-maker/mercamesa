@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { Database } from '../../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../lib/supabase/supabase-image';
+import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
@@ -92,20 +93,42 @@ export async function PUT(
       }
     }
 
+    const { data: currentStore } = await supabase
+      .from('stores')
+      .select('cover_image_url, logo_url')
+      .eq('id', id)
+      .single();
+
     const coverImage = formData.get('cover_image') as File | null;
     if (coverImage && coverImage.size > 0) {
       const path = `imgs/${id}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`;
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, coverImage);
+      const buffer = Buffer.from(await coverImage.arrayBuffer());
+      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
+        contentType: coverImage.type || undefined,
+      });
       if (uploadError) throw uploadError;
       updateData.cover_image_url = path;
+      await uploadVariants(supabase, 'stores', path, buffer, ['cover']);
+
+      if (currentStore?.cover_image_url) {
+        await removeImageAndVariants(supabase, 'stores', currentStore.cover_image_url, ['cover']);
+      }
     }
 
     const logoImage = formData.get('logo') as File | null;
     if (logoImage && logoImage.size > 0) {
       const path = `imgs/${id}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`;
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, logoImage);
+      const buffer = Buffer.from(await logoImage.arrayBuffer());
+      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
+        contentType: logoImage.type || undefined,
+      });
       if (uploadError) throw uploadError;
       updateData.logo_url = path;
+      await uploadVariants(supabase, 'stores', path, buffer, ['logo']);
+
+      if (currentStore?.logo_url) {
+        await removeImageAndVariants(supabase, 'stores', currentStore.logo_url, ['logo']);
+      }
     }
 
     const { data, error } = await supabase.from('stores').update(updateData).eq('id', id).select().single();
@@ -134,15 +157,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: currentStore } = await supabase.from('stores').select('cover_image_url, logo_url').eq('id', id).single();
+    const { data: storeToDelete } = await supabase.from('stores').select('cover_image_url, logo_url').eq('id', id).single();
 
-    if (currentStore) {
-      const filesToDelete = [];
-      if (currentStore.cover_image_url) filesToDelete.push(currentStore.cover_image_url);
-      if (currentStore.logo_url) filesToDelete.push(currentStore.logo_url);
-      if (filesToDelete.length > 0) {
-        await supabase.storage.from('stores').remove(filesToDelete);
-      }
+    if (storeToDelete?.cover_image_url) {
+      await removeImageAndVariants(supabase, 'stores', storeToDelete.cover_image_url, ['cover']);
+    }
+    if (storeToDelete?.logo_url) {
+      await removeImageAndVariants(supabase, 'stores', storeToDelete.logo_url, ['logo']);
     }
 
     const { error } = await supabase.from('stores').delete().eq('id', id);

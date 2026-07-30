@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingCart, ShoppingBag, X, AlertTriangle, Info, Store as StoreIcon } from 'lucide-react';
+import { ShoppingCart, ShoppingBag, X, AlertTriangle } from 'lucide-react';
 import { useCheckout } from '../hooks/useCheckout';
 import { useCart } from '../hooks/use-cart';
 import { Button, Badge } from '@/src/components/Shared';
@@ -82,31 +82,16 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                 </div>
               ) : (
                 <>
-                  {/* Multi-Store Notice Banner */}
-                  {cartByStore.length > 1 && (
-                    <div className="p-3.5 bg-mm-gbg/60 border border-mm-crd/40 rounded-2xl flex items-start gap-2.5 text-xs text-mm-g font-medium leading-relaxed">
-                      <Info className="w-4 h-4 text-mm-g shrink-0 mt-0.5" />
-                      <div>
-                        Canasta multi-tienda: tienes productos de <strong>{cartByStore.length} tiendas</strong>. Se procesará un pedido independiente por cada tienda.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Grouped by Store */}
+                  {/* Grouped by Store (siempre una sola tienda por carrito) */}
                   {cartByStore.map((group, groupIdx) => (
                     <div key={group.store.id || groupIdx} className="bg-white border border-mm-crd/40 rounded-2xl p-4 space-y-4 shadow-sm">
                       {/* Store Header */}
                       <div className="flex items-center justify-between pb-3 border-b border-mm-gbg">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">{group.store.emoji || '🏪'}</span>
-                          <div>
-                            <h3 className="font-bold text-mm-g text-base leading-tight">
-                              {group.store.name}
-                            </h3>
-                            <span className="text-[10px] text-mm-txw uppercase tracking-wider font-bold">
-                              Pedido Independiente
-                            </span>
-                          </div>
+                          <h3 className="font-bold text-mm-g text-base leading-tight">
+                            {group.store.name}
+                          </h3>
                         </div>
                         <Badge variant="oro" className="text-[10px]">
                           Envío $ 5.000
@@ -217,7 +202,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <span className="font-bold">{fmt(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-mm-txs text-sm">
-                    <span>Costo envío ({cartByStore.length} tienda{cartByStore.length > 1 ? 's' : ''})</span>
+                    <span>Costo de envío</span>
                     <span className="font-bold">{fmt(totalDeliveryFee)}</span>
                   </div>
                   <div className="pt-3 border-t border-mm-crd/50 flex justify-between items-center">

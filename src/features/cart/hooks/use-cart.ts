@@ -21,6 +21,17 @@ export function useCart() {
       return;
     }
 
+    if (state.cart.length > 0) {
+      const currentItem = state.cart[0];
+      if (String(currentItem.storeId) !== String(product.storeId)) {
+        dispatch({
+          type: 'SET_CART_STORE_CONFLICT',
+          currentStoreName: currentItem.storeName || 'la tienda actual',
+        });
+        return;
+      }
+    }
+
     // Optimistic update
     dispatch({ type: 'ADD_TO_CART', product, qty });
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Database } from '@/types/database_generated';
 
-type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
+export type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
   catalog_products?: { name: string; image_url: string | null; categories?: { name: string } | null } | null;
   stores?: { name: string; slug: string; marketplaces?: { name: string } | null } | null;
   measurement_units?: { abbreviation: string } | null;

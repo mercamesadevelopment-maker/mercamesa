@@ -40,6 +40,14 @@ export interface OrderDetail extends Omit<OrderDetailRow, 'products'> {
   products: OrderProduct[] | null;
 }
 
+export interface OrderStatusHistoryItem {
+  id: string;
+  status: OrderStatus;
+  notes: string | null;
+  createdAt: string;
+  changedByName: string | null;
+}
+
 export interface PaginationMeta {
   total: number;
   page: number;
