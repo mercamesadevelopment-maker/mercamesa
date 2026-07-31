@@ -7,6 +7,12 @@ export function createSupabaseServiceClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   
   return createClient<Database>(url, serviceKey, {
-    auth: { persistSession: false }
+    auth: { persistSession: false },
+    global: {
+      // Evita que el `fetch` parcheado de Next.js (Data Cache) intercepte
+      // las respuestas binarias (ej. descargas de Storage) — puede
+      // corromperlas al pasar por una re-serialización con pérdida.
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   });
 }

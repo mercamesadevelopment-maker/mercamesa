@@ -25,6 +25,14 @@ export async function createClient() {
           }
         },
       },
+      global: {
+        // El `fetch` global de Next.js (App Router) intercepta las llamadas
+        // para su Data Cache; si no se desactiva explícitamente, respuestas
+        // binarias (ej. `storage.download()` de un archivo de imagen) pueden
+        // pasar por una re-serialización con pérdida (bytes no-UTF8
+        // reemplazados por U+FFFD), corrompiendo el archivo descargado.
+        fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+      },
     }
   )
 }
