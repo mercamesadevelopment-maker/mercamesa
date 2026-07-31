@@ -15,7 +15,8 @@ export async function GET(
       .from('stores')
       .select(`
         *,
-        marketplaces ( name )
+        marketplaces ( name ),
+        store_categories ( name )
       `)
       .eq('slug', slug)
       .single();

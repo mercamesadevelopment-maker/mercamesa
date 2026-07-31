@@ -45,6 +45,7 @@ type AppAction =
   | { type: 'PLACE_ORDER'; orders: Order[] }
   | { type: 'UPDATE_ORDER_STATUS'; orderId: string; status: Order['status'] }
   | { type: 'ADD_NOTIF'; notif: AppNotification }
+  | { type: 'SET_NOTIFS'; notifs: AppNotification[] }
   | { type: 'READ_NOTIF'; notifId: string }
   | { type: 'READ_ALL_NOTIFS' }
   | { type: 'UPDATE_BUYER_PROFILE'; profile: Partial<BuyerProfile> }
@@ -259,6 +260,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'ADD_NOTIF':
       return { ...state, notifs: [action.notif, ...state.notifs] };
+
+    case 'SET_NOTIFS':
+      return { ...state, notifs: action.notifs };
 
     case 'READ_NOTIF':
       return {

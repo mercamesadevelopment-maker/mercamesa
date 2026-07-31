@@ -3,12 +3,18 @@ import { ImageIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
+import {
+  WeeklyHoursEditor,
+  createDefaultBusinessHours,
+  type BusinessHours,
+} from '@/components/ui/business-hours/business-hours-editor';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
   logoSignedUrl?: string | null;
 };
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
+type StoreCategory = Database['public']['Tables']['store_categories']['Row'];
 
 interface StoreModalProps {
   isOpen: boolean;
@@ -20,10 +26,12 @@ interface StoreModalProps {
 export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalProps) {
   const [loading, setLoading] = useState(false);
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
+  const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [formData, setFormData] = useState({
-    name: '', slug: '', marketplace_id: '', description: '',
+    name: '', slug: '', marketplace_id: '', category_id: '', description: '',
     contact_name: '', contact_email: '', phone: '', whatsapp: '', is_active: true,
   });
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(createDefaultBusinessHours());
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -32,6 +40,10 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     fetch('/api/marketplaces')
       .then(res => res.json())
       .then(data => { if (data.data) setMarketplaces(data.data); });
+
+    fetch('/api/store-categories')
+      .then(res => res.json())
+      .then(data => { if (data.data) setStoreCategories(data.data); });
   }, []);
 
   useEffect(() => {
@@ -40,6 +52,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setFormData({
         name: initialData.name || '', slug: initialData.slug || '',
         marketplace_id: initialData.marketplace_id || '',
+        category_id: (initialData as any).category_id || '',
         description: initialData.description || '',
         contact_name: initialData.contact_name || '',
         contact_email: initialData.contact_email || '',
@@ -47,14 +60,22 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         whatsapp: initialData.whatsapp || '',
         is_active: initialData.is_active,
       });
+      const initialHours = (initialData as any).business_hours;
+      setBusinessHours(
+        Array.isArray(initialHours) && initialHours.length === 7
+          ? initialHours
+          : createDefaultBusinessHours()
+      );
       setLogoPreview(initialData.logoSignedUrl || null);
     } else {
       setFormData({
         name: '', slug: '',
         marketplace_id: marketplaces.length > 0 ? marketplaces[0].id : '',
+        category_id: '',
         description: '', contact_name: '', contact_email: '',
         phone: '', whatsapp: '', is_active: true,
       });
+      setBusinessHours(createDefaultBusinessHours());
       setLogoPreview(null);
     }
     setLogoFile(null);
@@ -90,6 +111,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     try {
       const submitData = new FormData();
       Object.entries(formData).forEach(([k, v]) => submitData.append(k, v.toString()));
+      submitData.append('business_hours', JSON.stringify(businessHours));
       if (logoFile) submitData.append('logo', logoFile);
       await onSave(initialData?.id || null, submitData);
       onClose();
@@ -134,18 +156,32 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
           <Input label="Identificador" name="slug" value={formData.slug} onChange={handleChange} required placeholder="ej-frutas-don-pepe" />
         </div>
 
-        {/* Marketplace */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-mm-txs ml-1">Plaza (Marketplace)</label>
-          <select name="marketplace_id" value={formData.marketplace_id} onChange={handleChange} required
-            className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
-            <option value="">Selecciona una plaza</option>
-            {marketplaces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+        {/* Marketplace + Categoría */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-mm-txs ml-1">Plaza (Marketplace)</label>
+            <select name="marketplace_id" value={formData.marketplace_id} onChange={handleChange} required
+              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+              <option value="">Selecciona una plaza</option>
+              {marketplaces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-mm-txs ml-1">Categoría de la Tienda</label>
+            <select name="category_id" value={formData.category_id} onChange={handleChange}
+              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+              <option value="">Sin categoría</option>
+              {storeCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* Descripción */}
         <Input label="Descripción" name="description" value={formData.description} onChange={handleChange} placeholder="Breve descripción de la tienda" />
+
+        {/* Horario de atención */}
+        <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Nombre de Contacto" name="contact_name" value={formData.contact_name} onChange={handleChange} placeholder="Ej: José Pérez" />

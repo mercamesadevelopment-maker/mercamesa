@@ -1,15 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { usePayments } from '../hooks/use-payments';
-import { PaymentMethodModal } from './payment-method-modal';
-import { Button, Badge } from '@/src/components/Shared';
-import { CreditCard, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Badge } from '@/src/components/Shared';
+import { CreditCard, Trash2, Loader2 } from 'lucide-react';
 
 export function PaymentsTab() {
   const { paymentMethods, loading, error, fetchPaymentMethods, deletePaymentMethod } = usePayments();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -25,7 +23,6 @@ export function PaymentsTab() {
   };
 
   return (
-    <>
       <motion.div
         key="payments"
         initial={{ opacity: 0, x: 20 }}
@@ -34,10 +31,12 @@ export function PaymentsTab() {
         className="space-y-6"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-fraunces text-mm-g">Medios de Pago</h2>
-          <Button size="sm" onClick={() => setIsModalOpen(true)} disabled={loading}>
-            <Plus className="w-4 h-4" /> Agregar
-          </Button>
+          <div>
+            <h2 className="text-3xl font-fraunces text-mm-g">Medios de Pago</h2>
+            <p className="text-sm text-mm-txw mt-1">
+              Se guardan automáticamente cuando marcas &quot;Guardar esta tarjeta&quot; al pagar un pedido.
+            </p>
+          </div>
         </div>
 
         {error && (
@@ -86,12 +85,5 @@ export function PaymentsTab() {
           )}
         </div>
       </motion.div>
-
-      <PaymentMethodModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onCreated={fetchPaymentMethods}
-      />
-    </>
   );
 }

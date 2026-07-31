@@ -39,24 +39,6 @@ export function usePayments() {
     }
   }, [dispatch]);
 
-  const createPaymentMethod = useCallback(async (form: PaymentMethodInsert) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const created = await paymentsService.create(form);
-      setPaymentMethods((prev) => {
-        const list = form.is_default ? prev.map((p) => ({ ...p, is_default: false })) : prev;
-        return [...list, created];
-      });
-      return created;
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error creando medio de pago');
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const updatePaymentMethod = useCallback(
     async (id: string, form: Partial<PaymentMethodInsert>) => {
       setLoading(true);
@@ -100,7 +82,6 @@ export function usePayments() {
     loading,
     error,
     fetchPaymentMethods,
-    createPaymentMethod,
     updatePaymentMethod,
     deletePaymentMethod,
   };

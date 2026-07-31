@@ -95,12 +95,16 @@ export async function POST(request: Request) {
     const name = formData.get('name') as string;
     const slug = formData.get('slug') as string;
     const marketplace_id = formData.get('marketplace_id') as string;
+    const category_id = (formData.get('category_id') as string) || null;
     const description = formData.get('description') as string | null;
     const contact_name = formData.get('contact_name') as string | null;
     const contact_email = formData.get('contact_email') as string | null;
     const phone = formData.get('phone') as string | null;
     const whatsapp = formData.get('whatsapp') as string | null;
     const is_active = formData.get('is_active') === 'true';
+    const business_hours = formData.get('business_hours')
+      ? JSON.parse(formData.get('business_hours') as string)
+      : null;
 
     if (!name || !slug || !marketplace_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -151,6 +155,7 @@ export async function POST(request: Request) {
       name,
       slug,
       marketplace_id,
+      category_id,
       description,
       contact_name,
       contact_email,
@@ -160,6 +165,7 @@ export async function POST(request: Request) {
       is_verified: false,
       cover_image_url,
       logo_url,
+      business_hours,
     };
 
     const { data, error } = await supabase.from('stores').insert(insertData).select().single();

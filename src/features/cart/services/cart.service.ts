@@ -27,7 +27,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
         catalog_products ( name, image_url, categories ( name ) ),
         stores ( name, marketplace_id ),
         measurement_units ( id, name, abbreviation ),
-        store_offers ( id, discount_pct, special_price, label, starts_at, ends_at, is_active )
+        store_offers ( id, discount_pct, special_price, label, starts_at, ends_at, status )
       )
     `)
     .eq('buyer_id', buyerId)
@@ -61,7 +61,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
 
       const isStillValid =
         linkedOffer &&
-        linkedOffer.is_active &&
+        linkedOffer.status === 'active' &&
         new Date(linkedOffer.starts_at) <= now &&
         (!linkedOffer.ends_at || new Date(linkedOffer.ends_at) >= now);
 
@@ -84,7 +84,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
       // Buscar si existe alguna oferta activa vigente para aplicar por defecto
       const activeOffer = offersList.find(
         (o: any) =>
-          o.is_active &&
+          o.status === 'active' &&
           new Date(o.starts_at) <= now &&
           (!o.ends_at || new Date(o.ends_at) >= now)
       );

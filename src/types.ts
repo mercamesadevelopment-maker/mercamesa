@@ -218,11 +218,13 @@ export interface BuyerProfile {
 
 export interface AppNotification {
   id: string;
-  type: 'order_new' | 'price_update' | 'rating' | 'payment';
+  type: 'order_new' | 'price_update' | 'rating' | 'payment' | 'store_offer_pending' | 'store_offer_reviewed';
   title: string;
   msg: string;
   time: string;
   read: boolean;
+  entityType?: string | null;
+  entityId?: string | null;
 }
 
 export interface Offer {
@@ -233,8 +235,10 @@ export interface Offer {
   desc: string;
   type: 'percentage' | 'fixed';
   value: number; 
-  productIds: (number | string)[]; 
+  productIds: (number | string)[];
   status: 'active' | 'expired';
+  approvalStatus?: 'pending' | 'verified' | 'active' | 'inactive';
+  isFeatured?: boolean;
   endDate: string;
   image?: string;
   emoji: string;

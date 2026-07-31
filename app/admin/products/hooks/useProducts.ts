@@ -50,19 +50,12 @@ export function useProducts() {
   };
 
   const deleteProduct = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este producto del catálogo?')) return;
-    
-    try {
-      const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      const result = await response.json();
-      
-      if (!response.ok) throw new Error(result.error);
-      
-      await fetchProducts();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error deleting product';
-      alert(msg);
-    }
+    const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    const result = await response.json();
+
+    if (!response.ok) throw new Error(result.error);
+
+    await fetchProducts();
   };
 
   return {

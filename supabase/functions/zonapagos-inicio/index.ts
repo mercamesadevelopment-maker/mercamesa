@@ -65,7 +65,8 @@ serve(async (req) => {
         { "int_codigo": 107, "str_valor": "0" },
         { "int_codigo": 108, "str_valor": "1" },
         { "int_codigo": 109, "str_valor": "1" },
-        { "int_codigo": 110, "str_valor": "0" }
+        { "int_codigo": 110, "str_valor": "0" },
+        ...(compraData.guardarTarjeta ? [{ "int_codigo": 200, "str_valor": "1" }] : [])
       ]
     }
 

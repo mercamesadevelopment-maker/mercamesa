@@ -15,6 +15,7 @@ interface OfferModalProps {
     productIds: (number | string)[];
     emoji: string;
     endDate: string;
+    isFeatured: boolean;
   };
   setNewOffer: React.Dispatch<React.SetStateAction<{
     title: string;
@@ -24,6 +25,7 @@ interface OfferModalProps {
     productIds: (number | string)[];
     emoji: string;
     endDate: string;
+    isFeatured: boolean;
   }>>;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -141,6 +143,16 @@ export function OfferModal({
             )}
           </div>
         </div>
+
+        <label className="flex items-center gap-3 p-3 bg-mm-gbg/10 rounded-2xl border border-mm-crd cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={newOffer.isFeatured}
+            onChange={e => setNewOffer(prev => ({ ...prev, isFeatured: e.target.checked }))}
+            className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g"
+          />
+          <span className="text-sm font-bold text-mm-g">Destacar esta oferta</span>
+        </label>
 
         <div className="flex gap-4 pt-4 border-t border-mm-gbg">
           <Button type="button" variant="outline" className="flex-1" onClick={onClose}>

@@ -20,3 +20,7 @@ export type ModuleUpdate = Partial<ModuleInsert>;
 export type DocumentTypeRow = Database['public']['Tables']['document_types']['Row'];
 export type DocumentTypeInsert = Omit<Database['public']['Tables']['document_types']['Insert'], 'id' | 'created_at'>;
 export type DocumentTypeUpdate = Partial<DocumentTypeInsert>;
+
+export type StoreCategoryRow = Database['public']['Tables']['store_categories']['Row'];
+export type StoreCategoryInsert = Omit<Database['public']['Tables']['store_categories']['Insert'], 'id' | 'created_at'>;
+export type StoreCategoryUpdate = Partial<StoreCategoryInsert>;

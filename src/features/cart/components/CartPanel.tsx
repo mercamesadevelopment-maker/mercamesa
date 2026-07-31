@@ -27,6 +27,13 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     total,
     getPrice,
     handlePlaceOrder,
+    saveCard,
+    setSaveCard,
+    savedPaymentMethods,
+    paymentChoice,
+    setPaymentChoice,
+    selectedPaymentMethodId,
+    setSelectedPaymentMethodId,
   } = useCheckout();
 
   const [deletingItem, setDeletingItem] = React.useState<CartItem | null>(null);
@@ -213,6 +220,54 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     </span>
                   </div>
                 </div>
+
+                {savedPaymentMethods.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <label className="flex items-center gap-2 text-sm text-mm-txs cursor-pointer">
+                      <input
+                        type="radio"
+                        name="payment-choice"
+                        checked={paymentChoice === 'saved'}
+                        onChange={() => setPaymentChoice('saved')}
+                      />
+                      Pagar con tarjeta guardada
+                    </label>
+                    {paymentChoice === 'saved' && savedPaymentMethods.length > 1 && (
+                      <select
+                        value={selectedPaymentMethodId || ''}
+                        onChange={(e) => setSelectedPaymentMethodId(e.target.value)}
+                        className="w-full ml-6 px-3 py-2 rounded-xl border border-mm-crd bg-white text-sm text-mm-g outline-none"
+                      >
+                        {savedPaymentMethods.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <label className="flex items-center gap-2 text-sm text-mm-txs cursor-pointer">
+                      <input
+                        type="radio"
+                        name="payment-choice"
+                        checked={paymentChoice === 'new'}
+                        onChange={() => setPaymentChoice('new')}
+                      />
+                      Pagar con tarjeta nueva
+                    </label>
+                  </div>
+                )}
+
+                {paymentChoice === 'new' && (
+                  <label className="flex items-center gap-2 text-sm text-mm-txs mb-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={saveCard}
+                      onChange={(e) => setSaveCard(e.target.checked)}
+                    />
+                    Guardar esta tarjeta para futuros pagos
+                  </label>
+                )}
+
                 <Button
                   onClick={() => setShowOrderWarning(true)}
                   loading={isPlacingOrder}

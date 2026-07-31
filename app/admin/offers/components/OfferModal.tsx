@@ -26,7 +26,8 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
     special_price: '',
     starts_at: new Date().toISOString().split('T')[0], // Default to today
     ends_at: '',
-    is_active: true,
+    status: 'pending',
+    is_featured: false,
   });
 
   useEffect(() => {
@@ -46,7 +47,8 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
         special_price: initialData.special_price?.toString() || '',
         starts_at: initialData.starts_at.split('T')[0], // Format for date input
         ends_at: initialData.ends_at ? initialData.ends_at.split('T')[0] : '',
-        is_active: initialData.is_active,
+        status: initialData.status,
+        is_featured: initialData.is_featured,
       });
     } else {
       setFormData({
@@ -56,7 +58,8 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
         special_price: '',
         starts_at: new Date().toISOString().split('T')[0],
         ends_at: '',
-        is_active: true,
+        status: 'pending',
+        is_featured: false,
       });
     }
   }, [initialData]);
@@ -117,9 +120,22 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
           <Input label="Fecha de Fin (Opcional)" name="ends_at" type="date" value={formData.ends_at} onChange={handleChange} />
         </div>
 
-        <div className="flex items-center gap-2 px-1">
-          <input type="checkbox" id="is_active" name="is_active" checked={formData.is_active} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
-          <label htmlFor="is_active" className="text-sm font-medium text-mm-txs">Oferta Activa</label>
+        <div className="grid sm:grid-cols-2 gap-4 items-end">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-mm-txs ml-1">Estado de la oferta</label>
+            <select name="status" value={formData.status} onChange={handleChange}
+              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+              <option value="pending">Pendiente</option>
+              <option value="verified">Verificada</option>
+              <option value="active">Activa</option>
+              <option value="inactive">Inactiva</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 px-1 pb-2.5">
+            <input type="checkbox" id="is_featured" name="is_featured" checked={formData.is_featured} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
+            <label htmlFor="is_featured" className="text-sm font-medium text-mm-txs">Oferta Destacada</label>
+          </div>
         </div>
 
         <div className="pt-2 flex gap-3 pb-2">

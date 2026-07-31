@@ -60,19 +60,12 @@ export function useStoreProducts() {
   };
 
   const deleteStoreProduct = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este producto de la tienda?')) return;
-    
-    try {
-      const response = await fetch(`/api/store-products/${id}`, { method: 'DELETE' });
-      const result = await response.json();
-      
-      if (!response.ok) throw new Error(result.error);
-      
-      await fetchStoreProducts();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error deleting store product';
-      alert(msg);
-    }
+    const response = await fetch(`/api/store-products/${id}`, { method: 'DELETE' });
+    const result = await response.json();
+
+    if (!response.ok) throw new Error(result.error);
+
+    await fetchStoreProducts();
   };
 
   return {

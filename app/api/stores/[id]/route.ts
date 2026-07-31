@@ -18,6 +18,7 @@ export async function GET(
     .select(`
       *,
       marketplaces ( name ),
+      store_categories ( name ),
       store_members (
         id,
         role_id,
@@ -78,6 +79,16 @@ export async function PUT(
         (updateData as Record<string, unknown>)[field] = String(val);
       }
     });
+
+    if (formData.has('category_id')) {
+      const categoryId = formData.get('category_id') as string;
+      updateData.category_id = categoryId || null;
+    }
+
+    if (formData.has('business_hours')) {
+      const businessHours = formData.get('business_hours') as string;
+      updateData.business_hours = businessHours ? JSON.parse(businessHours) : null;
+    }
 
     if (updateData.contact_email) {
       const { data: existingStore, error: checkError } = await supabase

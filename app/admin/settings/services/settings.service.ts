@@ -3,6 +3,7 @@ import {
   MeasurementUnitRow, MeasurementUnitInsert, MeasurementUnitUpdate,
   ModuleRow, ModuleInsert, ModuleUpdate,
   DocumentTypeRow, DocumentTypeInsert, DocumentTypeUpdate,
+  StoreCategoryRow, StoreCategoryInsert, StoreCategoryUpdate,
 } from '../types/settings.types';
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -98,5 +99,27 @@ export async function saveDocumentTypeService(id: string | null, payload: Docume
 
 export async function deleteDocumentTypeService(id: string): Promise<void> {
   const res = await fetch(`/api/admin/document-types/${id}`, { method: 'DELETE' });
+  await handleResponse(res);
+}
+
+// ── Store Categories ────────────────────────────────────────────────────────
+export async function getStoreCategoriesService(): Promise<StoreCategoryRow[]> {
+  const res = await fetch('/api/admin/store-categories');
+  return handleResponse<StoreCategoryRow[]>(res);
+}
+
+export async function saveStoreCategoryService(id: string | null, payload: StoreCategoryInsert | StoreCategoryUpdate): Promise<StoreCategoryRow> {
+  const url = id ? `/api/admin/store-categories/${id}` : '/api/admin/store-categories';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<StoreCategoryRow>(res);
+}
+
+export async function deleteStoreCategoryService(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/store-categories/${id}`, { method: 'DELETE' });
   await handleResponse(res);
 }

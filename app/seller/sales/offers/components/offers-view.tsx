@@ -62,6 +62,32 @@ export function OffersView() {
       key: 'endDate',
       label: 'Vence',
       render: (item: any) => <span className="text-xs font-mono font-bold">{item.endDate}</span>
+    },
+    {
+      key: 'approvalStatus',
+      label: 'Estado',
+      render: (item: any) => {
+        const labels: Record<string, string> = {
+          pending: 'Pendiente',
+          verified: 'Verificada',
+          active: 'Activa',
+          inactive: 'Inactiva',
+        };
+        const variants: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
+          pending: 'warning',
+          verified: 'default',
+          active: 'success',
+          inactive: 'error',
+        };
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant={variants[item.approvalStatus] || 'default'}>
+              {labels[item.approvalStatus] || item.approvalStatus}
+            </Badge>
+            {item.isFeatured && <Badge variant="oro">Destacada</Badge>}
+          </div>
+        );
+      }
     }
   ];
 

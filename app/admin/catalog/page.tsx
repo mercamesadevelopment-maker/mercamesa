@@ -10,6 +10,7 @@ import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge, normalizeText } from '@/src/components/Shared';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
+import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
 // Grouped data type for the table
 type GroupedProduct = {
@@ -28,7 +29,10 @@ export default function CatalogAdmin() {
   const { storeProducts, loading, error, fetchStoreProducts, deleteStoreProduct, saveStoreProduct } = useStoreProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StoreProduct | null>(null);
-  
+  const [deleteTarget, setDeleteTarget] = useState<StoreProduct | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Selection states
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string | number>>(new Set());
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -259,9 +263,9 @@ export default function CatalogAdmin() {
               >
                 <Edit2 className="w-3 h-3" />
               </button>
-              <button 
+              <button
                 className="p-1.5 hover:bg-mm-gbg rounded-lg text-mm-txw hover:text-r border border-transparent hover:border-mm-crd/50 transition-all"
-                onClick={() => deleteStoreProduct(storeProd.id)}
+                onClick={() => setDeleteTarget(storeProd)}
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -271,6 +275,20 @@ export default function CatalogAdmin() {
       ))}
     </div>
   );
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteStoreProduct(deleteTarget.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error eliminando el producto de la tienda';
+      setDeleteError(msg);
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
 
   if (loading) return <div className="p-8 text-center text-mm-txs">Cargando inventarios...</div>;
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
@@ -378,6 +396,28 @@ export default function CatalogAdmin() {
           onSave={(payload) => saveStoreProduct(null, payload)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar producto de la tienda"
+        message={`¿Estás seguro de eliminar "${deleteTarget?.catalog_products?.name}" del inventario de "${deleteTarget?.stores?.name}"? Esta acción no se puede deshacer.`}
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteError}
+        onClose={() => setDeleteError(null)}
+        onConfirm={() => setDeleteError(null)}
+        title="No se puede eliminar"
+        message={deleteError || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }

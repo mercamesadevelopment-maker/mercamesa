@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         catalog_products ( name, image_url )
       )
     `)
-    .eq('is_active', true);
+    .eq('status', 'active');
 
     if (storeId) {
       query = query.eq('store_products.store_id', storeId);

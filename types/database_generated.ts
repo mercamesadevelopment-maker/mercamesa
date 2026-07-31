@@ -44,6 +44,8 @@ export type Database = {
           last4: string | null
           type: string
           updated_at: string
+          zonapagos_cliente_id: string | null
+          zonapagos_token: string | null
         }
         Insert: {
           brand?: string | null
@@ -56,6 +58,8 @@ export type Database = {
           last4?: string | null
           type?: string
           updated_at?: string
+          zonapagos_cliente_id?: string | null
+          zonapagos_token?: string | null
         }
         Update: {
           brand?: string | null
@@ -68,6 +72,8 @@ export type Database = {
           last4?: string | null
           type?: string
           updated_at?: string
+          zonapagos_cliente_id?: string | null
+          zonapagos_token?: string | null
         }
         Relationships: [
           {
@@ -750,6 +756,86 @@ export type Database = {
           },
         ]
       }
+      notification_recipients: {
+        Row: {
+          created_at: string
+          id: string
+          notification_id: string
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_id: string
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_id?: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_recipients_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_recipients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          message: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          message?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           catalog_name: string
@@ -1222,6 +1308,36 @@ export type Database = {
         }
         Relationships: []
       }
+      store_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       store_documents: {
         Row: {
           created_at: string
@@ -1368,10 +1484,11 @@ export type Database = {
           discount_pct: number | null
           ends_at: string | null
           id: string
-          is_active: boolean
+          is_featured: boolean
           label: string | null
           special_price: number | null
           starts_at: string
+          status: string
           store_product_id: string
         }
         Insert: {
@@ -1379,10 +1496,11 @@ export type Database = {
           discount_pct?: number | null
           ends_at?: string | null
           id?: string
-          is_active?: boolean
+          is_featured?: boolean
           label?: string | null
           special_price?: number | null
           starts_at: string
+          status?: string
           store_product_id: string
         }
         Update: {
@@ -1390,10 +1508,11 @@ export type Database = {
           discount_pct?: number | null
           ends_at?: string | null
           id?: string
-          is_active?: boolean
+          is_featured?: boolean
           label?: string | null
           special_price?: number | null
           starts_at?: string
+          status?: string
           store_product_id?: string
         }
         Relationships: [
@@ -1633,6 +1752,7 @@ export type Database = {
       stores: {
         Row: {
           business_hours: Json | null
+          category_id: string | null
           contact_email: string | null
           contact_name: string | null
           cover_image_url: string | null
@@ -1652,6 +1772,7 @@ export type Database = {
         }
         Insert: {
           business_hours?: Json | null
+          category_id?: string | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
@@ -1671,6 +1792,7 @@ export type Database = {
         }
         Update: {
           business_hours?: Json | null
+          category_id?: string | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
@@ -1689,6 +1811,13 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stores_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "store_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stores_marketplace_id_fkey"
             columns: ["marketplace_id"]

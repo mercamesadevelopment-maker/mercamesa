@@ -20,11 +20,6 @@ const PREFS = [
     label: 'Disponibilidad de stock',
     sub: 'Aviso cuando vuelvan productos de tus favoritos.',
   },
-  {
-    id: 'whatsappNotif',
-    label: 'Alertas por WhatsApp',
-    sub: 'Recibir resumen de tus pedidos directamente en tu móvil.',
-  },
 ] as const;
 
 export function PreferencesTab() {

@@ -8,11 +8,13 @@ import { CartPanel } from '@/src/features/cart/components/CartPanel';
 import { CartStoreConflictModal } from '@/src/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
+import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { state } = useApp();
+  const { fetchNotifications } = useNotifications();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -26,6 +28,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       router.replace('/');
     }
   }, [state._hydrated, state.isLoggedIn, isNoLayoutPage, router]);
+
+  useEffect(() => {
+    if (state._hydrated && (state.userRole === 'admin' || state.userRole === 'provider')) {
+      fetchNotifications();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state._hydrated, state.userRole]);
 
   if (isNoLayoutPage) return <>{children}</>;
 

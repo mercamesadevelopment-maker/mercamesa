@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2 } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
 import { DocumentTypesTab } from './components/document-types-tab';
+import { StoreCategoriesTab } from './components/store-categories-tab';
 
-type TabKey = 'categories' | 'units' | 'modules' | 'documents';
+type TabKey = 'categories' | 'units' | 'modules' | 'documents' | 'store_categories';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
   {
@@ -33,6 +34,12 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     label: 'Tipos de Documento',
     icon: FileCheck,
     description: 'Requisitos documentales para verificación de comercios',
+  },
+  {
+    key: 'store_categories',
+    label: 'Categorías de Tienda',
+    icon: Store,
+    description: 'Clasificación del tipo de negocio de cada tienda (Frutería, Carnicería, etc.)',
   },
 ];
 
@@ -95,6 +102,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'units' && <MeasurementUnitsTab />}
         {activeTab === 'modules' && <ModulesTab />}
         {activeTab === 'documents' && <DocumentTypesTab />}
+        {activeTab === 'store_categories' && <StoreCategoriesTab />}
       </div>
     </div>
   );

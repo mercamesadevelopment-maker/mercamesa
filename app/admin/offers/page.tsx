@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Tag, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useOffers, StoreOffer } from './hooks/useOffers';
 import { OfferModal } from './components/OfferModal';
@@ -10,6 +11,8 @@ export default function OffersAdmin() {
   const { offers, loading, error, fetchOffers, deleteOffer, saveOffer } = useOffers();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<StoreOffer | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -18,6 +21,21 @@ export default function OffersAdmin() {
   useEffect(() => {
     fetchOffers();
   }, [fetchOffers]);
+
+  // Deep link desde la notificación de "oferta pendiente": abre el modal
+  // de esa oferta específica una vez que la lista terminó de cargar.
+  useEffect(() => {
+    const offerId = searchParams.get('offerId');
+    if (!offerId || loading) return;
+
+    const target = offers.find((o) => o.id === offerId);
+    if (target) {
+      setEditingOffer(target);
+      setIsModalOpen(true);
+      router.replace('/admin/offers');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, loading, offers]);
 
   // Calculate pagination
   const totalPages = Math.ceil(offers.length / rowsPerPage);
@@ -44,7 +62,13 @@ export default function OffersAdmin() {
         {paginatedData.map(offer => {
           const product = offer.store_products?.catalog_products;
           const isExpired = offer.ends_at && new Date(offer.ends_at) < new Date();
-          const isActive = offer.is_active && !isExpired;
+          const isActive = offer.status === 'active' && !isExpired;
+          const statusLabels: Record<string, string> = {
+            pending: 'Pendiente',
+            verified: 'Verificada',
+            active: 'Activa',
+            inactive: 'Inactiva',
+          };
 
           return (
             <div key={offer.id} className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm relative overflow-hidden group hover:border-mm-g/40 transition-all flex flex-col">
@@ -58,9 +82,12 @@ export default function OffersAdmin() {
                     <Tag className="w-6 h-6 text-mm-txw" />
                   )}
                 </div>
-                <Badge variant={isActive ? 'success' : 'warning'}>
-                  {isActive ? 'Activa' : (isExpired ? 'Expirada' : 'Inactiva')}
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant={isActive ? 'success' : offer.status === 'pending' ? 'warning' : 'default'}>
+                    {isExpired ? 'Expirada' : statusLabels[offer.status] || offer.status}
+                  </Badge>
+                  {offer.is_featured && <Badge variant="oro">Destacada</Badge>}
+                </div>
               </div>
 
               <div className="flex-grow relative z-10">

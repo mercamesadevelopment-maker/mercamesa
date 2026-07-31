@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/supabase-image';
+import { createNotification } from '../../../lib/notifications/create-notification';
 
 type StoreOfferInsert = Database['public']['Tables']['store_offers']['Insert'];
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    
+
     const insertData: StoreOfferInsert = {
       store_product_id: body.store_product_id,
       label: body.label || null,
@@ -59,13 +60,40 @@ export async function POST(request: Request) {
       special_price: body.special_price ? Number(body.special_price) : null,
       starts_at: body.starts_at,
       ends_at: body.ends_at || null,
-      is_active: body.is_active ?? true,
+      status: 'pending',
+      is_featured: body.is_featured ?? false,
     };
 
-    const { data, error } = await supabase.from('store_offers').insert(insertData).select().single();
+    const { data, error } = await supabase
+      .from('store_offers')
+      .insert(insertData)
+      .select('*, store_products ( store_id, catalog_products ( name ) )')
+      .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    try {
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id, roles!inner ( name )')
+        .in('roles.name', ['admin', 'superadmin']);
+
+      const adminIds = (admins || []).map((a) => a.id);
+      const productName = (data as any)?.store_products?.catalog_products?.name || 'un producto';
+
+      await createNotification({
+        type: 'store_offer_pending',
+        title: 'Nueva oferta pendiente de revisión',
+        message: `Se creó una oferta para "${productName}" que está esperando tu aprobación.`,
+        entityType: 'store_offer',
+        entityId: data.id,
+        createdBy: user.id,
+        recipientUserIds: adminIds,
+      });
+    } catch (notifErr) {
+      console.error('Error notificando a admins sobre nueva oferta:', notifErr);
     }
 
     return NextResponse.json({ data }, { status: 201 });

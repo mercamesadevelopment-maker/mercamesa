@@ -8,6 +8,7 @@ import { ProductModal } from './components/ProductModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge, normalizeText } from '@/src/components/Shared';
+import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -19,6 +20,9 @@ export default function ProductsAdmin() {
   const { products, loading, error, fetchProducts, deleteProduct, saveProduct } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // States for search and filtering
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,6 +151,20 @@ export default function ProductsAdmin() {
     }
   ];
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteProduct(deleteTarget.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error eliminando el producto';
+      setDeleteError(msg);
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-mm-txs">Cargando catálogo...</div>;
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
 
@@ -209,8 +227,8 @@ export default function ProductsAdmin() {
             >
               <Edit2 className="w-4 h-4" />
             </button>
-            <button 
-              onClick={() => deleteProduct(item.id)}
+            <button
+              onClick={() => setDeleteTarget(item)}
               className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -227,6 +245,28 @@ export default function ProductsAdmin() {
           initialData={editingProduct}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar producto"
+        message={`¿Estás seguro de eliminar "${deleteTarget?.name}" del catálogo? Esta acción no se puede deshacer.`}
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteError}
+        onClose={() => setDeleteError(null)}
+        onConfirm={() => setDeleteError(null)}
+        title="No se puede eliminar"
+        message={deleteError || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }

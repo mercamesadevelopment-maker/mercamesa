@@ -98,6 +98,17 @@ export async function DELETE(
     const { error } = await supabase.from('store_products').delete().eq('id', id);
 
     if (error) {
+      if (error.code === '23503') {
+        const message = [
+          'Este producto no puede eliminarse del inventario de la tienda porque ya tiene actividad asociada',
+          '(pedidos, carritos o movimientos de stock registrados).',
+          '',
+          'En vez de eliminarlo, desactívalo para que deje de mostrarse en la tienda sin perder ese historial.',
+        ].join('\n');
+
+        return NextResponse.json({ error: message }, { status: 409 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 

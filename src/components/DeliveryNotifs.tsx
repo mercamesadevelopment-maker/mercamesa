@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { useApp } from '../store';
 import { AppNotification } from '../types';
+import { useNotifications } from '../features/notifications/hooks/use-notifications';
 import { fmt } from '../constants';
 import { Button, Badge, cn } from './Shared';
 import { 
@@ -247,7 +249,21 @@ export function EarningsView() {
 }
 
 export function NotifsView() {
-  const { state, dispatch } = useApp();
+  const { state } = useApp();
+  const { markRead, markAllRead } = useNotifications();
+  const router = useRouter();
+
+  const handleNotifClick = (notif: AppNotification) => {
+    markRead(notif.id);
+
+    if (notif.entityType === 'store_offer' && notif.entityId) {
+      if (notif.type === 'store_offer_pending') {
+        router.push(`/admin/offers?offerId=${notif.entityId}`);
+      } else if (notif.type === 'store_offer_reviewed') {
+        router.push('/seller/sales/offers');
+      }
+    }
+  };
 
   const getNotifIcon = (type: AppNotification['type']) => {
     switch (type) {
@@ -255,6 +271,9 @@ export function NotifsView() {
       case 'price_update': return { icon: TrendingUp, color: 'bg-mm-orl text-mm-oro' };
       case 'rating': return { icon: Star, color: 'bg-warnl text-warn' };
       case 'payment': return { icon: CreditCard, color: 'bg-okl text-ok' };
+      case 'store_offer_pending': return { icon: AlertCircle, color: 'bg-mm-orl text-mm-oro' };
+      case 'store_offer_reviewed': return { icon: CheckCircle2, color: 'bg-okl text-ok' };
+      default: return { icon: Bell, color: 'bg-mm-gbg text-mm-g' };
     }
   };
 
@@ -265,7 +284,7 @@ export function NotifsView() {
           <h1 className="text-4xl font-fraunces text-mm-g mb-2">Notificaciones</h1>
           <p className="text-mm-txs">Mantente al día con lo que pasa en tu cuenta.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => dispatch({ type: 'READ_ALL_NOTIFS' })}>
+        <Button variant="outline" size="sm" onClick={() => markAllRead()}>
           <Check className="w-4 h-4" /> Marcar todo como leído
         </Button>
       </div>
@@ -284,7 +303,7 @@ export function NotifsView() {
                 key={notif.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                onClick={() => dispatch({ type: 'READ_NOTIF', notifId: notif.id })}
+                onClick={() => handleNotifClick(notif)}
                 className={cn(
                   "bg-white p-6 rounded-3xl border border-mm-crd shadow-sm flex gap-6 cursor-pointer transition-all hover:shadow-md relative overflow-hidden",
                   !notif.read && "border-l-4 border-l-mm-g bg-mm-gbg/20"

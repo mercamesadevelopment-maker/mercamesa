@@ -16,6 +16,7 @@ export function useOffers() {
     productIds: [] as (string | number)[], // store_product_id UUIDs (will contain only 1 element)
     emoji: '🏷️',
     endDate: '',
+    isFeatured: false,
   });
 
   const fetchStoreProductsAndOffers = async () => {
@@ -69,7 +70,9 @@ export function useOffers() {
             type: item.discount_pct !== null ? 'percentage' : 'fixed',
             value: discountVal,
             productIds: [item.store_product_id],
-            status: item.is_active ? 'active' : 'expired',
+            status: item.status === 'active' ? 'active' : 'expired',
+            approvalStatus: item.status,
+            isFeatured: Boolean(item.is_featured),
             endDate: item.ends_at ? item.ends_at.split('T')[0] : 'Sin límite',
             emoji: '🏷️',
           };
@@ -114,7 +117,7 @@ export function useOffers() {
           special_price: specialPrice,
           starts_at: new Date().toISOString(),
           ends_at: newOffer.endDate ? new Date(newOffer.endDate).toISOString() : null,
-          is_active: true,
+          is_featured: newOffer.isFeatured,
         }),
       });
 
@@ -130,6 +133,7 @@ export function useOffers() {
         productIds: [],
         emoji: '🏷️',
         endDate: '',
+        isFeatured: false,
       });
     } catch (err) {
       console.error(err);

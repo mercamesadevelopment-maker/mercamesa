@@ -17,6 +17,7 @@ interface ConfirmModalProps {
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info';
   isLoading?: boolean;
+  hideCancel?: boolean;
 }
 
 export function ConfirmModal({
@@ -29,6 +30,7 @@ export function ConfirmModal({
   cancelText = 'Cancelar',
   variant = 'warning',
   isLoading = false,
+  hideCancel = false,
 }: ConfirmModalProps) {
   
   useEffect(() => {
@@ -119,20 +121,22 @@ export function ConfirmModal({
             <h3 className="text-xl font-bold text-mm-g mb-2 leading-tight">
               {title}
             </h3>
-            <p className="text-sm text-mm-txs leading-relaxed mb-6">
+            <p className="text-sm text-mm-txs leading-relaxed mb-6 whitespace-pre-line">
               {message}
             </p>
 
             {/* Actions */}
             <div className="flex gap-3 w-full">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-                className="flex-1 rounded-2xl h-12"
-              >
-                {cancelText}
-              </Button>
+              {!hideCancel && (
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="flex-1 rounded-2xl h-12"
+                >
+                  {cancelText}
+                </Button>
+              )}
               <button
                 onClick={onConfirm}
                 disabled={isLoading}

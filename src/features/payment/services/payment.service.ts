@@ -99,6 +99,49 @@ export async function syncPaymentStatus(orderId: string): Promise<{ success: boo
   return result
 }
 
+export interface PayWithSavedCardResult {
+  success: boolean
+  estado: number
+  paymentStatus: 'approved' | 'rejected' | 'pending'
+  rawResponse: unknown
+}
+
+export async function payWithSavedCard(
+  orderId: string,
+  paymentMethodId: string
+): Promise<PayWithSavedCardResult> {
+  const supabaseUrl = getPublicSupabaseUrl()
+  const supabase = createSupabaseBrowserClient()
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    throw new Error('Usuario no autenticado')
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/functions/v1/zonapagos-pago-token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ orderId, paymentMethodId }),
+    }
+  )
+
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.error || 'Error al cobrar con la tarjeta guardada')
+  }
+
+  return result as PayWithSavedCardResult
+}
+
 export function getPaymentUrl(result: any): string | null {
   return (
     result?.str_url ||

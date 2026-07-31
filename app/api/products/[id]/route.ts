@@ -130,14 +130,42 @@ export async function DELETE(
 
     const { data: currentProduct } = await supabase.from('catalog_products').select('image_url').eq('id', id).single();
 
-    if (currentProduct?.image_url) {
-      await removeImageAndVariants(supabase, 'products', currentProduct.image_url, PRODUCT_IMAGE_VARIANTS);
-    }
-
     const { error } = await supabase.from('catalog_products').delete().eq('id', id);
 
     if (error) {
+      if (error.code === '23503') {
+        const { data: usages } = await supabase
+          .from('store_products')
+          .select('stores(name)')
+          .eq('catalog_product_id', id);
+
+        const storeNames = Array.from(
+          new Set(
+            (usages || [])
+              .map((u: { stores: { name: string } | { name: string }[] | null }) =>
+                Array.isArray(u.stores) ? u.stores[0]?.name : u.stores?.name
+              )
+              .filter((name): name is string => Boolean(name))
+          )
+        );
+
+        const message = [
+          'Este producto no puede eliminarse porque aún está siendo utilizado en algunas tiendas.',
+          '',
+          'Primero elimina el producto de los inventarios de las siguientes tiendas:',
+          ...storeNames.map((name) => `- ${name}`),
+          '',
+          'Después podrás eliminarlo del catálogo.',
+        ].join('\n');
+
+        return NextResponse.json({ error: message, stores: storeNames }, { status: 409 });
+      }
+
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (currentProduct?.image_url) {
+      await removeImageAndVariants(supabase, 'products', currentProduct.image_url, PRODUCT_IMAGE_VARIANTS);
     }
 
     return NextResponse.json({ message: 'Deleted successfully' }, { status: 200 });

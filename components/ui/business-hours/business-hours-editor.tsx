@@ -29,6 +29,27 @@ export function createDefaultBusinessHours(): BusinessHours {
   }));
 }
 
+export function WeeklyHoursDisplay({ hours }: { hours: BusinessHours }) {
+  return (
+    <div className="rounded-2xl border border-mm-crd overflow-hidden divide-y divide-mm-crd">
+      {hours.map((entry) => (
+        <div
+          key={entry.day}
+          className={cn(
+            'flex items-center justify-between gap-3 px-4 py-2.5 bg-white text-sm',
+            entry.is_closed && 'bg-mm-gbg/40'
+          )}
+        >
+          <span className="font-bold text-mm-g">{DAY_LABELS[entry.day]}</span>
+          <span className={cn('text-mm-txs', entry.is_closed && 'text-mm-txw italic')}>
+            {entry.is_closed ? 'Cerrado' : `${entry.open_time} - ${entry.close_time}`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function WeeklyHoursEditor({
   value,
   onChange,

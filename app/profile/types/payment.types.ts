@@ -10,10 +10,3 @@ export type PaymentMethodInsert = Omit<
 
 export type PaymentMethodUpdate =
   Database['public']['Tables']['buyer_payment_methods']['Update'];
-
-export interface PaymentMethodFormValues {
-  label: string;
-  last4: string;
-  exp: string;
-  is_default: boolean;
-}

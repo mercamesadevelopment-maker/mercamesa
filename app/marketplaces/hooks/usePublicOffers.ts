@@ -17,12 +17,17 @@ export function usePublicOffers() {
         
         // Filter only active offers
         const activeOffers = (result.data || []).filter((offer: StoreOffer) => {
-          if (!offer.is_active) return false;
+          if (offer.status !== 'active') return false;
           if (offer.ends_at && new Date(offer.ends_at) < new Date()) return false;
           return true;
         });
 
-        setOffers(activeOffers);
+        // Destacadas primero (orden estable, sin alterar el resto del orden)
+        const sortedOffers = [...activeOffers].sort((a: StoreOffer, b: StoreOffer) =>
+          (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)
+        );
+
+        setOffers(sortedOffers);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error fetching offers';
         setError(msg);

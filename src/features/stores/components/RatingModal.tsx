@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, X } from 'lucide-react';
 import { Button, cn } from '@/src/components/Shared';
@@ -37,7 +38,7 @@ export function RatingModal({
     onClose();
   };
 
-  return (
+  const content = (
     <AnimatePresence>
       {isOpen && storeId && (
         <div className="fixed inset-0 z-[155] flex items-center justify-center p-4">
@@ -111,4 +112,7 @@ export function RatingModal({
       )}
     </AnimatePresence>
   );
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(content, document.body);
 }

@@ -10,6 +10,12 @@ import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 import { ProductCard } from '@/src/features/products/components/ProductCard';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
 import { RatingModal } from '@/src/features/stores/components/RatingModal';
+import { ReviewsPanel } from '@/src/features/stores/components/ReviewsPanel';
+import { Pagination } from '@/app/orders/components/Pagination';
+import { WeeklyHoursDisplay } from '@/components/ui/business-hours/business-hours-editor';
+import { Clock } from 'lucide-react';
+
+const PRODUCTS_PER_PAGE = 20;
 
 export default function StoreDetailPage() {
   const { slug } = useParams();
@@ -27,7 +33,9 @@ export default function StoreDetailPage() {
 
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Todas');
+  const [page, setPage] = useState(1);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isReviewsPanelOpen, setIsReviewsPanelOpen] = useState(false);
 
   const { reviews, myReview, submitReview, fetchReviews } = useStoreReviews(storeId);
 
@@ -87,6 +95,16 @@ export default function StoreDetailPage() {
     });
   }, [products, search, activeCat]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, activeCat]);
+
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (page - 1) * PRODUCTS_PER_PAGE,
+    page * PRODUCTS_PER_PAGE
+  );
+
   if (loadingStore) return <div className="p-12 text-center text-mm-txs">Cargando tienda...</div>;
   if (error || !store) return <div className="p-12 text-center text-r">{error || 'No encontrada'}</div>;
 
@@ -129,20 +147,32 @@ export default function StoreDetailPage() {
             <Badge variant={store.is_active ? 'success' : 'error'} className="mt-1">
               {store.is_active ? 'Abierta' : 'Cerrada'}
             </Badge>
+            {store.store_categories?.name && (
+              <Badge variant="oro" className="mt-1">{store.store_categories.name}</Badge>
+            )}
           </div>
-          
+
           <p className="text-mm-txs mb-2 flex items-center justify-center md:justify-start gap-2">
             <MapPin className="w-4 h-4" /> {store.marketplaces?.name || 'Plaza Central'}
           </p>
-          
+
           {store.description && (
             <p className="text-sm text-mm-txs max-w-2xl mb-4">{store.description}</p>
           )}
 
           {store.contact_phone && (
-             <p className="text-sm text-mm-txs flex items-center justify-center md:justify-start gap-2">
+             <p className="text-sm text-mm-txs flex items-center justify-center md:justify-start gap-2 mb-2">
                <Phone className="w-4 h-4" /> {store.contact_phone}
              </p>
+          )}
+
+          {Array.isArray(store.business_hours) && store.business_hours.length === 7 && (
+            <div className="mt-4 max-w-sm mx-auto md:mx-0">
+              <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2 flex items-center justify-center md:justify-start gap-2">
+                <Clock className="w-3.5 h-3.5" /> Horario de atención
+              </p>
+              <WeeklyHoursDisplay hours={store.business_hours} />
+            </div>
           )}
         </div>
         
@@ -160,6 +190,30 @@ export default function StoreDetailPage() {
           )}
         </div>
       </div>
+      
+      {/* Reviews summary */}
+      <div className="mb-8 bg-white p-6 rounded-3xl border border-mm-crd shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-mm-gbg rounded-2xl flex items-center justify-center text-mm-g shrink-0">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="font-bold text-mm-g">
+              {reviews.length === 0
+                ? 'Todavía no hay reseñas'
+                : `${reviews.length} ${reviews.length === 1 ? 'reseña' : 'reseñas'} de compradores`}
+            </p>
+            <p className="text-xs text-mm-txw">Lo que dicen quienes ya compraron aquí.</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setIsReviewsPanelOpen(true)}>
+          Ver todas las reseñas
+        </Button>
+      </div>
+
+
+
+      
 
       {/* Store Products */}
       <div className="mb-8">
@@ -198,43 +252,17 @@ export default function StoreDetailPage() {
         {loadingProducts ? (
           <div className="py-12 text-center text-mm-txs">Cargando productos...</div>
         ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-            {filteredProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+              {paginatedProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+          </>
         ) : (
           <div className="py-12 bg-mm-gbg/30 rounded-3xl border border-mm-crd text-center text-mm-txw">
             No se encontraron productos con los filtros seleccionados.
-          </div>
-        )}
-      </div>
-
-      {/* Reviews */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-fraunces text-mm-g mb-6 flex items-center gap-2">
-          <MessageSquare className="w-6 h-6" /> Reseñas
-        </h2>
-
-        {reviews.length === 0 ? (
-          <div className="py-12 bg-mm-gbg/30 rounded-3xl border border-mm-crd text-center text-mm-txw">
-            Todavía no hay reseñas para esta tienda.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review.id} className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-bold text-mm-g">{review.profiles?.full_name || 'Comprador'}</p>
-                  <div className="flex items-center gap-1 text-mm-oro">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={cn('w-4 h-4', i < review.stars ? 'fill-mm-oro' : 'text-mm-crd')} />
-                    ))}
-                  </div>
-                </div>
-                {review.comment && <p className="text-sm text-mm-txs">{review.comment}</p>}
-              </div>
-            ))}
           </div>
         )}
       </div>

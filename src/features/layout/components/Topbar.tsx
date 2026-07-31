@@ -10,6 +10,7 @@ import {
   MessageSquare,
   ChevronDown,
   Leaf,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/src/components/Shared';
 import { useTopbar } from '../hooks/useTopbar';
@@ -27,8 +28,11 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
     toggleProfileMenu,
     closeProfileMenu,
     cartCount,
+    unreadNotifs,
     handleLogout,
   } = useTopbar();
+
+  const isStaff = state.userRole === 'admin' || state.userRole === 'provider';
 
   return (
     <header className="fixed top-0 left-0 w-full h-16 bg-mm-g text-white z-[60] flex items-center justify-between px-4 lg:px-8 shadow-lg">
@@ -62,18 +66,35 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        <button
-          onClick={onCartOpen}
-          className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
-        >
-          <ShoppingCart className="w-6 h-6" />
+        {!isStaff && (
+          <button
+            onClick={onCartOpen}
+            className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <ShoppingCart className="w-6 h-6" />
 
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-mm-oro text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-mm-g animate-pop-in">
-              {cartCount}
-            </span>
-          )}
-        </button>
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-mm-oro text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-mm-g animate-pop-in">
+                {cartCount}
+              </span>
+            )}
+          </button>
+        )}
+
+        {isStaff && (
+          <button
+            onClick={() => router.push('/notifications')}
+            className="relative p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <Bell className="w-6 h-6" />
+
+            {unreadNotifs > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-mm-oro text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-mm-g animate-pop-in">
+                {unreadNotifs}
+              </span>
+            )}
+          </button>
+        )}
 
         <div className="relative">
           <button

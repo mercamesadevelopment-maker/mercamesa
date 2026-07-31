@@ -10,6 +10,7 @@ export interface ZonapagosCompraData {
   apellidoCliente: string
   telefonoCliente: string
   orderId: string          // enviado en str_opcional1 para trazabilidad en el callback
+  guardarTarjeta?: boolean // si es true, se pide tokenización (int_codigo 200) a Zonapagos
 }
 
 export interface ZonapagosPayload {

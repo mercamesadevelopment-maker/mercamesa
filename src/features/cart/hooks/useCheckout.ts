@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -8,16 +8,49 @@ import {
   generateIdempotencyKey,
   createOrderWithItems,
   initiateZonapagosPayment,
+  payWithSavedCard,
   getPaymentUrl,
 } from '@/src/features/payment/services/payment.service';
 import { CartItem } from '@/src/types';
 import { checkoutCartDb, clearCartDb } from '../services/cart.service';
+import type { Database } from '@/types/database_generated';
+
+type SavedPaymentMethod = Database['public']['Tables']['buyer_payment_methods']['Row'];
 
 export function useCheckout() {
   const { state, dispatch } = useApp();
   const router = useRouter();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [saveCard, setSaveCard] = useState(false);
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>([]);
+  const [paymentChoice, setPaymentChoice] = useState<'saved' | 'new'>('new');
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSavedPaymentMethods = async () => {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('buyer_payment_methods')
+        .select('*')
+        .eq('buyer_id', user.id)
+        .not('zonapagos_token', 'is', null)
+        .order('is_default', { ascending: false });
+
+      const methods = data || [];
+      setSavedPaymentMethods(methods);
+
+      if (methods.length > 0) {
+        setPaymentChoice('saved');
+        setSelectedPaymentMethodId(methods[0].id);
+      }
+    };
+
+    loadSavedPaymentMethods();
+  }, []);
 
   const isWS = state.userRole === 'wholesale';
   const getPrice = (item: CartItem) => (isWS ? item.wsPrice : item.retailPrice);
@@ -153,6 +186,31 @@ export function useCheckout() {
         }
 
         const orderId = String(orderResult.data.id);
+        const storeProductIds = group.items.map((i) => String(i.id));
+
+        if (paymentChoice === 'saved' && selectedPaymentMethodId) {
+          try {
+            await checkoutCartDb(buyerId, orderId, storeProductIds);
+          } catch (e) {
+            console.error('Error updating cart status to pending in DB:', e);
+          }
+
+          const result = await payWithSavedCard(orderId, selectedPaymentMethodId);
+
+          if (result.paymentStatus === 'rejected') {
+            throw new Error('El pago fue rechazado con la tarjeta guardada. Intenta con otro método de pago.');
+          }
+
+          dispatch({ type: 'CLEAR_CART' });
+          try {
+            await clearCartDb(buyerId);
+          } catch (e) {
+            console.error('Error clearing cart in DB:', e);
+          }
+          router.push('/orders');
+          onClose();
+          return;
+        }
 
         const zonapagosPayload = {
           idPago: Date.now().toString(),
@@ -166,6 +224,7 @@ export function useCheckout() {
           nombreCliente: firstName,
           apellidoCliente: lastName,
           telefonoCliente: profile.phone || '0000000000',
+          guardarTarjeta: saveCard,
         };
 
         const zonapagosResult = await initiateZonapagosPayment(zonapagosPayload);
@@ -173,7 +232,6 @@ export function useCheckout() {
 
         if (paymentUrl) {
           try {
-            const storeProductIds = group.items.map((i) => String(i.id));
             await checkoutCartDb(buyerId, orderId, storeProductIds);
             if (typeof window !== 'undefined') {
               sessionStorage.setItem('pending_checkout_order_id', orderId);
@@ -233,5 +291,12 @@ export function useCheckout() {
     total,
     getPrice,
     handlePlaceOrder,
+    saveCard,
+    setSaveCard,
+    savedPaymentMethods,
+    paymentChoice,
+    setPaymentChoice,
+    selectedPaymentMethodId,
+    setSelectedPaymentMethodId,
   };
 }
