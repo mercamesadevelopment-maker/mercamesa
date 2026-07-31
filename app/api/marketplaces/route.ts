@@ -50,57 +50,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const formData = await request.formData()
-    
-    // We generate an ID beforehand so we can use it for the image folder
-    const marketplaceId = crypto.randomUUID()
-    
-    const name = formData.get('name') as string
-    const slug = formData.get('slug') as string
-    const city = formData.get('city') as string
-    const department = formData.get('department') as string
-    const address = formData.get('address') as string | null
-    const description = formData.get('description') as string | null
-    const latitude = formData.get('latitude') ? parseFloat(formData.get('latitude') as string) : null
-    const longitude = formData.get('longitude') ? parseFloat(formData.get('longitude') as string) : null
-    const is_active = formData.get('is_active') === 'true'
-    const business_hours = formData.get('business_hours')
-      ? JSON.parse(formData.get('business_hours') as string)
-      : null
+    const body = await request.json()
+
+    // El cliente genera el ID de antemano para poder construir la ruta de
+    // Storage antes de guardar; si no viene, se genera acá igual.
+    const marketplaceId = (body.id as string) || crypto.randomUUID()
+
+    const name = body.name as string
+    const slug = body.slug as string
+    const city = body.city as string
+    const department = body.department as string
+    const address = (body.address as string) || null
+    const description = (body.description as string) || null
+    const latitude = body.latitude ? parseFloat(body.latitude as string) : null
+    const longitude = body.longitude ? parseFloat(body.longitude as string) : null
+    const is_active = body.is_active === true || body.is_active === 'true'
+    const business_hours = body.business_hours || null
 
     if (!name || !slug || !city || !department) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // El cliente ya subió el/los original(es) directo a Storage (evita el
+    // límite de payload de las funciones serverless); acá solo descargamos
+    // el buffer para generar los derivados con sharp.
     let cover_image_url: string | null = null
     let logo_url: string | null = null
 
-    // Handle Cover Image Upload
-    const coverImage = formData.get('cover_image') as File | null
-    if (coverImage && coverImage.size > 0) {
-      const path = `imgs/${marketplaceId}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`
-      const buffer = Buffer.from(await coverImage.arrayBuffer())
-      const { error: uploadError } = await supabase.storage
+    if (body.cover_image_url) {
+      cover_image_url = body.cover_image_url as string
+      const { data: fileData, error: downloadError } = await supabase.storage
         .from('plazas')
-        .upload(path, buffer, { contentType: coverImage.type || undefined })
-
-      if (uploadError) throw uploadError
-      cover_image_url = path
-      await uploadVariants(supabase, 'plazas', path, buffer, ['cover'])
+        .download(cover_image_url)
+      if (downloadError) throw downloadError
+      const buffer = Buffer.from(await fileData.arrayBuffer())
+      await uploadVariants(supabase, 'plazas', cover_image_url, buffer, ['cover'])
     }
 
-    // Handle Logo Upload
-    const logoImage = formData.get('logo') as File | null
-    if (logoImage && logoImage.size > 0) {
-      const path = `imgs/${marketplaceId}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`
-      const buffer = Buffer.from(await logoImage.arrayBuffer())
-      const { error: uploadError } = await supabase.storage
+    if (body.logo_url) {
+      logo_url = body.logo_url as string
+      const { data: fileData, error: downloadError } = await supabase.storage
         .from('plazas')
-        .upload(path, buffer, { contentType: logoImage.type || undefined })
-
-      if (uploadError) throw uploadError
-      logo_url = path
-      await uploadVariants(supabase, 'plazas', path, buffer, ['logo'])
+        .download(logo_url)
+      if (downloadError) throw downloadError
+      const buffer = Buffer.from(await fileData.arrayBuffer())
+      await uploadVariants(supabase, 'plazas', logo_url, buffer, ['logo'])
     }
 
     const insertData: MarketplaceInsert = {

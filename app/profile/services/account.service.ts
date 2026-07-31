@@ -13,11 +13,12 @@ export const accountService = {
     return handle<AccountProfile>(await fetch(BASE));
   },
 
-  async updateProfile(formData: FormData): Promise<AccountProfile> {
+  async updateProfile(data: Record<string, unknown>): Promise<AccountProfile> {
     return handle<AccountProfile>(
       await fetch(BASE, {
         method: 'PUT',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       })
     );
   },

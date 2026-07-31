@@ -10,13 +10,14 @@ import {
   createDefaultBusinessHours,
   type BusinessHours,
 } from '@/components/ui/business-hours/business-hours-editor';
+import { uploadImageDirect } from '@/lib/supabase/client-upload';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
 interface MarketplaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: FormData, id?: string) => Promise<boolean>;
+  onSave: (data: Record<string, unknown>, id?: string) => Promise<boolean>;
   initialData?: Marketplace | null;
 }
 
@@ -176,26 +177,27 @@ export function MarketplaceModal({
       return;
     }
 
-    const data = new FormData();
+    const data: Record<string, unknown> = {
+      ...formData,
+      latitude: latitudeStr,
+      longitude: longitudeStr,
+      business_hours: businessHours,
+    };
 
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key === 'latitude') {
-        data.append(key, latitudeStr);
-      } else if (key === 'longitude') {
-        data.append(key, longitudeStr);
-      } else {
-        data.append(key, value.toString());
-      }
-    });
-
-    data.append('business_hours', JSON.stringify(businessHours));
+    const marketplaceId = initialData?.id || crypto.randomUUID();
 
     if (coverImage) {
-      data.append('cover_image', coverImage);
+      const path = `imgs/${marketplaceId}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`;
+      await uploadImageDirect('plazas', path, coverImage);
+      data.id = marketplaceId;
+      data.cover_image_url = path;
     }
 
     if (logoImage) {
-      data.append('logo', logoImage);
+      const path = `imgs/${marketplaceId}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`;
+      await uploadImageDirect('plazas', path, logoImage);
+      data.id = marketplaceId;
+      data.logo_url = path;
     }
 
     const success = await onSave(data, initialData?.id);

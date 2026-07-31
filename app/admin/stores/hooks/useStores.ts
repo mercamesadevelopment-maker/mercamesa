@@ -55,14 +55,15 @@ export function useStores() {
     }
   }, []);
 
-  const saveStore = async (id: string | null, formData: FormData) => {
+  const saveStore = async (id: string | null, data: Record<string, unknown>) => {
     try {
       const url = id ? `/api/stores/${id}` : '/api/stores';
       const method = id ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
-        body: formData, // Sending FormData directly for multipart/form-data
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
 
       const result = await response.json();

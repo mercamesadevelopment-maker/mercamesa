@@ -45,7 +45,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
+    const body = await request.json();
     const updateData: Partial<ProductUpdate> = {};
 
     const fields: (keyof ProductUpdate)[] = [
@@ -59,9 +59,9 @@ export async function PUT(
     ];
 
     fields.forEach((field) => {
-      const val = formData.get(field as string);
+      const val = body[field as string];
 
-      if (val !== null) {
+      if (val !== undefined) {
         (updateData as Record<string, unknown>)[field] = val === '' ? null : String(val);
       }
     });
@@ -74,26 +74,30 @@ export async function PUT(
     ];
 
     booleanFields.forEach((field) => {
-      if (formData.has(field as string)) {
+      if (body[field as string] !== undefined) {
         (updateData as Record<string, unknown>)[field] =
-          formData.get(field as string) === 'true';
+          body[field as string] === true || body[field as string] === 'true';
       }
     });
 
-    const image = formData.get('image') as File | null;
-    if (image && image.size > 0) {
+    // El cliente ya subió el original directo a Storage (evita el límite de
+    // payload de las funciones serverless); acá solo descargamos el buffer
+    // para generar los derivados con sharp.
+    if (body.image_url) {
+      const path = body.image_url as string;
+
       const { data: currentProduct } = await supabase
         .from('catalog_products')
         .select('image_url')
         .eq('id', id)
         .single();
 
-      const path = `imgs/${id}/img-${Date.now()}.${image.name.split('.').pop()}`;
-      const buffer = Buffer.from(await image.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('products').upload(path, buffer, {
-        contentType: image.type || undefined,
-      });
-      if (uploadError) throw uploadError;
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('products')
+        .download(path);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+
       updateData.image_url = path;
       await uploadVariants(supabase, 'products', path, buffer, PRODUCT_IMAGE_VARIANTS);
 

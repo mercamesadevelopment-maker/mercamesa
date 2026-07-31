@@ -54,45 +54,42 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const formData = await request.formData()
-    
+    const body = await request.json()
+
     const updateData: MarketplaceUpdate = {}
 
-    const name = formData.get('name') as string | null
+    const name = body.name as string | null
     if (name) updateData.name = name
 
-    const slug = formData.get('slug') as string | null
+    const slug = body.slug as string | null
     if (slug) updateData.slug = slug
 
-    const city = formData.get('city') as string | null
+    const city = body.city as string | null
     if (city) updateData.city = city
 
-    const department = formData.get('department') as string | null
+    const department = body.department as string | null
     if (department) updateData.department = department
 
-    const address = formData.get('address') as string | null
-    if (address !== null) updateData.address = address
+    const address = body.address as string | null
+    if (address !== undefined) updateData.address = address
 
-    const description = formData.get('description') as string | null
-    if (description !== null) updateData.description = description
+    const description = body.description as string | null
+    if (description !== undefined) updateData.description = description
 
-    if (formData.has('latitude')) {
-      const lat = formData.get('latitude')
-      updateData.latitude = lat ? parseFloat(lat as string) : null
+    if (body.latitude !== undefined) {
+      updateData.latitude = body.latitude ? parseFloat(body.latitude as string) : null
     }
 
-    if (formData.has('longitude')) {
-      const lng = formData.get('longitude')
-      updateData.longitude = lng ? parseFloat(lng as string) : null
+    if (body.longitude !== undefined) {
+      updateData.longitude = body.longitude ? parseFloat(body.longitude as string) : null
     }
 
-    if (formData.has('is_active')) {
-      updateData.is_active = formData.get('is_active') === 'true'
+    if (body.is_active !== undefined) {
+      updateData.is_active = body.is_active === true || body.is_active === 'true'
     }
 
-    if (formData.has('business_hours')) {
-      const businessHours = formData.get('business_hours') as string
-      updateData.business_hours = businessHours ? JSON.parse(businessHours) : null
+    if (body.business_hours !== undefined) {
+      updateData.business_hours = body.business_hours || null
     }
 
     const { data: currentMarketplace } = await supabase
@@ -101,16 +98,15 @@ export async function PUT(
       .eq('id', id)
       .single()
 
-    // Handle Cover Image Upload
-    const coverImage = formData.get('cover_image') as File | null
-    if (coverImage && coverImage.size > 0) {
-      const path = `imgs/${id}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`
-      const buffer = Buffer.from(await coverImage.arrayBuffer())
-      const { error: uploadError } = await supabase.storage
-        .from('plazas')
-        .upload(path, buffer, { contentType: coverImage.type || undefined })
+    // El cliente ya subió el/los original(es) directo a Storage (evita el
+    // límite de payload de las funciones serverless); acá solo descargamos
+    // el buffer para generar los derivados con sharp.
+    if (body.cover_image_url) {
+      const path = body.cover_image_url as string
+      const { data: fileData, error: downloadError } = await supabase.storage.from('plazas').download(path)
+      if (downloadError) throw downloadError
+      const buffer = Buffer.from(await fileData.arrayBuffer())
 
-      if (uploadError) throw uploadError
       updateData.cover_image_url = path
       await uploadVariants(supabase, 'plazas', path, buffer, ['cover'])
 
@@ -119,16 +115,12 @@ export async function PUT(
       }
     }
 
-    // Handle Logo Upload
-    const logoImage = formData.get('logo') as File | null
-    if (logoImage && logoImage.size > 0) {
-      const path = `imgs/${id}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`
-      const buffer = Buffer.from(await logoImage.arrayBuffer())
-      const { error: uploadError } = await supabase.storage
-        .from('plazas')
-        .upload(path, buffer, { contentType: logoImage.type || undefined })
+    if (body.logo_url) {
+      const path = body.logo_url as string
+      const { data: fileData, error: downloadError } = await supabase.storage.from('plazas').download(path)
+      if (downloadError) throw downloadError
+      const buffer = Buffer.from(await fileData.arrayBuffer())
 
-      if (uploadError) throw uploadError
       updateData.logo_url = path
       await uploadVariants(supabase, 'plazas', path, buffer, ['logo'])
 

@@ -3,6 +3,7 @@ import { ImageIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
+import { uploadImageDirect } from '@/lib/supabase/client-upload';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -13,7 +14,7 @@ type Unit = Database['public']['Tables']['measurement_units']['Row'];
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string | null, data: FormData) => Promise<void>;
+  onSave: (id: string | null, data: Record<string, unknown>) => Promise<void>;
   initialData: Product | null;
 }
 
@@ -85,10 +86,17 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
     e.preventDefault();
     setLoading(true);
     try {
-      const submitData = new FormData();
-      Object.entries(formData).forEach(([k, v]) => submitData.append(k, v.toString()));
-      if (imageFile) submitData.append('image', imageFile);
-      await onSave(initialData?.id || null, submitData);
+      const payload: Record<string, unknown> = { ...formData };
+
+      if (imageFile) {
+        const id = initialData?.id || crypto.randomUUID();
+        const path = `imgs/${id}/img-${Date.now()}.${imageFile.name.split('.').pop()}`;
+        await uploadImageDirect('products', path, imageFile);
+        payload.id = id;
+        payload.image_url = path;
+      }
+
+      await onSave(initialData?.id || null, payload);
       onClose();
     } catch (err) {
       console.error(err);

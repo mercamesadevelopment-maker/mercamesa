@@ -45,31 +45,34 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
+    const body = await request.json();
     const updateData: Partial<ProfileUpdate> = {};
 
     const fields: (keyof ProfileUpdate)[] = ['full_name', 'phone', 'document_type', 'document_number'];
     fields.forEach((field) => {
-      const val = formData.get(field as string);
-      if (val !== null) {
+      const val = body[field as string];
+      if (val !== undefined) {
         (updateData as Record<string, unknown>)[field] = String(val);
       }
     });
 
-    const avatar = formData.get('avatar') as File | null;
-    if (avatar && avatar.size > 0) {
+    // El cliente ya subió el original directo a Storage (evita el límite de
+    // payload de las funciones serverless); acá solo descargamos el buffer
+    // para generar los derivados con sharp.
+    if (body.avatar_url) {
+      const path = body.avatar_url as string;
+
       const { data: currentProfile } = await supabase
         .from('profiles')
         .select('avatar_url')
         .eq('id', user.id)
         .single();
 
-      const path = `${user.id}/avatar-${Date.now()}.${avatar.name.split('.').pop()}`;
-      const buffer = Buffer.from(await avatar.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, buffer, {
-        contentType: avatar.type || undefined,
-      });
-      if (uploadError) throw uploadError;
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('avatars')
+        .download(path);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
 
       updateData.avatar_url = path;
       await uploadVariants(supabase, 'avatars', path, buffer, ['logo']);

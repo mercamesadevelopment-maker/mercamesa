@@ -25,11 +25,11 @@ export function useAccount() {
     }
   }, []);
 
-  const saveProfile = useCallback(async (formData: FormData) => {
+  const saveProfile = useCallback(async (payload: Record<string, unknown>) => {
     try {
       setSaving(true);
       setError(null);
-      const data = await accountService.updateProfile(formData);
+      const data = await accountService.updateProfile(payload);
       setProfile(data);
       dispatch({
         type: 'UPDATE_BUYER_PROFILE',

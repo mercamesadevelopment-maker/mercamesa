@@ -29,14 +29,15 @@ export function useProducts() {
     }
   }, []);
 
-  const saveProduct = async (id: string | null, formData: FormData) => {
+  const saveProduct = async (id: string | null, data: Record<string, unknown>) => {
     try {
       const url = id ? `/api/products/${id}` : '/api/products';
       const method = id ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
 
       const result = await response.json();

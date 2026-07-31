@@ -42,7 +42,7 @@ export function useMarketplaces() {
     }
   };
 
-  const saveMarketplace = async (data: FormData, id?: string) => {
+  const saveMarketplace = async (data: Record<string, unknown>, id?: string) => {
     try {
       const isEditing = !!id;
       const url = isEditing ? `/api/marketplaces/${id}` : '/api/marketplaces';
@@ -50,7 +50,8 @@ export function useMarketplaces() {
 
       const res = await fetch(url, {
         method,
-        body: data,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
 
       const json = await res.json();

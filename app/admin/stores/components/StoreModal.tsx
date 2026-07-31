@@ -8,6 +8,7 @@ import {
   createDefaultBusinessHours,
   type BusinessHours,
 } from '@/components/ui/business-hours/business-hours-editor';
+import { uploadImageDirect } from '@/lib/supabase/client-upload';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
@@ -19,7 +20,7 @@ type StoreCategory = Database['public']['Tables']['store_categories']['Row'];
 interface StoreModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string | null, data: FormData) => Promise<void>;
+  onSave: (id: string | null, data: Record<string, unknown>) => Promise<void>;
   initialData: Store | null;
 }
 
@@ -109,11 +110,17 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     setEmailError(null);
     setLoading(true);
     try {
-      const submitData = new FormData();
-      Object.entries(formData).forEach(([k, v]) => submitData.append(k, v.toString()));
-      submitData.append('business_hours', JSON.stringify(businessHours));
-      if (logoFile) submitData.append('logo', logoFile);
-      await onSave(initialData?.id || null, submitData);
+      const payload: Record<string, unknown> = { ...formData, business_hours: businessHours };
+
+      if (logoFile) {
+        const id = initialData?.id || crypto.randomUUID();
+        const path = `imgs/${id}/logo-${Date.now()}.${logoFile.name.split('.').pop()}`;
+        await uploadImageDirect('stores', path, logoFile);
+        payload.id = id;
+        payload.logo_url = path;
+      }
+
+      await onSave(initialData?.id || null, payload);
       onClose();
     } catch (err: any) {
       console.error(err);

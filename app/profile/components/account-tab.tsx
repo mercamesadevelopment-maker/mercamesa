@@ -6,6 +6,8 @@ import { motion } from 'motion/react';
 import { Button, Input } from '@/src/components/Shared';
 import { useAccount } from '../hooks/use-account';
 import { EmailChangeModal } from './email-change-modal';
+import { uploadImageDirect } from '@/lib/supabase/client-upload';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const DOCUMENT_TYPES = [
   { value: 'cedula', label: 'Cédula de ciudadanía' },
@@ -62,14 +64,24 @@ function AccountTabContent() {
     e.preventDefault();
     setSaved(false);
 
-    const formData = new FormData();
-    formData.append('full_name', fullName);
-    formData.append('phone', phone);
-    formData.append('document_type', documentType);
-    formData.append('document_number', documentNumber);
-    if (avatarFile) formData.append('avatar', avatarFile);
+    const payload: Record<string, unknown> = {
+      full_name: fullName,
+      phone,
+      document_type: documentType,
+      document_number: documentNumber,
+    };
 
-    const ok = await saveProfile(formData);
+    if (avatarFile) {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const path = `${user.id}/avatar-${Date.now()}.${avatarFile.name.split('.').pop()}`;
+        await uploadImageDirect('avatars', path, avatarFile);
+        payload.avatar_url = path;
+      }
+    }
+
+    const ok = await saveProfile(payload);
     if (ok) {
       setAvatarFile(null);
       setSaved(true);

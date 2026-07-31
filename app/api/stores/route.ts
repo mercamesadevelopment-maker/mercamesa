@@ -89,22 +89,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const storeId = crypto.randomUUID();
-    
-    const name = formData.get('name') as string;
-    const slug = formData.get('slug') as string;
-    const marketplace_id = formData.get('marketplace_id') as string;
-    const category_id = (formData.get('category_id') as string) || null;
-    const description = formData.get('description') as string | null;
-    const contact_name = formData.get('contact_name') as string | null;
-    const contact_email = formData.get('contact_email') as string | null;
-    const phone = formData.get('phone') as string | null;
-    const whatsapp = formData.get('whatsapp') as string | null;
-    const is_active = formData.get('is_active') === 'true';
-    const business_hours = formData.get('business_hours')
-      ? JSON.parse(formData.get('business_hours') as string)
-      : null;
+    const body = await request.json();
+    const storeId = (body.id as string) || crypto.randomUUID();
+
+    const name = body.name as string;
+    const slug = body.slug as string;
+    const marketplace_id = body.marketplace_id as string;
+    const category_id = (body.category_id as string) || null;
+    const description = (body.description as string) || null;
+    const contact_name = (body.contact_name as string) || null;
+    const contact_email = (body.contact_email as string) || null;
+    const phone = (body.phone as string) || null;
+    const whatsapp = (body.whatsapp as string) || null;
+    const is_active = body.is_active === true || body.is_active === 'true';
+    const business_hours = body.business_hours || null;
 
     if (!name || !slug || !marketplace_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -123,31 +121,30 @@ export async function POST(request: Request) {
       }
     }
 
+    // El cliente ya subió el/los original(es) directo a Storage (evita el
+    // límite de payload de las funciones serverless); acá solo descargamos
+    // el buffer para generar los derivados con sharp.
     let cover_image_url: string | null = null;
     let logo_url: string | null = null;
 
-    const coverImage = formData.get('cover_image') as File | null;
-    if (coverImage && coverImage.size > 0) {
-      const path = `imgs/${storeId}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`;
-      const buffer = Buffer.from(await coverImage.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
-        contentType: coverImage.type || undefined,
-      });
-      if (uploadError) throw uploadError;
-      cover_image_url = path;
-      await uploadVariants(supabase, 'stores', path, buffer, ['cover']);
+    if (body.cover_image_url) {
+      cover_image_url = body.cover_image_url as string;
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('stores')
+        .download(cover_image_url);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      await uploadVariants(supabase, 'stores', cover_image_url, buffer, ['cover']);
     }
 
-    const logoImage = formData.get('logo') as File | null;
-    if (logoImage && logoImage.size > 0) {
-      const path = `imgs/${storeId}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`;
-      const buffer = Buffer.from(await logoImage.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
-        contentType: logoImage.type || undefined,
-      });
-      if (uploadError) throw uploadError;
-      logo_url = path;
-      await uploadVariants(supabase, 'stores', path, buffer, ['logo']);
+    if (body.logo_url) {
+      logo_url = body.logo_url as string;
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('stores')
+        .download(logo_url);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      await uploadVariants(supabase, 'stores', logo_url, buffer, ['logo']);
     }
 
     const insertData: StoreInsert = {

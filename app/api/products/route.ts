@@ -42,21 +42,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const productId = crypto.randomUUID();
-    
-    const name = formData.get('name') as string;
-    const slug = formData.get('slug') as string;
-    const category_id = formData.get('category_id') as string | null;
-    const default_unit_id = formData.get('default_unit_id') as string | null;
-    const description = formData.get('description') as string | null;
-    const dane_unit_code = formData.get('dane_unit_code') as string | null;
-    const dane_unit_name = formData.get('dane_unit_name') as string | null;
-    
-    const is_active = formData.get('is_active') === 'true';
-    const is_ancestral_food = formData.get('is_ancestral_food') === 'true';
-    const is_medicinal_plant = formData.get('is_medicinal_plant') === 'true';
-    const is_non_food = formData.get('is_non_food') === 'true';
+    const body = await request.json();
+    const productId = (body.id as string) || crypto.randomUUID();
+
+    const name = body.name as string;
+    const slug = body.slug as string;
+    const category_id = (body.category_id as string) || null;
+    const default_unit_id = (body.default_unit_id as string) || null;
+    const description = (body.description as string) || null;
+    const dane_unit_code = (body.dane_unit_code as string) || null;
+    const dane_unit_name = (body.dane_unit_name as string) || null;
+
+    const is_active = body.is_active === true || body.is_active === 'true';
+    const is_ancestral_food = body.is_ancestral_food === true || body.is_ancestral_food === 'true';
+    const is_medicinal_plant = body.is_medicinal_plant === true || body.is_medicinal_plant === 'true';
+    const is_non_food = body.is_non_food === true || body.is_non_food === 'true';
 
     if (!name || !slug) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -64,16 +64,17 @@ export async function POST(request: Request) {
 
     let image_url: string | null = null;
 
-    const image = formData.get('image') as File | null;
-    if (image && image.size > 0) {
-      const path = `imgs/${productId}/img-${Date.now()}.${image.name.split('.').pop()}`;
-      const buffer = Buffer.from(await image.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('products').upload(path, buffer, {
-        contentType: image.type || undefined,
-      });
-      if (uploadError) throw uploadError;
-      image_url = path;
-      await uploadVariants(supabase, 'products', path, buffer, PRODUCT_IMAGE_VARIANTS);
+    // El cliente ya subió el original directo a Storage (evita el límite de
+    // payload de las funciones serverless); acá solo descargamos el buffer
+    // para generar los derivados con sharp.
+    if (body.image_url) {
+      image_url = body.image_url as string;
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('products')
+        .download(image_url);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      await uploadVariants(supabase, 'products', image_url, buffer, PRODUCT_IMAGE_VARIANTS);
     }
 
     const insertData: ProductInsert = {

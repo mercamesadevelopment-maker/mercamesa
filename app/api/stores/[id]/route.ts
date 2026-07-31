@@ -58,7 +58,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData();
+    const body = await request.json();
     const updateData: Partial<StoreUpdate> = {};
 
     const fields: (keyof StoreUpdate)[] = [
@@ -73,21 +73,19 @@ export async function PUT(
     ];
 
     fields.forEach((field) => {
-      const val = formData.get(field as string);
+      const val = body[field as string];
 
-      if (val !== null) {
+      if (val !== undefined) {
         (updateData as Record<string, unknown>)[field] = String(val);
       }
     });
 
-    if (formData.has('category_id')) {
-      const categoryId = formData.get('category_id') as string;
-      updateData.category_id = categoryId || null;
+    if (body.category_id !== undefined) {
+      updateData.category_id = (body.category_id as string) || null;
     }
 
-    if (formData.has('business_hours')) {
-      const businessHours = formData.get('business_hours') as string;
-      updateData.business_hours = businessHours ? JSON.parse(businessHours) : null;
+    if (body.business_hours !== undefined) {
+      updateData.business_hours = body.business_hours || null;
     }
 
     if (updateData.contact_email) {
@@ -110,14 +108,15 @@ export async function PUT(
       .eq('id', id)
       .single();
 
-    const coverImage = formData.get('cover_image') as File | null;
-    if (coverImage && coverImage.size > 0) {
-      const path = `imgs/${id}/cover-${Date.now()}.${coverImage.name.split('.').pop()}`;
-      const buffer = Buffer.from(await coverImage.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
-        contentType: coverImage.type || undefined,
-      });
-      if (uploadError) throw uploadError;
+    // El cliente ya subió el/los original(es) directo a Storage (evita el
+    // límite de payload de las funciones serverless); acá solo descargamos
+    // el buffer para generar los derivados con sharp.
+    if (body.cover_image_url) {
+      const path = body.cover_image_url as string;
+      const { data: fileData, error: downloadError } = await supabase.storage.from('stores').download(path);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+
       updateData.cover_image_url = path;
       await uploadVariants(supabase, 'stores', path, buffer, ['cover']);
 
@@ -126,14 +125,12 @@ export async function PUT(
       }
     }
 
-    const logoImage = formData.get('logo') as File | null;
-    if (logoImage && logoImage.size > 0) {
-      const path = `imgs/${id}/logo-${Date.now()}.${logoImage.name.split('.').pop()}`;
-      const buffer = Buffer.from(await logoImage.arrayBuffer());
-      const { error: uploadError } = await supabase.storage.from('stores').upload(path, buffer, {
-        contentType: logoImage.type || undefined,
-      });
-      if (uploadError) throw uploadError;
+    if (body.logo_url) {
+      const path = body.logo_url as string;
+      const { data: fileData, error: downloadError } = await supabase.storage.from('stores').download(path);
+      if (downloadError) throw downloadError;
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+
       updateData.logo_url = path;
       await uploadVariants(supabase, 'stores', path, buffer, ['logo']);
 
