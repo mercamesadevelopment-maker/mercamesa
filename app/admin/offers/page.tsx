@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Tag, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useOffers, StoreOffer } from './hooks/useOffers';
@@ -8,6 +8,14 @@ import { OfferModal } from './components/OfferModal';
 import { Button, Badge } from '@/src/components/Shared';
 
 export default function OffersAdmin() {
+  return (
+    <Suspense fallback={null}>
+      <OffersAdminContent />
+    </Suspense>
+  );
+}
+
+function OffersAdminContent() {
   const { offers, loading, error, fetchOffers, deleteOffer, saveOffer } = useOffers();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<StoreOffer | null>(null);
