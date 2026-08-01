@@ -96,7 +96,19 @@ export async function PUT(
         .from('products')
         .download(path);
       if (downloadError) throw downloadError;
-      const buffer = Buffer.from(await fileData.arrayBuffer());
+
+      console.log('[products PUT] DEBUG downloaded blob', {
+        path,
+        blobType: fileData?.constructor?.name,
+        blobSize: fileData?.size,
+        blobMimeType: (fileData as any)?.type,
+      });
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      console.log('[products PUT] DEBUG arrayBuffer.byteLength', arrayBuffer.byteLength);
+
+      const buffer = Buffer.from(arrayBuffer);
+      console.log('[products PUT] DEBUG buffer.length', buffer.length);
 
       updateData.image_url = path;
       await uploadVariants(supabase, 'products', path, buffer, PRODUCT_IMAGE_VARIANTS);

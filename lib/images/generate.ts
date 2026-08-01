@@ -28,10 +28,44 @@ export async function uploadVariants(
   source: Buffer,
   variants: ImageVariant[]
 ): Promise<void> {
+  // DEBUG temporal: validar el buffer fuente antes de generar cualquier derivado.
+  try {
+    const originalMeta = await sharp(source).metadata();
+    console.log('[uploadVariants] DEBUG source', {
+      bucket,
+      originalPath,
+      sourceBytes: source.length,
+      originalMeta,
+    });
+  } catch (err) {
+    console.error('[uploadVariants] DEBUG source buffer is NOT a valid image', {
+      bucket,
+      originalPath,
+      sourceBytes: source.length,
+      err: err instanceof Error ? err.message : err,
+    });
+  }
+
   for (const variant of variants) {
     let buffer: Buffer;
     try {
       buffer = await generateVariantBuffer(source, variant);
+
+      // DEBUG temporal: validar el derivado generado antes de subirlo.
+      try {
+        const meta = await sharp(buffer).metadata();
+        console.log('[uploadVariants] DEBUG generated variant', {
+          variant,
+          bytes: buffer.length,
+          meta,
+        });
+      } catch (metaErr) {
+        console.error('[uploadVariants] DEBUG generated variant is CORRUPT right after generateVariantBuffer', {
+          variant,
+          bytes: buffer.length,
+          err: metaErr instanceof Error ? metaErr.message : metaErr,
+        });
+      }
     } catch (err) {
       // Formato que sharp no puede procesar (ej. HEIC no soportado, SVG, archivo corrupto):
       // no se genera ese derivado, el <img> caerá al original vía el fallback onError.
@@ -48,6 +82,8 @@ export async function uploadVariants(
 
     if (error) {
       console.error(`No se pudo subir el derivado "${variant}" para ${bucket}/${originalPath}:`, error.message);
+    } else {
+      console.log('[uploadVariants] DEBUG uploaded variant OK', { variant, path, bytes: buffer.length });
     }
   }
 }
