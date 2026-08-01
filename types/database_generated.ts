@@ -176,6 +176,7 @@ export type Database = {
           is_medicinal_plant: boolean
           is_non_food: boolean
           name: string
+          siigo_id: string
           slug: string
           updated_at: string
         }
@@ -194,6 +195,7 @@ export type Database = {
           is_medicinal_plant?: boolean
           is_non_food?: boolean
           name: string
+          siigo_id: string
           slug: string
           updated_at?: string
         }
@@ -212,6 +214,7 @@ export type Database = {
           is_medicinal_plant?: boolean
           is_non_food?: boolean
           name?: string
+          siigo_id?: string
           slug?: string
           updated_at?: string
         }

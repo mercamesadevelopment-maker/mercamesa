@@ -4,6 +4,7 @@ import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/supabase-image';
 import { uploadVariants } from '../../../lib/images/generate';
 import { PRODUCT_IMAGE_VARIANTS } from '../../../lib/images/variants';
+import { generateSiigoCode } from '../../../lib/siigo';
 
 type ProductInsert = Database['public']['Tables']['catalog_products']['Insert'];
 
@@ -91,7 +92,8 @@ export async function POST(request: Request) {
       image_url,
       dane_unit_code: dane_unit_code || null,
       dane_unit_name: dane_unit_name || null,
-      created_by: user.id
+      created_by: user.id,
+      siigo_id: generateSiigoCode(productId),
     };
 
     const { data, error } = await supabase.from('catalog_products').insert(insertData).select().single();

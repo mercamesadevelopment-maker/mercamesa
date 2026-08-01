@@ -5,3 +5,4 @@ export * from "./types";
 export * from "./client";
 export * from "./services/products/product.service";
 export * from "./services/products/account-group.service";
+export * from "./generate-code";
