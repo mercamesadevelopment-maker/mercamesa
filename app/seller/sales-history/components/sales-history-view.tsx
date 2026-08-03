@@ -127,6 +127,7 @@ export function SalesHistoryView() {
       >
         <Eye className="w-5 h-5" />
       </button>
+      {/*
       <button 
         onClick={() => shareOnWhatsApp(item)}
         className="p-2 hover:bg-green-50 rounded-xl transition-colors text-[#25D366]"
@@ -134,6 +135,7 @@ export function SalesHistoryView() {
       >
         <MessageSquare className="w-5 h-5" />
       </button>
+      */}
     </div>
   );
 

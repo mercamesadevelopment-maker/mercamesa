@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Trash2, Users, Clock, ShieldCheck, Plus } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Button, Input } from '@/src/components/Shared';
 
 interface Profile {
@@ -54,6 +55,7 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
   
   const [email, setEmail] = useState('');
   const [roleId, setRoleId] = useState(STORE_ROLES[1].id); // Default to 'seller' / Tendero
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -97,11 +99,11 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
-      if (result.invited) {
-        alert('Invitación enviada por correo electrónico al nuevo usuario!');
-      } else {
-        alert('Usuario asignado exitosamente como miembro!');
-      }
+      setSuccessMessage(
+        result.invited
+          ? 'Invitación enviada por correo electrónico al nuevo usuario.'
+          : 'Usuario asignado exitosamente como miembro.'
+      );
 
       setEmail('');
       fetchMembers();
@@ -272,6 +274,17 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
         </div>
 
       </div>
+
+      <ConfirmModal
+        isOpen={!!successMessage}
+        onClose={() => setSuccessMessage(null)}
+        onConfirm={() => setSuccessMessage(null)}
+        title="Listo"
+        message={successMessage || ''}
+        variant="info"
+        confirmText="Entendido"
+        hideCancel
+      />
     </Modal>
   );
 }

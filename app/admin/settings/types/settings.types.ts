@@ -24,3 +24,11 @@ export type DocumentTypeUpdate = Partial<DocumentTypeInsert>;
 export type StoreCategoryRow = Database['public']['Tables']['store_categories']['Row'];
 export type StoreCategoryInsert = Omit<Database['public']['Tables']['store_categories']['Insert'], 'id' | 'created_at'>;
 export type StoreCategoryUpdate = Partial<StoreCategoryInsert>;
+
+export type OrderMinPriceHistoryRow = Database['public']['Tables']['order_min_price_history']['Row'] & {
+  profiles?: { full_name: string } | null;
+};
+export type OrderMinPriceHistoryInsert = Pick<
+  Database['public']['Tables']['order_min_price_history']['Insert'],
+  'min_price' | 'notes'
+>;

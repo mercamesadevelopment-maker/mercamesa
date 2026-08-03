@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
 import { DocumentTypesTab } from './components/document-types-tab';
 import { StoreCategoriesTab } from './components/store-categories-tab';
+import { OrderMinPriceTab } from './components/order-min-price-tab';
 
-type TabKey = 'categories' | 'units' | 'modules' | 'documents' | 'store_categories';
+type TabKey = 'categories' | 'units' | 'modules' | 'documents' | 'store_categories' | 'order_min_price';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
   {
@@ -40,6 +41,12 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     label: 'Categorías de Tienda',
     icon: Store,
     description: 'Clasificación del tipo de negocio de cada tienda (Frutería, Carnicería, etc.)',
+  },
+  {
+    key: 'order_min_price',
+    label: 'Precio Mínimo de Orden',
+    icon: Wallet,
+    description: 'Valor mínimo requerido para completar un pedido.',
   },
 ];
 
@@ -103,6 +110,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'modules' && <ModulesTab />}
         {activeTab === 'documents' && <DocumentTypesTab />}
         {activeTab === 'store_categories' && <StoreCategoriesTab />}
+        {activeTab === 'order_min_price' && <OrderMinPriceTab />}
       </div>
     </div>
   );

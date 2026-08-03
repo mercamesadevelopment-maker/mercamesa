@@ -900,6 +900,38 @@ export type Database = {
           },
         ]
       }
+      order_min_price_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          min_price: number
+          notes: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          min_price: number
+          notes?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          min_price?: number
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_min_price_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address_change_fee: number

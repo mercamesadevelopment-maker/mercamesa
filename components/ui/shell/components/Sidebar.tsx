@@ -46,7 +46,7 @@ export function Sidebar({
     support: '/support',
     dashboard: '/seller/dashboard',
     products: '/seller/products',
-    reputation: '/seller/reputation',
+    reputation: '/seller/settings',
     whatsapp: '/seller/whatsapp',
     analytics: '/seller/dashboard',
     sales: '/seller/sales',

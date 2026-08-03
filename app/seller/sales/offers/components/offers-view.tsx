@@ -1,104 +1,101 @@
-import React from 'react';
-import { Tag, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Tag, Plus, Trash2, Edit2, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useOffers } from '../hooks/use-offers';
-import { OfferModal } from './offer-modal';
+import { OfferModal } from '@/src/features/offers/components/OfferModal';
+import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { Button, Badge } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendiente',
+  verified: 'Verificada',
+  active: 'Activa',
+  inactive: 'Inactiva',
+};
+
+const STATUS_VARIANTS: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
+  pending: 'warning',
+  verified: 'default',
+  active: 'success',
+  inactive: 'error',
+};
+
 export function OffersView() {
   const router = useRouter();
   const {
-    myOffers,
-    myProducts,
-    isModalOpen,
-    setIsModalOpen,
-    newOffer,
-    setNewOffer,
-    handleAddOffer,
-    handleDeleteOffer,
+    offers,
+    saveOffer,
+    deleteOffer,
     stores,
     storeId,
     selectStore,
   } = useOffers();
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<StoreOffer | null>(null);
+
   const columns = [
     {
-      key: 'emoji',
-      label: 'Icono',
-      render: (item: any) => <span className="text-2xl">{item.emoji}</span>
-    },
-    {
-      key: 'title',
-      label: 'Título',
-      render: (item: any) => (
+      key: 'product',
+      label: 'Producto',
+      render: (item: StoreOffer) => (
         <div>
-          <p className="font-bold text-mm-g">{item.title}</p>
-          <p className="text-[10px] text-mm-txs italic">{item.desc}</p>
+          <p className="font-bold text-mm-g">{item.store_products?.catalog_products?.name || 'N/A'}</p>
+          {item.label && <p className="text-[10px] text-mm-txs italic">{item.label}</p>}
         </div>
       )
     },
     {
-      key: 'productIds',
-      label: 'Productos',
-      render: (item: any) => {
-        const prodNames = item.productIds
-          .map((id: number) => myProducts.find(p => p.id === id)?.name)
-          .filter(Boolean);
-        return <span className="text-xs">{prodNames.join(', ') || 'N/A'}</span>;
-      }
-    },
-    {
-      key: 'value',
+      key: 'discount',
       label: 'Descuento',
-      render: (item: any) => (
-        <Badge variant={item.type === 'percentage' ? 'success' : 'oro'}>
-          {item.type === 'percentage' ? `${item.value}% desc` : `${fmt(item.value)} desc`}
+      render: (item: StoreOffer) => (
+        <Badge variant={item.discount_pct !== null ? 'success' : 'oro'}>
+          {item.discount_pct !== null ? `${item.discount_pct}% desc` : item.special_price ? `${fmt(item.special_price)} desc` : 'N/A'}
         </Badge>
       )
     },
     {
-      key: 'endDate',
+      key: 'ends_at',
       label: 'Vence',
-      render: (item: any) => <span className="text-xs font-mono font-bold">{item.endDate}</span>
+      render: (item: StoreOffer) => (
+        <span className="text-xs font-mono font-bold">
+          {item.ends_at ? new Date(item.ends_at).toLocaleDateString() : 'Sin límite'}
+        </span>
+      )
     },
     {
-      key: 'approvalStatus',
+      key: 'status',
       label: 'Estado',
-      render: (item: any) => {
-        const labels: Record<string, string> = {
-          pending: 'Pendiente',
-          verified: 'Verificada',
-          active: 'Activa',
-          inactive: 'Inactiva',
-        };
-        const variants: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
-          pending: 'warning',
-          verified: 'default',
-          active: 'success',
-          inactive: 'error',
-        };
-        return (
-          <div className="flex items-center gap-2">
-            <Badge variant={variants[item.approvalStatus] || 'default'}>
-              {labels[item.approvalStatus] || item.approvalStatus}
-            </Badge>
-            {item.isFeatured && <Badge variant="oro">Destacada</Badge>}
-          </div>
-        );
-      }
+      render: (item: StoreOffer) => (
+        <div className="flex items-center gap-2">
+          <Badge variant={STATUS_VARIANTS[item.status] || 'default'}>
+            {STATUS_LABELS[item.status] || item.status}
+          </Badge>
+          {item.is_featured && <Badge variant="oro">Destacada</Badge>}
+        </div>
+      )
     }
   ];
 
-  const actions = (item: any) => (
-    <button 
-      onClick={() => handleDeleteOffer(item.id)}
-      className="p-2 hover:bg-rl/10 rounded-full text-mm-txw hover:text-r transition-colors"
-      title="Eliminar Oferta"
-    >
-      <Trash2 className="w-4 h-4" />
-    </button>
+  const actions = (item: StoreOffer) => (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => { setEditingOffer(item); setIsModalOpen(true); }}
+        className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+        title="Editar Oferta"
+      >
+        <Edit2 className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => deleteOffer(item.id)}
+        className="p-2 hover:bg-rl/10 rounded-full text-mm-txw hover:text-r transition-colors"
+        title="Eliminar Oferta"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
   );
 
   return (
@@ -106,7 +103,7 @@ export function OffersView() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.push('/seller/sales')}
             className="p-2.5 hover:bg-mm-gbg rounded-full text-mm-g transition-colors border border-mm-crd shadow-sm"
           >
@@ -133,8 +130,8 @@ export function OffersView() {
             </div>
           )}
         </div>
-        
-        <Button onClick={() => setIsModalOpen(true)} className="shadow-lg shadow-mm-g/10">
+
+        <Button onClick={() => { setEditingOffer(null); setIsModalOpen(true); }} className="shadow-lg shadow-mm-g/10">
           <Plus className="w-5 h-5 mr-1" /> Crear Oferta
         </Button>
       </div>
@@ -149,12 +146,12 @@ export function OffersView() {
              <h3 className="text-xl font-fraunces text-mm-g">Promociones Activas</h3>
           </div>
           <Badge variant="oro" className="text-xs px-4 py-1.5 uppercase shadow-inner">
-            {myOffers.length} ofertas
+            {offers.length} ofertas
           </Badge>
         </div>
 
-        <Table 
-          data={myOffers}
+        <Table
+          data={offers}
           columns={columns}
           actions={actions}
           emptyMessage="No hay ofertas registradas en esta tienda."
@@ -162,13 +159,14 @@ export function OffersView() {
       </div>
 
       {/* Offer Modal */}
-      <OfferModal 
+      <OfferModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        products={myProducts}
-        newOffer={newOffer}
-        setNewOffer={setNewOffer}
-        onSubmit={handleAddOffer}
+        onClose={() => { setIsModalOpen(false); setEditingOffer(null); }}
+        onSave={saveOffer}
+        initialData={editingOffer}
+        storeId={storeId ?? undefined}
+        allowFeatured={false}
+        allowStatusEdit={false}
       />
     </div>
   );

@@ -143,6 +143,21 @@ export async function POST(request: Request) {
 
     // --- END SECURE RE-CALCULATION ---
 
+    // --- MINIMUM ORDER PRICE VALIDATION ---
+    const { data: minPriceRow } = await supabase
+      .from('order_min_price_history')
+      .select('min_price')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (minPriceRow && recalculatedTotal < minPriceRow.min_price) {
+      return NextResponse.json({
+        error: `El pedido no alcanza el valor mínimo de $${minPriceRow.min_price.toLocaleString('es-CO')} para poder procesarse.`,
+      }, { status: 400 });
+    }
+    // --- END MINIMUM ORDER PRICE VALIDATION ---
+
     const orderInsertData: any = {
       buyer_id: order.buyer_id || null,
       client_id: (order as any).client_id || null,

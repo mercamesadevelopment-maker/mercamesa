@@ -15,11 +15,11 @@ export async function GET(request: Request) {
 
   let query = supabase.from('store_products').select(`
     *,
-    catalog_products ( name, image_url, description, category_id, categories ( name ) ),
+    catalog_products ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
     stores ( name, marketplaces ( name ) ),
     measurement_units ( abbreviation )
   `);
-  
+
   if (storeId) {
     query = query.eq('store_id', storeId);
   }
@@ -34,12 +34,43 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // categories se auto-referencia vía parent_id; PostgREST no resuelve un
+  // embed de "categories" dentro de sí misma en este anidamiento, así que
+  // el nombre del padre se resuelve acá con un mapa simple en vez de un
+  // segundo nivel de embed.
+  const parentIds = Array.from(
+    new Set(
+      data
+        .map((p) => p.catalog_products?.categories?.parent_id)
+        .filter((id): id is string => !!id)
+    )
+  );
+
+  let parentNameById = new Map<string, string>();
+  if (parentIds.length > 0) {
+    const { data: parents } = await supabase
+      .from('categories')
+      .select('id, name')
+      .in('id', parentIds);
+    parentNameById = new Map((parents || []).map((c) => [c.id, c.name]));
+  }
+
   // Generar URLs con transformación de Supabase (síncrono, cacheable)
   const productsWithSignedUrls = data.map((product) => {
     const imageSignedUrl = product.catalog_products?.image_url
       ? getSupabaseImageUrl('products', product.catalog_products.image_url, PRESET_PRODUCT_CARD)
       : null;
-    return { ...product, imageSignedUrl };
+    const category = product.catalog_products?.categories;
+    const categoryWithParent = category
+      ? { ...category, parent: category.parent_id ? { name: parentNameById.get(category.parent_id) || '' } : null }
+      : category;
+    return {
+      ...product,
+      imageSignedUrl,
+      catalog_products: product.catalog_products
+        ? { ...product.catalog_products, categories: categoryWithParent }
+        : product.catalog_products,
+    };
   });
 
   return NextResponse.json({ data: productsWithSignedUrls }, { status: 200 });

@@ -16,7 +16,12 @@ export async function GET(request: Request) {
     store_products!inner (
       id,
       store_id,
-      catalog_products ( name, image_url )
+      price_per_unit,
+      stock,
+      unit_id,
+      catalog_products ( name, image_url ),
+      stores ( name ),
+      measurement_units ( abbreviation )
     )
   `);
 
@@ -53,6 +58,17 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
+    // Destacar una oferta es una decisión editorial exclusiva del admin:
+    // se ignora is_featured del body si el usuario no tiene ese rol, sin
+    // confiar en lo que mande el cliente.
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles ( name )')
+      .eq('id', user.id)
+      .single();
+    const requesterRole = (requesterProfile?.roles as any)?.name;
+    const canFeature = requesterRole === 'admin' || requesterRole === 'superadmin';
+
     const insertData: StoreOfferInsert = {
       store_product_id: body.store_product_id,
       label: body.label || null,
@@ -61,7 +77,7 @@ export async function POST(request: Request) {
       starts_at: body.starts_at,
       ends_at: body.ends_at || null,
       status: 'pending',
-      is_featured: body.is_featured ?? false,
+      is_featured: canFeature ? (body.is_featured ?? false) : false,
     };
 
     const { data, error } = await supabase

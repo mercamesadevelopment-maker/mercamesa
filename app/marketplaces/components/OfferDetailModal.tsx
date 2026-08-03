@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart } from 'lucide-react';
-import { StoreOffer } from '../../admin/offers/hooks/useOffers';
+import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Badge, Button } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
@@ -18,29 +18,31 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
   if (!offer) return null;
 
   const product = offer.store_products?.catalog_products;
-  const store = offer.store_products?.store_id; // we might want to fetch store details, but for now we have ID
+  const storeName = offer.store_products?.stores?.name || 'Tienda';
+
+  const originalPrice = offer.store_products?.price_per_unit || 0;
+  const discountedPrice = offer.special_price != null
+    ? Number(offer.special_price)
+    : Math.round(originalPrice * (1 - (offer.discount_pct || 0) / 100));
 
   const isPercentage = !!offer.discount_pct;
   const discountLabel = isPercentage ? `${offer.discount_pct}% DESCUENTO` : `-$${offer.special_price?.toLocaleString('es-CO')} DTO`;
 
   const handleAddToCart = () => {
-    // In a real app we need full product details. Here we construct a CartItem from what we have.
-    const price = offer.special_price || 0; // fallback if not special price
-    
     addToCart({
       id: offer.store_products?.id || '',
       name: product?.name || 'Producto en Oferta',
       cat: 'Ofertas',
-      retailPrice: price,
-      wsPrice: price,
-      stock: 100, // mock
-      unit: 'und',
+      retailPrice: discountedPrice,
+      wsPrice: discountedPrice,
+      stock: offer.store_products?.stock ?? 0,
+      unit: offer.store_products?.measurement_units?.abbreviation || 'und',
       emoji: '🎁',
       image: offer.imageSignedUrl || null,
-      plazaId: 1, // mock
-      storeId: 1, // mock
-      storeName: 'Tienda'
-    } as any);
+      plazaId: 1,
+      storeId: offer.store_products?.store_id || '',
+      storeName,
+    } as any, 1, offer.id);
     onClose();
   };
 
@@ -83,6 +85,7 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
 
             <div className="p-8">
               <div className="mb-6">
+                <p className="text-xs font-bold text-mm-txw uppercase tracking-widest mb-1">{storeName}</p>
                 <h3 className="text-2xl font-fraunces text-mm-g mb-2">{product?.name}</h3>
                 <p className="text-mm-txs">{offer.label || 'Oferta especial por tiempo limitado'}</p>
               </div>
@@ -100,8 +103,11 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
                     </div>
                     <div className="text-right">
                       {isPercentage && <p className="text-[10px] text-r font-bold">Descuento: {offer.discount_pct}%</p>}
+                      {originalPrice > 0 && (
+                        <p className="text-xs text-mm-txw line-through">${originalPrice.toLocaleString('es-CO')}</p>
+                      )}
                       <p className="font-bold text-mm-g">
-                        ${offer.special_price?.toLocaleString('es-CO')}
+                        ${discountedPrice.toLocaleString('es-CO')}
                       </p>
                     </div>
                   </div>

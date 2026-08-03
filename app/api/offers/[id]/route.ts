@@ -27,6 +27,16 @@ export async function PUT(
 
     const body = await request.json();
 
+    // Destacar una oferta es una decisión editorial exclusiva del admin:
+    // se ignora is_featured del body si el usuario no tiene ese rol.
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('roles ( name )')
+      .eq('id', user.id)
+      .single();
+    const requesterRole = (requesterProfile?.roles as any)?.name;
+    const canFeature = requesterRole === 'admin' || requesterRole === 'superadmin';
+
     const updateData: StoreOfferUpdate = {};
 
     if (body.store_product_id !== undefined) updateData.store_product_id = body.store_product_id;
@@ -36,7 +46,7 @@ export async function PUT(
     if (body.starts_at !== undefined) updateData.starts_at = body.starts_at;
     if (body.ends_at !== undefined) updateData.ends_at = body.ends_at || null;
     if (body.status !== undefined) updateData.status = body.status;
-    if (body.is_featured !== undefined) updateData.is_featured = Boolean(body.is_featured);
+    if (body.is_featured !== undefined && canFeature) updateData.is_featured = Boolean(body.is_featured);
 
     const { data, error } = await supabase
       .from('store_offers')

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Badge, Button } from '@/src/components/Shared';
 import { usePublicOffers } from './hooks/usePublicOffers';
 import { OfferDetailModal } from './components/OfferDetailModal';
-import { StoreOffer } from '../admin/offers/hooks/useOffers';
+import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { PlazaList } from './components/PlazaList';
 
 export default function MarketplacesPage() {
@@ -58,6 +58,9 @@ export default function MarketplacesPage() {
                         <h3 className="font-bold text-mm-g leading-tight mb-1 group-hover:text-mm-oro transition-colors truncate">
                           {product?.name || 'Producto en Oferta'}
                         </h3>
+                        <p className="text-[10px] text-mm-txw font-bold uppercase tracking-tighter truncate">
+                          {offer.store_products?.stores?.name || 'Tienda'}
+                        </p>
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="bg-rl text-r px-3 py-1 rounded-full font-bold text-sm">

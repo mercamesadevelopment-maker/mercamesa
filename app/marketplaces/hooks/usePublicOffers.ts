@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StoreOffer } from '../../admin/offers/hooks/useOffers';
+import { StoreOffer } from '@/src/features/offers/types/offer.types';
 
 export function usePublicOffers() {
   const [offers, setOffers] = useState<StoreOffer[]>([]);

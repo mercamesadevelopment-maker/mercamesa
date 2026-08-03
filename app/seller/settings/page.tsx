@@ -1,32 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, Store } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, Loader2, Star, Store } from 'lucide-react';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
-import { useStoreHours } from './hooks/use-store-hours';
-import { WeeklyHoursEditor } from '@/components/ui/business-hours/business-hours-editor';
-import { Button } from '@/src/components/Shared';
+import { StoreHoursTab } from './components/store-hours-tab';
+import { StoreReputationTab } from './components/store-reputation-tab';
+
+type TabKey = 'hours' | 'reputation';
+
+const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
+  { key: 'hours', label: 'Horario', icon: Clock },
+  { key: 'reputation', label: 'Calificaciones', icon: Star },
+];
 
 export default function SellerSettingsPage() {
-  const { storeId, storeName, loading: loadingStore } = useSellerStore();
-  const { businessHours, setBusinessHours, loading, saving, error, fetchHours, saveHours } =
-    useStoreHours(storeId);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    if (storeId) fetchHours();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId]);
-
-  const handleSave = async () => {
-    setSaved(false);
-    try {
-      await saveHours();
-      setSaved(true);
-    } catch {
-      // el error ya se muestra en el banner
-    }
-  };
+  const { stores, storeId, storeName, loading: loadingStore, selectStore } = useSellerStore();
+  const [activeTab, setActiveTab] = useState<TabKey>('hours');
 
   if (loadingStore) {
     return (
@@ -37,43 +26,58 @@ export default function SellerSettingsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-mm-gbg flex items-center justify-center text-mm-g">
-          <Store className="w-6 h-6" />
+    <div className="p-6 lg:p-10 max-w-6xl mx-auto space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-mm-gbg flex items-center justify-center text-mm-g">
+            <Store className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-fraunces text-mm-g">Mi Tienda</h1>
+            <p className="text-sm text-mm-txs">{storeName}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-fraunces text-mm-g">Mi Tienda</h1>
-          <p className="text-sm text-mm-txs">{storeName}</p>
-        </div>
+
+        {stores.length > 1 && (
+          <select
+            value={storeId ?? ''}
+            onChange={(e) => selectStore(e.target.value)}
+            className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {error && (
-        <div className="bg-rl text-r text-sm font-medium px-4 py-3 rounded-2xl">{error}</div>
-      )}
+      {/* Tabs Navigation */}
+      <div className="flex flex-wrap gap-2 border-b border-mm-crd/50 pb-2">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+                isActive
+                  ? 'bg-mm-g text-white shadow-md shadow-mm-g/20 scale-[1.02]'
+                  : 'bg-white text-mm-txs hover:text-mm-g hover:bg-mm-gbg/60 border border-mm-crd/30'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-mm-txw'}`} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-      {saved && !error && (
-        <div className="bg-okl text-ok text-sm font-medium px-4 py-3 rounded-2xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" /> Horario guardado.
-        </div>
-      )}
-
-      <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm space-y-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-mm-txw" />
-          </div>
-        ) : (
-          <>
-            <WeeklyHoursEditor value={businessHours} onChange={(hours) => { setBusinessHours(hours); setSaved(false); }} />
-
-            <div className="flex justify-end">
-              <Button onClick={handleSave} loading={saving}>
-                Guardar horario
-              </Button>
-            </div>
-          </>
-        )}
+      <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
+        {activeTab === 'hours' && <StoreHoursTab storeId={storeId} />}
+        {activeTab === 'reputation' && <StoreReputationTab storeId={storeId} />}
       </div>
     </div>
   );

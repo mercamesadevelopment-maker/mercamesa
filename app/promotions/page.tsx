@@ -7,7 +7,7 @@ import { Badge } from '@/src/components/Shared';
 import { usePublicOffers } from '@/app/marketplaces/hooks/usePublicOffers';
 import { usePublicStores } from '@/app/sections/stores/hooks/usePublicStores';
 import { OfferDetailModal } from '@/app/marketplaces/components/OfferDetailModal';
-import { StoreOffer } from '@/app/admin/offers/hooks/useOffers';
+import { StoreOffer } from '@/src/features/offers/types/offer.types';
 
 export default function PromotionsPage() {
   const { offers, loading: loadingOffers } = usePublicOffers();

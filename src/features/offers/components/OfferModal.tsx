@@ -1,24 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
-import { Database } from '../../../../types/database_generated';
-import { StoreOffer } from '../hooks/useOffers';
+import { SearchableSelect, SelectOption } from '@/components/ui/searchable-select';
+import type { StoreOffer } from '../types/offer.types';
 
-type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
-  catalog_products?: { name: string } | null;
-};
+interface StoreProduct {
+  id: string;
+  store_id: string;
+  price_per_unit: number;
+  catalog_products?: {
+    name: string;
+    categories?: {
+      name: string;
+      parent?: { name: string } | null;
+    } | null;
+  } | null;
+  stores?: { name: string } | null;
+  measurement_units?: { abbreviation: string } | null;
+}
 
 interface OfferModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (id: string | null, data: Partial<StoreOffer>) => Promise<boolean>;
   initialData: StoreOffer | null;
+  storeId?: string;
+  allowFeatured?: boolean;
+  allowStatusEdit?: boolean;
 }
 
-export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalProps) {
+export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allowFeatured = true, allowStatusEdit = true }: OfferModalProps) {
   const [loading, setLoading] = useState(false);
   const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
-  
+
   const [formData, setFormData] = useState({
     store_product_id: '',
     label: '',
@@ -31,12 +45,12 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
   });
 
   useEffect(() => {
-    // Fetch store products to populate the dropdown
-    // In a real scenario you might want to filter by the current user's store
-    fetch('/api/store-products')
+    if (!isOpen) return;
+    const url = storeId ? `/api/store-products?store_id=${storeId}` : '/api/store-products';
+    fetch(url)
       .then(res => res.json())
       .then(data => { if (data.data) setStoreProducts(data.data); });
-  }, []);
+  }, [isOpen, storeId]);
 
   useEffect(() => {
     if (initialData) {
@@ -64,6 +78,22 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
     }
   }, [initialData]);
 
+  const productOptions: SelectOption[] = useMemo(() => {
+    return storeProducts.map((p) => {
+      const category = p.catalog_products?.categories;
+      const group = category
+        ? (category.parent?.name ? `${category.parent.name} > ${category.name}` : category.name)
+        : 'Sin categoría';
+      const unit = p.measurement_units?.abbreviation;
+      const name = p.catalog_products?.name || p.id;
+      let label = unit ? `${name} (${unit})` : name;
+      if (!storeId && p.stores?.name) {
+        label = `${label} — ${p.stores.name}`;
+      }
+      return { value: p.id, label, group };
+    });
+  }, [storeProducts, storeId]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     setFormData(prev => ({
@@ -84,6 +114,12 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
       } else {
         submitData.ends_at = null;
       }
+      if (!allowFeatured) {
+        delete submitData.is_featured;
+      }
+      if (!allowStatusEdit) {
+        delete submitData.status;
+      }
 
       const success = await onSave(initialData?.id || null, submitData as Partial<StoreOffer>);
       if (success) onClose();
@@ -97,15 +133,16 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Editar Oferta' : 'Nueva Oferta'} maxWidth="max-w-2xl">
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-mm-txs ml-1">Producto de la Tienda</label>
-          <select name="store_product_id" value={formData.store_product_id} onChange={handleChange} required disabled={!!initialData}
-            className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm disabled:opacity-50">
-            <option value="">Selecciona un producto</option>
-            {storeProducts.map(p => <option key={p.id} value={p.id}>{p.catalog_products?.name || p.id}</option>)}
-          </select>
-        </div>
+
+        <SearchableSelect
+          label="Producto de la Tienda"
+          required
+          disabled={!!initialData}
+          value={formData.store_product_id}
+          onChange={(val) => setFormData(prev => ({ ...prev, store_product_id: val }))}
+          placeholder="Selecciona un producto..."
+          options={productOptions}
+        />
 
         <Input label="Etiqueta Promocional (Opcional)" name="label" value={formData.label} onChange={handleChange} placeholder="Ej: ¡Oferta de la Semana!" />
 
@@ -120,23 +157,33 @@ export function OfferModal({ isOpen, onClose, onSave, initialData }: OfferModalP
           <Input label="Fecha de Fin (Opcional)" name="ends_at" type="date" value={formData.ends_at} onChange={handleChange} />
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4 items-end">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-mm-txs ml-1">Estado de la oferta</label>
-            <select name="status" value={formData.status} onChange={handleChange}
-              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
-              <option value="pending">Pendiente</option>
-              <option value="verified">Verificada</option>
-              <option value="active">Activa</option>
-              <option value="inactive">Inactiva</option>
-            </select>
-          </div>
+        {(allowStatusEdit || allowFeatured) && (
+          <div className="grid sm:grid-cols-2 gap-4 items-end">
+            {allowStatusEdit && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-mm-txs ml-1">Estado de la oferta</label>
+                <select name="status" value={formData.status} onChange={handleChange}
+                  className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+                  <option value="pending">Pendiente</option>
+                  <option value="verified">Verificada</option>
+                  <option value="active">Activa</option>
+                  <option value="inactive">Inactiva</option>
+                </select>
+              </div>
+            )}
 
-          <div className="flex items-center gap-2 px-1 pb-2.5">
-            <input type="checkbox" id="is_featured" name="is_featured" checked={formData.is_featured} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
-            <label htmlFor="is_featured" className="text-sm font-medium text-mm-txs">Oferta Destacada</label>
+            {allowFeatured && (
+              <div className="flex items-center gap-2 px-1 pb-2.5">
+                <input type="checkbox" id="is_featured" name="is_featured" checked={formData.is_featured} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
+                <label htmlFor="is_featured" className="text-sm font-medium text-mm-txs">Oferta Destacada</label>
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {!allowStatusEdit && !initialData && (
+          <p className="text-[10px] text-mm-txw ml-1 -mt-2">Tu oferta será revisada por el equipo de Mercamesa.</p>
+        )}
 
         <div className="pt-2 flex gap-3 pb-2">
           <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={loading}>Cancelar</Button>

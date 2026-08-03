@@ -4,6 +4,7 @@ import {
   ModuleRow, ModuleInsert, ModuleUpdate,
   DocumentTypeRow, DocumentTypeInsert, DocumentTypeUpdate,
   StoreCategoryRow, StoreCategoryInsert, StoreCategoryUpdate,
+  OrderMinPriceHistoryRow, OrderMinPriceHistoryInsert,
 } from '../types/settings.types';
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -122,4 +123,19 @@ export async function saveStoreCategoryService(id: string | null, payload: Store
 export async function deleteStoreCategoryService(id: string): Promise<void> {
   const res = await fetch(`/api/admin/store-categories/${id}`, { method: 'DELETE' });
   await handleResponse(res);
+}
+
+// ── Order Min Price ─────────────────────────────────────────────────────────
+export async function getOrderMinPriceHistoryService(): Promise<OrderMinPriceHistoryRow[]> {
+  const res = await fetch('/api/admin/order-min-price');
+  return handleResponse<OrderMinPriceHistoryRow[]>(res);
+}
+
+export async function addOrderMinPriceAdjustmentService(payload: OrderMinPriceHistoryInsert): Promise<OrderMinPriceHistoryRow> {
+  const res = await fetch('/api/admin/order-min-price', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<OrderMinPriceHistoryRow>(res);
 }

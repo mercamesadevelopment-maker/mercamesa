@@ -25,7 +25,7 @@ import { AccountTab } from './account-tab';
 type TabId = 'dashboard' | 'addresses' | 'payments' | 'ratings' | 'favorites' | 'prefs' | 'account';
 
 const TABS: { id: TabId; icon: React.ElementType; label: string }[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
   { id: 'addresses', icon: MapPin, label: 'Direcciones' },
   { id: 'payments', icon: CreditCard, label: 'Pagos' },
   { id: 'ratings', icon: Star, label: 'Calificar' },
@@ -34,25 +34,29 @@ const TABS: { id: TabId; icon: React.ElementType; label: string }[] = [
   { id: 'account', icon: User, label: 'Mi cuenta' },
 ];
 
+const BUYER_ONLY_TABS: TabId[] = ['addresses', 'payments', 'ratings', 'favorites'];
+
 export function ProfileLayout() {
   const { state } = useApp();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const isBuyer = state.userRole === 'retail' || state.userRole === 'wholesale';
+  const visibleTabs = isBuyer ? TABS : TABS.filter((tab) => !BUYER_ONLY_TABS.includes(tab.id));
 
   // Sync with global section navigation (e.g. Shell redirects to ratings)
   useEffect(() => {
     if (state.currentSection === 'profile_ratings') {
-      setActiveTab('ratings');
+      setActiveTab(isBuyer ? 'ratings' : 'dashboard');
     } else if (state.currentSection === 'profile_account') {
       setActiveTab('account');
     }
-  }, [state.currentSection]);
+  }, [state.currentSection, isBuyer]);
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <nav className="w-full md:w-64 shrink-0 space-y-1">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}

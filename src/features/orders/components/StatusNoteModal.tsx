@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button } from '@/src/components/Shared';
 import { ClipboardList, MessageSquare } from 'lucide-react';
@@ -6,7 +6,7 @@ import { ClipboardList, MessageSquare } from 'lucide-react';
 interface StatusNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (notes: string) => void;
+  onConfirm: (notes: string) => void | Promise<void>;
   title: string;
   actionLabel: string;
   nextStatusLabel: string;
@@ -21,10 +21,23 @@ export function StatusNoteModal({
   nextStatusLabel,
 }: StatusNoteModalProps) {
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleConfirm = () => {
-    onConfirm(notes);
-    setNotes('');
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      await onConfirm(notes);
+      setNotes('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -64,6 +77,7 @@ export function StatusNoteModal({
             variant="outline"
             size="sm"
             onClick={onClose}
+            disabled={isSubmitting}
             className="rounded-xl px-4 h-10 border border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold"
           >
             Cancelar
@@ -72,9 +86,10 @@ export function StatusNoteModal({
             variant="primary"
             size="sm"
             onClick={handleConfirm}
+            disabled={isSubmitting}
             className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10 bg-mm-g text-white hover:bg-mm-gm font-bold text-xs"
           >
-            {actionLabel}
+            {isSubmitting ? 'Guardando...' : actionLabel}
           </Button>
         </div>
       </div>
