@@ -12,6 +12,10 @@ import {
   type ImportRowResult,
   type ValidatedRow,
 } from '@/lib/product-import';
+import {
+  PRODUCT_CODE_UNIQUE_INDEX,
+  duplicateProductCodeMessage,
+} from '@/lib/products/product-code';
 import type { Database } from '@/types/database_generated';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
@@ -20,6 +24,7 @@ function toInsert(storeId: string, row: ValidatedRow): StoreProductInsert {
   return {
     store_id: storeId,
     catalog_product_id: row.catalogProductId,
+    code: row.productCode,
     unit_id: row.unitId,
     price_per_unit: row.pricePerUnit,
     stock: row.stock,
@@ -31,13 +36,18 @@ function toInsert(storeId: string, row: ValidatedRow): StoreProductInsert {
 }
 
 /**
- * Traduce el error de Postgres a algo accionable. El 23505 es el unique
- * (store_id, catalog_product_id): significa que el producto se publicó entre la
- * validación y la escritura.
+ * Traduce el error de Postgres a algo accionable. Los 23505 solo pueden ocurrir
+ * si algo se publicó entre la validación y la escritura, porque ambos choques ya
+ * se detectan antes.
  */
-function insertErrorMessage(message: string, code?: string): string {
-  if (code === '23505') return 'Ya lo tienes publicado (se publicó mientras se procesaba el archivo).';
-  return message;
+function insertErrorMessage(message: string, code: string | undefined, row: ValidatedRow): string {
+  if (code !== '23505') return message;
+
+  if (message.includes(PRODUCT_CODE_UNIQUE_INDEX)) {
+    return duplicateProductCodeMessage(row.productCode);
+  }
+
+  return 'Ya lo tienes publicado (se publicó mientras se procesaba el archivo).';
 }
 
 export async function POST(request: Request) {
@@ -159,7 +169,7 @@ async function insertRows(
       code: row.code,
       name: row.name,
       status: rowError ? 'failed' : 'created',
-      message: rowError ? insertErrorMessage(rowError.message, rowError.code) : undefined,
+      message: rowError ? insertErrorMessage(rowError.message, rowError.code, row) : undefined,
     });
   }
 

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeText } from '@/src/components/Shared';
+import { productCodeKey } from '@/lib/products/product-code';
 import type { ImportLookups } from './types';
 
 /**
@@ -16,7 +17,7 @@ export async function loadImportLookups(
       .select('id, name, slug, default_unit_id')
       .eq('is_active', true),
     supabase.from('measurement_units').select('id, name, abbreviation').eq('is_active', true),
-    supabase.from('store_products').select('catalog_product_id').eq('store_id', storeId),
+    supabase.from('store_products').select('catalog_product_id, code').eq('store_id', storeId),
   ]);
 
   if (catalogRes.error) throw new Error(catalogRes.error.message);
@@ -50,5 +51,11 @@ export async function loadImportLookups(
     (existingRes.data ?? []).map((row) => row.catalog_product_id)
   );
 
-  return { catalogBySlug, unitIdsByText, existingCatalogProductIds };
+  const existingProductCodes = new Set(
+    (existingRes.data ?? [])
+      .map((row) => productCodeKey(row.code))
+      .filter((code) => code !== '')
+  );
+
+  return { catalogBySlug, unitIdsByText, existingCatalogProductIds, existingProductCodes };
 }

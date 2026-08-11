@@ -1,7 +1,11 @@
 import Papa from 'papaparse';
 import ExcelJS from 'exceljs';
 import { normalizeText } from '@/src/components/Shared';
-import { TEMPLATE_HEADERS, type TemplateField } from './constants';
+import {
+  TEMPLATE_HEADERS,
+  TEMPLATE_HEADER_ALIASES,
+  type TemplateField,
+} from './constants';
 
 /** Una fila de datos del archivo, ya mapeada a los campos de la plantilla. */
 export type RawRow = Partial<Record<TemplateField, string>> & {
@@ -19,11 +23,15 @@ function normalizeHeader(value: string): string {
   return normalizeText(value).replace(/\s+/g, ' ').trim();
 }
 
-const FIELD_BY_HEADER = new Map<string, TemplateField>(
-  (Object.entries(TEMPLATE_HEADERS) as [TemplateField, string][]).map(
-    ([field, header]) => [normalizeHeader(header), field]
-  )
-);
+// Los alias van primero para que el encabezado oficial gane si alguno coincide.
+const FIELD_BY_HEADER = new Map<string, TemplateField>([
+  ...Object.entries(TEMPLATE_HEADER_ALIASES).map(
+    ([header, field]) => [normalizeHeader(header), field] as const
+  ),
+  ...(Object.entries(TEMPLATE_HEADERS) as [TemplateField, string][]).map(
+    ([field, header]) => [normalizeHeader(header), field] as const
+  ),
+]);
 
 /**
  * Excel en configuración regional española suele guardar el CSV en Windows-1252,
@@ -65,7 +73,7 @@ function mapRows(matrix: string[][]): RawRow[] {
 
   if (headerIndex === -1) {
     throw new SpreadsheetError(
-      `No se encontró la fila de encabezados. Usa la plantilla descargable: debe tener al menos las columnas "${TEMPLATE_HEADERS.code}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}".`
+      `No se encontró la fila de encabezados. Usa la plantilla descargable: debe tener al menos las columnas "${TEMPLATE_HEADERS.catalogCode}", "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}".`
     );
   }
 
@@ -77,7 +85,7 @@ function mapRows(matrix: string[][]): RawRow[] {
     }
   });
 
-  for (const required of ['code', 'retailPrice', 'stock'] as TemplateField[]) {
+  for (const required of ['catalogCode', 'productCode', 'retailPrice', 'stock'] as TemplateField[]) {
     if (!Array.from(fieldByColumn.values()).includes(required)) {
       throw new SpreadsheetError(
         `Al archivo le falta la columna "${TEMPLATE_HEADERS[required]}". Descarga la plantilla y vuelve a intentarlo.`

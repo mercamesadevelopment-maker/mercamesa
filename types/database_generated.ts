@@ -1749,6 +1749,7 @@ export type Database = {
       store_products: {
         Row: {
           catalog_product_id: string
+          code: string | null
           created_at: string
           featured_at: string | null
           id: string
@@ -1767,6 +1768,7 @@ export type Database = {
         }
         Insert: {
           catalog_product_id: string
+          code?: string | null
           created_at?: string
           featured_at?: string | null
           id?: string
@@ -1785,6 +1787,7 @@ export type Database = {
         }
         Update: {
           catalog_product_id?: string
+          code?: string | null
           created_at?: string
           featured_at?: string | null
           id?: string

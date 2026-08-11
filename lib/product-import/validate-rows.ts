@@ -1,4 +1,10 @@
 import { normalizeText } from '@/src/components/Shared';
+import {
+  duplicateProductCodeMessage,
+  normalizeProductCode,
+  productCodeKey,
+  validateProductCode,
+} from '@/lib/products/product-code';
 import { MAX_IMPORT_ROWS, TEMPLATE_HEADERS } from './constants';
 import { SpreadsheetError, type RawRow } from './parse-spreadsheet';
 import type { ImportLookups, ImportRowResult, ValidatedRow } from './types';
@@ -49,11 +55,15 @@ function isBlank(value: string | undefined): boolean {
 
 /**
  * La plantilla trae todo el catálogo, así que el seller marca lo que vende
- * llenando precio y stock. Sin ninguno de los dos, la fila no es un error: es
- * un producto que no vende.
+ * llenando las columnas editables. Si no tocó ninguna, la fila no es un error:
+ * es un producto que no vende.
+ *
+ * Basta con que haya llenado una para que la fila entre a validarse: así, si
+ * escribió el código pero olvidó el precio, se lo decimos en vez de ignorarlo
+ * en silencio.
  */
 function isIgnorableRow(row: RawRow): boolean {
-  return isBlank(row.retailPrice) && isBlank(row.stock);
+  return isBlank(row.retailPrice) && isBlank(row.stock) && isBlank(row.productCode);
 }
 
 export interface ValidationResult {
@@ -73,16 +83,17 @@ export function validateRows(rows: RawRow[], lookups: ImportLookups): Validation
   const valid: ValidatedRow[] = [];
   const results: ImportRowResult[] = [];
   const seenCodes = new Map<string, number>();
+  const seenProductCodes = new Map<string, number>();
 
   for (const row of candidates) {
-    const code = (row.code ?? '').trim();
+    const code = (row.catalogCode ?? '').trim();
     const fileName = (row.name ?? '').trim();
 
     const fail = (message: string, name = fileName) =>
       results.push({ row: row.__row, code, name, status: 'failed', message });
 
     if (!code) {
-      fail(`Falta el "${TEMPLATE_HEADERS.code}". No borres esa columna de la plantilla.`);
+      fail(`Falta el "${TEMPLATE_HEADERS.catalogCode}". No borres esa columna de la plantilla.`);
       continue;
     }
 
@@ -113,6 +124,28 @@ export function validateRows(rows: RawRow[], lookups: ImportLookups): Validation
       });
       continue;
     }
+
+    const productCodeError = validateProductCode(row.productCode);
+    if (productCodeError) {
+      fail(`${productCodeError} Es la columna "${TEMPLATE_HEADERS.productCode}".`, product.name);
+      continue;
+    }
+
+    const productCode = normalizeProductCode(row.productCode);
+    const productCodeAsKey = productCodeKey(productCode);
+
+    const previousCodeRow = seenProductCodes.get(productCodeAsKey);
+    if (previousCodeRow !== undefined) {
+      fail(`Ese código ya lo usaste en la fila ${previousCodeRow} del archivo.`, product.name);
+      continue;
+    }
+
+    if (lookups.existingProductCodes.has(productCodeAsKey)) {
+      fail(duplicateProductCodeMessage(productCode), product.name);
+      continue;
+    }
+
+    seenProductCodes.set(productCodeAsKey, row.__row);
 
     let unitId: string | null;
     if (isBlank(row.unit)) {
@@ -191,6 +224,7 @@ export function validateRows(rows: RawRow[], lookups: ImportLookups): Validation
       row: row.__row,
       code,
       name: product.name,
+      productCode,
       catalogProductId: product.id,
       unitId,
       pricePerUnit,

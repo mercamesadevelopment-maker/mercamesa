@@ -138,6 +138,7 @@ export function useSales() {
           emoji: getEmojiForCategory(item.catalog_products?.categories?.name),
           image: item.imageSignedUrl || item.catalog_products?.image_url || '',
           name: item.catalog_products?.name || '',
+          code: item.code || '',
           cat: item.catalog_products?.categories?.name || 'Varios',
           unit: item.measurement_units?.abbreviation || 'kg',
           retailPrice: Number(item.price_per_unit),
@@ -168,11 +169,13 @@ export function useSales() {
   const [customer, setCustomer] = useState<CustomerState>({ name: '', id: '', email: '', phone: '' });
 
   const filteredProducts = useMemo(() => {
+    const term = search.toLowerCase();
     return myProducts.filter(p =>
       p.retailPrice > 0 &&
       p.stock > 0 &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) ||
-       p.cat.toLowerCase().includes(search.toLowerCase()))
+      (p.name.toLowerCase().includes(term) ||
+       p.cat.toLowerCase().includes(term) ||
+       (p.code || '').toLowerCase().includes(term))
     );
   }, [myProducts, search]);
 

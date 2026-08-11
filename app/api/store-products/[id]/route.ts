@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { Database } from '../../../../types/database_generated';
+import {
+  PRODUCT_CODE_UNIQUE_INDEX,
+  duplicateProductCodeMessage,
+  normalizeProductCode,
+  validateProductCode,
+} from '@/lib/products/product-code';
 
 type StoreProductUpdate = Database['public']['Tables']['store_products']['Update'];
 
@@ -33,6 +39,16 @@ export async function PUT(
     if (body.unit_id !== undefined) updateData.unit_id = body.unit_id;
     if (body.store_id !== undefined) updateData.store_id = body.store_id;
     if (body.catalog_product_id !== undefined) updateData.catalog_product_id = body.catalog_product_id;
+
+    // El código es obligatorio también al editar: es la vía por la que los
+    // productos publicados antes de existir la columna van quedando completos.
+    if (body.code !== undefined) {
+      const codeError = validateProductCode(body.code);
+      if (codeError) {
+        return NextResponse.json({ error: codeError }, { status: 400 });
+      }
+      updateData.code = normalizeProductCode(body.code);
+    }
 
     if (body.is_featured !== undefined) {
       const wantsFeatured = Boolean(body.is_featured);
@@ -72,6 +88,9 @@ export async function PUT(
     const { data, error } = await supabase.from('store_products').update(updateData).eq('id', id).select().single();
 
     if (error) {
+      if (error.code === '23505' && error.message.includes(PRODUCT_CODE_UNIQUE_INDEX)) {
+        return NextResponse.json({ error: duplicateProductCodeMessage(body.code) }, { status: 409 });
+      }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 

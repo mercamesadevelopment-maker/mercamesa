@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/supabase-image';
+import {
+  PRODUCT_CODE_UNIQUE_INDEX,
+  duplicateProductCodeMessage,
+  normalizeProductCode,
+  validateProductCode,
+} from '@/lib/products/product-code';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
@@ -87,6 +93,11 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
+    // Asignación masiva del admin (Catálogo -> "Asignar Producto a Tienda"):
+    // un producto del catálogo a varias tiendas de una. Acá no se exige `code`
+    // a propósito, porque el admin no puede conocer el código interno de cada
+    // tienda; esos productos quedan sin código y el vendedor lo completa al
+    // editarlos, igual que los publicados antes de existir la columna.
     if (Array.isArray(body)) {
       const inserts = body.map((item: any) => ({
         catalog_product_id: item.catalog_product_id,
@@ -109,6 +120,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ data }, { status: 201 });
     }
     
+    const codeError = validateProductCode(body.code);
+    if (codeError) {
+      return NextResponse.json({ error: codeError }, { status: 400 });
+    }
+
     const isFeatured = body.is_featured === true;
 
     if (isFeatured) {
@@ -139,11 +155,15 @@ export async function POST(request: Request) {
       is_active: body.is_active ?? true,
       is_featured: isFeatured,
       featured_at: isFeatured ? new Date().toISOString() : null,
+      code: normalizeProductCode(body.code),
     };
 
     const { data, error } = await supabase.from('store_products').insert(insertData).select().single();
 
     if (error) {
+      if (error.code === '23505' && error.message.includes(PRODUCT_CODE_UNIQUE_INDEX)) {
+        return NextResponse.json({ error: duplicateProductCodeMessage(body.code) }, { status: 409 });
+      }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 

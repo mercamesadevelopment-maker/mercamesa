@@ -84,6 +84,8 @@ export interface Product {
   emoji: string;
   image?: string;
   name: string;
+  /** Código propio de la tienda (store_products.code). Vacío en los publicados antes de existir la columna. */
+  code?: string;
   cat: string;
   categoryId?: string;
   unit: string;

@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 
 type StoreProduct = Database['public']['Tables']['store_products']['Row'];
 type CatalogProduct = Database['public']['Tables']['catalog_products']['Row'];
@@ -25,6 +26,7 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
   const [formData, setFormData] = useState({
     catalog_product_id: '',
     store_id: '',
+    code: '',
     unit_id: '',
     price_per_unit: '',
     stock: '',
@@ -46,6 +48,7 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
       setFormData({
         catalog_product_id: initialData.catalog_product_id,
         store_id: initialData.store_id,
+        code: initialData.code || '',
         unit_id: initialData.unit_id,
         price_per_unit: initialData.price_per_unit.toString(),
         stock: initialData.stock.toString(),
@@ -57,7 +60,7 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
       });
     } else {
       setFormData({
-        catalog_product_id: '', store_id: '', unit_id: '',
+        catalog_product_id: '', store_id: '', code: '', unit_id: '',
         price_per_unit: '', stock: '0', min_order_qty: '1',
         wholesale_price: '', wholesale_min_qty: '', is_active: true,
         is_featured: false,
@@ -113,6 +116,21 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
               {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Input
+            label="Código del producto"
+            name="code"
+            value={formData.code}
+            onChange={handleChange}
+            required
+            maxLength={PRODUCT_CODE_MAX_LENGTH}
+            placeholder="Ej: 7702004003508"
+          />
+          <p className="text-xs text-mm-txw ml-1">
+            Código propio de la tienda para este producto. Único dentro de esa tienda.
+          </p>
         </div>
 
         {/* Unidad, Precio y Stock */}

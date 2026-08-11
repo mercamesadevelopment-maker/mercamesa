@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input, Badge } from '@/src/components/Shared';
 import { MasterProduct, Product } from '@/src/types';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface ProductModalProps {
   units: { id: string; name: string; abbreviation: string }[];
   newProduct: {
     name: string;
+    code: string;
     retailPrice: number;
     stock: number;
     unit: string;
@@ -28,6 +30,7 @@ interface ProductModalProps {
   };
   setNewOfferProduct: React.Dispatch<React.SetStateAction<{
     name: string;
+    code: string;
     retailPrice: number;
     stock: number;
     unit: string;
@@ -127,6 +130,21 @@ export function ProductModal({
           </motion.div>
         )}
         
+        <div className="space-y-1.5">
+          <Input
+            label="Código del producto"
+            value={newProduct.code}
+            onChange={e => setNewOfferProduct(prev => ({ ...prev, code: e.target.value }))}
+            placeholder="Ej: 7702004003508"
+            maxLength={PRODUCT_CODE_MAX_LENGTH}
+            required
+          />
+          <p className="text-xs text-mm-txw ml-1">
+            El código con el que identificas este producto en tu tienda. No puede repetirse
+            entre tus productos (máx. {PRODUCT_CODE_MAX_LENGTH} caracteres).
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-sm font-medium text-mm-txs ml-1">Unidad</label>

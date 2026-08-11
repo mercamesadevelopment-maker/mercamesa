@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 import {
   MAX_IMPORT_ROWS,
   TEMPLATE_COLUMN_WIDTHS,
@@ -26,6 +27,7 @@ const FIELDS = Object.keys(TEMPLATE_HEADERS) as TemplateField[];
 /** Columnas que el seller llena; las demás son referencia del catálogo. */
 const EDITABLE_FIELDS: TemplateField[] = [
   'unit',
+  'productCode',
   'retailPrice',
   'stock',
   'wholesalePrice',
@@ -58,7 +60,7 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
 
   for (const product of input.products) {
     const row = sheet.addRow({
-      code: product.code,
+      catalogCode: product.code,
       name: product.name,
       category: product.category,
       subcategory: product.subcategory,
@@ -75,6 +77,9 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
 
     row.getCell(FIELDS.indexOf('retailPrice') + 1).numFmt = '#,##0';
     row.getCell(FIELDS.indexOf('wholesalePrice') + 1).numFmt = '#,##0';
+    // Como texto: si no, Excel convierte un código largo como 7702004003508 a
+    // notación científica y se come los ceros a la izquierda.
+    row.getCell(FIELDS.indexOf('productCode') + 1).numFmt = '@';
   }
 
   sheet.autoFilter = {
@@ -98,9 +103,11 @@ function buildInstructionsSheet(workbook: ExcelJS.Workbook, input: TemplateInput
     { text: `Carga masiva de productos — ${input.storeName}`, bold: true, spaceAfter: true },
     { text: '1. En la hoja "Productos" está todo el catálogo que aún no publicas.', spaceAfter: false },
     {
-      text: `2. Llena "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" SOLO en los productos que vendes. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
+      text: `2. Llena "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" SOLO en los productos que vendes. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
     },
-    { text: `3. No modifiques la columna "${TEMPLATE_HEADERS.code}": es la que identifica cada producto.` },
+    {
+      text: `3. Ojo con las dos columnas de código: "${TEMPLATE_HEADERS.catalogCode}" ya viene llena y NO se debe modificar (es la que identifica el producto), mientras que "${TEMPLATE_HEADERS.productCode}" la escribes tú: es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
+    },
     {
       text: `4. Puedes subir hasta ${MAX_IMPORT_ROWS} productos por archivo. Si vendes más, divídelo en varios.`,
     },

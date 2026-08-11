@@ -80,6 +80,15 @@ export function ProductsView() {
       )
     },
     {
+      key: 'code',
+      label: 'Código',
+      render: (item: any) => (
+        item.code
+          ? <span className="text-sm font-mono text-mm-txs">{item.code}</span>
+          : <span className="text-sm text-mm-txw" title="Este producto aún no tiene código. Edítalo para agregarlo.">—</span>
+      )
+    },
+    {
       key: 'cat',
       label: 'Categoría',
       render: (item: any) => <span className="text-sm text-mm-txs">{item.cat}</span>
@@ -179,7 +188,7 @@ export function ProductsView() {
           <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar por producto o descripción..."
+            placeholder="Buscar por producto, código o descripción..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"

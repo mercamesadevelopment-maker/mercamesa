@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Product, MasterProduct } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { validateProductCode } from '@/lib/products/product-code';
 
 export function useProducts() {
   const { stores, storeId, storeName, selectStore } = useSellerStore();
@@ -35,6 +36,7 @@ export function useProducts() {
 
   const [newProduct, setNewProduct] = useState({
     name: '',
+    code: '',
     retailPrice: 0,
     stock: 0,
     unit: 'kg',
@@ -70,6 +72,7 @@ export function useProducts() {
         emoji: getEmojiForCategory(item.catalog_products?.categories?.name),
         image: item.imageSignedUrl || item.catalog_products?.image_url || '',
         name: item.catalog_products?.name || '',
+        code: item.code || '',
         cat: item.catalog_products?.categories?.name || 'Varios',
         categoryId: item.catalog_products?.category_id || '',
         unit: item.measurement_units?.abbreviation || 'kg',
@@ -145,6 +148,7 @@ export function useProducts() {
     setEditingProduct(null);
     setNewProduct({
       name: '',
+      code: '',
       retailPrice: 0,
       stock: 0,
       unit: 'kg',
@@ -165,6 +169,7 @@ export function useProducts() {
     setEditingProduct(p);
     setNewProduct({
       name: p.name,
+      code: p.code || '',
       retailPrice: p.retailPrice,
       stock: p.stock,
       unit: p.unit,
@@ -196,6 +201,12 @@ export function useProducts() {
       return;
     }
 
+    const codeError = validateProductCode(newProduct.code);
+    if (codeError) {
+      alert(codeError);
+      return;
+    }
+
     try {
       if (editingProduct) {
         // Actualizar
@@ -204,6 +215,7 @@ export function useProducts() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             unit_id: newProduct.unitId,
+            code: newProduct.code,
             price_per_unit: newProduct.retailPrice,
             stock: newProduct.stock,
             min_order_qty: newProduct.minOrderQty,
@@ -226,6 +238,7 @@ export function useProducts() {
             catalog_product_id: newProduct.masterId,
             store_id: storeId,
             unit_id: newProduct.unitId,
+            code: newProduct.code,
             price_per_unit: newProduct.retailPrice,
             stock: newProduct.stock,
             min_order_qty: newProduct.minOrderQty,
@@ -246,6 +259,7 @@ export function useProducts() {
       setEditingProduct(null);
       setNewProduct({
         name: '',
+        code: '',
         retailPrice: 0,
         stock: 0,
         unit: 'kg',
@@ -280,10 +294,12 @@ export function useProducts() {
   const filteredProducts = useMemo(() => {
     return myProducts.filter((p) => {
       // 1. Search Query: matches product name or description
+      const term = search.toLowerCase();
       const matchesSearch =
         !search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.desc.toLowerCase().includes(search.toLowerCase());
+        p.name.toLowerCase().includes(term) ||
+        p.desc.toLowerCase().includes(term) ||
+        (p.code || '').toLowerCase().includes(term);
 
       // 2. Store: matches store ID
       const matchesStore = !selectedStore || p.storeId === selectedStore;

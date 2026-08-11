@@ -122,7 +122,7 @@ export function SalesView() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-mm-txw" />
               <input 
                 type="text" 
-                placeholder="Buscar por nombre o categoría..." 
+                placeholder="Buscar por nombre, categoría o código..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-mm-gbg/30 border-none rounded-2xl py-4 pl-12 pr-4 text-sm outline-none focus:ring-2 ring-mm-g/20 transition-all font-medium shadow-inner"
@@ -152,6 +152,9 @@ export function SalesView() {
                         )}
                       </div>
                       <p className="text-sm font-bold text-mm-g leading-tight mb-1 truncate w-full">{product.name}</p>
+                      {product.code && (
+                        <p className="text-[10px] text-mm-txw font-mono truncate w-full mb-0.5">{product.code}</p>
+                      )}
                       <p className="text-xs font-bold text-blue font-mono">{fmt(product.retailPrice)}</p>
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="w-8 h-8 rounded-full bg-mm-g text-white flex items-center justify-center shadow-lg">

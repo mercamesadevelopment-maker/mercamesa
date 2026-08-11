@@ -90,8 +90,9 @@ export function BulkImportModal({
             <div className="bg-mm-gbg/20 border border-mm-crd rounded-2xl p-5 space-y-3">
               <p className="text-sm text-mm-txs leading-relaxed">
                 Descarga la plantilla{storeName ? ` de ${storeName}` : ''}: trae el catálogo con los
-                productos que aún no publicas. Llena <strong>precio</strong> y <strong>stock</strong>{' '}
-                solo en los que vendes —las filas vacías se ignoran— y súbela.
+                productos que aún no publicas. Llena <strong>tu código</strong>,{' '}
+                <strong>precio</strong> y <strong>stock</strong> solo en los que vendes —las filas
+                vacías se ignoran— y súbela.
               </p>
               <p className="text-xs text-mm-txw">
                 Puedes publicar hasta {MAX_IMPORT_ROWS} productos por archivo (.xlsx o .csv). Si alguna

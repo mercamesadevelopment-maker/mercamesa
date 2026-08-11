@@ -27,8 +27,11 @@ export interface ImportReport {
 /** Fila ya validada, lista para insertarse en store_products. */
 export interface ValidatedRow {
   row: number;
+  /** Slug del catálogo: identifica de qué producto se trata. */
   code: string;
   name: string;
+  /** Código propio de la tienda para este producto. */
+  productCode: string;
   catalogProductId: string;
   unitId: string;
   pricePerUnit: number;
@@ -46,4 +49,6 @@ export interface ImportLookups {
   unitIdsByText: Map<string, string[]>;
   /** catalog_product_id ya publicados por la tienda */
   existingCatalogProductIds: Set<string>;
+  /** Códigos ya usados por la tienda, en mayúsculas (igual que el índice único) */
+  existingProductCodes: Set<string>;
 }

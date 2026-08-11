@@ -17,11 +17,12 @@ export const XLSX_MIME =
  * que "categoria" o "CATEGORÍA" también funcionan.
  */
 export const TEMPLATE_HEADERS = {
-  code: 'Código',
+  catalogCode: 'Código catálogo',
   name: 'Producto',
   category: 'Categoría',
   subcategory: 'Subcategoría',
   unit: 'Unidad',
+  productCode: 'Código del producto',
   retailPrice: 'Precio minorista',
   stock: 'Stock',
   wholesalePrice: 'Precio mayorista',
@@ -31,13 +32,25 @@ export const TEMPLATE_HEADERS = {
 
 export type TemplateField = keyof typeof TEMPLATE_HEADERS;
 
+/**
+ * Encabezados alternativos aceptados al leer un archivo. La columna del catálogo
+ * se llamaba solo "Código" antes de que existiera el código del producto; se
+ * sigue aceptando para no romper plantillas ya descargadas.
+ */
+export const TEMPLATE_HEADER_ALIASES: Record<string, TemplateField> = {
+  'Código': 'catalogCode',
+  'Código de barras': 'productCode',
+  'Tu código': 'productCode',
+};
+
 /** Anchos de columna del xlsx, en el mismo orden que TEMPLATE_HEADERS. */
 export const TEMPLATE_COLUMN_WIDTHS: Record<TemplateField, number> = {
-  code: 28,
+  catalogCode: 28,
   name: 38,
   category: 22,
   subcategory: 22,
   unit: 12,
+  productCode: 22,
   retailPrice: 18,
   stock: 12,
   wholesalePrice: 18,
