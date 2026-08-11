@@ -12,7 +12,8 @@ interface ConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  /** Acepta JSX además de texto plano, para poder resaltar partes del mensaje. */
+  message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   variant?: 'danger' | 'warning' | 'info';

@@ -1,0 +1,205 @@
+import { normalizeText } from '@/src/components/Shared';
+import { MAX_IMPORT_ROWS, TEMPLATE_HEADERS } from './constants';
+import { SpreadsheetError, type RawRow } from './parse-spreadsheet';
+import type { ImportLookups, ImportRowResult, ValidatedRow } from './types';
+
+/**
+ * Interpreta un número escrito a mano en Excel: tolera "$", espacios, puntos de
+ * miles y coma decimal (formato colombiano) además del formato inglés.
+ */
+export function parseNumber(input: string | undefined): number | null {
+  if (!input) return null;
+
+  const cleaned = input.replace(/[^\d.,-]/g, '');
+  if (!cleaned || !/\d/.test(cleaned)) return null;
+
+  const lastDot = cleaned.lastIndexOf('.');
+  const lastComma = cleaned.lastIndexOf(',');
+
+  let normalized: string;
+  if (lastDot !== -1 && lastComma !== -1) {
+    // Conviven ambos: el último es el separador decimal, el otro es de miles.
+    const decimalSep = lastDot > lastComma ? '.' : ',';
+    const thousandSep = decimalSep === '.' ? ',' : '.';
+    normalized = cleaned.split(thousandSep).join('').replace(decimalSep, '.');
+  } else if (lastComma !== -1) {
+    const decimals = cleaned.length - lastComma - 1;
+    normalized =
+      cleaned.indexOf(',') === lastComma && decimals !== 3
+        ? cleaned.replace(',', '.')
+        : cleaned.split(',').join('');
+  } else if (lastDot !== -1) {
+    const isSingle = cleaned.indexOf('.') === lastDot;
+    const decimals = cleaned.length - lastDot - 1;
+    // "1.200" en Colombia son mil doscientos, no 1,2. Varios puntos ("1.200.000")
+    // solo pueden ser separadores de miles; uno solo lo es si deja exactamente
+    // tres cifras a la derecha.
+    normalized = !isSingle || decimals === 3 ? cleaned.split('.').join('') : cleaned;
+  } else {
+    normalized = cleaned;
+  }
+
+  const value = Number(normalized);
+  return Number.isFinite(value) ? value : null;
+}
+
+function isBlank(value: string | undefined): boolean {
+  return !value || value.trim() === '';
+}
+
+/**
+ * La plantilla trae todo el catálogo, así que el seller marca lo que vende
+ * llenando precio y stock. Sin ninguno de los dos, la fila no es un error: es
+ * un producto que no vende.
+ */
+function isIgnorableRow(row: RawRow): boolean {
+  return isBlank(row.retailPrice) && isBlank(row.stock);
+}
+
+export interface ValidationResult {
+  valid: ValidatedRow[];
+  results: ImportRowResult[];
+}
+
+export function validateRows(rows: RawRow[], lookups: ImportLookups): ValidationResult {
+  const candidates = rows.filter((row) => !isIgnorableRow(row));
+
+  if (candidates.length > MAX_IMPORT_ROWS) {
+    throw new SpreadsheetError(
+      `El archivo tiene ${candidates.length} productos con datos y el máximo por carga es ${MAX_IMPORT_ROWS}. Divídelo en varios archivos.`
+    );
+  }
+
+  const valid: ValidatedRow[] = [];
+  const results: ImportRowResult[] = [];
+  const seenCodes = new Map<string, number>();
+
+  for (const row of candidates) {
+    const code = (row.code ?? '').trim();
+    const fileName = (row.name ?? '').trim();
+
+    const fail = (message: string, name = fileName) =>
+      results.push({ row: row.__row, code, name, status: 'failed', message });
+
+    if (!code) {
+      fail(`Falta el "${TEMPLATE_HEADERS.code}". No borres esa columna de la plantilla.`);
+      continue;
+    }
+
+    const normalizedCode = normalizeText(code).trim();
+
+    const previousRow = seenCodes.get(normalizedCode);
+    if (previousRow !== undefined) {
+      fail(`Este producto ya venía en la fila ${previousRow} del archivo.`);
+      continue;
+    }
+    seenCodes.set(normalizedCode, row.__row);
+
+    const product = lookups.catalogBySlug.get(normalizedCode);
+    if (!product) {
+      fail(
+        `El código "${code}" no existe en el catálogo o está inactivo. Descarga la plantilla de nuevo y copia el código desde ahí.`
+      );
+      continue;
+    }
+
+    if (lookups.existingCatalogProductIds.has(product.id)) {
+      results.push({
+        row: row.__row,
+        code,
+        name: product.name,
+        status: 'skipped',
+        message: 'Ya lo tienes publicado. Edita su precio o stock desde el listado.',
+      });
+      continue;
+    }
+
+    let unitId: string | null;
+    if (isBlank(row.unit)) {
+      unitId = product.defaultUnitId;
+      if (!unitId) {
+        fail(
+          `Este producto no tiene unidad por defecto: escribe la "${TEMPLATE_HEADERS.unit}" en el archivo.`,
+          product.name
+        );
+        continue;
+      }
+    } else {
+      const matches = lookups.unitIdsByText.get(normalizeText(row.unit!).trim()) ?? [];
+      if (matches.length === 0) {
+        fail(`La unidad "${row.unit}" no existe. Usa una de las de la hoja "Instrucciones".`, product.name);
+        continue;
+      }
+      if (matches.length > 1) {
+        fail(
+          `La unidad "${row.unit}" coincide con varias unidades de medida. Escríbela como aparece en la hoja "Instrucciones".`,
+          product.name
+        );
+        continue;
+      }
+      unitId = matches[0];
+    }
+
+    const pricePerUnit = parseNumber(row.retailPrice);
+    if (pricePerUnit === null || pricePerUnit <= 0) {
+      fail(`El "${TEMPLATE_HEADERS.retailPrice}" debe ser un número mayor que cero.`, product.name);
+      continue;
+    }
+
+    const stock = parseNumber(row.stock);
+    if (stock === null || stock < 0) {
+      fail(`El "${TEMPLATE_HEADERS.stock}" debe ser un número mayor o igual a cero.`, product.name);
+      continue;
+    }
+
+    let wholesalePrice: number | null = null;
+    if (!isBlank(row.wholesalePrice)) {
+      wholesalePrice = parseNumber(row.wholesalePrice);
+      if (wholesalePrice === null || wholesalePrice <= 0) {
+        fail(`El "${TEMPLATE_HEADERS.wholesalePrice}" debe ser un número mayor que cero o quedar vacío.`, product.name);
+        continue;
+      }
+      if (wholesalePrice > pricePerUnit) {
+        fail(
+          `El "${TEMPLATE_HEADERS.wholesalePrice}" no puede ser mayor que el "${TEMPLATE_HEADERS.retailPrice}".`,
+          product.name
+        );
+        continue;
+      }
+    }
+
+    let wholesaleMinQty: number | null = null;
+    if (!isBlank(row.wholesaleMinQty)) {
+      wholesaleMinQty = parseNumber(row.wholesaleMinQty);
+      if (wholesaleMinQty === null || wholesaleMinQty <= 0) {
+        fail(`La "${TEMPLATE_HEADERS.wholesaleMinQty}" debe ser un número mayor que cero o quedar vacía.`, product.name);
+        continue;
+      }
+    }
+
+    let minOrderQty = 1;
+    if (!isBlank(row.minOrderQty)) {
+      const parsed = parseNumber(row.minOrderQty);
+      if (parsed === null || parsed <= 0) {
+        fail(`El "${TEMPLATE_HEADERS.minOrderQty}" debe ser un número mayor que cero o quedar vacío.`, product.name);
+        continue;
+      }
+      minOrderQty = parsed;
+    }
+
+    valid.push({
+      row: row.__row,
+      code,
+      name: product.name,
+      catalogProductId: product.id,
+      unitId,
+      pricePerUnit,
+      stock,
+      wholesalePrice,
+      wholesaleMinQty,
+      minOrderQty,
+    });
+  }
+
+  return { valid, results };
+}

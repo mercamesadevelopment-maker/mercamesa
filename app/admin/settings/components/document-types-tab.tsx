@@ -7,7 +7,7 @@ import { DocumentTypeRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge, Input } from '@/src/components/Shared';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function DocumentTypesTab() {
   const { documentTypes, loading, error, saveDocumentType, deleteDocumentType } = useDocumentTypes();

@@ -55,6 +55,54 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: existingOrder, idempotent: true }, { status: 200 });
     }
 
+    // --- DELIVERY ADDRESS VALIDATION ---
+    // La dirección no puede confiarse al cliente: hay que verificar que exista
+    // y que sea del comprador, o cualquiera podría mandar el id de la dirección
+    // de otra persona.
+    if (!order.delivery_address_id) {
+      return NextResponse.json(
+        { error: 'Debes seleccionar una dirección de entrega para el pedido.' },
+        { status: 400 }
+      );
+    }
+
+    const { data: deliveryAddress, error: addressError } = await supabase
+      .from('delivery_addresses')
+      .select('id, buyer_id, label, address_line, neighborhood, municipality, department, latitude, longitude')
+      .eq('id', order.delivery_address_id)
+      .maybeSingle();
+
+    if (addressError) {
+      return NextResponse.json({ error: addressError.message }, { status: 400 });
+    }
+
+    if (!deliveryAddress) {
+      return NextResponse.json(
+        { error: 'La dirección de entrega seleccionada no existe.' },
+        { status: 400 }
+      );
+    }
+
+    if (deliveryAddress.buyer_id !== user.id) {
+      return NextResponse.json(
+        { error: 'La dirección de entrega no pertenece a este usuario.' },
+        { status: 403 }
+      );
+    }
+
+    // Copia congelada: la orden debe conservar a dónde se envió, aunque después
+    // el comprador edite o borre esa dirección.
+    const deliveryAddressSnapshot = {
+      label: deliveryAddress.label,
+      address_line: deliveryAddress.address_line,
+      neighborhood: deliveryAddress.neighborhood,
+      municipality: deliveryAddress.municipality,
+      department: deliveryAddress.department,
+      latitude: deliveryAddress.latitude,
+      longitude: deliveryAddress.longitude,
+    };
+    // --- END DELIVERY ADDRESS VALIDATION ---
+
     // --- SECURE PRICE VALIDATION & RE-CALCULATION ON SERVER SIDE ---
     // 1. Check buyer type (retail vs wholesale) securely from the database
     let isWS = false;
@@ -170,6 +218,7 @@ export async function POST(request: Request) {
       total: recalculatedTotal,
       notes: order.notes,
       delivery_address_id: order.delivery_address_id,
+      delivery_address_snapshot: deliveryAddressSnapshot,
       client_idempotency_key: order.client_idempotency_key,
     };
 

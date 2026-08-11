@@ -22,7 +22,7 @@ serve(async (req) => {
     }
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev'
+    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@mercamesa.com'
 
     if (!resendApiKey) {
       console.error('RESEND_API_KEY secret is not set in Supabase')

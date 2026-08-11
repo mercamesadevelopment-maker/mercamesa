@@ -8,7 +8,7 @@ import { StoreDocumentsModal } from '@/app/admin/stores/components/StoreDocument
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'motion/react';
 import { Database } from '../../../types/database_generated';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];

@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { usePayments } from '../hooks/use-payments';
 import { Badge } from '@/src/components/Shared';
 import { CreditCard, Trash2, Loader2 } from 'lucide-react';
+import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
 
 export function PaymentsTab() {
   const { paymentMethods, loading, error, fetchPaymentMethods, deletePaymentMethod } = usePayments();
@@ -34,7 +35,9 @@ export function PaymentsTab() {
           <div>
             <h2 className="text-3xl font-fraunces text-mm-g">Medios de Pago</h2>
             <p className="text-sm text-mm-txw mt-1">
-              Se guardan automáticamente cuando marcas &quot;Guardar esta tarjeta&quot; al pagar un pedido.
+              {CARD_TOKENIZATION_ENABLED
+                ? 'Se guardan automáticamente cuando marcas "Guardar esta tarjeta" al pagar un pedido.'
+                : 'Guardar tarjetas está deshabilitado por ahora. Las que ya tenías siguen aquí y puedes eliminarlas cuando quieras.'}
             </p>
           </div>
         </div>

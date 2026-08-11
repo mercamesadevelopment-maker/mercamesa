@@ -1,0 +1,15 @@
+# Configuración de pnpm.
+#
+# Desde pnpm 11 los ajustes ya no se leen del campo "pnpm" de package.json
+# (pnpm avisa explícitamente que los ignora) sino de este archivo, y la opción
+# se llama `allowBuilds` — `onlyBuiltDependencies` era la sintaxis de pnpm 10.
+#
+# pnpm 10+ bloquea los scripts de instalación por defecto. esbuild es
+# dependencia de tsx y su postinstall prepara el binario nativo; sin aprobarlo,
+# pnpm falla antes de correr cualquier script (incluidos `pibox:hooks` y
+# `backfill:images`).
+#
+# sharp NO va acá: la versión 0.35 no tiene script de install/postinstall,
+# distribuye binarios pre-compilados como dependencias opcionales por plataforma.
+allowBuilds:
+  esbuild: true

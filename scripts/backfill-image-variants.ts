@@ -13,8 +13,8 @@
  * interrumpir y volver a correr sin duplicar trabajo.
  *
  * Uso:
- *   npm run backfill:images -- --dry-run   (solo inventaria, no sube nada)
- *   npm run backfill:images                (genera y sube los derivados)
+ *   pnpm backfill:images --dry-run   (solo inventaria, no sube nada)
+ *   pnpm backfill:images             (genera y sube los derivados)
  */
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';

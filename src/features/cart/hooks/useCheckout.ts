@@ -13,6 +13,7 @@ import {
 } from '@/src/features/payment/services/payment.service';
 import { CartItem } from '@/src/types';
 import { checkoutCartDb, clearCartDb } from '../services/cart.service';
+import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
 import type { Database } from '@/types/database_generated';
 
 type SavedPaymentMethod = Database['public']['Tables']['buyer_payment_methods']['Row'];
@@ -26,8 +27,13 @@ export function useCheckout() {
   const [savedPaymentMethods, setSavedPaymentMethods] = useState<SavedPaymentMethod[]>([]);
   const [paymentChoice, setPaymentChoice] = useState<'saved' | 'new'>('new');
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Con la tokenización apagada no hay dónde usar las tarjetas guardadas,
+    // así que ni siquiera se consultan.
+    if (!CARD_TOKENIZATION_ENABLED) return;
+
     const loadSavedPaymentMethods = async () => {
       const supabase = createSupabaseBrowserClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -95,6 +101,13 @@ export function useCheckout() {
   const handlePlaceOrder = async (onClose: () => void) => {
     if (isPlacingOrder) return;
 
+    // Se corta antes de crear nada: sin esto, una orden sin dirección se creaba
+    // en silencio y quedaba imposible de despachar.
+    if (!selectedAddressId) {
+      setErrorMessage('Selecciona la dirección a la que quieres recibir tu pedido.');
+      return;
+    }
+
     setIsPlacingOrder(true);
     setErrorMessage(null);
 
@@ -127,13 +140,6 @@ export function useCheckout() {
         throw new Error('El usuario no tiene email registrado');
       }
 
-      const { data: defaultAddress } = await supabase
-        .from('delivery_addresses')
-        .select('id')
-        .eq('buyer_id', buyerId)
-        .eq('is_default', true)
-        .single();
-
       const nameParts = (profile.full_name || '').trim().split(' ');
       const firstName = nameParts[0] || 'Cliente';
       const lastName = nameParts.slice(1).join(' ') || 'MercaMesa';
@@ -156,7 +162,7 @@ export function useCheckout() {
             discount: 0,
             total: groupTotal,
             notes: 'Pedido desde la web',
-            delivery_address_id: defaultAddress?.id || null,
+            delivery_address_id: selectedAddressId,
             client_idempotency_key: `${idempotencyKey}-${group.store.id}`,
           },
           items: group.items.map((i) => ({
@@ -224,7 +230,7 @@ export function useCheckout() {
           nombreCliente: firstName,
           apellidoCliente: lastName,
           telefonoCliente: profile.phone || '0000000000',
-          guardarTarjeta: saveCard,
+          guardarTarjeta: CARD_TOKENIZATION_ENABLED && saveCard,
         };
 
         const zonapagosResult = await initiateZonapagosPayment(zonapagosPayload);
@@ -298,5 +304,7 @@ export function useCheckout() {
     setPaymentChoice,
     selectedPaymentMethodId,
     setSelectedPaymentMethodId,
+    selectedAddressId,
+    setSelectedAddressId,
   };
 }

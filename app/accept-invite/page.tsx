@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';

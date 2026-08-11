@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History, Upload } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
@@ -7,6 +7,7 @@ import { useProducts } from '../hooks/use-products';
 import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
 import { StockMovementModal } from './StockMovementModal';
+import { BulkImportModal } from './bulk-import-modal';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
@@ -38,9 +39,11 @@ export function ProductsView() {
     fetchStoreProducts,
     stores,
     storeId,
+    storeName,
     selectStore,
   } = useProducts();
 
+  const [isBulkImportOpen, setIsBulkImportOpen] = React.useState(false);
   const [selectedProductForHistory, setSelectedProductForHistory] = React.useState<any | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
   const [selectedProductForMovement, setSelectedProductForMovement] = React.useState<any | null>(null);
@@ -159,9 +162,14 @@ export function ProductsView() {
           <h1 className="text-4xl font-fraunces text-mm-g mb-2">Productos</h1>
           <p className="text-mm-txs">Gestiona tus productos, precios y existencias.</p>
         </div>
-        <Button onClick={handleOpenAdd} className="shadow-lg shadow-mm-g/10">
-          <Plus className="w-5 h-5 mr-1" /> Agregar
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => setIsBulkImportOpen(true)} disabled={!storeId}>
+            <Upload className="w-5 h-5 mr-1" /> Carga masiva
+          </Button>
+          <Button onClick={handleOpenAdd} className="shadow-lg shadow-mm-g/10">
+            <Plus className="w-5 h-5 mr-1" /> Agregar
+          </Button>
+        </div>
       </div>
 
       {/* Filtros de Búsqueda, Tienda y Categoría */}
@@ -370,6 +378,15 @@ export function ProductsView() {
         newProduct={newProduct}
         setNewOfferProduct={setNewProduct}
         onSubmit={handleAddProduct}
+      />
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        storeId={storeId}
+        storeName={storeName}
+        onImported={fetchStoreProducts}
       />
 
       {/* Stock History Modal */}

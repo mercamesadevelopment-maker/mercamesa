@@ -942,6 +942,7 @@ export type Database = {
           consecutive: number
           created_at: string
           delivery_address_id: string | null
+          delivery_address_snapshot: Json | null
           delivery_fee: number
           discount: number
           id: string
@@ -961,6 +962,7 @@ export type Database = {
           consecutive?: number
           created_at?: string
           delivery_address_id?: string | null
+          delivery_address_snapshot?: Json | null
           delivery_fee?: number
           discount?: number
           id?: string
@@ -980,6 +982,7 @@ export type Database = {
           consecutive?: number
           created_at?: string
           delivery_address_id?: string | null
+          delivery_address_snapshot?: Json | null
           delivery_fee?: number
           discount?: number
           id?: string
@@ -1123,6 +1126,89 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders_detail_view"
             referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      pibox_bookings: {
+        Row: {
+          booking_id: string
+          canceled_pickup_reason_cd: number | null
+          created_at: string
+          currency: string
+          driver_name: string | null
+          driver_phone: string | null
+          estimated_cost: number | null
+          final_cost: number | null
+          id: string
+          is_active: boolean
+          not_received_reason_cd: number | null
+          package_id: string | null
+          package_status_cd: number | null
+          pickup_validation_code: string | null
+          raw: Json | null
+          relaunched_to_booking_id: string | null
+          status_cd: number | null
+          store_order_id: string
+          tracking_link: string | null
+          updated_at: string
+          validation_code: string | null
+          vehicle_plates: string | null
+        }
+        Insert: {
+          booking_id: string
+          canceled_pickup_reason_cd?: number | null
+          created_at?: string
+          currency?: string
+          driver_name?: string | null
+          driver_phone?: string | null
+          estimated_cost?: number | null
+          final_cost?: number | null
+          id?: string
+          is_active?: boolean
+          not_received_reason_cd?: number | null
+          package_id?: string | null
+          package_status_cd?: number | null
+          pickup_validation_code?: string | null
+          raw?: Json | null
+          relaunched_to_booking_id?: string | null
+          status_cd?: number | null
+          store_order_id: string
+          tracking_link?: string | null
+          updated_at?: string
+          validation_code?: string | null
+          vehicle_plates?: string | null
+        }
+        Update: {
+          booking_id?: string
+          canceled_pickup_reason_cd?: number | null
+          created_at?: string
+          currency?: string
+          driver_name?: string | null
+          driver_phone?: string | null
+          estimated_cost?: number | null
+          final_cost?: number | null
+          id?: string
+          is_active?: boolean
+          not_received_reason_cd?: number | null
+          package_id?: string | null
+          package_status_cd?: number | null
+          pickup_validation_code?: string | null
+          raw?: Json | null
+          relaunched_to_booking_id?: string | null
+          status_cd?: number | null
+          store_order_id?: string
+          tracking_link?: string | null
+          updated_at?: string
+          validation_code?: string | null
+          vehicle_plates?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pibox_bookings_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
           },
         ]
       }

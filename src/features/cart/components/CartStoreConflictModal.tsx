@@ -14,10 +14,20 @@ export function CartStoreConflictModal() {
       isOpen={conflict !== null}
       onClose={handleClose}
       onConfirm={handleClose}
-      title="Solo puedes pedir de una tienda a la vez"
-      message={`Ya tienes productos de ${conflict?.currentStoreName ?? 'otra tienda'} en tu canasta. Para agregar productos de otra tienda, primero finaliza o vacía tu pedido actual.`}
+      title="Solo puedes comprar productos de una tienda a la vez."
+      message={
+        <>
+          Tu carrito contiene productos de{' '}
+          <strong className="font-bold text-mm-g">
+            {conflict?.currentStoreName ?? 'otra tienda'}
+          </strong>
+          . Para seguir comprando, agrega más productos de esa tienda. Si
+          prefieres comprar en otra tienda, vacía el carrito y crea un nuevo
+          pedido.
+        </>
+      }
       confirmText="Entendido"
-      cancelText="Entendido"
+      cancelText="Cerrar"
       variant="warning"
     />
   );

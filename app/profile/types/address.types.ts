@@ -18,4 +18,7 @@ export interface AddressFormValues {
   municipality: string;
   department: string;
   is_default: boolean;
+  /** Las usa Pibox para que el mensajero encuentre el punto exacto */
+  latitude: number | null;
+  longitude: number | null;
 }

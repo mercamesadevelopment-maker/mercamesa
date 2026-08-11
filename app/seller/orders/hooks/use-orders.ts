@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
+import { formatDeliveryAddress } from '@/src/features/orders/utils/format-delivery-address';
 
 export function useOrders() {
   const { stores, storeId, storeName, selectStore } = useSellerStore();
@@ -64,6 +66,7 @@ export function useOrders() {
                 phone
               )
             ),
+            delivery_address_snapshot,
             delivery_addresses (
               label,
               address_line,
@@ -112,13 +115,10 @@ export function useOrders() {
       const mappedOrders: Order[] = storeOrdersData.map((so: any) => {
         const parentOrder = so.orders;
         const buyer = parentOrder?.profiles;
-        const addressObj = parentOrder?.delivery_addresses;
-
-        const addressStr = addressObj
-          ? `${addressObj.address_line ?? ''}, ${addressObj.neighborhood ?? ''}, ${addressObj.municipality ?? ''}, ${addressObj.department ?? ''}`
-            .replace(/,\s*,/g, ',')
-            .replace(/^,\s*|,\s*$/g, '')
-          : 'Retiro en tienda';
+        const addressStr = formatDeliveryAddress(
+          parentOrder?.delivery_address_snapshot,
+          parentOrder?.delivery_addresses
+        );
 
         // Filter and map items belonging to this order's store
         const storeItems: OrderItem[] = (itemsData || [])
@@ -207,34 +207,11 @@ export function useOrders() {
   }, [myOrders]);
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus, notes?: string) => {
-    const supabase = createSupabaseBrowserClient();
     try {
       const order = myOrders.find(o => o.id === orderId);
       if (!order || !order.storeOrderId) return;
 
-      // 1. Actualizar el estado en store_orders
-      const { error: updateError } = await supabase
-        .from('store_orders')
-        .update({ status })
-        .eq('id', order.storeOrderId);
-
-      if (updateError) throw updateError;
-
-      // 2. Obtener el usuario autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // 3. Crear el registro en el historial
-      const { error: historyError } = await supabase
-        .from('store_order_status_history')
-        .insert({
-          store_order_id: order.storeOrderId,
-          status,
-          notes: notes || null,
-          changed_by: user?.id || null
-        });
-
-      if (historyError) throw historyError;
-
+      await updateStoreOrderStatus(order.storeOrderId, status, notes);
       await fetchStoreOrders();
     } catch (err) {
       console.error('Error updating store order status:', err);

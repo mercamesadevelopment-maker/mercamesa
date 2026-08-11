@@ -3,6 +3,7 @@ import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { formatDeliveryAddress } from '@/src/features/orders/utils/format-delivery-address';
 
 export interface UnifiedHistoryItem {
   id: string; // e.g. "Digital #MM-1234" or "Físico #1001"
@@ -52,6 +53,7 @@ export function useSalesHistory() {
               phone,
               document_number
             ),
+            delivery_address_snapshot,
             delivery_addresses (
               label,
               address_line,
@@ -93,17 +95,16 @@ export function useSalesHistory() {
         const parentOrder = so.orders as any;
         const buyer = parentOrder?.profiles;
         const client = parentOrder?.clients;
-        const addressObj = parentOrder?.delivery_addresses;
-
         const isLocal = !parentOrder?.buyer_id;
 
+        // La venta física no tiene dirección de envío y eso es correcto, no un
+        // dato faltante: se mantiene como rama aparte.
         const addressStr = isLocal
           ? 'Venta física (Local)'
-          : (addressObj
-              ? `${addressObj.address_line ?? ''}, ${addressObj.neighborhood ?? ''}, ${addressObj.municipality ?? ''}, ${addressObj.department ?? ''}`
-                .replace(/,\s*,/g, ',')
-                .replace(/^,\s*|,\s*$/g, '')
-              : 'Retiro en tienda');
+          : formatDeliveryAddress(
+              parentOrder?.delivery_address_snapshot,
+              parentOrder?.delivery_addresses
+            );
 
         const storeItems: OrderItem[] = (itemsData || [])
           .filter((item: any) => item.order_id === so.order_id)
