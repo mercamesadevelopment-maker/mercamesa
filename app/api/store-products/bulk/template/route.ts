@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { XLSX_MIME, buildTemplateWorkbook, type TemplateProduct } from '@/lib/product-import';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { applyCatalogVisibility, getStoreGroupId } from '@/lib/catalog/visibility';
 
 interface CatalogRow {
   id: string;
@@ -54,15 +55,22 @@ export async function GET(request: Request) {
     // El catálogo y los productos de la tienda se paginan: PostgREST devuelve
     // 1.000 filas por defecto y sin aviso, así que sin esto la plantilla saldría
     // incompleta en cuanto el catálogo pase ese tamaño.
+    // El grupo decide qué parte del catálogo ve esta tienda: los productos
+    // exclusivos de otro grupo no deben aparecer en su plantilla.
+    const storeGroupId = await getStoreGroupId(supabase, storeId);
+
     const [storeRes, catalog, units, publishedRows] = await Promise.all([
       supabase.from('stores').select('name').eq('id', storeId).single(),
       fetchAllRows<CatalogRow>((from, to) =>
-        supabase
-          .from('catalog_products')
-          .select('id, name, slug, default_unit_id, categories ( name, parent_id )')
-          .eq('is_active', true)
-          .order('name')
-          .range(from, to)
+        applyCatalogVisibility(
+          supabase
+            .from('catalog_products')
+            .select('id, name, slug, default_unit_id, categories ( name, parent_id )')
+            .eq('is_active', true)
+            .order('name')
+            .range(from, to),
+          storeGroupId
+        )
       ),
       fetchAllRows<UnitRow>((from, to) =>
         supabase

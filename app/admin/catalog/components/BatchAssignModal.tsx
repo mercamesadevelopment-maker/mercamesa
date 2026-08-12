@@ -37,6 +37,35 @@ export function BatchAssignModal({ isOpen, onClose, selectedProductIds, onSave }
     fetch('/api/measurement-units').then(res => res.json()).then(data => { if (data.data) setUnits(data.data); });
   }, []);
 
+  // Un producto exclusivo de un grupo solo lo pueden publicar las tiendas de ese
+  // grupo. El servidor lo rechaza igual con 403, pero es mejor no ofrecer una
+  // combinación que va a fallar.
+  const requiredGroupIds = React.useMemo(() => {
+    const selected = new Set(selectedProductIds);
+    return new Set(
+      catalogProducts
+        .filter((product) => selected.has(product.id) && product.owner_group_id)
+        .map((product) => product.owner_group_id as string)
+    );
+  }, [catalogProducts, selectedProductIds]);
+
+  const eligibleStores = React.useMemo(() => {
+    if (requiredGroupIds.size === 0) return stores;
+    // Con productos de dos grupos distintos en la misma selección no hay tienda
+    // que pueda recibirlos todos.
+    if (requiredGroupIds.size > 1) return [];
+    const [groupId] = Array.from(requiredGroupIds);
+    return stores.filter((store) => store.store_group_id === groupId);
+  }, [stores, requiredGroupIds]);
+
+  // Si la tienda elegida deja de ser elegible al cambiar la selección, se limpia
+  // para no enviar una asignación que el servidor va a rechazar.
+  useEffect(() => {
+    if (formData.store_id && !eligibleStores.some((store) => store.id === formData.store_id)) {
+      setFormData((prev) => ({ ...prev, store_id: '' }));
+    }
+  }, [eligibleStores, formData.store_id]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     setFormData(prev => ({
@@ -90,8 +119,21 @@ export function BatchAssignModal({ isOpen, onClose, selectedProductIds, onSave }
           <select name="store_id" value={formData.store_id} onChange={handleChange} required
             className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
             <option value="">Selecciona una tienda</option>
-            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {eligibleStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
+          {requiredGroupIds.size > 1 && (
+            <p className="text-xs text-r ml-1">
+              La selección mezcla productos exclusivos de grupos distintos: ninguna tienda puede
+              recibirlos todos. Asígnalos por separado.
+            </p>
+          )}
+          {requiredGroupIds.size === 1 && (
+            <p className="text-xs text-mm-txw ml-1">
+              {eligibleStores.length > 0
+                ? 'Solo se listan las tiendas del grupo dueño de estos productos.'
+                : 'Ninguna tienda pertenece al grupo dueño de estos productos. Asígnale tiendas al grupo en Parametrización → Grupos de Tiendas.'}
+            </p>
+          )}
         </div>
 
         {/* Unidad, Precio y Stock */}

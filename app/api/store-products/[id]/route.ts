@@ -7,11 +7,49 @@ import {
   normalizeProductCode,
   validateProductCode,
 } from '@/lib/products/product-code';
+import { canManageStore } from '@/lib/auth/can-manage-store';
+import { EXCLUSIVE_PRODUCT_MESSAGE, findExclusivityViolations } from '@/lib/catalog/visibility';
 
 type StoreProductUpdate = Database['public']['Tables']['store_products']['Update'];
 
 const MAX_FEATURED_PER_STORE = 5;
 const MAX_FEATURED_MESSAGE = `Ya tienes ${MAX_FEATURED_PER_STORE} productos destacados. Quita uno para destacar otro.`;
+
+interface CurrentRow {
+  store_id: string;
+  catalog_product_id: string;
+  is_featured: boolean;
+}
+
+/**
+ * Carga la fila y verifica que el usuario pueda gestionar su tienda.
+ *
+ * store_products no tiene RLS, así que sin esto cualquier usuario autenticado
+ * podía editar o borrar el inventario de una tienda ajena conociendo su id.
+ */
+async function loadAndAuthorize(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+  userId: string
+): Promise<{ current: CurrentRow } | { response: NextResponse }> {
+  const { data: current, error } = await supabase
+    .from('store_products')
+    .select('store_id, catalog_product_id, is_featured')
+    .eq('id', id)
+    .single();
+
+  if (error || !current) {
+    return { response: NextResponse.json({ error: 'Producto no encontrado.' }, { status: 404 }) };
+  }
+
+  if (!(await canManageStore(supabase, current.store_id, userId))) {
+    return {
+      response: NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 }),
+    };
+  }
+
+  return { current: current as CurrentRow };
+}
 
 export async function PUT(
   request: Request,
@@ -26,7 +64,37 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const authorized = await loadAndAuthorize(supabase, id, user.id);
+    if ('response' in authorized) return authorized.response;
+    const { current } = authorized;
+
     const body = await request.json();
+
+    // Mover el producto a otra tienda o apuntarlo a otro producto del catálogo
+    // vuelve a poner en juego la exclusividad, así que se valida el par final.
+    const targetStoreId = body.store_id ?? current.store_id;
+    const targetCatalogProductId = body.catalog_product_id ?? current.catalog_product_id;
+
+    if (targetStoreId !== current.store_id) {
+      if (!(await canManageStore(supabase, targetStoreId, user.id))) {
+        return NextResponse.json(
+          { error: 'No tienes permisos sobre la tienda destino.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (
+      targetStoreId !== current.store_id ||
+      targetCatalogProductId !== current.catalog_product_id
+    ) {
+      const violations = await findExclusivityViolations(supabase, [
+        { storeId: targetStoreId, catalogProductId: targetCatalogProductId },
+      ]);
+      if (violations.length > 0) {
+        return NextResponse.json({ error: EXCLUSIVE_PRODUCT_MESSAGE }, { status: 403 });
+      }
+    }
 
     const updateData: StoreProductUpdate = {};
 
@@ -53,21 +121,11 @@ export async function PUT(
     if (body.is_featured !== undefined) {
       const wantsFeatured = Boolean(body.is_featured);
 
-      const { data: current, error: currentError } = await supabase
-        .from('store_products')
-        .select('store_id, is_featured')
-        .eq('id', id)
-        .single();
-
-      if (currentError) {
-        return NextResponse.json({ error: currentError.message }, { status: 400 });
-      }
-
       if (wantsFeatured && !current.is_featured) {
         const { count, error: countError } = await supabase
           .from('store_products')
           .select('id', { count: 'exact', head: true })
-          .eq('store_id', current.store_id)
+          .eq('store_id', targetStoreId)
           .eq('is_featured', true);
 
         if (countError) {
@@ -113,6 +171,9 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const authorized = await loadAndAuthorize(supabase, id, user.id);
+    if ('response' in authorized) return authorized.response;
 
     const { error } = await supabase.from('store_products').delete().eq('id', id);
 

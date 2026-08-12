@@ -22,10 +22,19 @@ export interface ValidatedRow {
   minOrderQty: number;
 }
 
+/** Producto del catálogo activo, con si esta tienda puede publicarlo. */
+export interface CatalogEntry {
+  id: string;
+  name: string;
+  defaultUnitId: string | null;
+  /** `false` si el producto es exclusivo de otro grupo de tiendas. */
+  usable: boolean;
+}
+
 /** Datos que la validación necesita de la base, ya resueltos. */
 export interface ImportLookups {
   /** slug normalizado -> producto del catálogo activo */
-  catalogBySlug: Map<string, { id: string; name: string; defaultUnitId: string | null }>;
+  catalogBySlug: Map<string, CatalogEntry>;
   /** abreviatura o nombre normalizado -> ids de unidades activas que coinciden */
   unitIdsByText: Map<string, string[]>;
   /** catalog_product_id ya publicados por la tienda */

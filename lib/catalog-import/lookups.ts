@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeText } from '@/src/components/Shared';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import type { CatalogLookups, CategoryOption, UnitOption } from './types';
+import type { CatalogLookups, CategoryOption, StoreGroupOption, UnitOption } from './types';
 
 interface CategoryRow {
   id: string;
@@ -41,7 +41,7 @@ function addMatch(map: Map<string, string[]>, text: string, id: string) {
 export async function loadCatalogLookups(
   supabase: SupabaseClient<any>
 ): Promise<CatalogLookups> {
-  const [categoryRows, unitRows, productRows] = await Promise.all([
+  const [categoryRows, unitRows, productRows, groupRows] = await Promise.all([
     fetchAllRows<CategoryRow>((from, to) =>
       supabase
         .from('categories')
@@ -60,6 +60,11 @@ export async function loadCatalogLookups(
     ),
     fetchAllRows<ProductRow>((from, to) =>
       supabase.from('catalog_products').select('name, slug, category_id').order('slug').range(from, to)
+    ),
+    // Los grupos son pocos (uno por comerciante con productos propios), pero se
+    // pagina igual por consistencia con el resto.
+    fetchAllRows<StoreGroupOption>((from, to) =>
+      supabase.from('store_groups').select('id, name').order('name').range(from, to)
     ),
   ]);
 
@@ -117,6 +122,16 @@ export async function loadCatalogLookups(
     addMatch(unitIdsByText, unit.abbreviation, unit.id);
   }
 
+  // store_groups no tiene unique en name (sí en slug), así que dos grupos podrían
+  // llamarse igual; se tratan como ambiguos en vez de elegir uno al azar.
+  const storeGroups: StoreGroupOption[] = [...groupRows].sort((a, b) =>
+    a.name.localeCompare(b.name, 'es')
+  );
+  const storeGroupIdsByText = new Map<string, string[]>();
+  for (const group of storeGroups) {
+    addMatch(storeGroupIdsByText, group.name, group.id);
+  }
+
   const existingNames = new Map<string, string>();
   const existingSlugs = new Set<string>();
   for (const product of productRows) {
@@ -130,7 +145,16 @@ export async function loadCatalogLookups(
     }
   }
 
-  return { categories, units, categoryIdsByText, unitIdsByText, existingNames, existingSlugs };
+  return {
+    categories,
+    units,
+    storeGroups,
+    categoryIdsByText,
+    unitIdsByText,
+    storeGroupIdsByText,
+    existingNames,
+    existingSlugs,
+  };
 }
 
 export { key as normalizeLookupKey };

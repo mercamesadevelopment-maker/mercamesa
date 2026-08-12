@@ -61,6 +61,8 @@ export async function PUT(
       'description',
       'dane_unit_code',
       'dane_unit_name',
+      // Vacío = producto público; con grupo, solo las tiendas de ese grupo.
+      'owner_group_id',
     ];
 
     fields.forEach((field) => {

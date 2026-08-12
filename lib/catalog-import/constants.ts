@@ -12,6 +12,9 @@ export const CATALOG_HEADERS = {
   ancestral: 'Alimento ancestral',
   medicinal: 'Planta medicinal',
   nonFood: 'No es alimento',
+  // Vacío = producto público. Con grupo, solo lo publican sus tiendas: es el
+  // caso de quien aporta el producto con sus propias fotos.
+  ownerGroup: 'Exclusivo de',
 } as const;
 
 export type CatalogField = keyof typeof CATALOG_HEADERS;
@@ -26,16 +29,25 @@ export const CATALOG_COLUMN_WIDTHS: Record<CatalogField, number> = {
   ancestral: 20,
   medicinal: 18,
   nonFood: 18,
+  ownerGroup: 28,
 };
 
 /** Columnas restringidas a una lista de valores, con desplegable en Excel. */
-export const LIST_FIELDS: CatalogField[] = ['category', 'unit', 'ancestral', 'medicinal', 'nonFood'];
+export const LIST_FIELDS: CatalogField[] = [
+  'category',
+  'unit',
+  'ancestral',
+  'medicinal',
+  'nonFood',
+  'ownerGroup',
+];
 
 /** Nombres de las listas en la hoja "Listas". */
 export const LIST_NAMES = {
   categories: 'Categorías',
   units: 'Unidades de medida',
   yesNo: 'Sí / No',
+  storeGroups: 'Grupos de tiendas',
 } as const;
 
 /** Filas de la plantilla que llevan desplegable y formato listo para llenar. */

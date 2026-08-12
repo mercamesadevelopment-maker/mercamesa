@@ -2,13 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeText } from '@/src/components/Shared';
 import { productCodeKey } from '@/lib/products/product-code';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
-import type { ImportLookups } from './types';
+import { canStoreUseCatalogProduct, getStoreGroupId } from '@/lib/catalog/visibility';
+import type { CatalogEntry, ImportLookups } from './types';
 
 interface CatalogRow {
   id: string;
   name: string;
   slug: string;
   default_unit_id: string | null;
+  owner_group_id: string | null;
 }
 
 interface UnitRow {
@@ -35,11 +37,15 @@ export async function loadImportLookups(
   supabase: SupabaseClient<any>,
   storeId: string
 ): Promise<ImportLookups> {
-  const [catalog, units, published] = await Promise.all([
+  const [storeGroupId, catalog, units, published] = await Promise.all([
+    getStoreGroupId(supabase, storeId),
+    // Se carga el catálogo completo, no solo el visible: así una fila con el
+    // slug de un producto ajeno se rechaza diciendo que es exclusivo de otra
+    // tienda, en vez del engañoso "no existe en el catálogo".
     fetchAllRows<CatalogRow>((from, to) =>
       supabase
         .from('catalog_products')
-        .select('id, name, slug, default_unit_id')
+        .select('id, name, slug, default_unit_id, owner_group_id')
         .eq('is_active', true)
         .order('id')
         .range(from, to)
@@ -62,12 +68,13 @@ export async function loadImportLookups(
     ),
   ]);
 
-  const catalogBySlug = new Map<string, { id: string; name: string; defaultUnitId: string | null }>();
+  const catalogBySlug = new Map<string, CatalogEntry>();
   for (const product of catalog) {
     catalogBySlug.set(normalizeText(product.slug).trim(), {
       id: product.id,
       name: product.name,
       defaultUnitId: product.default_unit_id,
+      usable: canStoreUseCatalogProduct(product.owner_group_id, storeGroupId),
     });
   }
 
@@ -96,8 +103,11 @@ export async function loadImportLookups(
     unitIdsByText,
     existingCatalogProductIds,
     existingProductCodes,
-    // El tope de filas por carga: nadie puede publicar más productos de los que
-    // existen en el catálogo.
+    // Tope de filas por carga: detecta un archivo duplicado o alterado, y por eso
+    // cuenta el catálogo activo completo y no solo lo que la tienda puede
+    // publicar. Si contara los visibles, un archivo legítimo que traiga una fila
+    // de un producto exclusivo de otra tienda se rechazaría entero, en vez de
+    // publicar el resto y reportar esa fila, que es lo que debe pasar.
     catalogSize: catalog.length,
   };
 }

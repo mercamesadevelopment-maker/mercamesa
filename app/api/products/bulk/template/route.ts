@@ -20,8 +20,8 @@ export async function GET() {
     );
     if (denied) return denied;
 
-    const { categories, units } = await loadCatalogLookups(supabase);
-    const buffer = await buildCatalogTemplate({ categories, units });
+    const { categories, units, storeGroups } = await loadCatalogLookups(supabase);
+    const buffer = await buildCatalogTemplate({ categories, units, storeGroups });
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

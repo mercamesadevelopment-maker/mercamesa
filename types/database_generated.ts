@@ -176,6 +176,7 @@ export type Database = {
           is_medicinal_plant: boolean
           is_non_food: boolean
           name: string
+          owner_group_id: string | null
           siigo_id: string
           slug: string
           updated_at: string
@@ -195,6 +196,7 @@ export type Database = {
           is_medicinal_plant?: boolean
           is_non_food?: boolean
           name: string
+          owner_group_id?: string | null
           siigo_id: string
           slug: string
           updated_at?: string
@@ -214,6 +216,7 @@ export type Database = {
           is_medicinal_plant?: boolean
           is_non_food?: boolean
           name?: string
+          owner_group_id?: string | null
           siigo_id?: string
           slug?: string
           updated_at?: string
@@ -238,6 +241,13 @@ export type Database = {
             columns: ["default_unit_id"]
             isOneToOne: false
             referencedRelation: "measurement_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_owner_group_id_fkey"
+            columns: ["owner_group_id"]
+            isOneToOne: false
+            referencedRelation: "store_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -1540,6 +1550,33 @@ export type Database = {
           },
         ]
       }
+      store_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       store_members: {
         Row: {
           created_at: string
@@ -1891,6 +1928,7 @@ export type Database = {
           phone: string | null
           reputation_score: number | null
           slug: string
+          store_group_id: string | null
           updated_at: string
           whatsapp: string | null
         }
@@ -1911,6 +1949,7 @@ export type Database = {
           phone?: string | null
           reputation_score?: number | null
           slug: string
+          store_group_id?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
@@ -1931,6 +1970,7 @@ export type Database = {
           phone?: string | null
           reputation_score?: number | null
           slug?: string
+          store_group_id?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
@@ -1954,6 +1994,13 @@ export type Database = {
             columns: ["marketplace_id"]
             isOneToOne: false
             referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_store_group_id_fkey"
+            columns: ["store_group_id"]
+            isOneToOne: false
+            referencedRelation: "store_groups"
             referencedColumns: ["id"]
           },
         ]

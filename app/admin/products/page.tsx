@@ -17,6 +17,14 @@ type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   measurement_units?: { abbreviation: string } | null;
 };
 
+interface StoreGroup {
+  id: string;
+  name: string;
+}
+
+/** Valor del filtro para "los que no son exclusivos de nadie". */
+const PUBLIC_FILTER = '__public__';
+
 export default function ProductsAdmin() {
   const { products, loading, error, fetchProducts, deleteProduct, saveProduct } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,9 +39,30 @@ export default function ProductsAdmin() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [categories, setCategories] = useState<Database['public']['Tables']['categories']['Row'][]>([]);
 
+  // Exclusividad por grupo de tiendas
+  const [storeGroups, setStoreGroups] = useState<StoreGroup[]>([]);
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [bulkGroupId, setBulkGroupId] = useState('');
+  const [isApplyingGroup, setIsApplyingGroup] = useState(false);
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    fetch('/api/admin/store-groups')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) setStoreGroups(data.data);
+      })
+      .catch((err) => console.error('Error fetching store groups:', err));
+  }, []);
+
+  const groupNameById = React.useMemo(
+    () => new Map(storeGroups.map((group) => [group.id, group.name])),
+    [storeGroups]
+  );
 
   // Fetch categories for filtering dropdown
   useEffect(() => {
@@ -84,10 +113,16 @@ export default function ProductsAdmin() {
       const matchesCategory =
         !selectedCategory ||
         (product.category_id && selectedCategoryIds.includes(product.category_id));
-      
-      return matchesSearch && matchesCategory;
+
+      const matchesGroup =
+        !selectedGroupFilter ||
+        (selectedGroupFilter === PUBLIC_FILTER
+          ? !product.owner_group_id
+          : product.owner_group_id === selectedGroupFilter);
+
+      return matchesSearch && matchesCategory && matchesGroup;
     });
-  }, [products, searchQuery, selectedCategory, selectedCategoryIds]);
+  }, [products, searchQuery, selectedCategory, selectedCategoryIds, selectedGroupFilter]);
 
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
@@ -96,7 +131,42 @@ export default function ProductsAdmin() {
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, setPage]);
+  }, [searchQuery, selectedCategory, selectedGroupFilter, setPage]);
+
+  const handleApplyGroup = async () => {
+    if (selectedIds.size === 0) return;
+
+    const groupName = bulkGroupId ? groupNameById.get(bulkGroupId) : null;
+    const message = groupName
+      ? `Marcar ${selectedIds.size} producto(s) como exclusivos de "${groupName}"? Solo las tiendas de ese grupo podrán publicarlos.`
+      : `Volver públicos ${selectedIds.size} producto(s)? Cualquier tienda podrá publicarlos con sus imágenes.`;
+
+    if (!confirm(message)) return;
+
+    setIsApplyingGroup(true);
+    try {
+      const res = await fetch('/api/products/bulk-group', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_ids: Array.from(selectedIds),
+          owner_group_id: bulkGroupId || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || 'Error al aplicar el grupo');
+      }
+
+      setSelectedIds(new Set());
+      await fetchProducts();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error al aplicar el grupo');
+    } finally {
+      setIsApplyingGroup(false);
+    }
+  };
 
   const columns = [
     {
@@ -140,6 +210,17 @@ export default function ProductsAdmin() {
           {item.measurement_units?.abbreviation || 'N/A'}
         </span>
       )
+    },
+    {
+      key: 'owner_group_id',
+      label: 'Exclusivo de',
+      sortable: true,
+      render: (item: Product) =>
+        item.owner_group_id ? (
+          <Badge variant="oro">{groupNameById.get(item.owner_group_id) || 'Grupo'}</Badge>
+        ) : (
+          <span className="text-mm-txw italic text-sm">Público</span>
+        )
     },
     {
       key: 'is_active',
@@ -213,11 +294,52 @@ export default function ProductsAdmin() {
             ))}
           </select>
         </div>
+        <div className="w-full sm:w-56">
+          <select
+            value={selectedGroupFilter}
+            onChange={(e) => setSelectedGroupFilter(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            <option value="">Exclusividad: todas</option>
+            <option value={PUBLIC_FILTER}>Solo públicos</option>
+            {storeGroups.map((group) => (
+              <option key={group.id} value={group.id}>{group.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Acción masiva: aparece solo con filas seleccionadas */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-mm-gbg/40 p-4 rounded-2xl border border-mm-crd">
+          <span className="text-sm font-bold text-mm-g">
+            {selectedIds.size} producto(s) seleccionado(s)
+          </span>
+          <select
+            value={bulkGroupId}
+            onChange={(e) => setBulkGroupId(e.target.value)}
+            className="px-4 py-2 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none text-sm text-mm-g cursor-pointer"
+          >
+            <option value="">Público (cualquier tienda)</option>
+            {storeGroups.map((group) => (
+              <option key={group.id} value={group.id}>Exclusivo de {group.name}</option>
+            ))}
+          </select>
+          <Button size="sm" onClick={handleApplyGroup} disabled={isApplyingGroup}>
+            {isApplyingGroup ? 'Aplicando...' : 'Aplicar'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+            Quitar selección
+          </Button>
+        </div>
+      )}
 
       <Table
         data={paginatedData}
         columns={columns}
+        selectedKeys={selectedIds}
+        onSelectionChange={setSelectedIds}
+        getRowKey={(item: Product) => item.id}
         sortKey={sortKey}
         sortOrder={sortOrder}
         onSort={handleSort}

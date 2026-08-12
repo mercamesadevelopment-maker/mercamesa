@@ -8,6 +8,8 @@ import {
   normalizeProductCode,
   validateProductCode,
 } from '@/lib/products/product-code';
+import { canManageStore } from '@/lib/auth/can-manage-store';
+import { EXCLUSIVE_PRODUCT_MESSAGE, findExclusivityViolations } from '@/lib/catalog/visibility';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
@@ -99,6 +101,44 @@ export async function POST(request: Request) {
     // tienda; esos productos quedan sin código y el vendedor lo completa al
     // editarlos, igual que los publicados antes de existir la columna.
     if (Array.isArray(body)) {
+      if (body.length === 0) {
+        return NextResponse.json({ error: 'No se recibió ningún producto.' }, { status: 400 });
+      }
+
+      const storeIds = Array.from(new Set(body.map((item: any) => item.store_id).filter(Boolean)));
+      if (storeIds.length !== new Set(body.map((item: any) => item.store_id)).size) {
+        return NextResponse.json({ error: 'Falta el store_id en algún producto.' }, { status: 400 });
+      }
+
+      const allowed = await Promise.all(
+        storeIds.map((storeId) => canManageStore(supabase, storeId as string, user.id))
+      );
+      if (allowed.some((ok) => !ok)) {
+        return NextResponse.json(
+          { error: 'No tienes permisos sobre alguna de las tiendas.' },
+          { status: 403 }
+        );
+      }
+
+      const violations = await findExclusivityViolations(
+        supabase,
+        body.map((item: any) => ({
+          storeId: item.store_id,
+          catalogProductId: item.catalog_product_id,
+        }))
+      );
+      if (violations.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              violations.length === body.length
+                ? EXCLUSIVE_PRODUCT_MESSAGE
+                : `${violations.length} de las tiendas seleccionadas no pueden publicar este producto porque es exclusivo de otro grupo.`,
+          },
+          { status: 403 }
+        );
+      }
+
       const inserts = body.map((item: any) => ({
         catalog_product_id: item.catalog_product_id,
         store_id: item.store_id,
@@ -120,6 +160,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ data }, { status: 201 });
     }
     
+    if (!body.store_id || !body.catalog_product_id) {
+      return NextResponse.json(
+        { error: 'Faltan store_id o catalog_product_id.' },
+        { status: 400 }
+      );
+    }
+
+    // Esta ruta solo comprobaba que hubiera sesión. Como store_products no tiene
+    // RLS, eso permitía publicar en cualquier tienda con solo pasar su store_id,
+    // y por ahí se evadía también la exclusividad del catálogo.
+    if (!(await canManageStore(supabase, body.store_id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
+    }
+
+    const violations = await findExclusivityViolations(supabase, [
+      { storeId: body.store_id, catalogProductId: body.catalog_product_id },
+    ]);
+    if (violations.length > 0) {
+      return NextResponse.json({ error: EXCLUSIVE_PRODUCT_MESSAGE }, { status: 403 });
+    }
+
     const codeError = validateProductCode(body.code);
     if (codeError) {
       return NextResponse.json({ error: codeError }, { status: 400 });

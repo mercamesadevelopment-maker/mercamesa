@@ -20,6 +20,8 @@ export interface ValidatedCatalogRow {
   isAncestralFood: boolean;
   isMedicinalPlant: boolean;
   isNonFood: boolean;
+  /** `null` = producto público; con id, solo lo publican las tiendas de ese grupo. */
+  ownerGroupId: string | null;
 }
 
 export interface CategoryOption {
@@ -36,14 +38,22 @@ export interface UnitOption {
   label: string;
 }
 
+export interface StoreGroupOption {
+  id: string;
+  name: string;
+}
+
 /** Datos que la validación necesita de la base, ya resueltos. */
 export interface CatalogLookups {
   categories: CategoryOption[];
   units: UnitOption[];
+  storeGroups: StoreGroupOption[];
   /** Texto normalizado (ruta, y nombre suelto si no es ambiguo) -> ids que coinciden. */
   categoryIdsByText: Map<string, string[]>;
   /** Texto normalizado (etiqueta, nombre o abreviatura) -> ids que coinciden. */
   unitIdsByText: Map<string, string[]>;
+  /** Nombre de grupo normalizado -> ids que coinciden. */
+  storeGroupIdsByText: Map<string, string[]>;
   /** Nombre normalizado -> ruta de categoría del producto que ya existe. */
   existingNames: Map<string, string>;
   /** Slugs ya usados en catalog_products. */

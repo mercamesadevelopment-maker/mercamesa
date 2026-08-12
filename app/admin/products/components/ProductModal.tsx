@@ -23,10 +23,12 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [storeGroups, setStoreGroups] = useState<{ id: string; name: string }[]>([]);
   
   const [formData, setFormData] = useState({
     name: '', slug: '', category_id: '', default_unit_id: '', description: '',
-    is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false
+    is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false,
+    owner_group_id: '',
   });
   
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -35,6 +37,7 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   useEffect(() => {
     fetch('/api/categories').then(res => res.json()).then(data => { if (data.data) setCategories(data.data); });
     fetch('/api/measurement-units').then(res => res.json()).then(data => { if (data.data) setUnits(data.data); });
+    fetch('/api/admin/store-groups').then(res => res.json()).then(data => { if (data.data) setStoreGroups(data.data); });
   }, []);
 
   useEffect(() => {
@@ -49,12 +52,15 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
         is_ancestral_food: initialData.is_ancestral_food,
         is_medicinal_plant: initialData.is_medicinal_plant,
         is_non_food: initialData.is_non_food,
+        owner_group_id: initialData.owner_group_id || '',
       });
       setImagePreview(initialData.imageSignedUrl || null);
     } else {
       setFormData({
         name: '', slug: '', category_id: '', default_unit_id: '', description: '',
-        is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false
+        is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false,
+        // Vacío = producto público, que es lo normal.
+        owner_group_id: '',
       });
       setImagePreview(null);
     }
@@ -167,6 +173,20 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
             placeholder="Descripción del producto..."
             className="w-full bg-mm-gbg border-none rounded-2xl py-3 px-4 text-mm-g font-medium focus:ring-2 ring-mm-g/20 transition-all outline-none resize-none h-24"
           />
+        </div>
+
+        {/* Exclusividad: quién puede publicar este producto */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-mm-txs ml-1">Exclusivo de</label>
+          <select name="owner_group_id" value={formData.owner_group_id} onChange={handleChange}
+            className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+            <option value="">Público (cualquier tienda puede publicarlo)</option>
+            {storeGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <p className="text-xs text-mm-txw ml-1">
+            Si el producto lo aporta una tienda con sus propias fotos, elige su grupo: solo las
+            tiendas de ese grupo podrán publicarlo.
+          </p>
         </div>
 
         {/* Checkboxes (Atributos) */}

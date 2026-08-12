@@ -68,6 +68,28 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
     }
   }, [initialData]);
 
+  // Los productos exclusivos de un grupo solo los puede publicar ese grupo, así
+  // que al elegir la tienda el catálogo se recorta a lo que ella puede recibir.
+  // El servidor lo rechaza igual con 403; esto evita ofrecer lo imposible.
+  const eligibleCatalogProducts = useMemo(() => {
+    if (!formData.store_id) return catalogProducts;
+    const store = stores.find((s) => s.id === formData.store_id);
+    const storeGroupId = store?.store_group_id ?? null;
+    return catalogProducts.filter(
+      (product) => !product.owner_group_id || product.owner_group_id === storeGroupId
+    );
+  }, [catalogProducts, stores, formData.store_id]);
+
+  useEffect(() => {
+    if (initialData) return;
+    if (
+      formData.catalog_product_id &&
+      !eligibleCatalogProducts.some((product) => product.id === formData.catalog_product_id)
+    ) {
+      setFormData((prev) => ({ ...prev, catalog_product_id: '' }));
+    }
+  }, [eligibleCatalogProducts, formData.catalog_product_id, initialData]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     setFormData(prev => ({
@@ -102,7 +124,7 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
             value={formData.catalog_product_id}
             onChange={(val) => setFormData(prev => ({ ...prev, catalog_product_id: val }))}
             placeholder="Selecciona un producto"
-            options={catalogProducts.map((p) => ({
+            options={eligibleCatalogProducts.map((p) => ({
               value: p.id,
               label: p.name,
               group: (p as any).categories?.name || undefined,

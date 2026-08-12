@@ -97,13 +97,18 @@ export function useProducts() {
     }
   };
 
-  // Cargar catálogo de productos maestros y unidades de medida
+  // Cargar catálogo de productos maestros y unidades de medida.
+  // El catálogo va atado a la tienda activa: hay productos exclusivos de un
+  // grupo de tiendas, y el vendedor solo debe ver lo que puede publicar. Por eso
+  // se recarga al cambiar de tienda.
   useEffect(() => {
+    if (!storeId) return;
+
     const fetchCatalogAndUnits = async () => {
       try {
         setLoading(true);
         const [catRes, unitsRes] = await Promise.all([
-          fetch('/api/products'),
+          fetch(`/api/products?store_id=${storeId}`),
           fetch('/api/measurement-units'),
         ]);
 
@@ -133,7 +138,7 @@ export function useProducts() {
     };
 
     fetchCatalogAndUnits();
-  }, []);
+  }, [storeId]);
 
   // Cargar productos cada vez que la lista de tiendas cambie
   useEffect(() => {

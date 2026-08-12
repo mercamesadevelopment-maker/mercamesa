@@ -24,7 +24,8 @@ function isIgnorableRow(row: CatalogRow): boolean {
     isBlank(row.category) &&
     isBlank(row.unit) &&
     isBlank(row.description) &&
-    isBlank(row.daneCode)
+    isBlank(row.daneCode) &&
+    isBlank(row.ownerGroup)
   );
 }
 
@@ -126,6 +127,25 @@ export function validateCatalogRows(
       continue;
     }
 
+    // Vacío es lo normal: el producto queda público. Si trae grupo, tiene que
+    // existir; un nombre inventado marcaría como público algo que debía ser
+    // exclusivo, y eso es justo lo que esta columna viene a evitar.
+    let ownerGroupId: string | null = null;
+    if (!isBlank(row.ownerGroup)) {
+      const groupMatches = lookups.storeGroupIdsByText.get(normalizeLookupKey(row.ownerGroup!)) ?? [];
+      if (groupMatches.length === 0) {
+        fail(
+          `El grupo de tiendas "${row.ownerGroup}" no existe. Elige uno de la lista desplegable o deja la columna "${CATALOG_HEADERS.ownerGroup}" vacía para que el producto sea público.`
+        );
+        continue;
+      }
+      if (groupMatches.length > 1) {
+        fail(`Hay varios grupos de tiendas llamados "${row.ownerGroup}". Renómbralos para distinguirlos.`);
+        continue;
+      }
+      ownerGroupId = groupMatches[0];
+    }
+
     const flags = {
       isAncestralFood: parseFlag(row.ancestral),
       isMedicinalPlant: parseFlag(row.medicinal),
@@ -163,6 +183,7 @@ export function validateCatalogRows(
       isAncestralFood: flags.isAncestralFood!,
       isMedicinalPlant: flags.isMedicinalPlant!,
       isNonFood: flags.isNonFood!,
+      ownerGroupId,
     });
   }
 

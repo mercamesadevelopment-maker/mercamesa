@@ -1,15 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
 import { DocumentTypesTab } from './components/document-types-tab';
 import { StoreCategoriesTab } from './components/store-categories-tab';
 import { OrderMinPriceTab } from './components/order-min-price-tab';
+import { StoreGroupsTab } from './components/store-groups-tab';
 
-type TabKey = 'categories' | 'units' | 'modules' | 'documents' | 'store_categories' | 'order_min_price';
+type TabKey =
+  | 'categories'
+  | 'units'
+  | 'modules'
+  | 'documents'
+  | 'store_categories'
+  | 'store_groups'
+  | 'order_min_price';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
   {
@@ -41,6 +49,13 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     label: 'Categorías de Tienda',
     icon: Store,
     description: 'Clasificación del tipo de negocio de cada tienda (Frutería, Carnicería, etc.)',
+  },
+  {
+    key: 'store_groups',
+    label: 'Grupos de Tiendas',
+    icon: Users,
+    description:
+      'Tiendas de un mismo dueño que comparten los productos del catálogo marcados como exclusivos de su grupo',
   },
   {
     key: 'order_min_price',
@@ -110,6 +125,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'modules' && <ModulesTab />}
         {activeTab === 'documents' && <DocumentTypesTab />}
         {activeTab === 'store_categories' && <StoreCategoriesTab />}
+        {activeTab === 'store_groups' && <StoreGroupsTab />}
         {activeTab === 'order_min_price' && <OrderMinPriceTab />}
       </div>
     </div>

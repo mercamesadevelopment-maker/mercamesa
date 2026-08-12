@@ -6,6 +6,7 @@ import {
   validateProductCode,
 } from '@/lib/products/product-code';
 import { SpreadsheetError, isBlank } from '@/lib/spreadsheet/parse';
+import { EXCLUSIVE_PRODUCT_MESSAGE } from '@/lib/catalog/visibility';
 import type { ImportRowResult } from '@/lib/spreadsheet/report';
 import { TEMPLATE_HEADERS } from './constants';
 import type { SellerRow } from './parse';
@@ -111,6 +112,11 @@ export function validateRows(rows: SellerRow[], lookups: ImportLookups): Validat
       fail(
         `El código "${code}" no existe en el catálogo o está inactivo. Descarga la plantilla de nuevo y copia el código desde ahí.`
       );
+      continue;
+    }
+
+    if (!product.usable) {
+      fail(EXCLUSIVE_PRODUCT_MESSAGE, product.name);
       continue;
     }
 
