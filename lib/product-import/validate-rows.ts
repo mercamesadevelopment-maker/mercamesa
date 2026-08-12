@@ -5,9 +5,11 @@ import {
   productCodeKey,
   validateProductCode,
 } from '@/lib/products/product-code';
+import { SpreadsheetError, isBlank } from '@/lib/spreadsheet/parse';
+import type { ImportRowResult } from '@/lib/spreadsheet/report';
 import { TEMPLATE_HEADERS } from './constants';
-import { SpreadsheetError, type RawRow } from './parse-spreadsheet';
-import type { ImportLookups, ImportRowResult, ValidatedRow } from './types';
+import type { SellerRow } from './parse';
+import type { ImportLookups, ValidatedRow } from './types';
 
 /**
  * Interpreta un número escrito a mano en Excel: tolera "$", espacios, puntos de
@@ -49,10 +51,6 @@ export function parseNumber(input: string | undefined): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-function isBlank(value: string | undefined): boolean {
-  return !value || value.trim() === '';
-}
-
 /**
  * La plantilla trae todo el catálogo, así que el seller marca lo que vende
  * llenando las columnas editables. Si no tocó ninguna, la fila no es un error:
@@ -62,7 +60,7 @@ function isBlank(value: string | undefined): boolean {
  * escribió el código pero olvidó el precio, se lo decimos en vez de ignorarlo
  * en silencio.
  */
-function isIgnorableRow(row: RawRow): boolean {
+function isIgnorableRow(row: SellerRow): boolean {
   return isBlank(row.retailPrice) && isBlank(row.stock) && isBlank(row.productCode);
 }
 
@@ -71,7 +69,7 @@ export interface ValidationResult {
   results: ImportRowResult[];
 }
 
-export function validateRows(rows: RawRow[], lookups: ImportLookups): ValidationResult {
+export function validateRows(rows: SellerRow[], lookups: ImportLookups): ValidationResult {
   const candidates = rows.filter((row) => !isIgnorableRow(row));
 
   // Nadie puede publicar más productos de los que existen en el catálogo: si el

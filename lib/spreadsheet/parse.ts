@@ -1,19 +1,29 @@
 import Papa from 'papaparse';
 import ExcelJS from 'exceljs';
 import { normalizeText } from '@/src/components/Shared';
-import {
-  TEMPLATE_HEADERS,
-  TEMPLATE_HEADER_ALIASES,
-  type TemplateField,
-} from './constants';
 
-/** Una fila de datos del archivo, ya mapeada a los campos de la plantilla. */
-export type RawRow = Partial<Record<TemplateField, string>> & {
-  /** Número de fila en Excel (el encabezado es la 1). */
+/**
+ * Lectura de archivos .xlsx y .csv subidos por el usuario, agnóstica del
+ * dominio: quien llama define qué columnas espera.
+ */
+
+/** Una fila de datos ya mapeada a los campos que pidió quien llama. */
+export type RawRow<TField extends string> = Partial<Record<TField, string>> & {
+  /** Número de fila tal como se ve en Excel (el encabezado es la 1). */
   __row: number;
 };
 
+/** Error de lectura que el usuario puede entender y corregir. */
 export class SpreadsheetError extends Error {}
+
+export interface SpreadsheetSchema<TField extends string> {
+  /** Campo -> encabezado tal como aparece en la plantilla. */
+  headers: Record<TField, string>;
+  /** Encabezado alternativo -> campo. Sirve para no romper plantillas viejas. */
+  aliases?: Record<string, TField>;
+  /** Campos sin los cuales el archivo no sirve. */
+  required: TField[];
+}
 
 /**
  * Normaliza un encabezado para compararlo: sin tildes, en minúscula y sin
@@ -23,15 +33,19 @@ function normalizeHeader(value: string): string {
   return normalizeText(value).replace(/\s+/g, ' ').trim();
 }
 
-// Los alias van primero para que el encabezado oficial gane si alguno coincide.
-const FIELD_BY_HEADER = new Map<string, TemplateField>([
-  ...Object.entries(TEMPLATE_HEADER_ALIASES).map(
-    ([header, field]) => [normalizeHeader(header), field] as const
-  ),
-  ...(Object.entries(TEMPLATE_HEADERS) as [TemplateField, string][]).map(
-    ([field, header]) => [normalizeHeader(header), field] as const
-  ),
-]);
+function buildHeaderMap<TField extends string>(
+  schema: SpreadsheetSchema<TField>
+): Map<string, TField> {
+  // Los alias van primero para que el encabezado oficial gane si alguno coincide.
+  return new Map<string, TField>([
+    ...Object.entries(schema.aliases ?? {}).map(
+      ([header, field]) => [normalizeHeader(header), field as TField] as const
+    ),
+    ...(Object.entries(schema.headers) as [TField, string][]).map(
+      ([field, header]) => [normalizeHeader(header), field] as const
+    ),
+  ]);
+}
 
 /**
  * Excel en configuración regional española suele guardar el CSV en Windows-1252,
@@ -62,42 +76,51 @@ function cellToString(value: ExcelJS.CellValue): string {
 }
 
 /**
- * Convierte una matriz (encabezado + filas) en filas mapeadas a los campos de
- * la plantilla. Las columnas que no reconozca se ignoran, así el seller puede
+ * Convierte una matriz (encabezado + filas) en filas mapeadas a los campos del
+ * esquema. Las columnas que no reconozca se ignoran, así el usuario puede
  * agregar notas propias al archivo sin romper la carga.
  */
-function mapRows(matrix: string[][]): RawRow[] {
+function mapRows<TField extends string>(
+  matrix: string[][],
+  schema: SpreadsheetSchema<TField>
+): RawRow<TField>[] {
+  const fieldByHeader = buildHeaderMap(schema);
+
   const headerIndex = matrix.findIndex((row) =>
-    row.some((cell) => FIELD_BY_HEADER.has(normalizeHeader(cell)))
+    row.some((cell) => fieldByHeader.has(normalizeHeader(cell)))
   );
 
   if (headerIndex === -1) {
+    const required = schema.required.map((field) => `"${schema.headers[field]}"`).join(', ');
     throw new SpreadsheetError(
-      `No se encontró la fila de encabezados. Usa la plantilla descargable: debe tener al menos las columnas "${TEMPLATE_HEADERS.catalogCode}", "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}".`
+      `No se encontró la fila de encabezados. Usa la plantilla descargable: debe tener al menos las columnas ${required}.`
     );
   }
 
-  const fieldByColumn = new Map<number, TemplateField>();
+  const fieldByColumn = new Map<number, TField>();
+  const claimed = new Set<TField>();
   matrix[headerIndex].forEach((cell, index) => {
-    const field = FIELD_BY_HEADER.get(normalizeHeader(cell));
-    if (field && !Array.from(fieldByColumn.values()).includes(field)) {
+    const field = fieldByHeader.get(normalizeHeader(cell));
+    // Si el encabezado se repite, gana la primera columna.
+    if (field && !claimed.has(field)) {
       fieldByColumn.set(index, field);
+      claimed.add(field);
     }
   });
 
-  for (const required of ['catalogCode', 'productCode', 'retailPrice', 'stock'] as TemplateField[]) {
-    if (!Array.from(fieldByColumn.values()).includes(required)) {
+  for (const field of schema.required) {
+    if (!claimed.has(field)) {
       throw new SpreadsheetError(
-        `Al archivo le falta la columna "${TEMPLATE_HEADERS[required]}". Descarga la plantilla y vuelve a intentarlo.`
+        `Al archivo le falta la columna "${schema.headers[field]}". Descarga la plantilla y vuelve a intentarlo.`
       );
     }
   }
 
-  const rows: RawRow[] = [];
+  const rows: RawRow<TField>[] = [];
   for (let i = headerIndex + 1; i < matrix.length; i++) {
-    const row: RawRow = { __row: i + 1 };
+    const row = { __row: i + 1 } as RawRow<TField>;
     fieldByColumn.forEach((field, column) => {
-      row[field] = (matrix[i][column] ?? '').trim();
+      row[field] = (matrix[i][column] ?? '').trim() as RawRow<TField>[TField];
     });
     rows.push(row);
   }
@@ -161,11 +184,17 @@ function parseCsv(buffer: Buffer): string[][] {
   return result.data.map((row) => (Array.isArray(row) ? row.map(String) : []));
 }
 
-export async function parseSpreadsheet(
+export async function parseSpreadsheet<TField extends string>(
   buffer: Buffer,
-  fileName: string
-): Promise<RawRow[]> {
+  fileName: string,
+  schema: SpreadsheetSchema<TField>
+): Promise<RawRow<TField>[]> {
   const isCsv = fileName.toLowerCase().endsWith('.csv');
   const matrix = isCsv ? parseCsv(buffer) : await parseXlsx(buffer);
-  return mapRows(matrix);
+  return mapRows(matrix, schema);
+}
+
+/** true cuando la celda vino vacía o solo con espacios. */
+export function isBlank(value: string | undefined): boolean {
+  return !value || value.trim() === '';
 }

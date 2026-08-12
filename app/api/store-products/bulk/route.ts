@@ -7,10 +7,10 @@ import {
   MAX_FILE_BYTES,
   MAX_ROW_BY_ROW_RETRIES,
   SpreadsheetError,
+  buildReport,
   loadImportLookups,
-  parseSpreadsheet,
+  parseSellerSpreadsheet,
   validateRows,
-  type ImportReport,
   type ImportRowResult,
   type ValidatedRow,
 } from '@/lib/product-import';
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const [rows, lookups] = await Promise.all([
-      parseSpreadsheet(buffer, fileName),
+      parseSellerSpreadsheet(buffer, fileName),
       loadImportLookups(supabase, storeId),
     ]);
 
@@ -223,20 +223,3 @@ function notProcessed(row: ValidatedRow): ImportRowResult {
   };
 }
 
-function buildReport(rows: ImportRowResult[], dryRun: boolean): ImportReport {
-  const ordered = [...rows].sort((a, b) => a.row - b.row);
-  const countOf = (status: ImportRowResult['status']) =>
-    ordered.filter((row) => row.status === status).length;
-
-  return {
-    dryRun,
-    rows: ordered,
-    summary: {
-      total: ordered.length,
-      created: countOf('created'),
-      skipped: countOf('skipped'),
-      failed: countOf('failed'),
-      notProcessed: countOf('not_processed'),
-    },
-  };
-}

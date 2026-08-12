@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Package, Edit2, Trash2, Search } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, Search, Upload } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
+import { BulkImportModal } from './components/BulkImportModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge, normalizeText } from '@/src/components/Shared';
@@ -19,6 +20,7 @@ type Product = Database['public']['Tables']['catalog_products']['Row'] & {
 export default function ProductsAdmin() {
   const { products, loading, error, fetchProducts, deleteProduct, saveProduct } = useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -175,9 +177,14 @@ export default function ProductsAdmin() {
           <h2 className="text-2xl font-fraunces text-mm-g">Catálogo Maestro</h2>
           <p className="text-sm text-mm-txs mt-1">Productos preestablecidos disponibles para las tiendas.</p>
         </div>
-        <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Item
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button size="sm" variant="outline" onClick={() => setIsBulkImportOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" /> Carga masiva
+          </Button>
+          <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> Nuevo Item
+          </Button>
+        </div>
       </div>
 
       {/* Filtros de Búsqueda y Categoría */}
@@ -245,6 +252,12 @@ export default function ProductsAdmin() {
           initialData={editingProduct}
         />
       )}
+
+      <BulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onImported={fetchProducts}
+      />
 
       <ConfirmModal
         isOpen={!!deleteTarget}

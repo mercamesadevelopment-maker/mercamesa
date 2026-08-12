@@ -5,25 +5,37 @@ import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/sup
 import { uploadVariants } from '../../../lib/images/generate';
 import { PRODUCT_IMAGE_VARIANTS } from '../../../lib/images/variants';
 import { generateSiigoCode } from '../../../lib/siigo';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import { requirePermission } from '@/lib/auth/require-permission';
 
 type ProductInsert = Database['public']['Tables']['catalog_products']['Insert'];
 
 export async function GET() {
   const supabase = await createClient();
-  
-  // Intentamos traer también la categoría y la unidad si las relaciones están configuradas
-  const { data, error } = await supabase.from('catalog_products').select(`
-    *,
-    categories ( name ),
-    measurement_units ( abbreviation )
-  `);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  // Paginado: PostgREST corta en 1.000 filas sin avisar, y la carga masiva del
+  // catálogo existe justamente para pasar ese número. Sin esto, el listado del
+  // admin empezaría a ocultar productos en silencio.
+  let data: any[];
+  try {
+    data = await fetchAllRows<any>((from, to) =>
+      supabase
+        .from('catalog_products')
+        .select(`
+          *,
+          categories ( name ),
+          measurement_units ( abbreviation )
+        `)
+        .order('id')
+        .range(from, to)
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error consultando el catálogo';
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
   // Generar URLs con transformación de Supabase (cacheable, sin llamadas de red adicionales)
-  const productsWithPublicUrls = (data || []).map((product) => {
+  const productsWithPublicUrls = data.map((product) => {
     const imageSignedUrl = product.image_url
       ? getSupabaseImageUrl('products', product.image_url, PRESET_THUMBNAIL)
       : null;
@@ -37,7 +49,17 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    
+
+    // catalog_products no tiene RLS: sin esta verificación bastaba con estar
+    // autenticado —aunque fuera como comprador— para escribir en el catálogo.
+    const denied = await requirePermission(
+      supabase,
+      'system-settings',
+      'create',
+      'No tienes permisos para crear productos del catálogo'
+    );
+    if (denied) return denied;
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

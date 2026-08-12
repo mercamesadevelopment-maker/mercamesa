@@ -4,6 +4,7 @@ import { Database } from '../../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../../lib/supabase/supabase-image';
 import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate';
 import { PRODUCT_IMAGE_VARIANTS } from '../../../../lib/images/variants';
+import { requirePermission } from '@/lib/auth/require-permission';
 
 type ProductUpdate = Database['public']['Tables']['catalog_products']['Update'];
 
@@ -40,10 +41,14 @@ export async function PUT(
     const { id } = await params;
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // catalog_products no tiene RLS: esta verificación es el control de acceso.
+    const denied = await requirePermission(
+      supabase,
+      'system-settings',
+      'update',
+      'No tienes permisos para editar productos del catálogo'
+    );
+    if (denied) return denied;
 
     const body = await request.json();
     const updateData: Partial<ProductUpdate> = {};
@@ -127,10 +132,13 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const denied = await requirePermission(
+      supabase,
+      'system-settings',
+      'delete',
+      'No tienes permisos para eliminar productos del catálogo'
+    );
+    if (denied) return denied;
 
     const { data: currentProduct } = await supabase.from('catalog_products').select('image_url').eq('id', id).single();
 

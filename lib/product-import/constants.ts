@@ -66,6 +66,13 @@ export const TEMPLATE_HEADER_ALIASES: Record<string, TemplateField> = {
   'Tu código': 'productCode',
 };
 
+/** Esquema con el que se lee un archivo subido por el vendedor. */
+export const TEMPLATE_SCHEMA = {
+  headers: TEMPLATE_HEADERS,
+  aliases: TEMPLATE_HEADER_ALIASES,
+  required: ['catalogCode', 'productCode', 'retailPrice', 'stock'] as TemplateField[],
+};
+
 /** Anchos de columna del xlsx, en el mismo orden que TEMPLATE_HEADERS. */
 export const TEMPLATE_COLUMN_WIDTHS: Record<TemplateField, number> = {
   catalogCode: 28,

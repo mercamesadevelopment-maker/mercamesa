@@ -1,34 +1,9 @@
-export type ImportRowStatus =
-  | 'created'
-  | 'skipped'
-  | 'failed'
-  /** Válida, pero la carga se detuvo antes de llegar a ella. */
-  | 'not_processed';
-
-export interface ImportRowResult {
-  /** Número de fila tal como se ve en Excel (el encabezado es la 1). */
-  row: number;
-  code: string;
-  /** Nombre del catálogo si se pudo resolver; si no, el que traía el archivo. */
-  name: string;
-  status: ImportRowStatus;
-  message?: string;
-}
-
-export interface ImportSummary {
-  total: number;
-  created: number;
-  skipped: number;
-  failed: number;
-  notProcessed: number;
-}
-
-export interface ImportReport {
-  summary: ImportSummary;
-  rows: ImportRowResult[];
-  /** true cuando solo se validó, sin escribir en la base. */
-  dryRun: boolean;
-}
+export type {
+  ImportRowStatus,
+  ImportRowResult,
+  ImportSummary,
+  ImportReport,
+} from '@/lib/spreadsheet/report';
 
 /** Fila ya validada, lista para insertarse en store_products. */
 export interface ValidatedRow {

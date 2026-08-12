@@ -1,6 +1,11 @@
 import ExcelJS from 'exceljs';
 import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 import {
+  buildInstructionsSheet,
+  styleHeaderRow,
+  styleReferenceCell,
+} from '@/lib/spreadsheet/workbook';
+import {
   TEMPLATE_COLUMN_WIDTHS,
   TEMPLATE_HEADERS,
   type TemplateField,
@@ -45,15 +50,7 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
     width: TEMPLATE_COLUMN_WIDTHS[field],
   }));
 
-  const header = sheet.getRow(1);
-  header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2A4E12' } };
-  header.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-  header.height = 28;
-
-  // Congelar el encabezado: con cientos de filas, saber en qué columna se está
-  // escribiendo es la mitad del problema.
-  sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  styleHeaderRow(sheet, FIELDS.length);
 
   const editableColumns = new Set(EDITABLE_FIELDS.map((field) => FIELDS.indexOf(field) + 1));
 
@@ -68,10 +65,7 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
 
     // Las de referencia van en gris para que se note cuáles hay que llenar.
     FIELDS.forEach((_, index) => {
-      const cell = row.getCell(index + 1);
-      if (!editableColumns.has(index + 1)) {
-        cell.font = { color: { argb: 'FF7A7A7A' } };
-      }
+      if (!editableColumns.has(index + 1)) styleReferenceCell(row.getCell(index + 1));
     });
 
     row.getCell(FIELDS.indexOf('retailPrice') + 1).numFmt = '#,##0';
@@ -81,56 +75,26 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
     row.getCell(FIELDS.indexOf('productCode') + 1).numFmt = '@';
   }
 
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: FIELDS.length },
-  };
+  const instructions = buildInstructionsSheet(
+    workbook,
+    `Carga masiva de productos — ${input.storeName}`,
+    [
+      '1. En la hoja "Productos" está todo el catálogo que aún no publicas.',
+      `2. Llena "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" SOLO en los productos que vendes. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
+      `3. Ojo con las dos columnas de código: "${TEMPLATE_HEADERS.catalogCode}" ya viene llena y NO se debe modificar (es la que identifica el producto), mientras que "${TEMPLATE_HEADERS.productCode}" la escribes tú: es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
+      `4. Puedes llenar todas las filas que necesites, hasta las ${input.products.length} de esta plantilla, y subirla de una sola vez.`,
+      `5. "${TEMPLATE_HEADERS.wholesalePrice}", "${TEMPLATE_HEADERS.wholesaleMinQty}" y "${TEMPLATE_HEADERS.minOrderQty}" son opcionales. El mayorista no puede superar al minorista.`,
+      `6. "${TEMPLATE_HEADERS.unit}" ya viene sugerida; cámbiala solo si vendes en otra. Debe ser una de la lista de abajo.`,
+      '7. Guarda el archivo como Excel (.xlsx) o CSV y súbelo desde Productos → Carga masiva.',
+    ]
+  );
 
-  buildInstructionsSheet(workbook, input);
+  const unitsTitle = instructions.addRow(['Unidades de medida válidas']);
+  unitsTitle.font = { bold: true };
+  for (const unit of input.units) {
+    instructions.addRow([`   • ${unit.abbreviation} — ${unit.name}`]);
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
-}
-
-function buildInstructionsSheet(workbook: ExcelJS.Workbook, input: TemplateInput) {
-  // Va en hoja aparte a propósito: cualquier texto suelto en la hoja de datos
-  // rompería la lectura del encabezado al volver a subir el archivo.
-  const sheet = workbook.addWorksheet('Instrucciones');
-  sheet.getColumn(1).width = 100;
-
-  const lines: { text: string; bold?: boolean; spaceAfter?: boolean }[] = [
-    { text: `Carga masiva de productos — ${input.storeName}`, bold: true, spaceAfter: true },
-    { text: '1. En la hoja "Productos" está todo el catálogo que aún no publicas.', spaceAfter: false },
-    {
-      text: `2. Llena "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" SOLO en los productos que vendes. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
-    },
-    {
-      text: `3. Ojo con las dos columnas de código: "${TEMPLATE_HEADERS.catalogCode}" ya viene llena y NO se debe modificar (es la que identifica el producto), mientras que "${TEMPLATE_HEADERS.productCode}" la escribes tú: es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
-    },
-    {
-      text: `4. Puedes llenar todas las filas que necesites, hasta las ${input.products.length} de esta plantilla, y subirla de una sola vez.`,
-    },
-    {
-      text: `5. "${TEMPLATE_HEADERS.wholesalePrice}", "${TEMPLATE_HEADERS.wholesaleMinQty}" y "${TEMPLATE_HEADERS.minOrderQty}" son opcionales. El mayorista no puede superar al minorista.`,
-    },
-    {
-      text: `6. "${TEMPLATE_HEADERS.unit}" ya viene sugerida; cámbiala solo si vendes en otra. Debe ser una de la lista de abajo.`,
-    },
-    {
-      text: '7. Guarda el archivo como Excel (.xlsx) o CSV y súbelo desde Productos → Carga masiva.',
-      spaceAfter: true,
-    },
-    { text: 'Unidades de medida válidas', bold: true },
-  ];
-
-  for (const line of lines) {
-    const row = sheet.addRow([line.text]);
-    if (line.bold) row.font = { bold: true };
-    row.alignment = { wrapText: true, vertical: 'top' };
-    if (line.spaceAfter !== false) sheet.addRow([]);
-  }
-
-  for (const unit of input.units) {
-    sheet.addRow([`   • ${unit.abbreviation} — ${unit.name}`]);
-  }
 }

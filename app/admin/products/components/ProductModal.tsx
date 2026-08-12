@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
+import { slugify } from '@/lib/catalog-import/slug';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -64,7 +65,9 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
     if (!initialData && formData.name) {
       setFormData(prev => ({
         ...prev,
-        slug: formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+        // El slugify compartido con la carga masiva: quita tildes antes de
+        // filtrar, si no "Ñame criollo" quedaba como "-ame-criollo".
+        slug: slugify(formData.name),
       }));
     }
   }, [formData.name, initialData]);
