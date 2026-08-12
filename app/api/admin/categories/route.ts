@@ -5,9 +5,14 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
+    // `categories` se auto-referencia, así que hay que decirle a PostgREST en
+    // qué dirección resolver la relación, y la pista tiene que ser la COLUMNA
+    // (`parent_id`), no la tabla. Con `categories!parent_id` interpretaba la
+    // dirección contraria y devolvía el arreglo de hijos, así que `parent.name`
+    // quedaba indefinido y toda la tabla se mostraba como "Raíz".
     const { data, error } = await supabase
       .from('categories')
-      .select('*, parent:categories!parent_id(name)')
+      .select('*, parent:parent_id(name)')
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true });
 

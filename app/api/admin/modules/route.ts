@@ -7,7 +7,10 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('modules')
-      .select('*, parent:modules!parent_id(label)')
+      // La pista del embed autorreferenciado tiene que ser la columna
+      // (`parent_id`) y no la tabla: con `modules!parent_id` PostgREST resolvía
+      // la dirección contraria y devolvía los hijos en vez del padre.
+      .select('*, parent:parent_id(label)')
       .order('sort_order', { ascending: true })
       .order('label', { ascending: true });
 
