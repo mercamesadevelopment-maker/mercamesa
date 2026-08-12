@@ -1,7 +1,6 @@
 import ExcelJS from 'exceljs';
 import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 import {
-  MAX_IMPORT_ROWS,
   TEMPLATE_COLUMN_WIDTHS,
   TEMPLATE_HEADERS,
   type TemplateField,
@@ -109,7 +108,7 @@ function buildInstructionsSheet(workbook: ExcelJS.Workbook, input: TemplateInput
       text: `3. Ojo con las dos columnas de código: "${TEMPLATE_HEADERS.catalogCode}" ya viene llena y NO se debe modificar (es la que identifica el producto), mientras que "${TEMPLATE_HEADERS.productCode}" la escribes tú: es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
     },
     {
-      text: `4. Puedes subir hasta ${MAX_IMPORT_ROWS} productos por archivo. Si vendes más, divídelo en varios.`,
+      text: `4. Puedes llenar todas las filas que necesites, hasta las ${input.products.length} de esta plantilla, y subirla de una sola vez.`,
     },
     {
       text: `5. "${TEMPLATE_HEADERS.wholesalePrice}", "${TEMPLATE_HEADERS.wholesaleMinQty}" y "${TEMPLATE_HEADERS.minOrderQty}" son opcionales. El mayorista no puede superar al minorista.`,

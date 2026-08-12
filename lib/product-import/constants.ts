@@ -1,7 +1,30 @@
-/** Tope de productos por carga. Filas sin precio ni stock no cuentan. */
-export const MAX_IMPORT_ROWS = 100;
+/**
+ * El tope de filas por carga no es un número fijo: es la cantidad de productos
+ * activos del catálogo (`ImportLookups.catalogSize`). Un archivo con más filas
+ * que el catálogo entero solo puede venir de un error.
+ */
 
-/** 100 filas de texto no llegan ni a 100 KB; 2 MB deja margen de sobra. */
+/**
+ * Filas por INSERT. El trabajo se hace en una sola petición, escribiendo por
+ * bloques: con 3.000 filas son 15 idas y vueltas en vez de 30 con bloques de
+ * 100, y el bloque sigue siendo lo bastante chico para acotar el reintento fila
+ * por fila cuando algo falla.
+ */
+export const INSERT_CHUNK_SIZE = 200;
+
+/**
+ * Tope de reintentos individuales acumulados en una carga. El reintento fila por
+ * fila existe para aislar cuál falló, pero es secuencial: sin este tope, una
+ * carga de 3.000 filas con muchos conflictos se volvería miles de consultas
+ * seguidas y se pasaría de cualquier timeout. Al llegar acá se corta y lo que
+ * queda se reporta como no procesado.
+ */
+export const MAX_ROW_BY_ROW_RETRIES = 300;
+
+/**
+ * Un archivo de 3.000 filas ronda los 300 KB, así que 2 MB deja margen de sobra
+ * y el guard sigue sirviendo contra subidas absurdas.
+ */
 export const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 export const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx'] as const;

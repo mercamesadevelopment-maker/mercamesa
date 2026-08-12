@@ -10,13 +10,14 @@ import { StockMovementModal } from './StockMovementModal';
 import { BulkImportModal } from './bulk-import-modal';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 
 export function ProductsView() {
   const {
     filteredProducts,
-    lowStockProducts,
+    outOfStockProducts,
+    lowestStockProducts,
     lowestStockItem,
     search,
     setSearch,
@@ -107,8 +108,8 @@ export function ProductsView() {
       key: 'stock',
       label: 'Stock',
       render: (item: any) => (
-        <Badge variant={item.stock < item.minStock ? 'error' : 'success'}>
-          {item.stock} {item.unit}s
+        <Badge variant={item.stock <= 0 ? 'error' : 'success'}>
+          {item.stock <= 0 ? 'Agotado' : `${item.stock} ${item.unit}s`}
         </Badge>
       )
     },
@@ -242,11 +243,11 @@ export function ProductsView() {
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-mm-g" />
-                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Suficiente</span>
+                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Con stock</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-r" />
-                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Crítico</span>
+                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Agotado</span>
               </div>
             </div>
           </div>
@@ -284,7 +285,7 @@ export function ProductsView() {
                   {filteredProducts.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={entry.stock <= (entry.minStock || 10) ? '#CF3D2E' : '#2A4E12'} 
+                      fill={entry.stock <= 0 ? '#CF3D2E' : '#2A4E12'}
                     />
                   ))}
                 </Bar>
@@ -323,18 +324,23 @@ export function ProductsView() {
           
           <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-12 h-12 bg-rl text-r rounded-2xl flex items-center justify-center shrink-0">
-                <AlertCircle className="w-6 h-6" />
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
+                outOfStockProducts.length > 0 ? "bg-rl text-r" : "bg-okl text-ok"
+              )}>
+                {outOfStockProducts.length > 0 ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Estado Crítico</p>
+                <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Menor stock</p>
                 <p className="font-bold text-mm-g leading-tight">
-                  {lowStockProducts.length} productos agotándose
+                  {outOfStockProducts.length === 0
+                    ? 'Ningún producto agotado'
+                    : `${outOfStockProducts.length} ${outOfStockProducts.length === 1 ? 'producto agotado' : 'productos agotados'}`}
                 </p>
               </div>
             </div>
             <div className="space-y-4">
-              {lowStockProducts.slice(0, 3).map(p => (
+              {lowestStockProducts.slice(0, 3).map(p => (
                 <div key={p.id} className="flex items-center justify-between group p-3 hover:bg-mm-gbg/30 rounded-2xl transition-all">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-mm-gbg flex items-center justify-center text-xl overflow-hidden border border-mm-crd shadow-sm">
@@ -342,16 +348,18 @@ export function ProductsView() {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-mm-g">{p.name}</p>
-                      <p className="text-[9px] text-mm-txw font-black uppercase">Mín: {p.minStock || 10}</p>
+                      <p className="text-[9px] text-mm-txw font-black uppercase">{p.unit}</p>
                     </div>
                   </div>
-                  <Badge variant="error" className="py-1 px-2 text-[10px]">{p.stock} pza</Badge>
+                  <Badge variant={p.stock <= 0 ? 'error' : 'default'} className="py-1 px-2 text-[10px]">
+                    {p.stock <= 0 ? 'Agotado' : `${p.stock} ${p.unit}`}
+                  </Badge>
                 </div>
               ))}
-              {lowStockProducts.length === 0 && (
+              {lowestStockProducts.length === 0 && (
                 <div className="text-center py-6">
                   <CheckCircle2 className="w-10 h-10 text-ok/20 mx-auto mb-2" />
-                  <p className="text-xs text-mm-txw font-bold italic">Todo al día</p>
+                  <p className="text-xs text-mm-txw font-bold italic">Sin productos publicados</p>
                 </div>
               )}
             </div>

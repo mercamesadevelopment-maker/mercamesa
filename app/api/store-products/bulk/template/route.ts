@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { XLSX_MIME, buildTemplateWorkbook, type TemplateProduct } from '@/lib/product-import';
+import { fetchAllRows } from '@/lib/supabase/fetch-all';
+
+interface CatalogRow {
+  id: string;
+  name: string;
+  slug: string;
+  default_unit_id: string | null;
+  categories: { name: string; parent_id: string | null } | null;
+}
+
+interface UnitRow {
+  id: string;
+  name: string;
+  abbreviation: string;
+}
 
 /** Quita tildes y espacios raros para un nombre de archivo seguro. */
 function toFileSlug(value: string): string {
@@ -36,36 +51,47 @@ export async function GET(request: Request) {
       );
     }
 
-    const [storeRes, catalogRes, unitsRes, publishedRes] = await Promise.all([
+    // El catálogo y los productos de la tienda se paginan: PostgREST devuelve
+    // 1.000 filas por defecto y sin aviso, así que sin esto la plantilla saldría
+    // incompleta en cuanto el catálogo pase ese tamaño.
+    const [storeRes, catalog, units, publishedRows] = await Promise.all([
       supabase.from('stores').select('name').eq('id', storeId).single(),
-      supabase
-        .from('catalog_products')
-        .select('id, name, slug, default_unit_id, categories ( name, parent_id )')
-        .eq('is_active', true)
-        .order('name'),
-      supabase
-        .from('measurement_units')
-        .select('id, name, abbreviation')
-        .eq('is_active', true)
-        .order('name'),
-      supabase.from('store_products').select('catalog_product_id').eq('store_id', storeId),
+      fetchAllRows<CatalogRow>((from, to) =>
+        supabase
+          .from('catalog_products')
+          .select('id, name, slug, default_unit_id, categories ( name, parent_id )')
+          .eq('is_active', true)
+          .order('name')
+          .range(from, to)
+      ),
+      fetchAllRows<UnitRow>((from, to) =>
+        supabase
+          .from('measurement_units')
+          .select('id, name, abbreviation')
+          .eq('is_active', true)
+          .order('name')
+          .range(from, to)
+      ),
+      fetchAllRows<{ catalog_product_id: string }>((from, to) =>
+        supabase
+          .from('store_products')
+          .select('catalog_product_id')
+          .eq('store_id', storeId)
+          .order('catalog_product_id')
+          .range(from, to)
+      ),
     ]);
 
-    if (catalogRes.error) throw new Error(catalogRes.error.message);
-    if (unitsRes.error) throw new Error(unitsRes.error.message);
-    if (publishedRes.error) throw new Error(publishedRes.error.message);
-
-    const units = unitsRes.data ?? [];
     const abbreviationByUnitId = new Map(units.map((unit) => [unit.id, unit.abbreviation]));
-    const published = new Set((publishedRes.data ?? []).map((row) => row.catalog_product_id));
+    const published = new Set(publishedRows.map((row) => row.catalog_product_id));
 
     // categories se auto-referencia por parent_id y PostgREST no resuelve el
     // embed anidado de la tabla dentro de sí misma, así que el nombre del padre
     // se resuelve acá con un mapa (mismo enfoque que GET /api/store-products).
     const parentIds = Array.from(
       new Set(
-        (catalogRes.data ?? [])
-          .map((product) => (product.categories as any)?.parent_id)
+        catalog
+          .map((product) => product.categories?.parent_id)
           .filter((id): id is string => !!id)
       )
     );
@@ -79,12 +105,12 @@ export async function GET(request: Request) {
       parentNameById = new Map((parents ?? []).map((category) => [category.id, category.name]));
     }
 
-    const products: TemplateProduct[] = (catalogRes.data ?? [])
+    const products: TemplateProduct[] = catalog
       // Los ya publicados se omiten: al subirlos volverían como "omitidos" y
       // solo harían más larga una hoja que ya trae cientos de filas.
       .filter((product) => !published.has(product.id))
       .map((product) => {
-        const category = product.categories as any;
+        const category = product.categories;
         const parentName = category?.parent_id ? parentNameById.get(category.parent_id) ?? '' : '';
         return {
           code: product.slug,

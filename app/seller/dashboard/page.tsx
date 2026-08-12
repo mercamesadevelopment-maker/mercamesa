@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProviderDashboard } from '../../../src/components/AdminViews';
+import { DashboardView } from './components/dashboard-view';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 
 export default function SellerDashboardPage() {
@@ -47,5 +47,5 @@ export default function SellerDashboardPage() {
     checkVerification();
   }, [stores, storeLoading, router]);
 
-  return <ProviderDashboard />;
+  return <DashboardView />;
 }

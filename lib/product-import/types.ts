@@ -1,4 +1,9 @@
-export type ImportRowStatus = 'created' | 'skipped' | 'failed';
+export type ImportRowStatus =
+  | 'created'
+  | 'skipped'
+  | 'failed'
+  /** Válida, pero la carga se detuvo antes de llegar a ella. */
+  | 'not_processed';
 
 export interface ImportRowResult {
   /** Número de fila tal como se ve en Excel (el encabezado es la 1). */
@@ -15,6 +20,7 @@ export interface ImportSummary {
   created: number;
   skipped: number;
   failed: number;
+  notProcessed: number;
 }
 
 export interface ImportReport {
@@ -51,4 +57,6 @@ export interface ImportLookups {
   existingCatalogProductIds: Set<string>;
   /** Códigos ya usados por la tienda, en mayúsculas (igual que el índice único) */
   existingProductCodes: Set<string>;
+  /** Productos activos del catálogo: es el tope de filas que puede traer un archivo. */
+  catalogSize: number;
 }

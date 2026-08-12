@@ -4,14 +4,14 @@ import React from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   Download,
   FileSpreadsheet,
   Upload,
   XCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Badge, StepBar } from '@/src/components/Shared';
-import { MAX_IMPORT_ROWS } from '@/lib/product-import/constants';
+import { Button, Badge, StepBar, cn } from '@/src/components/Shared';
 import { useBulkImport } from '../hooks/use-bulk-import';
 import type { ImportReport, ImportRowResult } from '../types/bulk-import.types';
 
@@ -95,8 +95,8 @@ export function BulkImportModal({
                 vacías se ignoran— y súbela.
               </p>
               <p className="text-xs text-mm-txw">
-                Puedes publicar hasta {MAX_IMPORT_ROWS} productos por archivo (.xlsx o .csv). Si alguna
-                fila tiene un problema, se publican las demás y te decimos cuál corregir.
+                Puedes publicar todo el catálogo de una sola vez (.xlsx o .csv). Si alguna fila tiene
+                un problema, se publican las demás y te decimos cuál corregir.
               </p>
               <Button
                 type="button"
@@ -167,7 +167,16 @@ export function BulkImportModal({
             <ProblemRows rows={report.rows} />
 
             {step === 'preview' ? (
-              <div className="flex gap-3 pt-2 border-t border-mm-gbg">
+              <div className="space-y-3 pt-2 border-t border-mm-gbg">
+                {/* Publicar cientos de productos tarda unos segundos: se avisa
+                    para que el vendedor no crea que se colgó ni cierre el modal. */}
+                {report.summary.created > 100 && (
+                  <p className="text-xs text-mm-txw text-center">
+                    Publicar {report.summary.created} productos puede tardar unos segundos. No
+                    cierres esta ventana.
+                  </p>
+                )}
+                <div className="flex gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -188,6 +197,7 @@ export function BulkImportModal({
                     ? 'No hay nada por publicar'
                     : `Publicar ${report.summary.created} producto${report.summary.created === 1 ? '' : 's'}`}
                 </Button>
+                </div>
               </div>
             ) : (
               <div className="pt-2 border-t border-mm-gbg">
@@ -204,7 +214,7 @@ export function BulkImportModal({
 }
 
 function ReportSummary({ report }: { report: ImportReport }) {
-  const { created, skipped, failed } = report.summary;
+  const { created, skipped, failed, notProcessed } = report.summary;
 
   const cards = [
     {
@@ -225,10 +235,22 @@ function ReportSummary({ report }: { report: ImportReport }) {
       className: 'bg-rl text-r',
       icon: <XCircle className="w-5 h-5" />,
     },
+    // Solo aparece cuando la carga se detuvo: en el camino normal es siempre
+    // cero y no aporta nada.
+    ...(notProcessed > 0
+      ? [
+          {
+            value: notProcessed,
+            label: 'Sin procesar',
+            className: 'bg-mm-gbg text-mm-g',
+            icon: <Clock className="w-5 h-5" />,
+          },
+        ]
+      : []),
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className={cn('grid gap-4', cards.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
       {cards.map((card) => (
         <div key={card.label} className={`${card.className} rounded-2xl p-4 text-center`}>
           <div className="flex items-center justify-center gap-2 mb-1">
@@ -242,9 +264,19 @@ function ReportSummary({ report }: { report: ImportReport }) {
   );
 }
 
+const PROBLEM_BADGE: Record<
+  ImportRowResult['status'],
+  { label: string; variant: 'warning' | 'error' | 'default' | 'success' }
+> = {
+  created: { label: 'Publicado', variant: 'success' },
+  skipped: { label: 'Omitido', variant: 'warning' },
+  failed: { label: 'Error', variant: 'error' },
+  not_processed: { label: 'Sin procesar', variant: 'default' },
+};
+
 /**
  * Solo se listan las filas con problema: las correctas ya están en el resumen y
- * con 100 productos la lista completa sería ilegible.
+ * con cientos de productos la lista completa sería ilegible.
  */
 function ProblemRows({ rows }: { rows: ImportRowResult[] }) {
   const problems = rows.filter((row) => row.status !== 'created');
@@ -274,8 +306,8 @@ function ProblemRows({ rows }: { rows: ImportRowResult[] }) {
                 <span className="font-bold text-mm-g text-sm truncate">
                   {row.name || row.code || 'Sin producto'}
                 </span>
-                <Badge variant={row.status === 'skipped' ? 'warning' : 'error'} className="text-[10px]">
-                  {row.status === 'skipped' ? 'Omitido' : 'Error'}
+                <Badge variant={PROBLEM_BADGE[row.status].variant} className="text-[10px]">
+                  {PROBLEM_BADGE[row.status].label}
                 </Badge>
               </div>
               <p className="text-xs text-mm-txs leading-relaxed">{row.message}</p>

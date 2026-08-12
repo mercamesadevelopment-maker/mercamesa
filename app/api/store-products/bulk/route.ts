@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import {
   ACCEPTED_EXTENSIONS,
+  INSERT_CHUNK_SIZE,
   MAX_FILE_BYTES,
+  MAX_ROW_BY_ROW_RETRIES,
   SpreadsheetError,
   loadImportLookups,
   parseSpreadsheet,
@@ -19,6 +21,18 @@ import {
 import type { Database } from '@/types/database_generated';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
+
+/**
+ * Publicar un catálogo completo (proyección del cliente: hasta 3.000 productos)
+ * son unos pocos segundos: parsear el archivo, tres consultas de referencia y
+ * los INSERT por bloques. Se declara el techo explícitamente en vez de heredar
+ * el default de la plataforma, que es invisible.
+ *
+ * Si algún día el trabajo dejara de caber acá —decenas de miles de filas, o una
+ * llamada externa por producto, como sincronizar cada uno con Siigo—, ese sería
+ * el momento de sacarlo a una cola en segundo plano y no antes.
+ */
+export const maxDuration = 60;
 
 function toInsert(storeId: string, row: ValidatedRow): StoreProductInsert {
   return {
@@ -134,59 +148,95 @@ export async function POST(request: Request) {
 }
 
 /**
- * Intenta un solo insert con todo (el camino normal, una consulta) y, si algo
- * falla, reintenta fila por fila para publicar lo que sí se pueda y poder decir
- * exactamente cuál falló.
+ * Escribe en bloques de `INSERT_CHUNK_SIZE`. El camino normal es un INSERT por
+ * bloque; si un bloque falla, se reintenta **solo ese bloque** fila por fila
+ * para aislar cuál rompió y publicar el resto.
+ *
+ * El reintento individual es secuencial, así que se lleva la cuenta: pasado
+ * `MAX_ROW_BY_ROW_RETRIES` la carga se detiene y lo que queda se reporta como
+ * `not_processed`. Volver a subir el mismo archivo es seguro y es la vía de
+ * recuperación: lo ya publicado sale como omitido y solo se escribe lo que
+ * falta.
  */
 async function insertRows(
   supabase: Awaited<ReturnType<typeof createClient>>,
   storeId: string,
   valid: ValidatedRow[]
 ): Promise<ImportRowResult[]> {
-  if (valid.length === 0) return [];
-
-  const { error } = await supabase
-    .from('store_products')
-    .insert(valid.map((row) => toInsert(storeId, row)));
-
-  if (!error) {
-    return valid.map((row) => ({
-      row: row.row,
-      code: row.code,
-      name: row.name,
-      status: 'created' as const,
-    }));
-  }
-
   const results: ImportRowResult[] = [];
-  for (const row of valid) {
-    const { error: rowError } = await supabase
-      .from('store_products')
-      .insert(toInsert(storeId, row));
+  let rowByRowCount = 0;
 
-    results.push({
-      row: row.row,
-      code: row.code,
-      name: row.name,
-      status: rowError ? 'failed' : 'created',
-      message: rowError ? insertErrorMessage(rowError.message, rowError.code, row) : undefined,
-    });
+  const created = (row: ValidatedRow): ImportRowResult => ({
+    row: row.row,
+    code: row.code,
+    name: row.name,
+    status: 'created',
+  });
+
+  for (let index = 0; index < valid.length; index += INSERT_CHUNK_SIZE) {
+    const chunk = valid.slice(index, index + INSERT_CHUNK_SIZE);
+
+    const { error } = await supabase
+      .from('store_products')
+      .insert(chunk.map((row) => toInsert(storeId, row)));
+
+    if (!error) {
+      results.push(...chunk.map(created));
+      continue;
+    }
+
+    if (rowByRowCount + chunk.length > MAX_ROW_BY_ROW_RETRIES) {
+      results.push(...valid.slice(index).map(notProcessed));
+      break;
+    }
+
+    for (const row of chunk) {
+      const { error: rowError } = await supabase
+        .from('store_products')
+        .insert(toInsert(storeId, row));
+
+      rowByRowCount++;
+      results.push(
+        rowError
+          ? {
+              row: row.row,
+              code: row.code,
+              name: row.name,
+              status: 'failed',
+              message: insertErrorMessage(rowError.message, rowError.code, row),
+            }
+          : created(row)
+      );
+    }
   }
 
   return results;
 }
 
+function notProcessed(row: ValidatedRow): ImportRowResult {
+  return {
+    row: row.row,
+    code: row.code,
+    name: row.name,
+    status: 'not_processed',
+    message: 'La carga se detuvo antes de llegar a este producto. Vuelve a subir el archivo para publicarlo.',
+  };
+}
+
 function buildReport(rows: ImportRowResult[], dryRun: boolean): ImportReport {
   const ordered = [...rows].sort((a, b) => a.row - b.row);
+  const countOf = (status: ImportRowResult['status']) =>
+    ordered.filter((row) => row.status === status).length;
 
   return {
     dryRun,
     rows: ordered,
     summary: {
       total: ordered.length,
-      created: ordered.filter((row) => row.status === 'created').length,
-      skipped: ordered.filter((row) => row.status === 'skipped').length,
-      failed: ordered.filter((row) => row.status === 'failed').length,
+      created: countOf('created'),
+      skipped: countOf('skipped'),
+      failed: countOf('failed'),
+      notProcessed: countOf('not_processed'),
     },
   };
 }

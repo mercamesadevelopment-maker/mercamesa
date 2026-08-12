@@ -5,7 +5,7 @@ import {
   productCodeKey,
   validateProductCode,
 } from '@/lib/products/product-code';
-import { MAX_IMPORT_ROWS, TEMPLATE_HEADERS } from './constants';
+import { TEMPLATE_HEADERS } from './constants';
 import { SpreadsheetError, type RawRow } from './parse-spreadsheet';
 import type { ImportLookups, ImportRowResult, ValidatedRow } from './types';
 
@@ -74,9 +74,11 @@ export interface ValidationResult {
 export function validateRows(rows: RawRow[], lookups: ImportLookups): ValidationResult {
   const candidates = rows.filter((row) => !isIgnorableRow(row));
 
-  if (candidates.length > MAX_IMPORT_ROWS) {
+  // Nadie puede publicar más productos de los que existen en el catálogo: si el
+  // archivo trae más filas con datos, viene duplicado o alterado.
+  if (candidates.length > lookups.catalogSize) {
     throw new SpreadsheetError(
-      `El archivo tiene ${candidates.length} productos con datos y el máximo por carga es ${MAX_IMPORT_ROWS}. Divídelo en varios archivos.`
+      `El archivo trae ${candidates.length} productos con datos, más que los ${lookups.catalogSize} del catálogo. Revisa que no tenga filas repetidas y descarga la plantilla de nuevo.`
     );
   }
 

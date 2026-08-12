@@ -311,27 +311,38 @@ export function useProducts() {
     });
   }, [myProducts, search, selectedStore, selectedCategory]);
 
-  const lowStockProducts = useMemo(() => {
+  const scopedProducts = useMemo(() => {
     return myProducts.filter(p => {
-      const matchesStore = !selectedStore || p.storeId === selectedStore;
-      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
-      return matchesStore && matchesCategory && p.stock <= (p.minStock || 10);
-    });
-  }, [myProducts, selectedStore, selectedCategory]);
-
-  const lowestStockItem = useMemo(() => {
-    const storeAndCatProducts = myProducts.filter(p => {
       const matchesStore = !selectedStore || p.storeId === selectedStore;
       const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
       return matchesStore && matchesCategory;
     });
-    if (storeAndCatProducts.length === 0) return null;
-    return [...storeAndCatProducts].sort((a, b) => a.stock - b.stock)[0];
   }, [myProducts, selectedStore, selectedCategory]);
+
+  // Agotado es un hecho; "stock bajo" no, porque store_products no tiene una
+  // columna de stock mínimo. `minStock` es en realidad `min_order_qty`, el
+  // pedido mínimo de compra: compararlo contra el stock marcaba casi todo el
+  // inventario como crítico.
+  const outOfStockProducts = useMemo(
+    () => scopedProducts.filter(p => p.stock <= 0),
+    [scopedProducts]
+  );
+
+  /** Los de menos existencias, para revisar sin necesidad de un umbral. */
+  const lowestStockProducts = useMemo(
+    () => [...scopedProducts].sort((a, b) => a.stock - b.stock),
+    [scopedProducts]
+  );
+
+  const lowestStockItem = useMemo(
+    () => lowestStockProducts[0] ?? null,
+    [lowestStockProducts]
+  );
 
   return {
     filteredProducts,
-    lowStockProducts,
+    outOfStockProducts,
+    lowestStockProducts,
     lowestStockItem,
     search,
     setSearch,
