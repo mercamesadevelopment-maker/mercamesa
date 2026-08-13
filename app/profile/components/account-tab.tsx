@@ -8,13 +8,7 @@ import { useAccount } from '../hooks/use-account';
 import { EmailChangeModal } from './email-change-modal';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-
-const DOCUMENT_TYPES = [
-  { value: 'cedula', label: 'Cédula de ciudadanía' },
-  { value: 'nit', label: 'NIT' },
-  { value: 'cedula_extranjeria', label: 'Cédula de extranjería' },
-  { value: 'pasaporte', label: 'Pasaporte' },
-];
+import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
 export function AccountTab() {
   return (
@@ -31,8 +25,20 @@ function AccountTabContent() {
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [documentType, setDocumentType] = useState('');
+  const [identificationTypeId, setIdentificationTypeId] = useState('');
   const [documentNumber, setDocumentNumber] = useState('');
+  const { personTypes, allIdentificationTypes } = useIdentificationTypes();
+
+  // Solo se ofrecen las identificaciones válidas para el tipo de persona con el
+  // que se registró el usuario. Ese tipo no se edita desde acá, así que cambiar
+  // la identificación no sirve para saltarse la regla; el servidor la revalida.
+  //
+  // Los perfiles antiguos no tienen tipo de persona (el formulario de entonces
+  // no lo pedía): sin él no hay regla que aplicar, y dejarlos con la lista vacía
+  // sería impedirles editar su identificación para siempre.
+  const identificationOptions = profile?.person_type_id
+    ? personTypes.find((p) => p.id === profile.person_type_id)?.identification_types ?? []
+    : allIdentificationTypes;
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -47,7 +53,7 @@ function AccountTabContent() {
     if (profile) {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
-      setDocumentType(profile.document_type || '');
+      setIdentificationTypeId(profile.identification_type_id || '');
       setDocumentNumber(profile.document_number || '');
     }
   }, [profile]);
@@ -67,8 +73,8 @@ function AccountTabContent() {
     const payload: Record<string, unknown> = {
       full_name: fullName,
       phone,
-      document_type: documentType,
       document_number: documentNumber,
+      ...(identificationTypeId && { identification_type_id: identificationTypeId }),
     };
 
     if (avatarFile) {
@@ -160,15 +166,21 @@ function AccountTabContent() {
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-sm font-medium text-mm-txs ml-1">Tipo de identificación</label>
             <select
-              value={documentType}
-              onChange={(e) => setDocumentType(e.target.value)}
-              className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g focus:ring-2 focus:ring-mm-gll outline-none transition-all"
+              value={identificationTypeId}
+              onChange={(e) => setIdentificationTypeId(e.target.value)}
+              disabled={identificationOptions.length === 0}
+              className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g focus:ring-2 focus:ring-mm-gll outline-none transition-all disabled:opacity-60"
             >
               <option value="" disabled>Selecciona...</option>
-              {DOCUMENT_TYPES.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
+              {identificationOptions.map((type) => (
+                <option key={type.id} value={type.id}>{type.name}</option>
               ))}
             </select>
+            {profile?.person_types?.name && (
+              <p className="text-xs text-mm-txw ml-1">
+                Opciones válidas para {profile.person_types.name}.
+              </p>
+            )}
           </div>
 
           <Input

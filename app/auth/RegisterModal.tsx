@@ -6,28 +6,35 @@ import { ROLES, C } from '@/src/constants';
 import { RoleKey } from '@/src/types';
 import { Button, Input, StepBar } from '@/src/components/Shared';
 import { useAuthHooks } from '../hooks/useAuth';
+import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
 export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { dispatch } = useApp();
   const { register, loading, error } = useAuthHooks();
   const [step, setStep] = useState(0);
   const [role, setRole] = useState<RoleKey | null>(null);
+  const { personTypes } = useIdentificationTypes();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     full_name: '',
     phone: '',
     business_name: '',
-    nit: '',
+    person_type_id: '',
+    identification_type_id: '',
+    document_number: '',
     store_name: '',
     local_number: '',
     vehicle: '',
     city: ''
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  const selectedPersonType = personTypes.find(p => p.id === formData.person_type_id) ?? null;
+  const identificationOptions = selectedPersonType?.identification_types ?? [];
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +56,10 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
         full_name: formData.full_name,
         phone: formData.phone,
         role_id: roleMap[role] || roleMap['retail'],
-        roleKey: role
+        roleKey: role,
+        person_type_id: formData.person_type_id || undefined,
+        identification_type_id: formData.identification_type_id || undefined,
+        document_number: formData.document_number || undefined,
       });
       
       setStep(2);
@@ -130,7 +140,44 @@ export function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                     <Input label="Nombre completo" name="full_name" value={formData.full_name} onChange={handleChange} placeholder="Juan Pérez" required />
                     <Input label="Celular" name="phone" value={formData.phone} onChange={handleChange} placeholder="+57 300 000 0000" required />
                     {role === 'wholesale' && <Input label="Nombre del negocio" name="business_name" value={formData.business_name} onChange={handleChange} placeholder="Restaurante El Sabor" required />}
-                    {role === 'wholesale' && <Input label="NIT" name="nit" value={formData.nit} onChange={handleChange} placeholder="900.000.000-1" required />}
+                    {role === 'wholesale' && (
+                      <>
+                        <div className="flex w-full flex-col gap-1.5">
+                          <label className="ml-1 text-sm font-medium text-mm-txs">Tipo de persona</label>
+                          <select
+                            name="person_type_id"
+                            value={formData.person_type_id}
+                            onChange={handleChange}
+                            required
+                            className="rounded-xl border-1.5 border-mm-crd bg-white px-4 py-2.5 outline-none transition-all focus:border-mm-g focus:ring-2 focus:ring-mm-gll"
+                          >
+                            <option value="" disabled>Selecciona...</option>
+                            {personTypes.map(p => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex w-full flex-col gap-1.5">
+                          <label className="ml-1 text-sm font-medium text-mm-txs">Tipo de identificación</label>
+                          <select
+                            name="identification_type_id"
+                            value={formData.identification_type_id}
+                            onChange={handleChange}
+                            disabled={!formData.person_type_id}
+                            required
+                            className="rounded-xl border-1.5 border-mm-crd bg-white px-4 py-2.5 outline-none transition-all focus:border-mm-g focus:ring-2 focus:ring-mm-gll disabled:opacity-60"
+                          >
+                            <option value="" disabled>
+                              {formData.person_type_id ? 'Selecciona...' : 'Elige primero el tipo de persona'}
+                            </option>
+                            {identificationOptions.map(type => (
+                              <option key={type.id} value={type.id}>{type.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <Input label="Número de identificación" name="document_number" value={formData.document_number} onChange={handleChange} placeholder="900000000" required />
+                      </>
+                    )}
                     {role === 'provider' && <Input label="Nombre de la tienda" name="store_name" value={formData.store_name} onChange={handleChange} placeholder="Frutas Don Pepe" required />}
                     {role === 'provider' && <Input label="Número de local" name="local_number" value={formData.local_number} onChange={handleChange} placeholder="A-102" required />}
                     {role === 'delivery' && <Input label="Vehículo" name="vehicle" value={formData.vehicle} onChange={handleChange} placeholder="Moto / Bicicleta" required />}

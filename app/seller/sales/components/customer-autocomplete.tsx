@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, Mail, CreditCard, Phone, CheckCircle, Loader2 } from 'lucide-react';
 import { searchClientByDocumentOrEmail, ClientData } from '../services/sales.service';
+import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
 export interface CustomerState {
   name: string;
   id: string; // document_number
+  identification_type_id: string;
   email: string;
   phone: string;
   profile_id?: string | null;
@@ -21,6 +23,8 @@ export function CustomerAutocomplete({ value, onChange }: CustomerAutocompletePr
   const [foundClient, setFoundClient] = useState<ClientData | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  // El POS no distingue tipo de persona, así que ofrece el catálogo completo.
+  const { allIdentificationTypes } = useIdentificationTypes();
 
   // Debounce simple si no existiera en la ruta
   useEffect(() => {
@@ -63,6 +67,7 @@ export function CustomerAutocomplete({ value, onChange }: CustomerAutocompletePr
     onChange({
       name: client.full_name,
       id: client.document_number,
+      identification_type_id: client.identification_type_id || '',
       email: client.email || '',
       phone: client.phone || '',
       profile_id: client.profile_id
@@ -118,7 +123,7 @@ export function CustomerAutocomplete({ value, onChange }: CustomerAutocompletePr
                     {foundClient.full_name}
                   </p>
                   <p className="text-[10px] text-mm-txw mt-1">
-                    Cédula: {foundClient.document_number} {foundClient.email ? `| Email: ${foundClient.email}` : ''}
+                    Documento: {foundClient.document_number} {foundClient.email ? `| Email: ${foundClient.email}` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -141,10 +146,25 @@ export function CustomerAutocomplete({ value, onChange }: CustomerAutocompletePr
 
       {/* Formulario de Cliente Relleno */}
       <div className="bg-mm-gbg/10 p-5 rounded-3xl border border-mm-crd/50 space-y-3">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase text-mm-txw ml-1 flex items-center gap-1">
-              <CreditCard className="w-3 h-3 text-mm-txw" /> Documento (Cédula/NIT)
+              <CreditCard className="w-3 h-3 text-mm-txw" /> Tipo
+            </label>
+            <select
+              value={value.identification_type_id}
+              onChange={(e) => handleInputChange('identification_type_id', e.target.value)}
+              className="w-full bg-white border border-mm-crd rounded-xl py-2.5 px-3 text-xs outline-none focus:ring-2 ring-mm-g/20 transition-all font-medium text-mm-g"
+            >
+              <option value="">--</option>
+              {allIdentificationTypes.map((type) => (
+                <option key={type.id} value={type.id}>{type.code}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[9px] font-black uppercase text-mm-txw ml-1 flex items-center gap-1">
+              <CreditCard className="w-3 h-3 text-mm-txw" /> Documento
             </label>
             <input
               type="text"

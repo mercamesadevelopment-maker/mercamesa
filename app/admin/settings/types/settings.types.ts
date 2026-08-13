@@ -32,3 +32,21 @@ export type OrderMinPriceHistoryInsert = Pick<
   Database['public']['Tables']['order_min_price_history']['Insert'],
   'min_price' | 'notes'
 >;
+
+// El slug lo genera el servidor a partir del nombre, así que no entra en el formulario.
+export type PersonTypeRow = Database['public']['Tables']['person_types']['Row'];
+export type PersonTypeInsert = Omit<
+  Database['public']['Tables']['person_types']['Insert'],
+  'id' | 'created_at' | 'updated_at' | 'slug'
+>;
+export type PersonTypeUpdate = Partial<PersonTypeInsert>;
+
+/** `person_type_ids` es la tabla puente aplanada: a qué personas aplica. */
+export type IdentificationTypeRow = Database['public']['Tables']['identification_types']['Row'] & {
+  person_type_ids?: string[];
+};
+export type IdentificationTypeInsert = Omit<
+  Database['public']['Tables']['identification_types']['Insert'],
+  'id' | 'created_at' | 'updated_at' | 'slug'
+> & { person_type_ids?: string[] };
+export type IdentificationTypeUpdate = Partial<IdentificationTypeInsert>;

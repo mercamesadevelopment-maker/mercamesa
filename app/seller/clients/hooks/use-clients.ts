@@ -18,6 +18,8 @@ export interface ClientWithMetrics {
   id: string;
   full_name: string;
   document_number: string;
+  /** Código del tipo de identificación ("CC", "NIT"). Null en los clientes creados antes. */
+  identification_code: string | null;
   email: string | null;
   phone: string | null;
   created_at: string;
@@ -43,7 +45,7 @@ export function useClients() {
       // 1. Obtener todos los clientes de la tabla 'clients'
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
-        .select('*')
+        .select('*, identification_types ( code )')
         .order('full_name', { ascending: true });
 
       if (clientsError) throw clientsError;
@@ -140,6 +142,7 @@ export function useClients() {
           id: c.id,
           full_name: c.full_name,
           document_number: c.document_number,
+          identification_code: c.identification_types?.code ?? null,
           email: c.email,
           phone: c.phone,
           created_at: c.created_at,

@@ -5,6 +5,8 @@ import {
   DocumentTypeRow, DocumentTypeInsert, DocumentTypeUpdate,
   StoreCategoryRow, StoreCategoryInsert, StoreCategoryUpdate,
   OrderMinPriceHistoryRow, OrderMinPriceHistoryInsert,
+  PersonTypeRow, PersonTypeInsert, PersonTypeUpdate,
+  IdentificationTypeRow, IdentificationTypeInsert, IdentificationTypeUpdate,
 } from '../types/settings.types';
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -138,4 +140,48 @@ export async function addOrderMinPriceAdjustmentService(payload: OrderMinPriceHi
     body: JSON.stringify(payload),
   });
   return handleResponse<OrderMinPriceHistoryRow>(res);
+}
+
+// ── Person Types ────────────────────────────────────────────────────────────
+export async function getPersonTypesService(): Promise<PersonTypeRow[]> {
+  const res = await fetch('/api/admin/person-types');
+  return handleResponse<PersonTypeRow[]>(res);
+}
+
+export async function savePersonTypeService(id: string | null, payload: PersonTypeInsert | PersonTypeUpdate): Promise<PersonTypeRow> {
+  const url = id ? `/api/admin/person-types/${id}` : '/api/admin/person-types';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<PersonTypeRow>(res);
+}
+
+export async function deletePersonTypeService(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/person-types/${id}`, { method: 'DELETE' });
+  await handleResponse(res);
+}
+
+// ── Identification Types ────────────────────────────────────────────────────
+export async function getIdentificationTypesService(): Promise<IdentificationTypeRow[]> {
+  const res = await fetch('/api/admin/identification-types');
+  return handleResponse<IdentificationTypeRow[]>(res);
+}
+
+export async function saveIdentificationTypeService(id: string | null, payload: IdentificationTypeInsert | IdentificationTypeUpdate): Promise<IdentificationTypeRow> {
+  const url = id ? `/api/admin/identification-types/${id}` : '/api/admin/identification-types';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<IdentificationTypeRow>(res);
+}
+
+export async function deleteIdentificationTypeService(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/identification-types/${id}`, { method: 'DELETE' });
+  await handleResponse(res);
 }

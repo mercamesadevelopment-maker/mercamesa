@@ -303,6 +303,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          identification_type_id: string | null
           phone: string | null
           profile_id: string | null
           updated_at: string
@@ -313,6 +314,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          identification_type_id?: string | null
           phone?: string | null
           profile_id?: string | null
           updated_at?: string
@@ -323,11 +325,19 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          identification_type_id?: string | null
           phone?: string | null
           profile_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_identification_type_id_fkey"
+            columns: ["identification_type_id"]
+            isOneToOne: false
+            referencedRelation: "identification_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_profile_id_fkey"
             columns: ["profile_id"]
@@ -450,6 +460,39 @@ export type Database = {
           new_email?: string
           request_ip?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      identification_types: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1139,6 +1182,69 @@ export type Database = {
           },
         ]
       }
+      person_type_identification_types: {
+        Row: {
+          identification_type_id: string
+          person_type_id: string
+        }
+        Insert: {
+          identification_type_id: string
+          person_type_id: string
+        }
+        Update: {
+          identification_type_id?: string
+          person_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_type_identification_types_identification_type_id_fkey"
+            columns: ["identification_type_id"]
+            isOneToOne: false
+            referencedRelation: "identification_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_type_identification_types_person_type_id_fkey"
+            columns: ["person_type_id"]
+            isOneToOne: false
+            referencedRelation: "person_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          requires_business_name: boolean
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          requires_business_name?: boolean
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          requires_business_name?: boolean
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pibox_bookings: {
         Row: {
           booking_id: string
@@ -1295,9 +1401,11 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          identification_type_id: string | null
           is_active: boolean
           language: Database["public"]["Enums"]["app_language"]
           person_type: string | null
+          person_type_id: string | null
           phone: string | null
           reputation_score: number | null
           role_id: string
@@ -1316,9 +1424,11 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          identification_type_id?: string | null
           is_active?: boolean
           language?: Database["public"]["Enums"]["app_language"]
           person_type?: string | null
+          person_type_id?: string | null
           phone?: string | null
           reputation_score?: number | null
           role_id: string
@@ -1337,9 +1447,11 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          identification_type_id?: string | null
           is_active?: boolean
           language?: Database["public"]["Enums"]["app_language"]
           person_type?: string | null
+          person_type_id?: string | null
           phone?: string | null
           reputation_score?: number | null
           role_id?: string

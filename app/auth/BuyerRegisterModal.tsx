@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
@@ -8,17 +8,10 @@ import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/src/store';
 import { Button, Input, cn } from '@/src/components/Shared';
 import { useAuthHooks } from '../hooks/useAuth';
+import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
 const TERMS_VERSION = '2026-07-24';
 
-const DOCUMENT_TYPES = [
-  { value: 'cedula', label: 'Cédula de ciudadanía' },
-  { value: 'nit', label: 'NIT' },
-  { value: 'cedula_extranjeria', label: 'Cédula de extranjería' },
-  { value: 'pasaporte', label: 'Pasaporte' },
-];
-
-type PersonType = 'natural' | 'juridica';
 type BuyerType = 'retail' | 'wholesale';
 
 function Select({
@@ -54,10 +47,35 @@ export function BuyerRegisterModal({
   const router = useRouter();
   const { registerBuyer, loading, error } = useAuthHooks();
 
+  const { personTypes, loading: loadingTypes } = useIdentificationTypes();
+
   const [success, setSuccess] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [personType, setPersonType] = useState<PersonType>('natural');
+  const [personTypeId, setPersonTypeId] = useState('');
+  const [identificationTypeId, setIdentificationTypeId] = useState('');
   const [buyerType, setBuyerType] = useState<BuyerType>('retail');
+
+  // El primero de la lista queda preseleccionado, como antes lo estaba "Natural".
+  useEffect(() => {
+    if (!personTypeId && personTypes.length > 0) {
+      setPersonTypeId(personTypes[0].id);
+    }
+  }, [personTypes, personTypeId]);
+
+  const personType = personTypes.find((p) => p.id === personTypeId) ?? null;
+  const identificationOptions = personType?.identification_types ?? [];
+
+  // Al cambiar el tipo de persona, una identificación ya elegida puede dejar de
+  // ser válida (Natural con NIT). Se limpia en vez de dejar la combinación mala.
+  useEffect(() => {
+    if (identificationTypeId && !identificationOptions.some((t) => t.id === identificationTypeId)) {
+      setIdentificationTypeId('');
+    }
+  }, [identificationOptions, identificationTypeId]);
+
+  // Qué campos de nombre se piden lo dice el catálogo, no un `if` sobre
+  // "jurídica": "Establecimiento de comercio" también lleva razón social.
+  const requiresBusinessName = personType?.requires_business_name ?? false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,12 +92,12 @@ export function BuyerRegisterModal({
       await registerBuyer({
         email: formData.get('email') as string,
         password,
-        person_type: personType,
-        document_type: formData.get('document_type') as string,
+        person_type_id: personTypeId,
+        identification_type_id: identificationTypeId,
         document_number: formData.get('document_number') as string,
-        full_name: personType === 'natural' ? (formData.get('full_name') as string) : undefined,
-        business_name: personType === 'juridica' ? (formData.get('business_name') as string) : undefined,
-        contact_name: personType === 'juridica' ? (formData.get('contact_name') as string) : undefined,
+        full_name: !requiresBusinessName ? (formData.get('full_name') as string) : undefined,
+        business_name: requiresBusinessName ? (formData.get('business_name') as string) : undefined,
+        contact_name: requiresBusinessName ? (formData.get('contact_name') as string) : undefined,
         phone: formData.get('phone') as string,
         buyer_type: buyerType,
         terms_version: TERMS_VERSION,
@@ -155,9 +173,19 @@ export function BuyerRegisterModal({
               )}
 
               <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-                <Select label="Tipo de persona" value={personType} onChange={(e) => setPersonType(e.target.value as PersonType)}>
-                  <option value="natural">Natural</option>
-                  <option value="juridica">Jurídica</option>
+                <Select
+                  label="Tipo de persona"
+                  value={personTypeId}
+                  onChange={(e) => setPersonTypeId(e.target.value)}
+                  disabled={loadingTypes}
+                  required
+                >
+                  <option value="" disabled>
+                    {loadingTypes ? 'Cargando...' : 'Selecciona...'}
+                  </option>
+                  {personTypes.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
                 </Select>
 
                 <Select label="¿Compras al detal o al por mayor?" value={buyerType} onChange={(e) => setBuyerType(e.target.value as BuyerType)}>
@@ -165,20 +193,28 @@ export function BuyerRegisterModal({
                   <option value="wholesale">Al por mayor (mayorista)</option>
                 </Select>
 
-                <Select label="Tipo de identificación" name="document_type" defaultValue="" required>
-                  <option value="" disabled>Selecciona...</option>
-                  {DOCUMENT_TYPES.map((d) => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
+                <Select
+                  label="Tipo de identificación"
+                  value={identificationTypeId}
+                  onChange={(e) => setIdentificationTypeId(e.target.value)}
+                  disabled={!personTypeId}
+                  required
+                >
+                  <option value="" disabled>
+                    {personTypeId ? 'Selecciona...' : 'Elige primero el tipo de persona'}
+                  </option>
+                  {identificationOptions.map((type) => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
                   ))}
                 </Select>
 
                 <Input label="Número de identificación" name="document_number" placeholder="1234567890" required />
 
-                {personType === 'natural' && (
+                {!requiresBusinessName && (
                   <Input label="Nombre completo" name="full_name" placeholder="Juan Pérez" required className="sm:col-span-2" />
                 )}
 
-                {personType === 'juridica' && (
+                {requiresBusinessName && (
                   <>
                     <Input label="Razón social" name="business_name" placeholder="Restaurante El Sabor S.A.S." required />
                     <Input label="Nombre del contacto principal" name="contact_name" placeholder="Juan Pérez" required />

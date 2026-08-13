@@ -10,7 +10,7 @@ export const authService = {
     return data;
   },
 
-  async register(payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; buyer_type?: string }) {
+  async register(payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; buyer_type?: string; person_type_id?: string; identification_type_id?: string; document_number?: string }) {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -24,8 +24,10 @@ export const authService = {
   async registerBuyer(payload: {
     email: string;
     password: string;
-    person_type: 'natural' | 'juridica';
-    document_type: string;
+    // Ids de `person_types` e `identification_types`: el catálogo lo administra
+    // el admin desde Parametrización, ya no es una lista fija en el código.
+    person_type_id: string;
+    identification_type_id: string;
     document_number: string;
     full_name?: string;
     business_name?: string;

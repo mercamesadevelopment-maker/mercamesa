@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { Database } from '../../../../types/database_generated'
+import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
@@ -10,8 +11,8 @@ export async function POST(request: Request) {
     const {
       email,
       password,
-      person_type,
-      document_type,
+      person_type_id,
+      identification_type_id,
       document_number,
       full_name,
       business_name,
@@ -21,16 +22,42 @@ export async function POST(request: Request) {
       terms_version,
     } = body
 
-    if (person_type !== 'natural' && person_type !== 'juridica') {
-      return NextResponse.json({ error: 'person_type debe ser natural o juridica' }, { status: 400 })
+    const supabase = await createClient()
+
+    // El tipo de persona ya no es una lista fija en el código: sale de
+    // `person_types`, que el admin administra desde Parametrización.
+    const personType = person_type_id
+      ? await getPersonTypeRules(supabase, String(person_type_id))
+      : null
+
+    if (!personType) {
+      return NextResponse.json({ error: 'El tipo de persona no es válido' }, { status: 400 })
     }
 
-    if (person_type === 'natural' && !full_name) {
-      return NextResponse.json({ error: 'full_name es requerido para persona natural' }, { status: 400 })
+    // La regla del cliente (Natural → CC, Jurídica → NIT, Establecimiento → NIT
+    // o RUT) vive en la tabla puente. Filtrar el desplegable no basta: sin esta
+    // comprobación, un POST a mano registraría una persona Natural con NIT.
+    const pairError = await validateIdentificationPair(
+      supabase,
+      String(person_type_id),
+      identification_type_id ? String(identification_type_id) : null
+    )
+    if (pairError) {
+      return NextResponse.json({ error: pairError.message }, { status: 400 })
     }
 
-    if (person_type === 'juridica' && (!business_name || !contact_name)) {
-      return NextResponse.json({ error: 'business_name y contact_name son requeridos para persona jurídica' }, { status: 400 })
+    // Qué campos de nombre se exigen es una propiedad del tipo de persona, no un
+    // `if` sobre 'juridica': "Establecimiento de comercio" también lleva razón
+    // social, y con el condicional anterior habría quedado pidiendo solo nombre.
+    if (personType.requiresBusinessName) {
+      if (!business_name || !contact_name) {
+        return NextResponse.json(
+          { error: 'La razón social y el nombre del contacto son requeridos para este tipo de persona' },
+          { status: 400 }
+        )
+      }
+    } else if (!full_name) {
+      return NextResponse.json({ error: 'El nombre completo es requerido' }, { status: 400 })
     }
 
     if (buyer_type !== 'retail' && buyer_type !== 'wholesale') {
@@ -40,8 +67,6 @@ export async function POST(request: Request) {
     if (!terms_version) {
       return NextResponse.json({ error: 'Debes aceptar los términos y condiciones' }, { status: 400 })
     }
-
-    const supabase = await createClient()
 
     // El role_id del comprador se resuelve en el servidor, nunca se confía en un role_id enviado por el cliente
     const { data: buyerRole, error: roleError } = await supabase
@@ -72,14 +97,14 @@ export async function POST(request: Request) {
     const profileData: ProfileInsert = {
       id: userId,
       email,
-      full_name: person_type === 'juridica' ? contact_name : full_name,
+      full_name: personType.requiresBusinessName ? contact_name : full_name,
       phone: phone || null,
       role_id: buyerRole.id,
       buyer_type,
-      person_type,
-      business_name: person_type === 'juridica' ? business_name : null,
-      contact_name: person_type === 'juridica' ? contact_name : null,
-      document_type: document_type || null,
+      person_type_id: personType.id,
+      business_name: personType.requiresBusinessName ? business_name : null,
+      contact_name: personType.requiresBusinessName ? contact_name : null,
+      identification_type_id: String(identification_type_id),
       document_number: document_number || null,
       language: 'es',
       is_active: true,

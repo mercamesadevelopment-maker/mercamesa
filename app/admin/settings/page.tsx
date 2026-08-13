@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
@@ -9,6 +9,7 @@ import { DocumentTypesTab } from './components/document-types-tab';
 import { StoreCategoriesTab } from './components/store-categories-tab';
 import { OrderMinPriceTab } from './components/order-min-price-tab';
 import { StoreGroupsTab } from './components/store-groups-tab';
+import { IdentificationTab } from './components/identification-tab';
 
 type TabKey =
   | 'categories'
@@ -17,6 +18,7 @@ type TabKey =
   | 'documents'
   | 'store_categories'
   | 'store_groups'
+  | 'identification'
   | 'order_min_price';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
@@ -56,6 +58,13 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     icon: Users,
     description:
       'Tiendas de un mismo dueño que comparten los productos del catálogo marcados como exclusivos de su grupo',
+  },
+  {
+    key: 'identification',
+    label: 'Tipos de Persona e Identificación',
+    icon: IdCard,
+    description:
+      'Tipos de persona y qué identificación admite cada uno (Natural → CC, Jurídica → NIT, Establecimiento de comercio → NIT o RUT)',
   },
   {
     key: 'order_min_price',
@@ -126,6 +135,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'documents' && <DocumentTypesTab />}
         {activeTab === 'store_categories' && <StoreCategoriesTab />}
         {activeTab === 'store_groups' && <StoreGroupsTab />}
+        {activeTab === 'identification' && <IdentificationTab />}
         {activeTab === 'order_min_price' && <OrderMinPriceTab />}
       </div>
     </div>

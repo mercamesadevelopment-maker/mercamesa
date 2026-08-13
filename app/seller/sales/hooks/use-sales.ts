@@ -166,7 +166,7 @@ export function useSales() {
 
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<{ product: Product; qty: number; unitMode: 'base' | 'alt' }[]>([]);
-  const [customer, setCustomer] = useState<CustomerState>({ name: '', id: '', email: '', phone: '' });
+  const [customer, setCustomer] = useState<CustomerState>({ name: '', id: '', identification_type_id: '', email: '', phone: '' });
 
   const filteredProducts = useMemo(() => {
     const term = search.toLowerCase();
@@ -229,6 +229,7 @@ export function useSales() {
         savedClient = await saveClient({
           profile_id: customer.profile_id || null,
           document_number: customer.id.trim(),
+          identification_type_id: customer.identification_type_id || null,
           full_name: customer.name.trim(),
           email: customer.email.trim() || null,
           phone: customer.phone.trim() || null,
@@ -318,7 +319,7 @@ export function useSales() {
       await fetchNextConsecutive();
 
       setCart([]);
-      setCustomer({ name: '', id: '', email: '', phone: '' });
+      setCustomer({ name: '', id: '', identification_type_id: '', email: '', phone: '' });
       setSearch('');
 
       dispatch({

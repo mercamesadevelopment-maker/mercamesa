@@ -13,6 +13,7 @@ import { RatingModal } from '@/src/features/stores/components/RatingModal';
 import { ReviewsPanel } from '@/src/features/stores/components/ReviewsPanel';
 import { Pagination } from '@/app/orders/components/Pagination';
 import { WeeklyHoursDisplay } from '@/components/ui/business-hours/business-hours-editor';
+import { CategoryScroller } from '@/components/ui/category-scroller';
 import { Clock } from 'lucide-react';
 
 const PRODUCTS_PER_PAGE = 20;
@@ -27,9 +28,14 @@ export default function StoreDetailPage() {
   const [loadingStore, setLoadingStore] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // We fetch products based on store id once store is loaded
+  // Los productos se piden solo cuando ya se sabe de qué tienda son. Sin el
+  // `enabled`, el primer render pedía el catálogo completo del marketplace y esa
+  // respuesta terminaba pisando la filtrada: la página mostraba productos de
+  // otras tiendas.
   const storeId = store?.id;
-  const { products, loading: loadingProducts } = usePublicProducts(storeId);
+  const { products, loading: loadingProducts } = usePublicProducts(storeId, {
+    enabled: Boolean(storeId),
+  });
 
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Todas');
@@ -77,23 +83,32 @@ export default function StoreDetailPage() {
     if (ok) fetchDetail(); // refresca reputation_score con el nuevo promedio
   };
 
+  // Esta página es de UNA tienda: cualquier producto de otra que llegue en la
+  // respuesta se descarta acá. Con el `enabled` del hook ya no debería pasar,
+  // pero mostrar el catálogo de otra tienda —con sus fotos— es justo lo que se
+  // reportó, así que el filtro se deja como red de seguridad.
+  const storeProducts = useMemo(
+    () => (storeId ? products.filter((p) => p.store_id === storeId) : []),
+    [products, storeId]
+  );
+
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    products.forEach(p => {
+    storeProducts.forEach(p => {
       if (p.catalog_products?.categories?.name) {
         cats.add(p.catalog_products.categories.name);
       }
     });
     return ['Todas', ...Array.from(cats)];
-  }, [products]);
+  }, [storeProducts]);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return storeProducts.filter(p => {
       const matchSearch = p.catalog_products?.name?.toLowerCase().includes(search.toLowerCase()) || false;
       const matchCat = activeCat === 'Todas' || p.catalog_products?.categories?.name === activeCat;
       return matchSearch && matchCat;
     });
-  }, [products, search, activeCat]);
+  }, [storeProducts, search, activeCat]);
 
   useEffect(() => {
     setPage(1);
@@ -233,20 +248,11 @@ export default function StoreDetailPage() {
             </div>
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {categories.map(c => (
-              <button
-                key={c}
-                onClick={() => setActiveCat(c)}
-                className={cn(
-                  "px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
-                  activeCat === c ? "bg-mm-g text-white shadow-md" : "bg-white border border-mm-crd text-mm-txs hover:border-mm-g"
-                )}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
+          <CategoryScroller
+            categories={categories}
+            activeCategory={activeCat}
+            onSelect={setActiveCat}
+          />
         </div>
 
         {loadingProducts ? (

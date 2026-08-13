@@ -46,7 +46,7 @@ const login = async (email: string, password: string) => {
   }
 };
 
-  const register = async (payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; roleKey: RoleKey }) => {
+  const register = async (payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; roleKey: RoleKey; person_type_id?: string; identification_type_id?: string; document_number?: string }) => {
     try {
       setLoading(true);
       setError(null);
@@ -64,8 +64,8 @@ const login = async (email: string, password: string) => {
   const registerBuyer = async (payload: {
     email: string;
     password: string;
-    person_type: 'natural' | 'juridica';
-    document_type: string;
+    person_type_id: string;
+    identification_type_id: string;
     document_number: string;
     full_name?: string;
     business_name?: string;

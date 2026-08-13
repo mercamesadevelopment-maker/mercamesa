@@ -44,7 +44,7 @@ export function ClientsView() {
           </div>
           <div>
             <p className="text-sm font-bold text-mm-g leading-tight">{item.full_name}</p>
-            <p className="text-[10px] text-mm-txw mt-0.5">ID: {item.document_number}</p>
+            <p className="text-[10px] text-mm-txw mt-0.5">{item.identification_code || 'ID'}: {item.document_number}</p>
           </div>
         </div>
       )
@@ -239,7 +239,7 @@ export function ClientsView() {
                 <div>
                   <h2 className="text-2xl font-fraunces text-mm-g leading-tight">{selectedClient.full_name}</h2>
                   <p className="text-xs text-mm-txw mt-1 font-bold">
-                    Cédula/NIT: <span className="font-mono text-mm-g">{selectedClient.document_number}</span>
+                    {selectedClient.identification_code || 'Documento'}: <span className="font-mono text-mm-g">{selectedClient.document_number}</span>
                   </p>
                 </div>
               </div>
