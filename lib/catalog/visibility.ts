@@ -63,40 +63,68 @@ export function canStoreUseCatalogProduct(
 export const EXCLUSIVE_PRODUCT_MESSAGE =
   'Este producto del catálogo es exclusivo de otra tienda y no puedes publicarlo.';
 
-/** Grupo de cada tienda, resuelto en una sola consulta. */
-export async function getStoreGroupIds(
+/**
+ * PostgREST manda los ids del `in.(...)` en la URL y la puerta de enlace de
+ * Supabase la corta cerca de los 24 KB con un 400 sin explicación (medido: 650
+ * uuids pasan, 687 fallan). 100 ids por consulta son unos 3,8 KB.
+ */
+const IN_CHUNK_SIZE = 100;
+
+/** Resuelve `columna -> valor` para una lista de ids, por bloques. */
+async function mapByIdInChunks(
+  supabase: SupabaseClient<any>,
+  table: string,
+  column: string,
+  ids: string[],
+  errorPrefix: string
+): Promise<Map<string, string | null>> {
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  const result = new Map<string, string | null>();
+
+  for (let index = 0; index < unique.length; index += IN_CHUNK_SIZE) {
+    const chunk = unique.slice(index, index + IN_CHUNK_SIZE);
+
+    const { data, error } = await supabase
+      .from(table)
+      .select(`id, ${column}`)
+      .in('id', chunk);
+
+    if (error) throw new Error(`${errorPrefix}: ${error.message}`);
+
+    for (const row of (data ?? []) as any[]) {
+      result.set(row.id as string, row[column] ?? null);
+    }
+  }
+
+  return result;
+}
+
+/** Grupo de cada tienda. */
+export function getStoreGroupIds(
   supabase: SupabaseClient<any>,
   storeIds: string[]
 ): Promise<Map<string, string | null>> {
-  const unique = Array.from(new Set(storeIds.filter(Boolean)));
-  if (unique.length === 0) return new Map();
-
-  const { data, error } = await supabase
-    .from('stores')
-    .select('id, store_group_id')
-    .in('id', unique);
-
-  if (error) throw new Error(`No se pudieron resolver los grupos de las tiendas: ${error.message}`);
-
-  return new Map((data ?? []).map((store: any) => [store.id as string, store.store_group_id ?? null]));
+  return mapByIdInChunks(
+    supabase,
+    'stores',
+    'store_group_id',
+    storeIds,
+    'No se pudieron resolver los grupos de las tiendas'
+  );
 }
 
-/** Dueño de cada producto del catálogo, resuelto en una sola consulta. */
-export async function getCatalogOwnerGroupIds(
+/** Dueño de cada producto del catálogo. */
+export function getCatalogOwnerGroupIds(
   supabase: SupabaseClient<any>,
   catalogProductIds: string[]
 ): Promise<Map<string, string | null>> {
-  const unique = Array.from(new Set(catalogProductIds.filter(Boolean)));
-  if (unique.length === 0) return new Map();
-
-  const { data, error } = await supabase
-    .from('catalog_products')
-    .select('id, owner_group_id')
-    .in('id', unique);
-
-  if (error) throw new Error(`No se pudo verificar la exclusividad del catálogo: ${error.message}`);
-
-  return new Map((data ?? []).map((product: any) => [product.id as string, product.owner_group_id ?? null]));
+  return mapByIdInChunks(
+    supabase,
+    'catalog_products',
+    'owner_group_id',
+    catalogProductIds,
+    'No se pudo verificar la exclusividad del catálogo'
+  );
 }
 
 /**

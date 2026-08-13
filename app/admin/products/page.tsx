@@ -45,6 +45,8 @@ export default function ProductsAdmin() {
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [bulkGroupId, setBulkGroupId] = useState('');
   const [isApplyingGroup, setIsApplyingGroup] = useState(false);
+  const [isGroupConfirmOpen, setIsGroupConfirmOpen] = useState(false);
+  const [groupError, setGroupError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -133,15 +135,14 @@ export default function ProductsAdmin() {
     setPage(1);
   }, [searchQuery, selectedCategory, selectedGroupFilter, setPage]);
 
+  const bulkGroupName = bulkGroupId ? groupNameById.get(bulkGroupId) : null;
+
+  const bulkGroupMessage = bulkGroupName
+    ? `Se marcarán ${selectedIds.size} producto(s) como exclusivos de "${bulkGroupName}". Solo las tiendas de ese grupo podrán publicarlos.`
+    : `Se volverán públicos ${selectedIds.size} producto(s). Cualquier tienda podrá publicarlos con sus imágenes.`;
+
   const handleApplyGroup = async () => {
     if (selectedIds.size === 0) return;
-
-    const groupName = bulkGroupId ? groupNameById.get(bulkGroupId) : null;
-    const message = groupName
-      ? `Marcar ${selectedIds.size} producto(s) como exclusivos de "${groupName}"? Solo las tiendas de ese grupo podrán publicarlos.`
-      : `Volver públicos ${selectedIds.size} producto(s)? Cualquier tienda podrá publicarlos con sus imágenes.`;
-
-    if (!confirm(message)) return;
 
     setIsApplyingGroup(true);
     try {
@@ -160,9 +161,11 @@ export default function ProductsAdmin() {
       }
 
       setSelectedIds(new Set());
+      setIsGroupConfirmOpen(false);
       await fetchProducts();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al aplicar el grupo');
+      setIsGroupConfirmOpen(false);
+      setGroupError(err instanceof Error ? err.message : 'Error al aplicar el grupo');
     } finally {
       setIsApplyingGroup(false);
     }
@@ -325,7 +328,7 @@ export default function ProductsAdmin() {
               <option key={group.id} value={group.id}>Exclusivo de {group.name}</option>
             ))}
           </select>
-          <Button size="sm" onClick={handleApplyGroup} disabled={isApplyingGroup}>
+          <Button size="sm" onClick={() => setIsGroupConfirmOpen(true)} disabled={isApplyingGroup}>
             {isApplyingGroup ? 'Aplicando...' : 'Aplicar'}
           </Button>
           <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
@@ -379,6 +382,28 @@ export default function ProductsAdmin() {
         isOpen={isBulkImportOpen}
         onClose={() => setIsBulkImportOpen(false)}
         onImported={fetchProducts}
+      />
+
+      <ConfirmModal
+        isOpen={isGroupConfirmOpen}
+        onClose={() => setIsGroupConfirmOpen(false)}
+        onConfirm={handleApplyGroup}
+        title={bulkGroupName ? 'Marcar como exclusivos' : 'Volver públicos'}
+        message={bulkGroupMessage}
+        variant={bulkGroupName ? 'warning' : 'info'}
+        confirmText="Aplicar"
+        isLoading={isApplyingGroup}
+      />
+
+      <ConfirmModal
+        isOpen={!!groupError}
+        onClose={() => setGroupError(null)}
+        onConfirm={() => setGroupError(null)}
+        title="No se pudo aplicar el grupo"
+        message={groupError || ''}
+        variant="danger"
+        confirmText="Entendido"
+        hideCancel
       />
 
       <ConfirmModal
