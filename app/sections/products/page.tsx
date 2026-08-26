@@ -85,53 +85,53 @@ export default function ProductsPage() {
     <div className="p-4 sm:p-8 space-y-8 pb-32">
       <div>
         <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todos los Productos</h1>
-        <p className="text-mm-txs">Lo mejor del campo en un solo lugar.</p>
+        <p className="text-mm-txs">Conectamos el sistema alimentario.</p>
       </div>
 
       <div className="space-y-6">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="¿Qué buscas hoy?" 
+            <input
+              type="text"
+              placeholder="¿Qué buscas hoy?"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
             />
           </div>
           <div className="flex items-center gap-4 bg-white p-2 border border-mm-crd rounded-full px-4">
-             <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Precio:</span>
-             <input 
-                type="number" 
-                value={minPrice} 
-                onChange={e => setMinPrice(e.target.value ? Number(e.target.value) : '')}
-                className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
-                placeholder="Min"
-             />
-             <span className="text-mm-txw">-</span>
-             <input 
-                type="number" 
-                value={maxPrice} 
-                onChange={e => setMaxPrice(e.target.value ? Number(e.target.value) : '')}
-                className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
-                placeholder="Max"
-             />
+            <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Precio:</span>
+            <input
+              type="number"
+              value={minPrice}
+              onChange={e => setMinPrice(e.target.value ? Number(e.target.value) : '')}
+              className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
+              placeholder="Min"
+            />
+            <span className="text-mm-txw">-</span>
+            <input
+              type="number"
+              value={maxPrice}
+              onChange={e => setMaxPrice(e.target.value ? Number(e.target.value) : '')}
+              className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
+              placeholder="Max"
+            />
           </div>
           <div className="flex items-center gap-2 bg-white p-2 border border-mm-crd rounded-full px-4">
-             <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Ordenar:</span>
-             <select 
-                value={sortBy} 
-                onChange={e => setSortBy(e.target.value as '' | 'asc' | 'desc')}
-                className="text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g border-none cursor-pointer text-mm-txs pr-2"
-             >
-                <option value="">Ninguno</option>
-                <option value="asc">A - Z</option>
-                <option value="desc">Z - A</option>
-             </select>
+            <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Ordenar:</span>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as '' | 'asc' | 'desc')}
+              className="text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g border-none cursor-pointer text-mm-txs pr-2"
+            >
+              <option value="">Ninguno</option>
+              <option value="asc">A - Z</option>
+              <option value="desc">Z - A</option>
+            </select>
           </div>
         </div>
-        
+
         <CategoryScroller
           categories={categories}
           activeCategory={activeCat}
@@ -152,8 +152,8 @@ export default function ProductsPage() {
 
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 pt-8">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
             className="w-10 h-10 p-0 rounded-full flex items-center justify-center"
@@ -163,8 +163,8 @@ export default function ProductsPage() {
           <span className="text-sm font-bold text-mm-txs">
             Página {currentPage} de {totalPages}
           </span>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
             className="w-10 h-10 p-0 rounded-full flex items-center justify-center"

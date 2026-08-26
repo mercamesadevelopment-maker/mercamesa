@@ -5,11 +5,11 @@ import { useCart } from '../features/cart/hooks/use-cart';
 import { Plaza, Store, Product, Offer } from '../types';
 import { fmt, CAT_DATA } from '../constants';
 import { Button, Badge, cn } from './Shared';
-import { 
-  Star, MapPin, Store as StoreIcon, 
+import {
+  Star, MapPin, Store as StoreIcon,
   ChevronRight, ArrowLeft, Filter, Search,
   ShoppingCart, Info, CheckCircle2, Clock, Phone, X, MessageSquare,
-  Image as ImageIcon, Tag, Zap, Flame, Trophy, Calendar, 
+  Image as ImageIcon, Tag, Zap, Flame, Trophy, Calendar,
   Layers, Heart, Mail, Compass, Globe
 } from 'lucide-react';
 
@@ -46,7 +46,7 @@ export function MarketView() {
     } else {
       setSelectedPlaza(null);
     }
-    
+
     if (state.selectedStoreId) {
       const store = state.stores.find(s => s.id === state.selectedStoreId);
       if (store) setSelectedStore(store);
@@ -58,32 +58,32 @@ export function MarketView() {
   const getProductPrice = (product: Product) => {
     const basePrice = state.userRole === 'wholesale' ? product.wsPrice : product.retailPrice;
     const offer = state.offers.find(o => o.status === 'active' && o.productIds.includes(product.id));
-    
+
     if (!offer) return { price: basePrice, original: null };
-    
+
     let discounted = basePrice;
     if (offer.type === 'percentage') {
       discounted = basePrice * (1 - offer.value / 100);
     } else {
       discounted = Math.max(0, basePrice - offer.value);
     }
-    
+
     return { price: Math.floor(discounted), original: basePrice };
   };
 
   const categories = ['Todos', 'Verduras', 'Frutas', 'Especias', 'Granos', 'Carnes', 'Lácteos'];
 
   const filteredPlazas = useMemo(() => {
-    return state.plazas.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    return state.plazas.filter(p =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.city.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [state.plazas, searchQuery]);
 
   const filteredStores = useMemo(() => {
     if (!selectedPlaza) return [];
-    return state.stores.filter(s => 
-      s.plazaId === selectedPlaza.id && 
+    return state.stores.filter(s =>
+      s.plazaId === selectedPlaza.id &&
       (activeCat === 'Todos' || s.cat.includes(activeCat)) &&
       (s.name.toLowerCase().includes(searchQuery.toLowerCase()))
     );
@@ -91,8 +91,8 @@ export function MarketView() {
 
   const filteredProducts = useMemo(() => {
     if (!selectedStore) return [];
-    return state.products.filter(p => 
-      p.storeId === selectedStore.id && 
+    return state.products.filter(p =>
+      p.storeId === selectedStore.id &&
       (activeCat === 'Todos' || p.cat === activeCat) &&
       (p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     );
@@ -113,7 +113,7 @@ export function MarketView() {
       updated = [...state.buyerProfile.favoriteStores, storeId];
     }
     dispatch({ type: 'UPDATE_BUYER_PROFILE', profile: { favoriteStores: updated } });
-    
+
     if (!isFav) {
       dispatch({
         type: 'ADD_NOTIF',
@@ -162,7 +162,7 @@ export function MarketView() {
 
   const handleSaveReview = () => {
     if (!selectedStore) return;
-    
+
     // Update profile
     const newRatings = { ...state.buyerProfile.storeRatings };
     newRatings[selectedStore.id] = {
@@ -207,7 +207,7 @@ export function MarketView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto">
       <AnimatePresence mode="wait">
         {!selectedPlaza ? (
-          <motion.div 
+          <motion.div
             key="plazas"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -219,9 +219,9 @@ export function MarketView() {
               </div>
               <div className="relative w-full max-w-md mx-auto">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar plaza o ciudad..." 
+                <input
+                  type="text"
+                  placeholder="Buscar plaza o ciudad..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
@@ -242,8 +242,8 @@ export function MarketView() {
                   {state.offers.map(offer => {
                     const store = state.stores.find(s => s.id === offer.storeId);
                     return (
-                      <motion.div 
-                        key={offer.id} 
+                      <motion.div
+                        key={offer.id}
                         whileHover={{ y: -5 }}
                         className="min-w-[300px] md:min-w-[380px] bg-white rounded-[32px] border border-mm-crd shadow-sm overflow-hidden flex h-40 group cursor-pointer"
                         onClick={() => {
@@ -268,7 +268,7 @@ export function MarketView() {
                               {offer.type === 'percentage' ? `${offer.value}% OFF` : `-$${offer.value.toLocaleString()}`}
                             </span>
                             <div className="w-8 h-8 rounded-full bg-mm-g/10 flex items-center justify-center text-mm-g">
-                                <ChevronRight className="w-4 h-4" />
+                              <ChevronRight className="w-4 h-4" />
                             </div>
                           </div>
                         </div>
@@ -293,8 +293,8 @@ export function MarketView() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                     {state.products.slice(0, 4).map(p => (
-                       <motion.div 
+                    {state.products.slice(0, 4).map(p => (
+                      <motion.div
                         key={p.id}
                         whileHover={{ y: -5 }}
                         className="bg-white p-4 rounded-3xl border border-mm-crd shadow-sm group cursor-pointer"
@@ -306,25 +306,25 @@ export function MarketView() {
                             setSelectedStore(store);
                           }
                         }}
-                       >
-                         <div className="h-32 bg-mm-gbg rounded-2xl flex items-center justify-center text-5xl mb-4 group-hover:scale-105 transition-transform overflow-hidden">
-                           {p.image ? (
-                             <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                           ) : p.emoji}
-                         </div>
-                         <h4 className="font-bold text-mm-g mb-1 line-clamp-1">{p.name}</h4>
-                         <div className="flex items-center justify-between">
-                            <span className="text-mm-oro font-bold">{fmt(p.retailPrice)}</span>
-                            <Badge variant="default" className="text-[10px]">+{Math.floor(Math.random() * 100) + 50} vendidos</Badge>
-                         </div>
-                       </motion.div>
-                     ))}
+                      >
+                        <div className="h-32 bg-mm-gbg rounded-2xl flex items-center justify-center text-5xl mb-4 group-hover:scale-105 transition-transform overflow-hidden">
+                          {p.image ? (
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                          ) : p.emoji}
+                        </div>
+                        <h4 className="font-bold text-mm-g mb-1 line-clamp-1">{p.name}</h4>
+                        <div className="flex items-center justify-between">
+                          <span className="text-mm-oro font-bold">{fmt(p.retailPrice)}</span>
+                          <Badge variant="default" className="text-[10px]">+{Math.floor(Math.random() * 100) + 50} vendidos</Badge>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Top Rated Stores */}
                 <div className="mb-12">
-                   <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-fraunces text-mm-g leading-tight flex items-center gap-2">
                         Tiendas mejor calificadas <Trophy className="w-6 h-6 text-mm-oro" />
@@ -333,7 +333,7 @@ export function MarketView() {
                     </div>
                   </div>
                   <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide -mx-2 px-2">
-                    {[...state.stores].sort((a,b) => b.rating - a.rating).slice(0, 4).map(store => (
+                    {[...state.stores].sort((a, b) => b.rating - a.rating).slice(0, 4).map(store => (
                       <motion.div
                         key={store.id}
                         whileHover={{ x: 5 }}
@@ -344,27 +344,27 @@ export function MarketView() {
                           setSelectedStore(store);
                         }}
                       >
-                         <div className="w-16 h-16 bg-mm-gbg rounded-2xl flex items-center justify-center text-3xl shrink-0 overflow-hidden relative group">
-                           {store.image ? (
-                             <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
-                           ) : store.emoji}
-                           <button 
+                        <div className="w-16 h-16 bg-mm-gbg rounded-2xl flex items-center justify-center text-3xl shrink-0 overflow-hidden relative group">
+                          {store.image ? (
+                            <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                          ) : store.emoji}
+                          <button
                             onClick={(e) => toggleFavorite(e, store.id)}
                             className={cn(
                               "absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition-all transform scale-0 group-hover:scale-100",
                               state.buyerProfile.favoriteStores.includes(store.id) ? "text-r opacity-100 scale-100" : "text-mm-txw hover:text-r"
                             )}
-                           >
-                             <Heart className={cn("w-3.5 h-3.5", state.buyerProfile.favoriteStores.includes(store.id) && "fill-r")} />
-                           </button>
-                         </div>
-                         <div className="overflow-hidden">
-                           <h4 className="font-bold text-mm-g truncate leading-none mb-1">{store.name}</h4>
-                           <div className="flex items-center gap-1 text-mm-oro font-bold text-xs mb-1">
-                             <Star className="w-3.5 h-3.5 fill-mm-oro" /> {store.rating}
-                           </div>
-                           <p className="text-[10px] text-mm-txw uppercase tracking-widest truncate">{store.cat}</p>
-                         </div>
+                          >
+                            <Heart className={cn("w-3.5 h-3.5", state.buyerProfile.favoriteStores.includes(store.id) && "fill-r")} />
+                          </button>
+                        </div>
+                        <div className="overflow-hidden">
+                          <h4 className="font-bold text-mm-g truncate leading-none mb-1">{store.name}</h4>
+                          <div className="flex items-center gap-1 text-mm-oro font-bold text-xs mb-1">
+                            <Star className="w-3.5 h-3.5 fill-mm-oro" /> {store.rating}
+                          </div>
+                          <p className="text-[10px] text-mm-txw uppercase tracking-widest truncate">{store.cat}</p>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -372,7 +372,7 @@ export function MarketView() {
 
                 {/* Catalog Categories */}
                 <div className="mb-12">
-                   <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-fraunces text-mm-g leading-tight flex items-center gap-2">
                         Categorías del Catálogo <Layers className="w-6 h-6 text-mm-g" />
@@ -381,21 +381,21 @@ export function MarketView() {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                     {CAT_DATA.map(cat => (
-                       <button
-                         key={cat.name}
-                         onClick={() => {
-                           setActiveCat(cat.name);
-                           dispatch({ type: 'SET_SECTION', section: 'all_products' });
-                         }}
-                         className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-white border border-mm-crd hover:border-mm-g hover:bg-mm-gbg transition-all group"
-                       >
-                         <div className="w-12 h-12 rounded-2xl bg-mm-gbg group-hover:bg-white flex items-center justify-center text-2xl transition-colors overflow-hidden border border-mm-crd/50">
-                            <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                         </div>
-                         <span className="text-xs font-bold text-mm-txs group-hover:text-mm-g">{cat.name}</span>
-                       </button>
-                     ))}
+                    {CAT_DATA.map(cat => (
+                      <button
+                        key={cat.name}
+                        onClick={() => {
+                          setActiveCat(cat.name);
+                          dispatch({ type: 'SET_SECTION', section: 'all_products' });
+                        }}
+                        className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-white border border-mm-crd hover:border-mm-g hover:bg-mm-gbg transition-all group"
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-mm-gbg group-hover:bg-white flex items-center justify-center text-2xl transition-colors overflow-hidden border border-mm-crd/50">
+                          <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                        </div>
+                        <span className="text-xs font-bold text-mm-txs group-hover:text-mm-g">{cat.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -411,40 +411,40 @@ export function MarketView() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                     {state.products.slice(4, 7).map(p => (
-                       <div 
+                    {state.products.slice(4, 7).map(p => (
+                      <div
                         key={p.id}
                         className="bg-white p-6 rounded-[32px] shadow-sm border border-mm-oro/20 flex gap-4 hover:shadow-md transition-shadow cursor-pointer"
                         onClick={() => {
-                           const store = state.stores.find(s => s.id === p.storeId);
-                           if (store) {
-                             const plaza = state.plazas.find(p => p.id === store.plazaId);
-                             if (plaza) setSelectedPlaza(plaza);
-                             setSelectedStore(store);
-                           }
-                         }}
-                       >
-                         <div className="w-20 h-20 bg-mm-gbg rounded-2xl flex items-center justify-center text-4xl shrink-0 overflow-hidden">
-                           {p.image ? (
-                             <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                           ) : p.emoji}
-                         </div>
-                         <div>
-                            <Badge variant="oro" className="mb-1">Cosecha Local</Badge>
-                            <h4 className="font-bold text-mm-g text-lg">{p.name}</h4>
-                            <p className="text-xs text-mm-txs mb-2 line-clamp-2">{p.desc}</p>
-                            <span className="text-mm-g font-bold">{fmt(p.retailPrice)} / {p.unit}</span>
-                         </div>
-                       </div>
-                     ))}
+                          const store = state.stores.find(s => s.id === p.storeId);
+                          if (store) {
+                            const plaza = state.plazas.find(p => p.id === store.plazaId);
+                            if (plaza) setSelectedPlaza(plaza);
+                            setSelectedStore(store);
+                          }
+                        }}
+                      >
+                        <div className="w-20 h-20 bg-mm-gbg rounded-2xl flex items-center justify-center text-4xl shrink-0 overflow-hidden">
+                          {p.image ? (
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                          ) : p.emoji}
+                        </div>
+                        <div>
+                          <Badge variant="oro" className="mb-1">Cosecha Local</Badge>
+                          <h4 className="font-bold text-mm-g text-lg">{p.name}</h4>
+                          <p className="text-xs text-mm-txs mb-2 line-clamp-2">{p.desc}</p>
+                          <span className="text-mm-g font-bold">{fmt(p.retailPrice)} / {p.unit}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </>
             )}
 
             <div className="flex items-center justify-between mb-6">
-               <h2 className="text-2xl font-fraunces text-mm-g">Explore las Plazas Cercanas</h2>
-               <p className="text-xs text-mm-txw">Mostrando {filteredPlazas.length} resultados</p>
+              <h2 className="text-2xl font-fraunces text-mm-g">Explore las Plazas Cercanas</h2>
+              <p className="text-xs text-mm-txw">Mostrando {filteredPlazas.length} resultados</p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -493,13 +493,13 @@ export function MarketView() {
             </div>
           </motion.div>
         ) : !selectedStore ? (
-          <motion.div 
+          <motion.div
             key="stores"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <button 
+            <button
               onClick={handleBackToPlazas}
               className="flex items-center gap-2 text-mm-g font-bold mb-6 hover:translate-x-1 transition-transform"
             >
@@ -560,7 +560,7 @@ export function MarketView() {
                       <p className="font-medium">{selectedPlaza.email}</p>
                     </div>
                   </div>
-                  <a 
+                  <a
                     href={`https://www.google.com/maps/search/?api=1&query=${selectedPlaza.location?.lat},${selectedPlaza.location?.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -575,7 +575,7 @@ export function MarketView() {
                     </div>
                   </a>
                   {selectedPlaza.website && (
-                    <a 
+                    <a
                       href={selectedPlaza.website}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -611,7 +611,7 @@ export function MarketView() {
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">Descuentos especiales hoy en {selectedPlaza.name}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                   {plazaOffers.map(offer => {
                     const store = state.stores.find(s => s.id === offer.storeId);
@@ -646,7 +646,7 @@ export function MarketView() {
                             <span className="text-[10px] text-mm-txw font-bold flex items-center gap-1">
                               <Clock className="w-3 h-3" /> Expira pronto
                             </span>
-                            <button 
+                            <button
                               onClick={() => store && setSelectedStore(store)}
                               className="text-xs font-bold text-mm-g hover:underline"
                             >
@@ -678,9 +678,9 @@ export function MarketView() {
               </div>
               <div className="relative w-full md:w-72">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar tienda..." 
+                <input
+                  type="text"
+                  placeholder="Buscar tienda..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
@@ -703,7 +703,7 @@ export function MarketView() {
                       ) : (
                         store.emoji
                       )}
-                      <button 
+                      <button
                         onClick={(e) => toggleFavorite(e, store.id)}
                         className={cn(
                           "absolute top-1 right-1 p-1.5 rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition-all transform opacity-0 group-hover:opacity-100",
@@ -738,13 +738,13 @@ export function MarketView() {
             </div>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="products"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <button 
+            <button
               onClick={handleBackToStores}
               className="flex items-center gap-2 text-mm-g font-bold mb-6 hover:translate-x-1 transition-transform"
             >
@@ -758,7 +758,7 @@ export function MarketView() {
                 ) : (
                   selectedStore.emoji
                 )}
-                <button 
+                <button
                   onClick={(e) => toggleFavorite(e, selectedStore.id)}
                   className={cn(
                     "absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition-all transform opacity-0 group-hover:opacity-100",
@@ -791,7 +791,7 @@ export function MarketView() {
                     <Mail className="w-3.5 h-3.5" />
                     <span className="font-medium">{selectedStore.email}</span>
                   </div>
-                  <a 
+                  <a
                     href={`https://www.google.com/maps/search/?api=1&query=${selectedStore.location?.lat},${selectedStore.location?.lng}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -801,7 +801,7 @@ export function MarketView() {
                     <span className="font-medium">Mapa</span>
                   </a>
                   {selectedStore.website && (
-                    <a 
+                    <a
                       href={selectedStore.website}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -824,7 +824,7 @@ export function MarketView() {
             </div>
 
             <div className="flex border-b border-mm-crd mb-8">
-              <button 
+              <button
                 onClick={() => setStoreTab('products')}
                 className={cn(
                   "px-8 py-4 font-bold text-sm transition-all border-b-2",
@@ -833,7 +833,7 @@ export function MarketView() {
               >
                 Productos ({filteredProducts.length})
               </button>
-              <button 
+              <button
                 onClick={() => setStoreTab('reviews')}
                 className={cn(
                   "px-8 py-4 font-bold text-sm transition-all border-b-2 flex items-center gap-2",
@@ -863,9 +863,9 @@ export function MarketView() {
                   </div>
                   <div className="relative w-full md:w-72">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-                    <input 
-                      type="text" 
-                      placeholder="Buscar producto..." 
+                    <input
+                      type="text"
+                      placeholder="Buscar producto..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
@@ -880,7 +880,7 @@ export function MarketView() {
                       whileHover={{ y: -8 }}
                       className="bg-white p-5 rounded-3xl border border-mm-crd shadow-sm hover:shadow-xl transition-all flex flex-col"
                     >
-                      <div 
+                      <div
                         className="h-44 bg-mm-gbg rounded-2xl flex items-center justify-center text-6xl mb-4 cursor-pointer group overflow-hidden border border-mm-crd/50"
                         onClick={() => setSelectedProduct(product)}
                       >
@@ -898,7 +898,7 @@ export function MarketView() {
                           </button>
                         </div>
                         <p className="text-xs text-mm-txw mb-3">{product.cat} • {product.unit}</p>
-                        
+
                         <div className="flex items-end justify-between mb-4">
                           <div>
                             {(() => {
@@ -928,7 +928,7 @@ export function MarketView() {
                         </div>
                       </div>
 
-                      <Button 
+                      <Button
                         onClick={() => {
                           const { price } = getProductPrice(product);
                           const finalProduct = { ...product };
@@ -969,10 +969,10 @@ export function MarketView() {
                 <div className="grid md:grid-cols-2 gap-6">
                   {storeReviews.length > 0 ? (
                     storeReviews.map(review => (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        key={review.id} 
+                        key={review.id}
                         className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm"
                       >
                         <div className="flex items-center justify-between mb-4">
@@ -996,9 +996,9 @@ export function MarketView() {
                     ))
                   ) : (
                     <div className="md:col-span-2 text-center py-20 bg-mm-gbg/20 rounded-[40px] border border-dashed border-mm-crd">
-                       <MessageSquare className="w-16 h-16 text-mm-txw mx-auto mb-4 opacity-40" />
-                       <p className="text-mm-txs">Aún no hay reseñas para esta tienda.</p>
-                       <p className="text-[10px] text-mm-txw uppercase mt-2">¡Sé el primero en comprar y calificar!</p>
+                      <MessageSquare className="w-16 h-16 text-mm-txw mx-auto mb-4 opacity-40" />
+                      <p className="text-mm-txs">Aún no hay reseñas para esta tienda.</p>
+                      <p className="text-[10px] text-mm-txw uppercase mt-2">¡Sé el primero en comprar y calificar!</p>
                     </div>
                   )}
                 </div>
@@ -1010,7 +1010,7 @@ export function MarketView() {
                     <Button onClick={() => setIsRatingModalOpen(true)}>Escribir Reseña</Button>
                   </div>
                 )}
-                
+
                 {!hasPurchased && (
                   <div className="bg-mm-gbg/30 p-8 rounded-[40px] border border-mm-crd/50 text-center">
                     <h4 className="text-lg font-fraunces text-mm-g mb-2">Calificaciones Verificadas</h4>
@@ -1027,20 +1027,20 @@ export function MarketView() {
       <AnimatePresence>
         {isRatingModalOpen && selectedStore && (
           <div className="fixed inset-0 z-[155] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsRatingModalOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10 text-center"
             >
-              <button 
+              <button
                 onClick={() => setIsRatingModalOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -1055,7 +1055,7 @@ export function MarketView() {
                 ¿Qué tal tu compra?
               </h2>
               <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{selectedStore.name}</span></p>
-              
+
               <div className="flex justify-center gap-2 mb-8">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -1063,11 +1063,11 @@ export function MarketView() {
                     onClick={() => setRatingValue(star)}
                     className="p-1 focus:outline-none transition-transform active:scale-90"
                   >
-                    <Star 
+                    <Star
                       className={cn(
-                        "w-10 h-10 transition-colors", 
+                        "w-10 h-10 transition-colors",
                         star <= ratingValue ? "fill-mm-oro text-mm-oro" : "text-mm-crd"
-                      )} 
+                      )}
                     />
                   </button>
                 ))}
@@ -1099,20 +1099,20 @@ export function MarketView() {
       <AnimatePresence>
         {selectedProduct && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedProduct(null)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-3xl w-full max-h-[90vh] flex flex-col md:flex-row"
             >
-              <button 
+              <button
                 onClick={() => setSelectedProduct(null)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -1196,8 +1196,8 @@ export function MarketView() {
                     <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none">Cantidad a llevar</p>
                     <div className="flex items-center gap-3">
                       <div className="flex-grow flex items-center gap-1 bg-white p-1 rounded-xl border border-mm-crd">
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           step={modalUnitMode === 'alt' ? "1" : "0.01"}
                           min={modalUnitMode === 'alt' ? "1" : "0.01"}
                           value={modalUnitMode === 'alt' && selectedProduct.unit === 'kg' ? Math.round(modalQty * 1000) : modalQty}
@@ -1225,12 +1225,12 @@ export function MarketView() {
                       </div>
                     </div>
                     {modalUnitMode === 'alt' && selectedProduct.unit === 'kg' && (
-                       <p className="text-[10px] text-mm-txw italic">Equivale a {(modalQty).toFixed(3)} kg</p>
+                      <p className="text-[10px] text-mm-txw italic">Equivale a {(modalQty).toFixed(3)} kg</p>
                     )}
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={() => {
                     const { price } = getProductPrice(selectedProduct);
                     const finalProduct = { ...selectedProduct };
@@ -1258,20 +1258,20 @@ export function MarketView() {
       <AnimatePresence>
         {selectedOffer && (
           <div className="fixed inset-0 flex items-center justify-center p-4 z-[200]">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedOffer(null)}
               className="absolute inset-0 bg-mm-g/60 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl relative z-[210] overflow-hidden"
             >
-              <button 
+              <button
                 onClick={() => setSelectedOffer(null)}
                 className="absolute top-6 right-6 p-2 rounded-full bg-mm-gbg hover:bg-mm-crd transition-colors z-10"
               >
@@ -1320,7 +1320,7 @@ export function MarketView() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button 
+                  <Button
                     onClick={() => {
                       selectedOfferProducts.forEach(p => {
                         const { price } = getProductPrice(p);
@@ -1338,13 +1338,13 @@ export function MarketView() {
                   >
                     <ShoppingCart className="w-5 h-5" /> Agregar al carrito
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     onClick={() => {
-                      dispatch({ 
-                        type: 'SELECT_STORE', 
-                        plazaId: selectedOffer.plazaId, 
-                        storeId: selectedOffer.storeId 
+                      dispatch({
+                        type: 'SELECT_STORE',
+                        plazaId: selectedOffer.plazaId,
+                        storeId: selectedOffer.storeId
                       });
                       setSelectedOffer(null);
                     }}
@@ -1366,14 +1366,14 @@ export function AllPlazasView() {
   const { state, dispatch } = useApp();
   const [search, setSearch] = useState('');
   const [city, setCity] = useState('Todas');
-  
+
   const cities = ['Todas', ...new Set(state.plazas.map(p => p.city))];
-  
+
   const filtered = useMemo(() => {
-    return state.plazas.filter(p => 
+    return state.plazas.filter(p =>
       (city === 'Todas' || p.city === city) &&
-      (p.name.toLowerCase().includes(search.toLowerCase()) || 
-       p.address.toLowerCase().includes(search.toLowerCase()))
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.address.toLowerCase().includes(search.toLowerCase()))
     );
   }, [state.plazas, search, city]);
 
@@ -1387,9 +1387,9 @@ export function AllPlazasView() {
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-grow">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre o dirección..." 
+          <input
+            type="text"
+            placeholder="Buscar por nombre o dirección..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
@@ -1417,9 +1417,9 @@ export function AllPlazasView() {
             key={plaza.id}
             whileHover={{ y: -8 }}
             onClick={() => {
-              dispatch({ 
-                type: 'SELECT_STORE', 
-                plazaId: plaza.id 
+              dispatch({
+                type: 'SELECT_STORE',
+                plazaId: plaza.id
               });
             }}
             className="bg-white rounded-3xl border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden group"
@@ -1453,7 +1453,7 @@ export function AllPlazasView() {
           </motion.div>
         ))}
       </div>
-      
+
       {filtered.length === 0 && (
         <div className="text-center py-20">
           <div className="w-20 h-20 bg-mm-gbg rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">🔎</div>
@@ -1474,11 +1474,11 @@ export function AllStoresView() {
   const categories = ['Todas', 'Verduras', 'Frutas', 'Especias', 'Granos', 'Carnes', 'Lácteos'];
 
   const filtered = useMemo(() => {
-    return state.stores.filter(s => 
+    return state.stores.filter(s =>
       (activeCat === 'Todas' || s.cat.includes(activeCat)) &&
       (plazaId === 'all' || s.plazaId === plazaId) &&
-      (s.name.toLowerCase().includes(search.toLowerCase()) || 
-       s.desc.toLowerCase().includes(search.toLowerCase()))
+      (s.name.toLowerCase().includes(search.toLowerCase()) ||
+        s.desc.toLowerCase().includes(search.toLowerCase()))
     );
   }, [state.stores, search, activeCat, plazaId]);
 
@@ -1493,15 +1493,15 @@ export function AllStoresView() {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="Buscar tienda por nombre o especialidad..." 
+            <input
+              type="text"
+              placeholder="Buscar tienda por nombre o especialidad..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
             />
           </div>
-          <select 
+          <select
             className="px-4 py-2.5 rounded-full border border-mm-crd text-sm outline-none focus:border-mm-g bg-white"
             value={plazaId}
             onChange={(e) => setPlazaId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
@@ -1536,10 +1536,10 @@ export function AllStoresView() {
               key={store.id}
               whileHover={{ y: -5 }}
               onClick={() => {
-                dispatch({ 
-                  type: 'SELECT_STORE', 
-                  plazaId: store.plazaId, 
-                  storeId: store.id 
+                dispatch({
+                  type: 'SELECT_STORE',
+                  plazaId: store.plazaId,
+                  storeId: store.id
                 });
               }}
               className="bg-white rounded-3xl border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col group h-full"
@@ -1592,16 +1592,16 @@ export function AllProductsView() {
   const getPriceInfo = (product: Product) => {
     const basePrice = state.userRole === 'wholesale' ? product.wsPrice : product.retailPrice;
     const offer = state.offers.find(o => o.status === 'active' && o.productIds.includes(product.id));
-    
+
     if (!offer) return { price: basePrice, original: null };
-    
+
     let discounted = basePrice;
     if (offer.type === 'percentage') {
       discounted = basePrice * (1 - offer.value / 100);
     } else {
       discounted = Math.max(0, basePrice - offer.value);
     }
-    
+
     return { price: Math.floor(discounted), original: basePrice };
   };
 
@@ -1609,9 +1609,9 @@ export function AllProductsView() {
     return state.products.filter(p => {
       const { price } = getPriceInfo(p);
       return (activeCat === 'Todas' || p.cat === activeCat) &&
-             (price >= minPrice && price <= maxPrice) &&
-             (p.name.toLowerCase().includes(search.toLowerCase()) || 
-              p.desc.toLowerCase().includes(search.toLowerCase()));
+        (price >= minPrice && price <= maxPrice) &&
+        (p.name.toLowerCase().includes(search.toLowerCase()) ||
+          p.desc.toLowerCase().includes(search.toLowerCase()));
     });
   }, [state.products, search, activeCat, minPrice, maxPrice]);
 
@@ -1619,41 +1619,41 @@ export function AllProductsView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todos los Productos</h1>
-        <p className="text-mm-txs">Lo mejor del campo en un solo lugar.</p>
+        <p className="text-mm-txs">Conectamos el sistema alimentario”, .</p>
       </div>
 
       <div className="space-y-6">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="¿Qué buscas hoy?" 
+            <input
+              type="text"
+              placeholder="¿Qué buscas hoy?"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
             />
           </div>
           <div className="flex items-center gap-4 bg-white p-2 border border-mm-crd rounded-full px-4">
-             <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Precio:</span>
-             <input 
-                type="number" 
-                value={minPrice} 
-                onChange={e => setMinPrice(Number(e.target.value))}
-                className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
-                placeholder="Min"
-             />
-             <span className="text-mm-txw">-</span>
-             <input 
-                type="number" 
-                value={maxPrice} 
-                onChange={e => setMaxPrice(Number(e.target.value))}
-                className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
-                placeholder="Max"
-             />
+            <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Precio:</span>
+            <input
+              type="number"
+              value={minPrice}
+              onChange={e => setMinPrice(Number(e.target.value))}
+              className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
+              placeholder="Min"
+            />
+            <span className="text-mm-txw">-</span>
+            <input
+              type="number"
+              value={maxPrice}
+              onChange={e => setMaxPrice(Number(e.target.value))}
+              className="w-20 text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g"
+              placeholder="Max"
+            />
           </div>
         </div>
-        
+
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {categories.map(c => (
             <button
@@ -1674,7 +1674,7 @@ export function AllProductsView() {
         {filtered.map(product => {
           const { price, original } = getPriceInfo(product);
           const store = state.stores.find(s => s.id === product.storeId);
-          
+
           return (
             <motion.div
               key={product.id}
@@ -1682,10 +1682,10 @@ export function AllProductsView() {
               onClick={() => {
                 const store = state.stores.find(s => s.id === product.storeId);
                 if (store) {
-                  dispatch({ 
-                    type: 'SELECT_STORE', 
-                    plazaId: store.plazaId, 
-                    storeId: store.id 
+                  dispatch({
+                    type: 'SELECT_STORE',
+                    plazaId: store.plazaId,
+                    storeId: store.id
                   });
                 }
               }}
@@ -1709,7 +1709,7 @@ export function AllProductsView() {
                   <h3 className="font-bold text-mm-g mb-0.5 line-clamp-1 group-hover:text-mm-oro transition-colors text-sm sm:text-base">{product.name}</h3>
                   <p className="text-[10px] text-mm-txw mb-3 font-medium uppercase tracking-widest">{product.cat}</p>
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
                   <div className="flex flex-col">
                     {original && (
@@ -1722,15 +1722,15 @@ export function AllProductsView() {
                       <span className="text-[10px] text-mm-txw ml-0.5">/{product.unit}</span>
                     </p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
-                        const finalProduct = { ...product };
-                        if (state.userRole === 'wholesale') {
-                          finalProduct.wsPrice = price;
-                        } else {
-                          finalProduct.retailPrice = price;
-                        }
-                        addToCart(finalProduct);
+                      const finalProduct = { ...product };
+                      if (state.userRole === 'wholesale') {
+                        finalProduct.wsPrice = price;
+                      } else {
+                        finalProduct.retailPrice = price;
+                      }
+                      addToCart(finalProduct);
                     }}
                     className="w-8 h-8 rounded-full bg-mm-g text-white flex items-center justify-center hover:bg-mm-oro hover:scale-110 transition-all shadow-sm active:scale-90"
                   >
@@ -1757,25 +1757,25 @@ export function AllOffersView() {
   const getProductPrice = (product: Product) => {
     const basePrice = state.userRole === 'wholesale' ? product.wsPrice : product.retailPrice;
     const offer = state.offers.find(o => o.status === 'active' && o.productIds.includes(product.id));
-    
+
     if (!offer) return { price: basePrice, original: null };
-    
+
     let discounted = basePrice;
     if (offer.type === 'percentage') {
       discounted = basePrice * (1 - offer.value / 100);
     } else {
       discounted = Math.max(0, basePrice - offer.value);
     }
-    
+
     return { price: Math.floor(discounted), original: basePrice };
   };
 
   const filtered = useMemo(() => {
-    return state.offers.filter(o => 
+    return state.offers.filter(o =>
       (type === 'all' || o.type === type) &&
       (plazaId === 'all' || o.plazaId === plazaId) &&
-      (o.title.toLowerCase().includes(search.toLowerCase()) || 
-       o.desc.toLowerCase().includes(search.toLowerCase())) &&
+      (o.title.toLowerCase().includes(search.toLowerCase()) ||
+        o.desc.toLowerCase().includes(search.toLowerCase())) &&
       o.status === 'active'
     );
   }, [state.offers, search, type, plazaId]);
@@ -1798,16 +1798,16 @@ export function AllOffersView() {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="Buscar ofertas..." 
+            <input
+              type="text"
+              placeholder="Buscar ofertas..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
             />
           </div>
           <div className="flex gap-2">
-            <select 
+            <select
               className="px-4 py-2.5 rounded-full border border-mm-crd text-sm outline-none focus:border-mm-g bg-white"
               value={type}
               onChange={(e) => setType(e.target.value as any)}
@@ -1816,7 +1816,7 @@ export function AllOffersView() {
               <option value="percentage">Porcentaje (%)</option>
               <option value="fixed">Fijo ($)</option>
             </select>
-            <select 
+            <select
               className="px-4 py-2.5 rounded-full border border-mm-crd text-sm outline-none focus:border-mm-g bg-white"
               value={plazaId}
               onChange={(e) => setPlazaId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
@@ -1834,7 +1834,7 @@ export function AllOffersView() {
         {filtered.map(offer => {
           const store = state.stores.find(s => s.id === offer.storeId);
           const plaza = state.plazas.find(p => p.id === offer.plazaId);
-          
+
           return (
             <motion.div
               key={offer.id}
@@ -1851,12 +1851,12 @@ export function AllOffersView() {
                   offer.emoji
                 )}
                 <div className="absolute top-4 left-4">
-                    <Badge variant="oro" className="shadow-lg animate-bounce">
-                      {offer.type === 'percentage' ? `${offer.value}% OFF` : `-$${offer.value.toLocaleString()}`}
-                    </Badge>
+                  <Badge variant="oro" className="shadow-lg animate-bounce">
+                    {offer.type === 'percentage' ? `${offer.value}% OFF` : `-$${offer.value.toLocaleString()}`}
+                  </Badge>
                 </div>
               </div>
-              
+
               <div className="w-3/5 p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex flex-col mb-2">
@@ -1866,15 +1866,15 @@ export function AllOffersView() {
                   <h3 className="font-bold text-mm-g text-lg leading-tight mb-2 line-clamp-2 group-hover:text-mm-oro transition-colors">{offer.title}</h3>
                   <p className="text-xs text-mm-txs line-clamp-2 leading-relaxed">{offer.desc}</p>
                 </div>
-                
+
                 <div className="flex items-center justify-between pt-4 border-t border-mm-crd/50">
-                   <div className="flex items-center gap-2 text-mm-txw">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-tighter">Vence: {new Date(offer.endDate).toLocaleDateString()}</span>
-                   </div>
-                   <div className="w-8 h-8 rounded-full bg-mm-g/10 flex items-center justify-center text-mm-g group-hover:bg-mm-g group-hover:text-white transition-all">
-                      <ChevronRight className="w-4 h-4" />
-                   </div>
+                  <div className="flex items-center gap-2 text-mm-txw">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-tighter">Vence: {new Date(offer.endDate).toLocaleDateString()}</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-mm-g/10 flex items-center justify-center text-mm-g group-hover:bg-mm-g group-hover:text-white transition-all">
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
 
@@ -1887,12 +1887,12 @@ export function AllOffersView() {
       {filtered.length === 0 && (
         <div className="text-center py-20 bg-mm-gbg/30 rounded-[40px] border border-dashed border-mm-crd">
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-             <Tag className="w-10 h-10 text-mm-txw" />
+            <Tag className="w-10 h-10 text-mm-txw" />
           </div>
           <h3 className="text-2xl font-bold text-mm-g font-fraunces mb-2">No hay ofertas actuales</h3>
           <p className="text-mm-txs max-w-xs mx-auto text-center">Intenta ajustando tus filtros para encontrar los mejores descuentos.</p>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="mt-6 text-mm-g font-bold"
             onClick={() => { setSearch(''); setType('all'); setPlazaId('all'); }}
           >
@@ -1905,20 +1905,20 @@ export function AllOffersView() {
       <AnimatePresence>
         {selectedOffer && (
           <div className="fixed inset-0 flex items-center justify-center p-4 z-[200]">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedOffer(null)}
               className="absolute inset-0 bg-mm-g/60 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl relative z-[210] overflow-hidden"
             >
-              <button 
+              <button
                 onClick={() => setSelectedOffer(null)}
                 className="absolute top-6 right-6 p-2 rounded-full bg-mm-gbg hover:bg-mm-crd transition-colors z-10"
               >
@@ -1967,7 +1967,7 @@ export function AllOffersView() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button 
+                  <Button
                     onClick={() => {
                       selectedOfferProducts.forEach(p => {
                         const { price } = getProductPrice(p);
@@ -1985,13 +1985,13 @@ export function AllOffersView() {
                   >
                     <ShoppingCart className="w-5 h-5" /> Agregar al carrito
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     onClick={() => {
-                      dispatch({ 
-                        type: 'SELECT_STORE', 
-                        plazaId: selectedOffer.plazaId, 
-                        storeId: selectedOffer.storeId 
+                      dispatch({
+                        type: 'SELECT_STORE',
+                        plazaId: selectedOffer.plazaId,
+                        storeId: selectedOffer.storeId
                       });
                       setSelectedOffer(null);
                     }}

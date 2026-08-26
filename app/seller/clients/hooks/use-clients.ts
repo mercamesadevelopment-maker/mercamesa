@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/src/types';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 
 export interface ClientOrder {
-  id: string; // e.g. "Físico #1001" o "Digital #12345"
+  id: string; // código legible del pedido, e.g. "MM-2026-001017-1"
   rawId: string;
   date: string;
   total: number;
@@ -114,9 +115,7 @@ export function useClients() {
         else if (so.status === 'returned') statusLabel = 'Devuelto';
 
         const clientOrder: ClientOrder = {
-          id: isLocal
-            ? `Físico #${parentOrder?.consecutive || so.id.substring(0, 4)}`
-            : `Digital #${parentOrder?.consecutive || so.order_id.substring(0, 8)}`,
+          id: formatOrderCode(so.code, so.id),
           rawId: so.order_id,
           date: so.created_at,
           total: Number(so.subtotal),

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, cn } from '@/src/components/Shared';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import {
   MapPin,
   CreditCard,
@@ -59,7 +60,7 @@ export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalPro
         <div className="bg-white rounded-3xl border border-mm-crd p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm">
           <div>
             <span className="text-lg font-bold text-mm-g">
-              Pedido #{order.order_id?.slice(0, 8)}
+              Pedido {formatOrderCode(order.order_code, order.order_id)}
             </span>
             <p className="text-xs text-mm-txw mt-1">
               {order.created_at ? new Date(order.created_at).toLocaleDateString() : ''} • {order.store_name}

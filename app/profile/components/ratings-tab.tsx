@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '@/src/store';
 import { Button } from '@/src/components/Shared';
 import { cn } from '@/src/components/Shared';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import { Star, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 export function RatingsTab() {
@@ -104,7 +105,7 @@ export function RatingsTab() {
                 <div className="flex-grow">
                   <h4 className="font-bold text-mm-g text-lg">{order.storeName}</h4>
                   <p className="text-xs text-mm-txw">
-                    Pedido #{order.id} • {new Date(order.date).toLocaleDateString()}
+                    Pedido {formatOrderCode(order.code, order.storeOrderId)} • {new Date(order.date).toLocaleDateString()}
                   </p>
                 </div>
                 <Button size="sm" onClick={() => openRating(order.storeId, order.id)}>

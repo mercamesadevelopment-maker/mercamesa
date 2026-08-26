@@ -6,6 +6,7 @@ import { saveClient } from '../services/sales.service';
 import { fmt } from '@/src/constants';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 
 export function useSales() {
   const { state, dispatch } = useApp();
@@ -14,7 +15,6 @@ export function useSales() {
   const [loading, setLoading] = useState(true);
 
   const [dbSales, setDbSales] = useState<Sale[]>([]);
-  const [nextConsecutive, setNextConsecutive] = useState(1001);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cargar ventas locales de hoy desde la base de datos
@@ -81,7 +81,7 @@ export function useSales() {
           }));
 
         return {
-          id: parentOrder?.consecutive || 1000 + so.id.substring(0, 4),
+          id: formatOrderCode(so.code, so.id),
           date: so.created_at,
           storeId: so.store_id,
           items: storeItems,
@@ -96,28 +96,6 @@ export function useSales() {
       setDbSales(mapped);
     } catch (err) {
       console.error('Error fetching today db sales:', err);
-    }
-  };
-
-  // Cargar el máximo consecutivo actual
-  const fetchNextConsecutive = async () => {
-    const supabase = createSupabaseBrowserClient();
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('consecutive')
-        .order('consecutive', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data && data.consecutive) {
-        setNextConsecutive(data.consecutive + 1);
-      } else {
-        setNextConsecutive(1001);
-      }
-    } catch (err) {
-      console.error('Error fetching max consecutive:', err);
     }
   };
 
@@ -161,7 +139,6 @@ export function useSales() {
     };
     fetchStoreProducts();
     fetchTodayDbSales();
-    fetchNextConsecutive();
   }, [storeId]);
 
   const [search, setSearch] = useState('');
@@ -316,7 +293,6 @@ export function useSales() {
       };
       await fetchStoreProducts();
       await fetchTodayDbSales();
-      await fetchNextConsecutive();
 
       setCart([]);
       setCustomer({ name: '', id: '', identification_type_id: '', email: '', phone: '' });
@@ -364,7 +340,6 @@ export function useSales() {
     isSubmitting,
     mySales,
     todayTotal,
-    nextConsecutive,
     loading: loading || !storeId,
     stores,
     storeId,

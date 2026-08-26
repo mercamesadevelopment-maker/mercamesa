@@ -8,6 +8,7 @@ import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
 import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import { StatusNoteModal } from './StatusNoteModal';
 
 interface StoreOption {
@@ -177,7 +178,7 @@ export function OrdersView({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-fraunces text-mm-g mb-2">
-            {variant === 'admin' ? 'Monitor de Pedidos' : 'Órdenes'}
+            {variant === 'admin' ? 'Órdenes' : 'Órdenes'}
           </h1>
           <p className="text-mm-txs">
             {variant === 'admin'
@@ -293,7 +294,7 @@ export function OrdersView({
                       </Badge>
                     </div>
                     <h3 className="text-xl font-bold text-mm-g mb-1">
-                      Pedido #{variant === 'admin' ? order.id : order.storeOrderId.substring(0, 8)}
+                      Pedido {formatOrderCode(order.code, order.storeOrderId)}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2.5 text-xs text-mm-txs">
                       <span className="flex items-center gap-1.5">
@@ -301,7 +302,7 @@ export function OrdersView({
                       </span>
                       {stores.length > storeFilterThreshold && (
                         <span className="bg-mm-gbg text-mm-g px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-mm-crd/50">
-                          {variant === 'admin' ? 'Store: ' : '🏪 '}{order.storeName}
+                          🏪 {order.storeName}
                         </span>
                       )}
                     </div>
@@ -421,7 +422,6 @@ export function OrdersView({
           nextStatusLabel,
           actionLabel
         })}
-        {...(variant === 'admin' ? { variant: 'admin' as const } : {})}
       />
 
       {/* Status Note Prompt Modal */}

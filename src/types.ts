@@ -151,6 +151,10 @@ export interface OrderStatusHistoryItem {
 export interface Order {
   id: string;
   storeOrderId?: string;
+  /** Código visible del pedido de esta tienda: MM-2026-001017-1 */
+  code?: string;
+  /** Código de la compra completa, comun a todas las tiendas del carrito: MM-2026-001017 */
+  parentCode?: string;
   date: string;
   storeId: number | string;
   storeName: string;

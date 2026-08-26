@@ -30,7 +30,7 @@ export function SalesHistoryView() {
 
     const message = `*MERCAMESA - Recibo de Venta (${item.type === 'online' ? 'Digital' : 'Físico'})*\n\n` +
       `*Tienda:* ${storeName}\n` +
-      `*ID Venta:* ${item.id}\n` +
+      `*Código:* ${item.id}\n` +
       `*Fecha:* ${date}\n\n` +
       `*Productos:*\n${itemsText}\n\n` +
       `*TOTAL:* ${fmt(item.total)}\n\n` +
@@ -44,7 +44,7 @@ export function SalesHistoryView() {
   const columns = [
     {
       key: 'id',
-      label: 'Consecutivo',
+      label: 'Código',
       render: (item: UnifiedHistoryItem) => (
         <div className="flex flex-col gap-1">
           <span className="font-mono font-black text-mm-g text-base tracking-tighter">{item.id}</span>

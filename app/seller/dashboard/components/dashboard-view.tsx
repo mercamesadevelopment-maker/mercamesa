@@ -137,7 +137,7 @@ export function DashboardView() {
                 className="rounded-[24px] px-8 h-14 text-lg border-white/30 text-white hover:bg-white/10 transition-all shadow-lg active:scale-95"
                 onClick={() => router.push('/seller/orders')}
               >
-                Monitor de pedidos
+                Órdenes
               </Button>
             </div>
           </div>
@@ -351,7 +351,7 @@ export function DashboardView() {
                   <div className="flex justify-between items-start gap-2">
                     <p className="text-sm font-bold text-mm-g truncate">
                       {activity.isLocal ? 'Venta en local' : 'Pedido digital'}
-                      {activity.consecutive ? ` #${activity.consecutive}` : ''}
+                      {activity.code ? ` ${activity.code}` : ''}
                     </p>
                     <span className="text-[9px] font-bold text-mm-txw shrink-0">
                       {new Date(activity.createdAt).toLocaleDateString('es-CO', {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  ShoppingCart, Search, Receipt, Plus, X, ArrowUpRight, History, 
+  ShoppingCart, Search, Plus, X, ArrowUpRight, History, 
   TrendingUp, User2, Eye, LayoutGrid 
 } from 'lucide-react';
 import { useSales } from '../hooks/use-sales';
@@ -28,7 +28,6 @@ export function SalesView() {
     isSubmitting,
     mySales,
     todayTotal,
-    nextConsecutive,
     loading,
     stores,
     storeId,
@@ -41,8 +40,8 @@ export function SalesView() {
   const columns = [
     {
       key: 'id',
-      label: 'Consecutivo',
-      render: (item: any) => <span className="font-mono font-bold">#{item.id}</span>
+      label: 'Código',
+      render: (item: any) => <span className="font-mono font-bold">{item.id}</span>
     },
     {
       key: 'customerName',
@@ -102,13 +101,6 @@ export function SalesView() {
             Ventas de Hoy ({mySales.length})
           </Button>
 
-          <div className="flex items-center gap-4 bg-white px-6 py-2.5 rounded-2xl border border-mm-crd shadow-sm">
-            <Receipt className="w-5 h-5 text-mm-oro" />
-            <div>
-              <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Consecutivo</p>
-              <p className="text-lg font-bold text-mm-g leading-none">#{nextConsecutive}</p>
-            </div>
-          </div>
         </div>
       </div>
 

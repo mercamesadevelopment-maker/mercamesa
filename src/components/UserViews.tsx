@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../store';
 import { Order, StoreReview } from '../types';
 import { fmt } from '../constants';
+import { formatOrderCode } from '../features/orders/utils/orderCode';
 import { Button, cn } from './Shared';
 import {
   ClipboardList, Package, Truck, CheckCircle2, XCircle,
@@ -148,7 +149,7 @@ export function OrdersView() {
                     </div>
                     <div>
                       <h3 className="font-bold text-mm-g">{order.storeName}</h3>
-                      <p className="text-xs text-mm-txw">Pedido #{order.id} â€¢ {new Date(order.date).toLocaleDateString()}</p>
+                      <p className="text-xs text-mm-txw">Pedido {formatOrderCode(order.code, order.storeOrderId)} â€¢ {new Date(order.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className={cn("px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2", status.color)}>

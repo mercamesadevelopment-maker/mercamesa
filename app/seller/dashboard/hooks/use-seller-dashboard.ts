@@ -15,7 +15,8 @@ const REVENUE_SERIES_DAYS = 30;
 
 export interface DashboardOrder {
   storeOrderId: string;
-  consecutive: number | null;
+  /** Código legible del pedido, el mismo que ven comprador y admin. */
+  code: string | null;
   status: string;
   subtotal: number;
   createdAt: string;
@@ -99,11 +100,11 @@ export function useSellerDashboard() {
           .from('store_orders')
           .select(`
             id,
+            code,
             status,
             subtotal,
             created_at,
             orders (
-              consecutive,
               buyer_id,
               profiles ( full_name ),
               clients ( full_name )
@@ -128,7 +129,7 @@ export function useSellerDashboard() {
           const isLocal = !order?.buyer_id;
           return {
             storeOrderId: storeOrder.id,
-            consecutive: order?.consecutive ?? null,
+            code: storeOrder.code ?? null,
             status: storeOrder.status,
             subtotal: Number(storeOrder.subtotal) || 0,
             createdAt: storeOrder.created_at,

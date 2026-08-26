@@ -4,6 +4,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { formatDeliveryAddress } from '@/src/features/orders/utils/format-delivery-address';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 
 export interface UnifiedHistoryItem {
   id: string; // e.g. "Digital #MM-1234" or "Físico #1001"
@@ -121,9 +122,9 @@ export function useSalesHistory() {
         if (so.status === 'delivered') statusLabel = 'Entregado';
 
         return {
-          id: isLocal
-            ? `Físico #${parentOrder?.consecutive || so.id.substring(0, 4)}`
-            : `Digital #${parentOrder?.consecutive || so.order_id.substring(0, 8)}`,
+          // El canal (físico/digital) no va en el código: ya lo indican el badge
+          // de la tabla y el encabezado del recibo de WhatsApp.
+          id: formatOrderCode(so.code, so.id),
           rawId: so.order_id,
           type: isLocal ? ('local' as const) : ('online' as const),
           customerName: isLocal

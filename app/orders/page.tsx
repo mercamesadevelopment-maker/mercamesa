@@ -52,14 +52,14 @@ export default function OrdersPage() {
     <div className="p-6 lg:p-10 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Mis Pedidos</h1>
+          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Mis Órdenes</h1>
           <p className="text-mm-txs">Sigue el estado de tus compras en tiempo real.</p>
         </div>
       </div>
 
       <OrderStats stats={stats} />
 
-      <OrderFilters 
+      <OrderFilters
         selectedStoreId={storeId}
         onStoreChange={setStoreId}
         selectedStatus={status}
@@ -83,9 +83,9 @@ export default function OrdersPage() {
           </div>
         ) : (
           orders.map(order => (
-            <OrderCard 
-              key={order.order_id} 
-              order={order} 
+            <OrderCard
+              key={order.order_id}
+              order={order}
               onRate={handleOpenRating}
             />
           ))
@@ -93,14 +93,14 @@ export default function OrdersPage() {
       </div>
 
       {meta && (
-        <Pagination 
+        <Pagination
           currentPage={page}
           totalPages={meta.totalPages}
           onPageChange={setPage}
         />
       )}
 
-      <RatingModal 
+      <RatingModal
         isOpen={isRatingModalOpen}
         storeId={ratingStoreId}
         storeName={orders.find(o => o.store_id === ratingStoreId)?.store_name || undefined}

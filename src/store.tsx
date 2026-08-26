@@ -103,6 +103,7 @@ const initialState: AppState = {
   orders: [
     {
       id: "MM-102938",
+      code: "MM-2026-000001-1",
       date: new Date().toISOString(),
       storeId: 1,
       storeName: "Frutería Don Chucho",
@@ -119,6 +120,7 @@ const initialState: AppState = {
     },
     {
       id: "MM-485721",
+      code: "MM-2026-000002-1",
       date: "2024-05-08T13:00:00.000Z",
       storeId: 2,
       storeName: "Carnes El Novillo",

@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../store';
 import { Product, Order, Plaza, Store, Offer, MasterProduct, Sale, SaleStatus, OrderItem } from '../types';
 import { fmt, WEEK_DATA, CAT_DATA } from '../constants';
+import { formatOrderCode } from '../features/orders/utils/orderCode';
 import { Button, Badge, Input, cn } from './Shared';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell, Legend, Treemap, Line, ComposedChart
 } from 'recharts';
-import { 
-  TrendingUp, Package, ShoppingBag, Star, Plus, Edit2, Trash2, 
-  Search, Filter, ChevronRight, Send, Smile, Paperclip, 
+import {
+  TrendingUp, Package, ShoppingBag, Star, Plus, Edit2, Trash2,
+  Search, Filter, ChevronRight, Send, Smile, Paperclip,
   Phone, MoreVertical, CheckCircle2, AlertCircle, Clock, Truck, Loader2, XCircle,
   MapPin, Building2, User, Bell, LayoutDashboard, X, Zap, Info, MessageSquare,
   Store as StoreIcon, Image as ImageIcon, Camera, Tag, ClipboardList,
@@ -27,12 +28,12 @@ export function ProviderProductsView() {
   const [search, setSearch] = useState('');
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [newProduct, setNewProduct] = useState({ 
-    name: '', 
-    retailPrice: 0, 
-    stock: 0, 
-    unit: 'kg', 
-    emoji: '🍎', 
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    retailPrice: 0,
+    stock: 0,
+    unit: 'kg',
+    emoji: '🍎',
     cat: 'Varios',
     image: '',
     masterId: 0
@@ -57,11 +58,11 @@ export function ProviderProductsView() {
 
   const handleOpenEdit = (p: Product) => {
     setEditingProduct(p);
-    setNewProduct({ 
-      name: p.name, 
-      retailPrice: p.retailPrice, 
-      stock: p.stock, 
-      unit: p.unit, 
+    setNewProduct({
+      name: p.name,
+      retailPrice: p.retailPrice,
+      stock: p.stock,
+      unit: p.unit,
       emoji: p.emoji,
       cat: p.cat,
       image: p.image || '',
@@ -128,9 +129,9 @@ export function ProviderProductsView() {
         <div className="flex gap-3">
           <div className="relative w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="Buscar producto..." 
+            <input
+              type="text"
+              placeholder="Buscar producto..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all shadow-sm"
@@ -162,37 +163,37 @@ export function ProviderProductsView() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={myProducts} margin={{ bottom: 40, top: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fontSize: 9, fill: '#9AA88C', fontWeight: 600 }}
                   angle={-45}
                   textAnchor="end"
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fontSize: 10, fill: '#9AA88C' }}
                 />
-                <Tooltip 
+                <Tooltip
                   cursor={{ fill: '#F2F7EC', radius: 12 }}
-                  contentStyle={{ 
-                    borderRadius: '24px', 
-                    border: '1px solid #E8E8DC', 
+                  contentStyle={{
+                    borderRadius: '24px',
+                    border: '1px solid #E8E8DC',
                     boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)',
                     padding: '16px'
                   }}
                 />
-                <Bar 
-                  dataKey="stock" 
-                  radius={[8, 8, 0, 0]} 
+                <Bar
+                  dataKey="stock"
+                  radius={[8, 8, 0, 0]}
                   barSize={40}
                 >
                   {myProducts.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.stock <= (entry.minStock || 10) ? '#CF3D2E' : '#2A4E12'} 
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.stock <= (entry.minStock || 10) ? '#CF3D2E' : '#2A4E12'}
                     />
                   ))}
                 </Bar>
@@ -211,14 +212,14 @@ export function ProviderProductsView() {
               {myProducts.length > 0 ? (
                 <>
                   <h4 className="text-2xl font-fraunces mb-4 truncate pr-12">
-                    {myProducts.slice().sort((a,b) => a.stock - b.stock)[0].name}
+                    {myProducts.slice().sort((a, b) => a.stock - b.stock)[0].name}
                   </h4>
                   <div className="flex items-end gap-2">
                     <span className="text-5xl font-bold font-fraunces tabular-nums">
-                      {myProducts.slice().sort((a,b) => a.stock - b.stock)[0].stock}
+                      {myProducts.slice().sort((a, b) => a.stock - b.stock)[0].stock}
                     </span>
                     <span className="text-sm font-bold opacity-80 mb-2 uppercase tracking-widest">
-                      {myProducts.slice().sort((a,b) => a.stock - b.stock)[0].unit}s
+                      {myProducts.slice().sort((a, b) => a.stock - b.stock)[0].unit}s
                     </span>
                   </div>
                 </>
@@ -227,7 +228,7 @@ export function ProviderProductsView() {
               )}
             </div>
           </div>
-          
+
           <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
             <div className="flex items-center gap-4 mb-8">
               <div className="w-12 h-12 bg-rl text-r rounded-2xl flex items-center justify-center shrink-0">
@@ -310,13 +311,13 @@ export function ProviderProductsView() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                       <button 
-                         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-                         onClick={() => handleOpenEdit(p)}
-                       >
-                         <Edit2 className="w-4 h-4" />
-                       </button>
-                      <button 
+                      <button
+                        className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+                        onClick={() => handleOpenEdit(p)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
                         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
                         onClick={() => dispatch({ type: 'DELETE_PRODUCT', productId: p.id })}
                       >
@@ -335,20 +336,20 @@ export function ProviderProductsView() {
       <AnimatePresence>
         {isAddProductOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddProductOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddProductOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -358,7 +359,7 @@ export function ProviderProductsView() {
               <h2 className="text-2xl font-fraunces text-mm-g mb-6">
                 {editingProduct ? 'Editar Producto' : 'Gestión de Inventario'}
               </h2>
-              
+
               <form onSubmit={handleAddProduct} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-mm-txs ml-1">Imagen del Producto</label>
@@ -372,8 +373,8 @@ export function ProviderProductsView() {
                           <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                         </div>
                       )}
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer"
@@ -382,14 +383,14 @@ export function ProviderProductsView() {
                     <div className="flex-grow flex flex-col justify-center">
                       <p className="text-[10px] text-mm-txw leading-tight">Sube una foto real de tu producto para generar más confianza.</p>
                       {newProduct.masterId > 0 && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           type="button"
                           className="mt-2 text-[10px] h-7 w-fit"
                           onClick={() => {
                             const master = state.catalog.find(i => i.id === newProduct.masterId);
-                            if (master) setNewProduct({...newProduct, image: master.image || ''});
+                            if (master) setNewProduct({ ...newProduct, image: master.image || '' });
                           }}
                         >
                           Usar imagen del catálogo
@@ -401,7 +402,7 @@ export function ProviderProductsView() {
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-mm-txs ml-1">Nombre del Producto</label>
-                  <select 
+                  <select
                     value={newProduct.masterId}
                     onChange={e => {
                       const mid = Number(e.target.value);
@@ -436,7 +437,7 @@ export function ProviderProductsView() {
                 </div>
 
                 {newProduct.name && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex gap-4 p-4 bg-mm-gbg/20 rounded-2xl border border-mm-crd"
@@ -455,12 +456,12 @@ export function ProviderProductsView() {
                     </div>
                   </motion.div>
                 )}
-                
+
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Unidad" 
-                    value={newProduct.unit} 
-                    onChange={e => setNewProduct({...newProduct, unit: e.target.value})}
+                  <Input
+                    label="Unidad"
+                    value={newProduct.unit}
+                    onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })}
                     placeholder="Ej: kg, lb, unidad"
                     required
                   />
@@ -473,19 +474,19 @@ export function ProviderProductsView() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Precio Minorista" 
+                  <Input
+                    label="Precio Minorista"
                     type="number"
-                    value={newProduct.retailPrice} 
-                    onChange={e => setNewProduct({...newProduct, retailPrice: Number(e.target.value)})}
+                    value={newProduct.retailPrice}
+                    onChange={e => setNewProduct({ ...newProduct, retailPrice: Number(e.target.value) })}
                     placeholder="0"
                     required
                   />
-                  <Input 
-                    label="Stock Inicial" 
+                  <Input
+                    label="Stock Inicial"
                     type="number"
-                    value={newProduct.stock} 
-                    onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})}
+                    value={newProduct.stock}
+                    onChange={e => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
                     placeholder="0"
                     required
                   />
@@ -593,7 +594,7 @@ export function WhatsAppBot() {
       <div className="flex-grow bg-[#E5DDD5] border-x border-mm-crd overflow-y-auto p-6 space-y-4 scrollbar-hide relative">
         {/* WhatsApp background pattern simulation */}
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }} />
-        
+
         {messages.map(msg => (
           <motion.div
             key={msg.id}
@@ -601,8 +602,8 @@ export function WhatsAppBot() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className={cn(
               "max-w-[85%] p-3 rounded-xl text-sm shadow-sm relative z-10 whitespace-pre-wrap",
-              msg.sender === 'user' 
-                ? "bg-[#DCF8C6] text-[#303030] ml-auto rounded-tr-none" 
+              msg.sender === 'user'
+                ? "bg-[#DCF8C6] text-[#303030] ml-auto rounded-tr-none"
                 : "bg-white text-[#303030] mr-auto rounded-tl-none"
             )}
           >
@@ -615,7 +616,7 @@ export function WhatsAppBot() {
       <div className="bg-[#F0F0F0] p-4 rounded-b-[32px] shadow-sm">
         <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide">
           {["lista", "pedidos", "/precio Tomate 2800", "/stock Limón 50", "ayuda"].map(chip => (
-            <button 
+            <button
               key={chip}
               onClick={() => setInput(chip)}
               className="px-4 py-1.5 bg-white text-mm-txs text-xs font-bold rounded-full whitespace-nowrap hover:bg-mm-gll transition-colors shadow-sm"
@@ -626,14 +627,14 @@ export function WhatsAppBot() {
         </div>
         <form onSubmit={handleSend} className="flex gap-3">
           <button type="button" className="p-3 text-mm-txw hover:text-mm-g transition-colors"><Smile className="w-6 h-6" /></button>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Escribe un comando..." 
+            placeholder="Escribe un comando..."
             className="flex-grow bg-white rounded-full px-6 py-3 text-sm outline-none shadow-sm"
           />
-          <button 
+          <button
             type="submit"
             className="w-12 h-12 bg-[#128C7E] text-white rounded-full flex items-center justify-center hover:bg-[#075E54] transition-all shadow-md"
           >
@@ -681,12 +682,12 @@ export function AdminView() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isAddOfferOpen, setIsAddOfferOpen] = useState(false);
   const [isAddCatalogOpen, setIsAddCatalogOpen] = useState(false);
-  
-  const [newStore, setNewStore] = useState({ 
+
+  const [newStore, setNewStore] = useState({
     name: '', local: '', plazaId: 1, emoji: '🏪', cat: 'Varios', image: '',
     openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
   });
-  const [newPlaza, setNewPlaza] = useState({ 
+  const [newPlaza, setNewPlaza] = useState({
     name: '', city: '', address: '', emoji: '🏛️', bg: '#F4F4E8', image: '',
     openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
   });
@@ -700,10 +701,10 @@ export function AdminView() {
 
   const isProvider = state.userRole === 'provider';
   const isSuperAdmin = state.buyerProfile.email === 'info@pq-scem.com';
-  
+
   const totalRevenue = state.orders.reduce((acc, o) => acc + o.total, 0);
   const activeOrders = state.orders.filter(o => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way').length;
-  
+
   const tabs = [
     { id: 'plazas', label: 'Plazas', icon: Building2 },
     { id: 'stores', label: 'Tiendas', icon: StoreIcon },
@@ -821,7 +822,7 @@ export function AdminView() {
     };
     dispatch({ type: 'ADD_PLAZA', plaza });
     setIsAddPlazaOpen(false);
-    setNewPlaza({ 
+    setNewPlaza({
       name: '', city: '', address: '', emoji: '🏛️', bg: '#F4F4E8', image: '',
       openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
     });
@@ -880,7 +881,7 @@ export function AdminView() {
     };
     dispatch({ type: 'ADD_STORE', store });
     setIsAddStoreOpen(false);
-    setNewStore({ 
+    setNewStore({
       name: '', local: '', plazaId: 1, emoji: '🏪', cat: 'Varios', image: '',
       openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
     });
@@ -1001,7 +1002,7 @@ export function AdminView() {
       const totalStock = storeProducts.reduce((acc, p) => acc + p.stock, 0);
       const lowStockCount = storeProducts.filter(p => p.stock < p.minStock).length;
       const totalValue = storeProducts.reduce((acc, p) => acc + (p.stock * (p.wsPrice || p.retailPrice)), 0);
-      
+
       return {
         id: s.id,
         name: s.name,
@@ -1022,7 +1023,7 @@ export function AdminView() {
     // Fake projection data based on historical trends
     const days = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
     const nextDays = ['Próx. Lun', 'Próx. Mar', 'Próx. Mie'];
-    
+
     return [
       ...days.map((day, i) => ({
         name: day,
@@ -1101,9 +1102,9 @@ export function AdminView() {
             {isSuperAdmin && <Badge variant="oro" className="text-[10px] py-1 px-3">Acceso Total</Badge>}
           </div>
           <p className="text-mm-txs">
-            {isProvider ? `Gestionando el rendimiento de tu tienda en tiempo real.` : 
-             isSuperAdmin ? `Bienvenido, ${state.buyerProfile.name}. Gestionando ${state.plazas.length} plazas y ${state.stores.length} tiendas.` :
-             'Gestión global de la plataforma MercaMesa.'}
+            {isProvider ? `Gestionando el rendimiento de tu tienda en tiempo real.` :
+              isSuperAdmin ? `Bienvenido, ${state.buyerProfile.name}. Gestionando ${state.plazas.length} plazas y ${state.stores.length} tiendas.` :
+                'Gestión global de la plataforma MercaMesa.'}
           </p>
         </div>
       </div>
@@ -1243,7 +1244,7 @@ export function AdminView() {
                     const isExpanded = expandedProduct === group.id;
                     return (
                       <React.Fragment key={group.id}>
-                        <tr 
+                        <tr
                           className={cn(
                             "hover:bg-mm-gbg/20 cursor-pointer transition-colors",
                             isExpanded ? "bg-mm-gbg/[0.15]" : ""
@@ -1291,7 +1292,7 @@ export function AdminView() {
                         {isExpanded && (
                           <tr>
                             <td colSpan={5} className="px-6 py-0 border-b-0">
-                              <motion.div 
+                              <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
@@ -1325,7 +1326,7 @@ export function AdminView() {
                                           </div>
                                           <div className="flex gap-1">
                                             <button className="p-1.5 hover:bg-white rounded-lg text-mm-txw hover:text-mm-g bg-white/40 shadow-sm border border-mm-crd/20"><Edit2 className="w-3 h-3" /></button>
-                                            <button 
+                                            <button
                                               className="p-1.5 hover:bg-white rounded-lg text-mm-txw hover:text-r bg-white/40 shadow-sm border border-mm-crd/20"
                                               onClick={(e) => {
                                                 e.stopPropagation();
@@ -1381,9 +1382,9 @@ export function AdminView() {
                       <td className="px-6 py-4 text-sm font-bold text-mm-g">{fmt(o.total)}</td>
                       <td className="px-6 py-4">
                         <Badge variant={
-                          o.status === 'delivered' ? 'success' : 
-                          o.status === 'cancelled' ? 'error' : 
-                          o.status === 'on_the_way' ? 'info' : 'warning'
+                          o.status === 'delivered' ? 'success' :
+                            o.status === 'cancelled' ? 'error' :
+                              o.status === 'on_the_way' ? 'info' : 'warning'
                         }>
                           {o.status}
                         </Badge>
@@ -1401,124 +1402,124 @@ export function AdminView() {
 
         {activeTab === 'projections' && (
           <motion.div key="projections" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <h2 className="text-2xl font-fraunces text-mm-g flex items-center gap-2">
-                    Proyección de Demanda y Oferta <BrainCircuit className="w-6 h-6 text-mm-oro" />
-                  </h2>
-                  <p className="text-sm text-mm-txs">Algoritmos predictivos basados en históricos de consumo.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <h2 className="text-2xl font-fraunces text-mm-g flex items-center gap-2">
+                  Proyección de Demanda y Oferta <BrainCircuit className="w-6 h-6 text-mm-oro" />
+                </h2>
+                <p className="text-sm text-mm-txs">Algoritmos predictivos basados en históricos de consumo.</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-mm-oro/10 rounded-full border border-mm-oro/20">
+                  <div className="w-2 h-2 rounded-full bg-mm-oro animate-pulse" />
+                  <span className="text-xs font-bold text-mm-oro">Analizando Tendencias en Vivo</span>
                 </div>
-                <div className="flex gap-3">
-                   <div className="flex items-center gap-2 px-4 py-2 bg-mm-oro/10 rounded-full border border-mm-oro/20">
-                     <div className="w-2 h-2 rounded-full bg-mm-oro animate-pulse" />
-                     <span className="text-xs font-bold text-mm-oro">Analizando Tendencias en Vivo</span>
-                   </div>
-                </div>
-             </div>
+              </div>
+            </div>
 
-             <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                  <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-                    <div className="flex items-center justify-between mb-8">
-                      <h3 className="text-xl font-fraunces text-mm-g">Predicción de Demanda Semanal</h3>
-                      <div className="flex gap-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-mm-g" />
-                          <span className="text-[10px] font-bold text-mm-txw uppercase tracking-widest">Histórico</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-mm-oro" />
-                          <span className="text-[10px] font-bold text-mm-txw uppercase tracking-widest">Proyección IA</span>
-                        </div>
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-fraunces text-mm-g">Predicción de Demanda Semanal</h3>
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-mm-g" />
+                        <span className="text-[10px] font-bold text-mm-txw uppercase tracking-widest">Histórico</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-mm-oro" />
+                        <span className="text-[10px] font-bold text-mm-txw uppercase tracking-widest">Proyección IA</span>
                       </div>
                     </div>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={projectionData}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                          <Tooltip 
-                            contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-                          />
-                          <Area type="monotone" dataKey="actual" fill="#3E7023" fillOpacity={0.1} stroke="none" />
-                          <Line type="monotone" dataKey="actual" stroke="#3E7023" strokeWidth={3} dot={{ r: 4, fill: '#3E7023' }} />
-                          <Line type="monotone" dataKey="projected" stroke="#F29F05" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 6, fill: '#F29F05' }} />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
                   </div>
-
-                  <div className="grid md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm border-l-4 border-l-mm-g">
-                       <p className="text-[10px] text-mm-txw font-bold uppercase mb-2">Pico de Demanda</p>
-                       <h4 className="text-xl font-bold text-mm-g mb-1">Próximo Sábado</h4>
-                       <p className="text-xs text-mm-txs">Aumento proyectado del 28% en granos.</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm border-l-4 border-l-mm-oro">
-                       <p className="text-[10px] text-mm-txw font-bold uppercase mb-2">Producto Tendencia</p>
-                       <h4 className="text-xl font-bold text-mm-g mb-1">Aguacate Hass</h4>
-                       <p className="text-xs text-mm-txs">Alta rotación esperada en Plaza Central.</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm border-l-4 border-l-r">
-                       <p className="text-[10px] text-mm-txw font-bold uppercase mb-2">Riesgo de Desabasto</p>
-                       <h4 className="text-xl font-bold text-mm-g mb-1">Papa Sabanera</h4>
-                       <p className="text-xs text-mm-txs">Stock actual cubrirá solo 2 días más.</p>
-                    </div>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={projectionData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Area type="monotone" dataKey="actual" fill="#3E7023" fillOpacity={0.1} stroke="none" />
+                        <Line type="monotone" dataKey="actual" stroke="#3E7023" strokeWidth={3} dot={{ r: 4, fill: '#3E7023' }} />
+                        <Line type="monotone" dataKey="projected" stroke="#F29F05" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 6, fill: '#F29F05' }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="bg-mm-g text-white p-8 rounded-[40px] shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-                    <h3 className="text-xl font-fraunces mb-4 relative z-10">Recomendaciones de Reabastecimiento</h3>
-                    <div className="space-y-4 relative z-10">
-                      <div className="flex items-start gap-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
-                        <Zap className="w-5 h-5 text-mm-oro shrink-0 mt-1" />
-                        <div>
-                          <p className="text-sm font-bold">Incentivar oferta de Frutas</p>
-                          <p className="text-[10px] opacity-80">Se detecta exceso de oferta para el fin de semana.</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
-                        <ArrowUpRight className="w-5 h-5 text-ok shrink-0 mt-1" />
-                        <div>
-                          <p className="text-sm font-bold">Ajustar Precios en Plaza Sur</p>
-                          <p className="text-[10px] opacity-80">Oportunidad de incremento de margen en lácteos.</p>
-                        </div>
-                      </div>
-                    </div>
-                    <Button variant="outline" className="w-full mt-6 bg-transparent border-white text-white hover:bg-white hover:text-mm-g">Generar Informe IA</Button>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm border-l-4 border-l-mm-g">
+                    <p className="text-[10px] text-mm-txw font-bold uppercase mb-2">Pico de Demanda</p>
+                    <h4 className="text-xl font-bold text-mm-g mb-1">Próximo Sábado</h4>
+                    <p className="text-xs text-mm-txs">Aumento proyectado del 28% en granos.</p>
                   </div>
+                  <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm border-l-4 border-l-mm-oro">
+                    <p className="text-[10px] text-mm-txw font-bold uppercase mb-2">Producto Tendencia</p>
+                    <h4 className="text-xl font-bold text-mm-g mb-1">Aguacate Hass</h4>
+                    <p className="text-xs text-mm-txs">Alta rotación esperada en Plaza Central.</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm border-l-4 border-l-r">
+                    <p className="text-[10px] text-mm-txw font-bold uppercase mb-2">Riesgo de Desabasto</p>
+                    <h4 className="text-xl font-bold text-mm-g mb-1">Papa Sabanera</h4>
+                    <p className="text-xs text-mm-txs">Stock actual cubrirá solo 2 días más.</p>
+                  </div>
+                </div>
+              </div>
 
-                  <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-                    <h4 className="font-fraunces text-mm-g mb-6">Precisión del Modelo</h4>
-                    <div className="flex items-center gap-6 mb-8">
-                       <div className="relative w-20 h-20">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-mm-gbg" />
-                            <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="219.9" strokeDashoffset="11" className="text-mm-g" />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center font-bold text-mm-g">95%</div>
-                       </div>
-                       <div>
-                          <p className="text-sm font-bold text-mm-g">Alta Confianza</p>
-                          <p className="text-xs text-mm-txs">Basado en 2,450 transacciones analizadas.</p>
-                       </div>
+              <div className="space-y-6">
+                <div className="bg-mm-g text-white p-8 rounded-[40px] shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                  <h3 className="text-xl font-fraunces mb-4 relative z-10">Recomendaciones de Reabastecimiento</h3>
+                  <div className="space-y-4 relative z-10">
+                    <div className="flex items-start gap-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
+                      <Zap className="w-5 h-5 text-mm-oro shrink-0 mt-1" />
+                      <div>
+                        <p className="text-sm font-bold">Incentivar oferta de Frutas</p>
+                        <p className="text-[10px] opacity-80">Se detecta exceso de oferta para el fin de semana.</p>
+                      </div>
                     </div>
-                    <div className="space-y-3">
-                       <div className="flex justify-between items-center text-xs">
-                         <span className="text-mm-txs">Sesgo Estacional</span>
-                         <span className="font-bold text-mm-g">Bajo (-2.1%)</span>
-                       </div>
-                       <div className="flex justify-between items-center text-xs">
-                         <span className="text-mm-txs">Ruido de Mercado</span>
-                         <span className="font-bold text-mm-g">Moderado</span>
-                       </div>
+                    <div className="flex items-start gap-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
+                      <ArrowUpRight className="w-5 h-5 text-ok shrink-0 mt-1" />
+                      <div>
+                        <p className="text-sm font-bold">Ajustar Precios en Plaza Sur</p>
+                        <p className="text-[10px] opacity-80">Oportunidad de incremento de margen en lácteos.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full mt-6 bg-transparent border-white text-white hover:bg-white hover:text-mm-g">Generar Informe IA</Button>
+                </div>
+
+                <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
+                  <h4 className="font-fraunces text-mm-g mb-6">Precisión del Modelo</h4>
+                  <div className="flex items-center gap-6 mb-8">
+                    <div className="relative w-20 h-20">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-mm-gbg" />
+                        <circle cx="40" cy="40" r="35" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="219.9" strokeDashoffset="11" className="text-mm-g" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center font-bold text-mm-g">95%</div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-mm-g">Alta Confianza</p>
+                      <p className="text-xs text-mm-txs">Basado en 2,450 transacciones analizadas.</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-mm-txs">Sesgo Estacional</span>
+                      <span className="font-bold text-mm-g">Bajo (-2.1%)</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-mm-txs">Ruido de Mercado</span>
+                      <span className="font-bold text-mm-g">Moderado</span>
                     </div>
                   </div>
                 </div>
-             </div>
+              </div>
+            </div>
           </motion.div>
         )}
         {activeTab === 'reputation' && (
@@ -1536,7 +1537,7 @@ export function AdminView() {
                   <p className="text-[10px] font-bold text-mm-g uppercase">Cálculo de Estrellas</p>
                 </div>
                 <p className="text-[11px] text-mm-txs leading-relaxed">
-                  El sistema calcula el rating como el <span className="font-bold text-mm-g">promedio simple</span> de todas las reseñas: 
+                  El sistema calcula el rating como el <span className="font-bold text-mm-g">promedio simple</span> de todas las reseñas:
                   <span className="block mt-1 font-mono bg-white/50 p-1 rounded">Rating = Suma(Estrellas) / Total Reseñas</span>
                 </p>
               </div>
@@ -1548,33 +1549,33 @@ export function AdminView() {
                 <div className="space-y-3">
                   {state.stores
                     .filter(s => !isProvider || s.id === state.stores[0].id)
-                    .sort((a,b) => b.rating - a.rating).map((store, i) => (
-                    <div 
-                      key={store.id} 
-                      onClick={() => setFilterStoreId(store.id)}
-                      className={cn(
-                        "bg-white p-4 rounded-2xl border shadow-sm flex items-center justify-between transition-colors cursor-pointer group",
-                        filterStoreId === store.id ? "border-mm-g bg-mm-gbg/20 shadow-md ring-1 ring-mm-g/20" : "border-mm-crd hover:border-mm-g"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-colors",
-                          filterStoreId === store.id ? "bg-mm-g text-white" : "bg-mm-gbg text-mm-g"
-                        )}>
-                          {i + 1}
+                    .sort((a, b) => b.rating - a.rating).map((store, i) => (
+                      <div
+                        key={store.id}
+                        onClick={() => setFilterStoreId(store.id)}
+                        className={cn(
+                          "bg-white p-4 rounded-2xl border shadow-sm flex items-center justify-between transition-colors cursor-pointer group",
+                          filterStoreId === store.id ? "border-mm-g bg-mm-gbg/20 shadow-md ring-1 ring-mm-g/20" : "border-mm-crd hover:border-mm-g"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs transition-colors",
+                            filterStoreId === store.id ? "bg-mm-g text-white" : "bg-mm-gbg text-mm-g"
+                          )}>
+                            {i + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-mm-g">{store.name}</p>
+                            <p className="text-[10px] text-mm-txw font-bold uppercase">{store.reviewCount} reseñas</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-mm-g">{store.name}</p>
-                          <p className="text-[10px] text-mm-txw font-bold uppercase">{store.reviewCount} reseñas</p>
+                        <div className="flex items-center gap-1.5 bg-warnl px-3 py-1 rounded-full border border-warn/20">
+                          <Star className="w-3.5 h-3.5 text-mm-oro fill-mm-oro" />
+                          <span className="text-xs font-bold text-mm-oro">{store.rating.toFixed(1)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-warnl px-3 py-1 rounded-full border border-warn/20">
-                        <Star className="w-3.5 h-3.5 text-mm-oro fill-mm-oro" />
-                        <span className="text-xs font-bold text-mm-oro">{store.rating.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -1582,13 +1583,13 @@ export function AdminView() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-fraunces text-mm-g">
-                      {filterStoreId === 'all' 
+                      {filterStoreId === 'all'
                         ? (isProvider ? 'Reseñas de mi Tienda' : 'Historial de Reseñas Recientes')
                         : `Reseñas de ${state.stores.find(s => s.id === filterStoreId)?.name}`
                       }
                     </h3>
                     {filterStoreId !== 'all' && !isProvider && (
-                      <button 
+                      <button
                         onClick={() => setFilterStoreId('all')}
                         className="text-[10px] font-black uppercase text-mm-g hover:underline underline-offset-4"
                       >
@@ -1603,59 +1604,59 @@ export function AdminView() {
                     }).length} Reseñas
                   </Badge>
                 </div>
-                
+
                 <div className="space-y-4">
                   {state.reviews
                     .filter(r => {
                       if (filterStoreId === 'all') return !isProvider || r.storeId === state.stores[0].id;
                       return r.storeId === filterStoreId;
                     })
-                    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(review => {
-                    const store = state.stores.find(s => s.id === review.storeId);
-                    return (
-                      <div key={review.id} className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-mm-gbg flex items-center justify-center text-mm-g font-bold">
-                              {review.buyerName.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-mm-g">{review.buyerName}</p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <div className="flex">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star 
-                                      key={i} 
-                                      className={cn(
-                                        "w-3 h-3", 
-                                        i < review.stars ? "text-mm-oro fill-mm-oro" : "text-mm-crd fill-mm-crd"
-                                      )} 
-                                    />
-                                  ))}
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(review => {
+                      const store = state.stores.find(s => s.id === review.storeId);
+                      return (
+                        <div key={review.id} className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm space-y-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-mm-gbg flex items-center justify-center text-mm-g font-bold">
+                                {review.buyerName.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-mm-g">{review.buyerName}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <div className="flex">
+                                    {[...Array(5)].map((_, i) => (
+                                      <Star
+                                        key={i}
+                                        className={cn(
+                                          "w-3 h-3",
+                                          i < review.stars ? "text-mm-oro fill-mm-oro" : "text-mm-crd fill-mm-crd"
+                                        )}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[10px] text-mm-txw font-bold uppercase">• {new Date(review.date).toLocaleDateString()}</span>
                                 </div>
-                                <span className="text-[10px] text-mm-txw font-bold uppercase">• {new Date(review.date).toLocaleDateString()}</span>
                               </div>
                             </div>
+                            <div className="flex items-center gap-2 px-3 py-1 bg-mm-gbg/50 rounded-lg border border-mm-crd/50">
+                              <StoreIcon className="w-3 h-3 text-mm-txs" />
+                              <span className="text-[10px] font-bold text-mm-txs uppercase">{store?.name}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 px-3 py-1 bg-mm-gbg/50 rounded-lg border border-mm-crd/50">
-                            <StoreIcon className="w-3 h-3 text-mm-txs" />
-                            <span className="text-[10px] font-bold text-mm-txs uppercase">{store?.name}</span>
+                          <p className="text-sm text-mm-txs italic leading-relaxed">
+                            "{review.comment}"
+                          </p>
+                          <div className="flex gap-2 pt-2">
+                            <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase font-bold tracking-widest text-mm-txw hover:text-mm-g">
+                              <MessageSquare className="w-3.5 h-3.5 mr-1" /> Responder
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase font-bold tracking-widest text-mm-txw hover:text-r">
+                              <AlertCircle className="w-3.5 h-3.5 mr-1" /> Reportar
+                            </Button>
                           </div>
                         </div>
-                        <p className="text-sm text-mm-txs italic leading-relaxed">
-                          "{review.comment}"
-                        </p>
-                        <div className="flex gap-2 pt-2">
-                          <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase font-bold tracking-widest text-mm-txw hover:text-mm-g">
-                            <MessageSquare className="w-3.5 h-3.5 mr-1" /> Responder
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase font-bold tracking-widest text-mm-txw hover:text-r">
-                            <AlertCircle className="w-3.5 h-3.5 mr-1" /> Reportar
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
             </div>
@@ -1711,13 +1712,13 @@ export function AdminView() {
                     <AreaChart data={WEEK_DATA}>
                       <defs>
                         <linearGradient id="colorV" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3E7023" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3E7023" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#3E7023" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3E7023" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
                       <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} tickFormatter={(v) => `$${v/1000}k`} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}k`} />
                       <Tooltip />
                       <Area type="monotone" dataKey="v" stroke="#3E7023" strokeWidth={3} fillOpacity={1} fill="url(#colorV)" />
                     </AreaChart>
@@ -1824,21 +1825,21 @@ export function AdminView() {
                             </div>
                           </td>
                           <td className="px-8 py-4 text-center">
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className={cn("rounded-xl px-4", stockStoreDetail === store.id && "bg-mm-g text-white")}
-                                onClick={() => setStockStoreDetail(stockStoreDetail === store.id ? null : store.id)}
-                             >
-                               {stockStoreDetail === store.id ? 'Ocultar' : 'Ver Inventario'}
-                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn("rounded-xl px-4", stockStoreDetail === store.id && "bg-mm-g text-white")}
+                              onClick={() => setStockStoreDetail(stockStoreDetail === store.id ? null : store.id)}
+                            >
+                              {stockStoreDetail === store.id ? 'Ocultar' : 'Ver Inventario'}
+                            </Button>
                           </td>
                         </tr>
                         <AnimatePresence>
                           {stockStoreDetail === store.id && (
                             <tr>
                               <td colSpan={7} className="px-8 py-0">
-                                <motion.div 
+                                <motion.div
                                   initial={{ height: 0, opacity: 0 }}
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
@@ -1871,9 +1872,9 @@ export function AdminView() {
                                               {p.stock} <span className="text-[10px] opacity-60 uppercase">{p.unit}</span>
                                             </p>
                                             <div className="h-1 w-12 bg-mm-gbg rounded-full mt-1 ml-auto overflow-hidden">
-                                              <div 
-                                                className={cn("h-full", p.stock < p.minStock ? "bg-r" : "bg-mm-g")} 
-                                                style={{ width: `${Math.min(100, (p.stock / (p.minStock || 1)) * 50)}%` }} 
+                                              <div
+                                                className={cn("h-full", p.stock < p.minStock ? "bg-r" : "bg-mm-g")}
+                                                style={{ width: `${Math.min(100, (p.stock / (p.minStock || 1)) * 50)}%` }}
                                               />
                                             </div>
                                           </div>
@@ -1911,29 +1912,29 @@ export function AdminView() {
               </div>
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={globalStockData} 
+                  <BarChart
+                    data={globalStockData}
                     layout="vertical"
                     margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E8E8DC" />
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                    <YAxis 
-                      type="category" 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#5C6B4A', fontSize: 13, fontWeight: 'bold' }} 
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#5C6B4A', fontSize: 13, fontWeight: 'bold' }}
                       width={120}
                     />
-                    <Tooltip 
+                    <Tooltip
                       cursor={{ fill: '#F4F4E8', opacity: 0.4 }}
                       contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '16px' }}
                       itemStyle={{ fontWeight: 'bold', fontSize: '13px', color: '#3E7023' }}
                     />
-                    <Bar 
-                      dataKey="total" 
-                      fill="#3E7023" 
+                    <Bar
+                      dataKey="total"
+                      fill="#3E7023"
                       radius={[0, 6, 6, 0]}
                       barSize={24}
                     />
@@ -1954,40 +1955,40 @@ export function AdminView() {
               </div>
               <div className="h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={stockAnalyticsData} 
+                  <BarChart
+                    data={stockAnalyticsData}
                     margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                     barGap={0}
                   >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fill: '#5C6B4A', fontSize: 13, fontWeight: 'bold' }} 
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#5C6B4A', fontSize: 13, fontWeight: 'bold' }}
                       interval={0}
                       angle={-35}
                       textAnchor="end"
                     />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                    <Tooltip 
+                    <Tooltip
                       cursor={{ fill: '#F4F4E8', opacity: 0.4 }}
                       contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '16px' }}
                       itemStyle={{ fontWeight: 'bold', fontSize: '13px' }}
                     />
-                    <Legend 
-                      verticalAlign="top" 
+                    <Legend
+                      verticalAlign="top"
                       align="right"
-                      height={50} 
-                      iconType="circle" 
+                      height={50}
+                      iconType="circle"
                       wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', fontWeight: 'bold', color: '#5C6B4A' }}
                     />
                     {uniqueStoreNames.map((storeName, index) => (
-                      <Bar 
-                        key={storeName} 
-                        dataKey={storeName} 
-                        stackId="a" 
-                        fill={chartPalette[index % chartPalette.length]} 
+                      <Bar
+                        key={storeName}
+                        dataKey={storeName}
+                        stackId="a"
+                        fill={chartPalette[index % chartPalette.length]}
                         radius={index === uniqueStoreNames.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
                         barSize={50}
                         animationDuration={1500}
@@ -2079,20 +2080,20 @@ export function AdminView() {
       <AnimatePresence>
         {isAddStoreOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddStoreOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddStoreOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -2100,7 +2101,7 @@ export function AdminView() {
               </button>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nueva Tienda</h2>
-              
+
               <form onSubmit={handleAddStore} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-4 custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-mm-txs ml-1">Imagen de la Tienda</label>
@@ -2114,46 +2115,46 @@ export function AdminView() {
                           <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                         </div>
                       )}
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/*"
                         onChange={handleStoreImageUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
                     </div>
                     <div className="flex-grow space-y-2">
-                      <Input 
-                        label="Emoji Alternativo" 
-                        value={newStore.emoji} 
-                        onChange={e => setNewStore({...newStore, emoji: e.target.value})}
+                      <Input
+                        label="Emoji Alternativo"
+                        value={newStore.emoji}
+                        onChange={e => setNewStore({ ...newStore, emoji: e.target.value })}
                         placeholder="🏪"
                       />
                       <p className="text-[10px] text-mm-txw leading-tight">El emoji se usará como respaldo si no hay imagen.</p>
                     </div>
                   </div>
                 </div>
-                
-                <Input 
-                  label="Nombre de la Tienda" 
-                  value={newStore.name} 
-                  onChange={e => setNewStore({...newStore, name: e.target.value})}
+
+                <Input
+                  label="Nombre de la Tienda"
+                  value={newStore.name}
+                  onChange={e => setNewStore({ ...newStore, name: e.target.value })}
                   placeholder="Ej: Frutería Don Chucho"
                   required
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Local #" 
-                    value={newStore.local} 
-                    onChange={e => setNewStore({...newStore, local: e.target.value})}
+                  <Input
+                    label="Local #"
+                    value={newStore.local}
+                    onChange={e => setNewStore({ ...newStore, local: e.target.value })}
                     placeholder="Ej: 102"
                     required
                   />
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-mm-txs ml-1">Plaza</label>
-                    <select 
+                    <select
                       value={newStore.plazaId}
-                      onChange={e => setNewStore({...newStore, plazaId: Number(e.target.value)})}
+                      onChange={e => setNewStore({ ...newStore, plazaId: Number(e.target.value) })}
                       className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
                     >
                       {state.plazas.map(p => (
@@ -2164,72 +2165,72 @@ export function AdminView() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Hora Apertura" 
+                  <Input
+                    label="Hora Apertura"
                     type="time"
-                    value={newStore.openTime} 
-                    onChange={e => setNewStore({...newStore, openTime: e.target.value})}
+                    value={newStore.openTime}
+                    onChange={e => setNewStore({ ...newStore, openTime: e.target.value })}
                     required
                   />
-                  <Input 
-                    label="Hora Cierre" 
+                  <Input
+                    label="Hora Cierre"
                     type="time"
-                    value={newStore.closeTime} 
-                    onChange={e => setNewStore({...newStore, closeTime: e.target.value})}
+                    value={newStore.closeTime}
+                    onChange={e => setNewStore({ ...newStore, closeTime: e.target.value })}
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Teléfono Info" 
-                    value={newStore.phone} 
-                    onChange={e => setNewStore({...newStore, phone: e.target.value})}
+                  <Input
+                    label="Teléfono Info"
+                    value={newStore.phone}
+                    onChange={e => setNewStore({ ...newStore, phone: e.target.value })}
                     placeholder="+57..."
                     required
                   />
-                  <Input 
-                    label="Correo Electrónico" 
+                  <Input
+                    label="Correo Electrónico"
                     type="email"
-                    value={newStore.email} 
-                    onChange={e => setNewStore({...newStore, email: e.target.value})}
+                    value={newStore.email}
+                    onChange={e => setNewStore({ ...newStore, email: e.target.value })}
                     placeholder="tienda@ejemplo.com"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Latitud" 
+                  <Input
+                    label="Latitud"
                     type="number"
                     step="0.0001"
-                    value={newStore.lat} 
-                    onChange={e => setNewStore({...newStore, lat: Number(e.target.value)})}
+                    value={newStore.lat}
+                    onChange={e => setNewStore({ ...newStore, lat: Number(e.target.value) })}
                     placeholder="6.2442"
                     required
                   />
-                  <Input 
-                    label="Longitud" 
+                  <Input
+                    label="Longitud"
                     type="number"
                     step="0.0001"
-                    value={newStore.lng} 
-                    onChange={e => setNewStore({...newStore, lng: Number(e.target.value)})}
+                    value={newStore.lng}
+                    onChange={e => setNewStore({ ...newStore, lng: Number(e.target.value) })}
                     placeholder="-75.5812"
                     required
                   />
                 </div>
 
-                <Input 
-                  label="Página Web (Opcional)" 
-                  value={newStore.website} 
-                  onChange={e => setNewStore({...newStore, website: e.target.value})}
+                <Input
+                  label="Página Web (Opcional)"
+                  value={newStore.website}
+                  onChange={e => setNewStore({ ...newStore, website: e.target.value })}
                   placeholder="https://..."
                 />
 
-                <Input 
-                  label="Categoría" 
-                  value={newStore.cat} 
-                  onChange={e => setNewStore({...newStore, cat: e.target.value})}
+                <Input
+                  label="Categoría"
+                  value={newStore.cat}
+                  onChange={e => setNewStore({ ...newStore, cat: e.target.value })}
                   placeholder="Ej: Frutas y Verduras"
                   required
                 />
@@ -2249,20 +2250,20 @@ export function AdminView() {
 
         {isAddPlazaOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddPlazaOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddPlazaOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -2270,7 +2271,7 @@ export function AdminView() {
               </button>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nueva Plaza</h2>
-              
+
               <form onSubmit={handleAddPlaza} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-4 custom-scrollbar">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-mm-txs ml-1">Imagen de la Plaza</label>
@@ -2284,118 +2285,118 @@ export function AdminView() {
                           <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                         </div>
                       )}
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/*"
                         onChange={handlePlazaImageUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
                     </div>
                     <div className="flex-grow space-y-2">
-                      <Input 
-                        label="Emoji Alternativo" 
-                        value={newPlaza.emoji} 
-                        onChange={e => setNewPlaza({...newPlaza, emoji: e.target.value})}
+                      <Input
+                        label="Emoji Alternativo"
+                        value={newPlaza.emoji}
+                        onChange={e => setNewPlaza({ ...newPlaza, emoji: e.target.value })}
                         placeholder="🏛️"
                       />
                       <p className="text-[10px] text-mm-txw leading-tight">El emoji se usará si no subes una imagen o como icono pequeño.</p>
                     </div>
                   </div>
                 </div>
-                
-                <Input 
-                  label="Nombre de la Plaza" 
-                  value={newPlaza.name} 
-                  onChange={e => setNewPlaza({...newPlaza, name: e.target.value})}
+
+                <Input
+                  label="Nombre de la Plaza"
+                  value={newPlaza.name}
+                  onChange={e => setNewPlaza({ ...newPlaza, name: e.target.value })}
                   placeholder="Ej: Plaza Minorista"
                   required
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Ciudad" 
-                    value={newPlaza.city} 
-                    onChange={e => setNewPlaza({...newPlaza, city: e.target.value})}
+                  <Input
+                    label="Ciudad"
+                    value={newPlaza.city}
+                    onChange={e => setNewPlaza({ ...newPlaza, city: e.target.value })}
                     placeholder="Ej: Medellín"
                     required
                   />
-                  <Input 
-                    label="Color de Fondo" 
+                  <Input
+                    label="Color de Fondo"
                     type="color"
-                    value={newPlaza.bg} 
-                    onChange={e => setNewPlaza({...newPlaza, bg: e.target.value})}
+                    value={newPlaza.bg}
+                    onChange={e => setNewPlaza({ ...newPlaza, bg: e.target.value })}
                     required
                   />
                 </div>
 
-                <Input 
-                  label="Dirección / Ubicación Exacta" 
-                  value={newPlaza.address} 
-                  onChange={e => setNewPlaza({...newPlaza, address: e.target.value})}
+                <Input
+                  label="Dirección / Ubicación Exacta"
+                  value={newPlaza.address}
+                  onChange={e => setNewPlaza({ ...newPlaza, address: e.target.value })}
                   placeholder="Ej: Calle 50 # 50-50"
                   required
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Hora Apertura" 
+                  <Input
+                    label="Hora Apertura"
                     type="time"
-                    value={newPlaza.openTime} 
-                    onChange={e => setNewPlaza({...newPlaza, openTime: e.target.value})}
+                    value={newPlaza.openTime}
+                    onChange={e => setNewPlaza({ ...newPlaza, openTime: e.target.value })}
                     required
                   />
-                  <Input 
-                    label="Hora Cierre" 
+                  <Input
+                    label="Hora Cierre"
                     type="time"
-                    value={newPlaza.closeTime} 
-                    onChange={e => setNewPlaza({...newPlaza, closeTime: e.target.value})}
+                    value={newPlaza.closeTime}
+                    onChange={e => setNewPlaza({ ...newPlaza, closeTime: e.target.value })}
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Teléfono Info" 
-                    value={newPlaza.phone} 
-                    onChange={e => setNewPlaza({...newPlaza, phone: e.target.value})}
+                  <Input
+                    label="Teléfono Info"
+                    value={newPlaza.phone}
+                    onChange={e => setNewPlaza({ ...newPlaza, phone: e.target.value })}
                     placeholder="+57..."
                     required
                   />
-                  <Input 
-                    label="Correo Electrónico" 
+                  <Input
+                    label="Correo Electrónico"
                     type="email"
-                    value={newPlaza.email} 
-                    onChange={e => setNewPlaza({...newPlaza, email: e.target.value})}
+                    value={newPlaza.email}
+                    onChange={e => setNewPlaza({ ...newPlaza, email: e.target.value })}
                     placeholder="plaza@ejemplo.com"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Latitud" 
+                  <Input
+                    label="Latitud"
                     type="number"
                     step="0.0001"
-                    value={newPlaza.lat} 
-                    onChange={e => setNewPlaza({...newPlaza, lat: Number(e.target.value)})}
+                    value={newPlaza.lat}
+                    onChange={e => setNewPlaza({ ...newPlaza, lat: Number(e.target.value) })}
                     placeholder="6.2442"
                     required
                   />
-                  <Input 
-                    label="Longitud" 
+                  <Input
+                    label="Longitud"
                     type="number"
                     step="0.0001"
-                    value={newPlaza.lng} 
-                    onChange={e => setNewPlaza({...newPlaza, lng: Number(e.target.value)})}
+                    value={newPlaza.lng}
+                    onChange={e => setNewPlaza({ ...newPlaza, lng: Number(e.target.value) })}
                     placeholder="-75.5812"
                     required
                   />
                 </div>
 
-                <Input 
-                  label="Página Web (Opcional)" 
-                  value={newPlaza.website} 
-                  onChange={e => setNewPlaza({...newPlaza, website: e.target.value})}
+                <Input
+                  label="Página Web (Opcional)"
+                  value={newPlaza.website}
+                  onChange={e => setNewPlaza({ ...newPlaza, website: e.target.value })}
                   placeholder="https://..."
                 />
 
@@ -2414,20 +2415,20 @@ export function AdminView() {
 
         {isAddProductOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddProductOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddProductOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -2435,7 +2436,7 @@ export function AdminView() {
               </button>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nuevo Producto</h2>
-              
+
               <form onSubmit={handleAddProduct} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-4 custom-scrollbar">
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -2450,8 +2451,8 @@ export function AdminView() {
                             <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                           </div>
                         )}
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*"
                           onChange={handleProductImageUpload}
                           className="absolute inset-0 opacity-0 cursor-pointer"
@@ -2459,10 +2460,10 @@ export function AdminView() {
                       </div>
                       <div className="flex-grow flex flex-col justify-center">
                         <p className="text-[10px] text-mm-txs leading-tight">Selecciona una imagen clara del producto.</p>
-                        <Input 
-                          label="Emoji Alternativo" 
-                          value={newProduct.emoji || '📦'} 
-                          onChange={e => setNewProduct({...newProduct, emoji: e.target.value})}
+                        <Input
+                          label="Emoji Alternativo"
+                          value={newProduct.emoji || '📦'}
+                          onChange={e => setNewProduct({ ...newProduct, emoji: e.target.value })}
                           placeholder="📦"
                           className="mt-2"
                         />
@@ -2472,9 +2473,9 @@ export function AdminView() {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-mm-txs ml-1">Nombre del Producto</label>
-                    <Input 
-                      value={newProduct.name} 
-                      onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                    <Input
+                      value={newProduct.name}
+                      onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
                       placeholder="Ej: Tomate Chonto Special"
                       required
                     />
@@ -2483,9 +2484,9 @@ export function AdminView() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-sm font-medium text-mm-txs ml-1">Tienda Destino</label>
-                      <select 
+                      <select
                         value={newProduct.storeId}
-                        onChange={e => setNewProduct({...newProduct, storeId: Number(e.target.value)})}
+                        onChange={e => setNewProduct({ ...newProduct, storeId: Number(e.target.value) })}
                         className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
                         required
                       >
@@ -2497,9 +2498,9 @@ export function AdminView() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-sm font-medium text-mm-txs ml-1">Categoría</label>
-                      <select 
+                      <select
                         value={newProduct.cat}
-                        onChange={e => setNewProduct({...newProduct, cat: e.target.value})}
+                        onChange={e => setNewProduct({ ...newProduct, cat: e.target.value })}
                         className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
                         required
                       >
@@ -2512,29 +2513,29 @@ export function AdminView() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Input 
-                      label="Unidad" 
-                      value={newProduct.unit} 
-                      onChange={e => setNewProduct({...newProduct, unit: e.target.value})}
+                    <Input
+                      label="Unidad"
+                      value={newProduct.unit}
+                      onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })}
                       placeholder="Ej: kg, lb, unidad"
                       required
                     />
-                    <Input 
-                      label="Precio Minorista" 
+                    <Input
+                      label="Precio Minorista"
                       type="number"
-                      value={newProduct.retailPrice || ''} 
-                      onChange={e => setNewProduct({...newProduct, retailPrice: Number(e.target.value)})}
+                      value={newProduct.retailPrice || ''}
+                      onChange={e => setNewProduct({ ...newProduct, retailPrice: Number(e.target.value) })}
                       placeholder="0"
                       required
                     />
                   </div>
 
                   <div className="grid grid-cols-1">
-                    <Input 
-                      label="Stock Inicial" 
+                    <Input
+                      label="Stock Inicial"
                       type="number"
-                      value={newProduct.stock || ''} 
-                      onChange={e => setNewProduct({...newProduct, stock: Number(e.target.value)})}
+                      value={newProduct.stock || ''}
+                      onChange={e => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
                       placeholder="0"
                       required
                     />
@@ -2542,10 +2543,10 @@ export function AdminView() {
                 </div>
 
                 {(!isProvider || isSuperAdmin) && false && (
-                  <Input 
-                    label="Categoría" 
-                    value={newProduct.cat} 
-                    onChange={e => setNewProduct({...newProduct, cat: e.target.value})}
+                  <Input
+                    label="Categoría"
+                    value={newProduct.cat}
+                    onChange={e => setNewProduct({ ...newProduct, cat: e.target.value })}
                     placeholder="Ej: Verduras"
                     required
                   />
@@ -2566,20 +2567,20 @@ export function AdminView() {
 
         {isAddOfferOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddOfferOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddOfferOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -2587,7 +2588,7 @@ export function AdminView() {
               </button>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nueva Oferta</h2>
-              
+
               <form onSubmit={handleAddOffer} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-mm-txs ml-1">Imagen de la Oferta</label>
@@ -2601,8 +2602,8 @@ export function AdminView() {
                           <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                         </div>
                       )}
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/*"
                         onChange={handleOfferImageUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer"
@@ -2622,47 +2623,47 @@ export function AdminView() {
                       newOffer.emoji
                     )}
                   </div>
-                  <Input 
-                    label="Emoji (si no hay imagen)" 
-                    value={newOffer.emoji} 
-                    onChange={e => setNewOffer({...newOffer, emoji: e.target.value})}
+                  <Input
+                    label="Emoji (si no hay imagen)"
+                    value={newOffer.emoji}
+                    onChange={e => setNewOffer({ ...newOffer, emoji: e.target.value })}
                     placeholder="🏷️"
                   />
                 </div>
-                
-                <Input 
-                  label="Título de la Oferta" 
-                  value={newOffer.title} 
-                  onChange={e => setNewOffer({...newOffer, title: e.target.value})}
+
+                <Input
+                  label="Título de la Oferta"
+                  value={newOffer.title}
+                  onChange={e => setNewOffer({ ...newOffer, title: e.target.value })}
                   placeholder="Ej: Black Friday en Carnes"
                   required
                 />
 
-                <Input 
-                  label="Descripción" 
-                  value={newOffer.desc} 
-                  onChange={e => setNewOffer({...newOffer, desc: e.target.value})}
+                <Input
+                  label="Descripción"
+                  value={newOffer.desc}
+                  onChange={e => setNewOffer({ ...newOffer, desc: e.target.value })}
                   placeholder="Ej: 20% de descuento en pollo fresco"
                   required
                 />
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-medium text-mm-txs ml-1">Tipo Descuento</label>
-                    <select 
+                    <select
                       value={newOffer.type}
-                      onChange={e => setNewOffer({...newOffer, type: e.target.value as any})}
+                      onChange={e => setNewOffer({ ...newOffer, type: e.target.value as any })}
                       className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm"
                     >
                       <option value="percentage">Porcentaje (%)</option>
                       <option value="fixed">Fijo ($)</option>
                     </select>
                   </div>
-                  <Input 
-                    label="Valor Descuento" 
+                  <Input
+                    label="Valor Descuento"
                     type="number"
-                    value={newOffer.value} 
-                    onChange={e => setNewOffer({...newOffer, value: Number(e.target.value)})}
+                    value={newOffer.value}
+                    onChange={e => setNewOffer({ ...newOffer, value: Number(e.target.value) })}
                     placeholder="Ej: 15"
                     required
                   />
@@ -2674,27 +2675,27 @@ export function AdminView() {
                     {state.products
                       .filter(p => !isProvider || p.storeId === state.stores[0].id)
                       .map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          const exists = newOffer.productIds.includes(p.id);
-                          if (exists) {
-                            setNewOffer({ ...newOffer, productIds: newOffer.productIds.filter(id => id !== p.id) });
-                          } else {
-                            setNewOffer({ ...newOffer, productIds: [...newOffer.productIds, p.id] });
-                          }
-                        }}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
-                          newOffer.productIds.includes(p.id) 
-                            ? "bg-mm-g text-white border-mm-g" 
-                            : "bg-mm-gbg text-mm-txs border-transparent hover:bg-mm-crd"
-                        )}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            const exists = newOffer.productIds.includes(p.id);
+                            if (exists) {
+                              setNewOffer({ ...newOffer, productIds: newOffer.productIds.filter(id => id !== p.id) });
+                            } else {
+                              setNewOffer({ ...newOffer, productIds: [...newOffer.productIds, p.id] });
+                            }
+                          }}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                            newOffer.productIds.includes(p.id)
+                              ? "bg-mm-g text-white border-mm-g"
+                              : "bg-mm-gbg text-mm-txs border-transparent hover:bg-mm-crd"
+                          )}
+                        >
+                          {p.name}
+                        </button>
+                      ))}
                   </div>
                   <p className="text-[10px] text-mm-txw mt-1">Selecciona los productos que entran en la oferta</p>
                 </div>
@@ -2714,20 +2715,20 @@ export function AdminView() {
 
         {isAddCatalogOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsAddCatalogOpen(false)}
               className="absolute inset-0 bg-mm-g/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-[40px] shadow-2xl overflow-hidden max-w-lg w-full p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsAddCatalogOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-mm-gbg rounded-full transition-colors z-10"
               >
@@ -2735,7 +2736,7 @@ export function AdminView() {
               </button>
 
               <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nuevo Item Catálogo</h2>
-              
+
               <form onSubmit={handleAddCatalogItem} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-mm-txs ml-1">Imagen del Producto</label>
@@ -2749,44 +2750,44 @@ export function AdminView() {
                           <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                         </div>
                       )}
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         accept="image/*"
                         onChange={handleCatalogImageUpload}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
                     </div>
                     <div className="flex-grow space-y-2">
-                      <Input 
-                        label="Emoji Alternativo" 
-                        value={newCatalogItem.emoji} 
-                        onChange={e => setNewCatalogItem({...newCatalogItem, emoji: e.target.value})}
+                      <Input
+                        label="Emoji Alternativo"
+                        value={newCatalogItem.emoji}
+                        onChange={e => setNewCatalogItem({ ...newCatalogItem, emoji: e.target.value })}
                         placeholder="📦"
                       />
                     </div>
                   </div>
                 </div>
 
-                <Input 
-                  label="Nombre del Producto" 
-                  value={newCatalogItem.name} 
-                  onChange={e => setNewCatalogItem({...newCatalogItem, name: e.target.value})}
+                <Input
+                  label="Nombre del Producto"
+                  value={newCatalogItem.name}
+                  onChange={e => setNewCatalogItem({ ...newCatalogItem, name: e.target.value })}
                   placeholder="Ej: Tomate Chonto"
                   required
                 />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
-                    label="Categoría" 
-                    value={newCatalogItem.cat} 
-                    onChange={e => setNewCatalogItem({...newCatalogItem, cat: e.target.value})}
+                  <Input
+                    label="Categoría"
+                    value={newCatalogItem.cat}
+                    onChange={e => setNewCatalogItem({ ...newCatalogItem, cat: e.target.value })}
                     placeholder="Ej: Verduras"
                     required
                   />
-                  <Input 
-                    label="Unidad por Defecto" 
-                    value={newCatalogItem.defaultUnit} 
-                    onChange={e => setNewCatalogItem({...newCatalogItem, defaultUnit: e.target.value})}
+                  <Input
+                    label="Unidad por Defecto"
+                    value={newCatalogItem.defaultUnit}
+                    onChange={e => setNewCatalogItem({ ...newCatalogItem, defaultUnit: e.target.value })}
                     placeholder="Ej: kg"
                     required
                   />
@@ -2807,14 +2808,14 @@ export function AdminView() {
 
         {selectedOrder && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedOrder(null)}
               className="absolute inset-0 bg-mm-g/60 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2826,11 +2827,11 @@ export function AdminView() {
                     <Receipt className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-fraunces text-mm-g">Pedido #{selectedOrder.id}</h2>
+                    <h2 className="text-2xl font-fraunces text-mm-g">Pedido {formatOrderCode(selectedOrder.code, selectedOrder.storeOrderId)}</h2>
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">{new Date(selectedOrder.date).toLocaleString()}</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedOrder(null)}
                   className="p-2 hover:bg-mm-gbg rounded-full transition-colors"
                 >
@@ -2840,60 +2841,60 @@ export function AdminView() {
 
               <div className="p-8 overflow-y-auto space-y-6">
                 <div className="space-y-4">
-                   <div className="flex items-center gap-2 text-mm-txw">
-                     <Package className="w-4 h-4" />
-                     <span className="text-[10px] font-black uppercase tracking-widest">Contenido del Pedido</span>
-                   </div>
-                   <div className="space-y-3">
-                     {selectedOrder.items.map((item, idx) => (
-                       <div key={idx} className="flex items-center gap-4 p-4 bg-mm-gbg/30 rounded-2xl border border-mm-crd/50">
-                         <div className="w-12 h-12 rounded-xl bg-white border border-mm-crd flex items-center justify-center text-2xl shrink-0 overflow-hidden">
-                           {item.image ? (
-                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                           ) : (
-                             <span className="text-2xl">{item.emoji}</span>
-                           )}
-                         </div>
-                         <div className="flex-grow">
-                           <p className="font-bold text-mm-g">{item.name}</p>
-                           <p className="text-xs text-mm-txw">{fmt(item.price)} / {item.unit}</p>
-                         </div>
-                         <div className="text-right">
-                           <p className="text-lg font-bold text-mm-g">
-                             {item.qty} {item.unit}{item.qty !== 1 && item.unit !== 'kg' ? 's' : ''}
-                           </p>
-                           <p className="text-[10px] font-bold text-blue uppercase tabular-nums">{fmt(item.price * item.qty)}</p>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
+                  <div className="flex items-center gap-2 text-mm-txw">
+                    <Package className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Contenido del Pedido</span>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedOrder.items.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-4 p-4 bg-mm-gbg/30 rounded-2xl border border-mm-crd/50">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-mm-crd flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="text-2xl">{item.emoji}</span>
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-bold text-mm-g">{item.name}</p>
+                          <p className="text-xs text-mm-txw">{fmt(item.price)} / {item.unit}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-mm-g">
+                            {item.qty} {item.unit}{item.qty !== 1 && item.unit !== 'kg' ? 's' : ''}
+                          </p>
+                          <p className="text-[10px] font-bold text-blue uppercase tabular-nums">{fmt(item.price * item.qty)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-6 border-t border-mm-crd/50 space-y-6">
-                   <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 text-mm-txw mb-2">
-                          <User2 className="w-4 h-4" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Cliente</span>
-                        </div>
-                        <p className="text-sm font-bold text-mm-g">{selectedOrder.buyerId}</p>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 text-mm-txw mb-2">
-                          <CreditCard className="w-4 h-4" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Pago</span>
-                        </div>
-                        <p className="text-sm font-bold text-mm-g uppercase">{selectedOrder.paymentMethod}</p>
-                      </div>
-                   </div>
-
-                   <div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <div className="flex items-center gap-2 text-mm-txw mb-2">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Dirección de Entrega</span>
+                        <User2 className="w-4 h-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Cliente</span>
                       </div>
-                      <p className="text-sm font-bold text-mm-g">{selectedOrder.address}</p>
-                   </div>
+                      <p className="text-sm font-bold text-mm-g">{selectedOrder.buyerId}</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 text-mm-txw mb-2">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Pago</span>
+                      </div>
+                      <p className="text-sm font-bold text-mm-g uppercase">{selectedOrder.paymentMethod}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 text-mm-txw mb-2">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Dirección de Entrega</span>
+                    </div>
+                    <p className="text-sm font-bold text-mm-g">{selectedOrder.address}</p>
+                  </div>
                 </div>
               </div>
 
@@ -2902,7 +2903,7 @@ export function AdminView() {
                   <span className="text-lg font-bold text-mm-txw">Total del Pedido</span>
                   <span className="text-3xl font-fraunces text-mm-g">{fmt(selectedOrder.total)}</span>
                 </div>
-                <Button 
+                <Button
                   onClick={() => setSelectedOrder(null)}
                   variant="primary"
                   className="w-full mt-6 py-4"
@@ -2922,7 +2923,7 @@ export function ProviderOrdersView() {
   const { state, dispatch } = useApp();
   const myStore = state.stores[0];
   const myOrders = state.orders.filter(o => o.storeId === myStore.id);
-  
+
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
 
   const filtered = myOrders.filter(o => filterStatus === 'all' || o.status === filterStatus);
@@ -2948,7 +2949,7 @@ export function ProviderOrdersView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Monitor de Pedidos</h1>
+          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Órdenes</h1>
           <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
         </div>
         <div className="flex gap-2 bg-mm-gbg/50 p-1.5 rounded-2xl border border-mm-crd shadow-inner">
@@ -2976,13 +2977,13 @@ export function ProviderOrdersView() {
           { label: 'Pedidos Hoy', val: stats.totalToday, color: 'mm-txw', icon: History },
         ].map((item, i) => (
           <div key={i} className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm flex items-center gap-4">
-             <div className={`w-12 h-12 rounded-2xl bg-${item.color}/10 flex items-center justify-center text-${item.color}`}>
-                <item.icon className="w-6 h-6" />
-             </div>
-             <div>
-                <p className="text-2xl font-bold text-mm-g">{item.val}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-mm-txw">{item.label}</p>
-             </div>
+            <div className={`w-12 h-12 rounded-2xl bg-${item.color}/10 flex items-center justify-center text-${item.color}`}>
+              <item.icon className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-mm-g">{item.val}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-mm-txw">{item.label}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -3010,12 +3011,12 @@ export function ProviderOrdersView() {
                       {config.label}
                     </Badge>
                   </div>
-                  <h3 className="text-xl font-bold text-mm-g mb-1">Pedido #{order.id}</h3>
+                  <h3 className="text-xl font-bold text-mm-g mb-1">Pedido {formatOrderCode(order.code, order.storeOrderId)}</h3>
                   <p className="text-xs text-mm-txs flex items-center gap-1.5">
                     <Clock className="w-3 h-3" /> {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                   <div className="absolute top-8 right-16 opacity-0 group-hover:opacity-10 shadow-2xl transition-opacity">
-                     <TrendingUp className="w-24 h-24 text-mm-g -rotate-12" />
+                    <TrendingUp className="w-24 h-24 text-mm-g -rotate-12" />
                   </div>
                 </div>
 
@@ -3023,26 +3024,26 @@ export function ProviderOrdersView() {
                   <div className="bg-mm-gbg/30 p-4 rounded-3xl border border-mm-crd/50">
                     <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest mb-3">Contenido</p>
                     <div className="space-y-2">
-                       {order.items.slice(0, 3).map((item, idx) => (
-                         <div key={idx} className="flex justify-between text-xs font-bold text-mm-g">
-                            <span className="truncate pr-4">{item.qty}{item.unit} {item.name}</span>
-                            <span className="shrink-0">{fmt(item.price * item.qty)}</span>
-                         </div>
-                       ))}
-                       {order.items.length > 3 && (
-                         <p className="text-[10px] text-mm-txw font-bold italic">+{order.items.length - 3} productos más...</p>
-                       )}
+                      {order.items.slice(0, 3).map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-xs font-bold text-mm-g">
+                          <span className="truncate pr-4">{item.qty}{item.unit} {item.name}</span>
+                          <span className="shrink-0">{fmt(item.price * item.qty)}</span>
+                        </div>
+                      ))}
+                      {order.items.length > 3 && (
+                        <p className="text-[10px] text-mm-txw font-bold italic">+{order.items.length - 3} productos más...</p>
+                      )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 px-1">
-                     <div className="w-8 h-8 rounded-full bg-mm-gbg flex items-center justify-center text-[10px] font-black border border-mm-crd">
-                        {order.buyerId.substring(0, 2).toUpperCase()}
-                     </div>
-                     <div className="overflow-hidden">
-                        <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest leading-none mb-1">Entregar en</p>
-                        <p className="text-[11px] text-mm-txs truncate font-medium">{order.address}</p>
-                     </div>
+                    <div className="w-8 h-8 rounded-full bg-mm-gbg flex items-center justify-center text-[10px] font-black border border-mm-crd">
+                      {order.buyerId.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest leading-none mb-1">Entregar en</p>
+                      <p className="text-[11px] text-mm-txs truncate font-medium">{order.address}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -3052,8 +3053,8 @@ export function ProviderOrdersView() {
                     <p className="text-xl font-bold text-mm-g">{fmt(order.total)}</p>
                   </div>
                   {config.next && (
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10"
                       onClick={() => dispatch({ type: 'UPDATE_ORDER_STATUS', orderId: order.id, status: config.next as any })}
                     >
@@ -3067,9 +3068,9 @@ export function ProviderOrdersView() {
         </AnimatePresence>
         {filtered.length === 0 && (
           <div className="col-span-full py-32 text-center opacity-30">
-             <ClipboardList className="w-32 h-32 mx-auto mb-6" />
-             <h3 className="text-2xl font-fraunces">Bandeja de Entrada Vacía</h3>
-             <p className="max-w-xs mx-auto mt-2 italic font-medium">Los nuevos pedidos aparecerán aquí automáticamente.</p>
+            <ClipboardList className="w-32 h-32 mx-auto mb-6" />
+            <h3 className="text-2xl font-fraunces">Bandeja de Entrada Vacía</h3>
+            <p className="max-w-xs mx-auto mt-2 italic font-medium">Los nuevos pedidos aparecerán aquí automáticamente.</p>
           </div>
         )}
       </div>
@@ -3081,13 +3082,13 @@ export function ProviderSalesView() {
   const { state, dispatch } = useApp();
   const myStore = state.stores[0];
   const myProducts = state.products.filter(p => p.storeId === myStore.id && p.status === 'active');
-  
+
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState<{product: Product, qty: number, unitMode: 'base' | 'alt'}[]>([]);
+  const [cart, setCart] = useState<{ product: Product, qty: number, unitMode: 'base' | 'alt' }[]>([]);
   const [customer, setCustomer] = useState({ name: '', id: '', email: '' });
-  
-  const filteredProducts = myProducts.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
+
+  const filteredProducts = myProducts.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.cat.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -3152,7 +3153,7 @@ export function ProviderSalesView() {
     };
 
     dispatch({ type: 'ADD_SALE', sale: newSale });
-    
+
     setCart([]);
     setCustomer({ name: '', id: '', email: '' });
     setSearch('');
@@ -3207,9 +3208,9 @@ export function ProviderSalesView() {
           <div className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm space-y-6">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-mm-txw" />
-              <input 
-                type="text" 
-                placeholder="Buscar por nombre o categoría..." 
+              <input
+                type="text"
+                placeholder="Buscar por nombre o categoría..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-mm-gbg/30 border-none rounded-2xl py-4 pl-12 pr-4 text-sm outline-none focus:ring-2 ring-mm-g/20 transition-all font-medium shadow-inner"
@@ -3225,9 +3226,9 @@ export function ProviderSalesView() {
                 >
                   <div className="w-12 h-12 rounded-xl bg-mm-gbg flex items-center justify-center text-2xl mb-3 shrink-0 border border-mm-crd overflow-hidden">
                     {product.image ? (
-                       <img src={product.image} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                       product.emoji
+                      product.emoji
                     )}
                   </div>
                   <p className="text-sm font-bold text-mm-g leading-tight mb-1 truncate w-full">{product.name}</p>
@@ -3247,25 +3248,25 @@ export function ProviderSalesView() {
               )}
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-mm-gbg/20 p-6 rounded-[32px] border border-mm-crd/50 flex items-center gap-4">
-               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-mm-g">
-                 <History className="w-6 h-6" />
-               </div>
-               <div>
-                 <p className="text-2xl font-bold text-mm-g leading-none">{mySales.length}</p>
-                 <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest mt-1">Ventas Hoy</p>
-               </div>
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-mm-g">
+                <History className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-mm-g leading-none">{mySales.length}</p>
+                <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest mt-1">Ventas Hoy</p>
+              </div>
             </div>
             <div className="bg-mm-oro/10 p-6 rounded-[32px] border border-mm-oro/20 flex items-center gap-4">
-               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-mm-oro">
-                 <TrendingUp className="w-6 h-6" />
-               </div>
-               <div>
-                 <p className="text-2xl font-bold text-mm-g leading-none">{fmt(mySales.reduce((acc, s) => acc + s.total, 0))}</p>
-                 <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest mt-1">Total del Día</p>
-               </div>
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-mm-oro">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-mm-g leading-none">{fmt(mySales.reduce((acc, s) => acc + s.total, 0))}</p>
+                <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest mt-1">Total del Día</p>
+              </div>
             </div>
           </div>
         </div>
@@ -3277,7 +3278,7 @@ export function ProviderSalesView() {
                 <ShoppingCart className="w-5 h-5" /> Nueva Venta
               </h3>
               {cart.length > 0 && (
-                <button 
+                <button
                   type="button"
                   onClick={() => setCart([])}
                   className="text-xs font-bold text-r hover:bg-rl px-3 py-1 rounded-full transition-colors"
@@ -3311,8 +3312,8 @@ export function ProviderSalesView() {
                       <p className="text-xs text-mm-txw font-mono">{fmt(item.product.retailPrice)}</p>
                     </div>
                     <div className="flex items-center gap-1 bg-mm-gbg/50 p-1 rounded-xl">
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         step={item.unitMode === 'alt' ? "1" : "0.01"}
                         min={item.unitMode === 'alt' ? "1" : "0.01"}
                         value={item.unitMode === 'alt' && item.product.unit === 'kg' ? Math.round(item.qty * 1000) : item.qty}
@@ -3334,7 +3335,7 @@ export function ProviderSalesView() {
                     <div className="text-right min-w-[70px]">
                       <p className="text-sm font-bold text-mm-g font-mono">{fmt(item.product.retailPrice * item.qty)}</p>
                     </div>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => removeFromCart(item.product.id)}
                       className="p-1 text-mm-txw hover:text-r transition-colors"
@@ -3349,38 +3350,38 @@ export function ProviderSalesView() {
             <div className="p-8 bg-mm-gbg/20 border-t border-mm-crd space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-mm-txw mb-2">
-                   <User2 className="w-4 h-4" />
-                   <span className="text-[10px] font-black uppercase tracking-widest leading-none">Datos cliente (opcional)</span>
+                  <User2 className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest leading-none">Datos cliente (opcional)</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-[9px] font-black uppercase text-mm-txw ml-1">Nombre</p>
-                    <input 
-                      type="text" 
-                      placeholder="..." 
+                    <input
+                      type="text"
+                      placeholder="..."
                       value={customer.name}
-                      onChange={e => setCustomer({...customer, name: e.target.value})}
+                      onChange={e => setCustomer({ ...customer, name: e.target.value })}
                       className="w-full bg-white border border-mm-crd rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 ring-mm-g/20 transition-all font-medium text-mm-g"
                     />
                   </div>
                   <div className="space-y-1">
                     <p className="text-[9px] font-black uppercase text-mm-txw ml-1">Documento</p>
-                    <input 
-                      type="text" 
-                      placeholder="..." 
+                    <input
+                      type="text"
+                      placeholder="..."
                       value={customer.id}
-                      onChange={e => setCustomer({...customer, id: e.target.value})}
+                      onChange={e => setCustomer({ ...customer, id: e.target.value })}
                       className="w-full bg-white border border-mm-crd rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 ring-mm-g/20 transition-all font-medium text-mm-g"
                     />
                   </div>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[9px] font-black uppercase text-mm-txw ml-1">Email</p>
-                  <input 
-                    type="email" 
-                    placeholder="ejemplo@correo.com" 
+                  <input
+                    type="email"
+                    placeholder="ejemplo@correo.com"
                     value={customer.email}
-                    onChange={e => setCustomer({...customer, email: e.target.value})}
+                    onChange={e => setCustomer({ ...customer, email: e.target.value })}
                     className="w-full bg-white border border-mm-crd rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 ring-mm-g/20 transition-all font-medium text-mm-g"
                   />
                 </div>
@@ -3393,9 +3394,9 @@ export function ProviderSalesView() {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                size="lg" 
+              <Button
+                type="submit"
+                size="lg"
                 className="w-full py-7 text-lg shadow-xl shadow-mm-g/20 disabled:opacity-50 transition-all"
                 disabled={cart.length === 0}
               >
@@ -3460,8 +3461,8 @@ export function ProviderSalesHistoryView() {
         <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-mm-crd shadow-sm">
           <History className="w-5 h-5 text-mm-g" />
           <div className="text-right">
-             <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Total Histórico</p>
-             <p className="text-lg font-bold text-mm-g leading-none">{fmt(mySales.reduce((acc, s) => acc + s.total, 0))}</p>
+            <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Total Histórico</p>
+            <p className="text-lg font-bold text-mm-g leading-none">{fmt(mySales.reduce((acc, s) => acc + s.total, 0))}</p>
           </div>
         </div>
       </div>
@@ -3469,10 +3470,10 @@ export function ProviderSalesHistoryView() {
       <div className="bg-white rounded-[40px] border border-mm-crd shadow-sm overflow-hidden">
         <div className="p-8 border-b border-mm-crd flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
-               <History className="w-5 h-5" />
-             </div>
-             <h3 className="text-xl font-fraunces text-mm-g">Registros</h3>
+            <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
+              <History className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-fraunces text-mm-g">Registros</h3>
           </div>
           <Badge variant="default" className="text-xs px-4 py-1.5 uppercase tracking-tighter shadow-inner">
             {mySales.length} ventas
@@ -3503,22 +3504,22 @@ export function ProviderSalesHistoryView() {
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-2">
-                       <div className="w-8 h-8 rounded-full bg-mm-gbg flex items-center justify-center text-mm-txw outline-none border border-mm-crd">
-                         <User2 className="w-4 h-4" />
-                       </div>
-                       <div>
-                         <p className="text-sm font-bold text-mm-g leading-none">{sale.customerName || 'Consumidor Final'}</p>
-                         {sale.customerID && <p className="text-[10px] text-mm-txw mt-1">ID: {sale.customerID}</p>}
-                       </div>
+                      <div className="w-8 h-8 rounded-full bg-mm-gbg flex items-center justify-center text-mm-txw outline-none border border-mm-crd">
+                        <User2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-mm-g leading-none">{sale.customerName || 'Consumidor Final'}</p>
+                        {sale.customerID && <p className="text-[10px] text-mm-txw mt-1">ID: {sale.customerID}</p>}
+                      </div>
                     </div>
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex gap-1 overflow-hidden max-w-[120px]">
-                       {sale.items.map(i => (
-                         <div key={i.id} title={i.name} className="w-6 h-6 rounded-md bg-mm-gbg flex items-center justify-center text-xs shrink-0 border border-mm-crd/50">
-                           {i.emoji}
-                         </div>
-                       ))}
+                      {sale.items.map(i => (
+                        <div key={i.id} title={i.name} className="w-6 h-6 rounded-md bg-mm-gbg flex items-center justify-center text-xs shrink-0 border border-mm-crd/50">
+                          {i.emoji}
+                        </div>
+                      ))}
                     </div>
                     <p className="text-[10px] text-mm-txw font-bold mt-1 uppercase tracking-tighter">{sale.items.length} items totales</p>
                   </td>
@@ -3527,24 +3528,24 @@ export function ProviderSalesHistoryView() {
                   </td>
                   <td className="px-8 py-5">
                     <Badge variant="default" className={cn("px-4 py-2 uppercase font-black text-[9px] tracking-widest rounded-full shadow-sm text-mm-g", statusColors[sale.status])}>
-                       {sale.status}
+                      {sale.status}
                     </Badge>
                   </td>
                   <td className="px-8 py-5 text-mm-g">
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={() => setSelectedSale(sale)}
                         className="p-2 hover:bg-mm-gbg rounded-xl transition-colors text-mm-oro"
                         title="Ver detalle"
                       >
-                         <Eye className="w-5 h-5" />
+                        <Eye className="w-5 h-5" />
                       </button>
                       {statusNext[sale.status] ? (
-                        <button 
+                        <button
                           onClick={() => dispatch({ type: 'UPDATE_SALE_STATUS', saleId: sale.id, status: statusNext[sale.status]! })}
                           className="flex items-center gap-2 text-[10px] font-black uppercase text-mm-g hover:bg-mm-g hover:text-white px-4 py-2.5 rounded-2xl transition-all border border-mm-g/30 group-hover:shadow-lg"
                         >
-                           {statusNext[sale.status]} <ArrowUpRight className="w-3.5 h-3.5" />
+                          {statusNext[sale.status]} <ArrowUpRight className="w-3.5 h-3.5" />
                         </button>
                       ) : (
                         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-ok/60 px-4 py-2.5 bg-ok/5 rounded-2xl border border-ok/10 w-fit">
@@ -3556,15 +3557,15 @@ export function ProviderSalesHistoryView() {
                 </tr>
               ))}
               {mySales.length === 0 && (
-                 <tr>
-                    <td colSpan={7} className="px-8 py-24 text-center opacity-40">
-                       <div className="w-20 h-20 bg-mm-gbg rounded-[32px] flex items-center justify-center mx-auto mb-6">
-                         <History className="w-10 h-10 text-mm-txw" />
-                       </div>
-                       <p className="text-xl font-fraunces text-mm-g">Sin movimientos</p>
-                       <p className="text-sm">Tu historial de ventas directas aparecerá aquí</p>
-                    </td>
-                 </tr>
+                <tr>
+                  <td colSpan={7} className="px-8 py-24 text-center opacity-40">
+                    <div className="w-20 h-20 bg-mm-gbg rounded-[32px] flex items-center justify-center mx-auto mb-6">
+                      <History className="w-10 h-10 text-mm-txw" />
+                    </div>
+                    <p className="text-xl font-fraunces text-mm-g">Sin movimientos</p>
+                    <p className="text-sm">Tu historial de ventas directas aparecerá aquí</p>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -3574,14 +3575,14 @@ export function ProviderSalesHistoryView() {
       <AnimatePresence>
         {selectedSale && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedSale(null)}
               className="absolute inset-0 bg-mm-g/60 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -3597,7 +3598,7 @@ export function ProviderSalesHistoryView() {
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">{new Date(selectedSale.date).toLocaleString()}</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedSale(null)}
                   className="p-2 hover:bg-mm-gbg rounded-full transition-colors"
                 >
@@ -3607,58 +3608,58 @@ export function ProviderSalesHistoryView() {
 
               <div className="p-8 overflow-y-auto space-y-6">
                 <div className="space-y-4">
-                   <div className="flex items-center gap-2 text-mm-txw">
-                     <Package className="w-4 h-4" />
-                     <span className="text-[10px] font-black uppercase tracking-widest">Artículos a preparar</span>
-                   </div>
-                   <div className="space-y-3">
-                     {selectedSale.items.map((item, idx) => (
-                       <div key={idx} className="flex items-center gap-4 p-4 bg-mm-gbg/30 rounded-2xl border border-mm-crd/50">
-                         <div className="w-12 h-12 rounded-xl bg-white border border-mm-crd flex items-center justify-center text-2xl shrink-0 overflow-hidden">
-                           {item.image ? (
-                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                           ) : (
-                             item.emoji
-                           )}
-                         </div>
-                         <div className="flex-grow">
-                           <p className="font-bold text-mm-g">{item.name}</p>
-                           <p className="text-xs text-mm-txw">{fmt(item.price)} / {item.unit}</p>
-                         </div>
-                         <div className="text-right">
-                           <p className="text-lg font-bold text-mm-g">
-                             {item.unit === 'kg' && item.qty < 1 ? `${Math.round(item.qty * 1000)} g` : `${item.qty.toLocaleString()} ${item.unit}${item.qty !== 1 && item.unit !== 'kg' ? 's' : ''}`}
-                           </p>
-                           <p className="text-[10px] font-bold text-blue uppercase tabular-nums">{fmt(item.price * item.qty)}</p>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
+                  <div className="flex items-center gap-2 text-mm-txw">
+                    <Package className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Artículos a preparar</span>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedSale.items.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-4 p-4 bg-mm-gbg/30 rounded-2xl border border-mm-crd/50">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-mm-crd flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            item.emoji
+                          )}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-bold text-mm-g">{item.name}</p>
+                          <p className="text-xs text-mm-txw">{fmt(item.price)} / {item.unit}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-mm-g">
+                            {item.unit === 'kg' && item.qty < 1 ? `${Math.round(item.qty * 1000)} g` : `${item.qty.toLocaleString()} ${item.unit}${item.qty !== 1 && item.unit !== 'kg' ? 's' : ''}`}
+                          </p>
+                          <p className="text-[10px] font-bold text-blue uppercase tabular-nums">{fmt(item.price * item.qty)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-6 border-t border-mm-crd/50">
                   <div className="flex items-center gap-2 text-mm-txw mb-4">
-                     <User2 className="w-4 h-4" />
-                     <span className="text-[10px] font-black uppercase tracking-widest">Información del Cliente</span>
-                   </div>
-                   <div className="bg-mm-gbg/20 p-5 rounded-3xl space-y-3">
+                    <User2 className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Información del Cliente</span>
+                  </div>
+                  <div className="bg-mm-gbg/20 p-5 rounded-3xl space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-mm-txw">Nombre:</span>
+                      <span className="text-xs font-bold text-mm-g">{selectedSale.customerName || 'Consumidor Final'}</span>
+                    </div>
+                    {selectedSale.customerID && (
                       <div className="flex justify-between">
-                         <span className="text-xs text-mm-txw">Nombre:</span>
-                         <span className="text-xs font-bold text-mm-g">{selectedSale.customerName || 'Consumidor Final'}</span>
+                        <span className="text-xs text-mm-txw">Cédula/NIT:</span>
+                        <span className="text-xs font-bold text-mm-g">{selectedSale.customerID}</span>
                       </div>
-                      {selectedSale.customerID && (
-                        <div className="flex justify-between">
-                          <span className="text-xs text-mm-txw">Cédula/NIT:</span>
-                          <span className="text-xs font-bold text-mm-g">{selectedSale.customerID}</span>
-                        </div>
-                      )}
-                      {selectedSale.customerEmail && (
-                        <div className="flex justify-between">
-                          <span className="text-xs text-mm-txw">Email:</span>
-                          <span className="text-xs font-bold text-mm-g">{selectedSale.customerEmail}</span>
-                        </div>
-                      )}
-                   </div>
+                    )}
+                    {selectedSale.customerEmail && (
+                      <div className="flex justify-between">
+                        <span className="text-xs text-mm-txw">Email:</span>
+                        <span className="text-xs font-bold text-mm-g">{selectedSale.customerEmail}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -3667,16 +3668,16 @@ export function ProviderSalesHistoryView() {
                   <span className="text-lg font-bold text-mm-txw">Total Cobrado</span>
                   <span className="text-3xl font-fraunces text-mm-g">{fmt(selectedSale.total)}</span>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
-                  <Button 
+                  <Button
                     onClick={() => shareOnWhatsApp(selectedSale)}
                     variant="primary"
                     className="py-4 bg-[#25D366] hover:bg-[#128C7E] border-none shadow-lg shadow-green-500/20"
                   >
                     <MessageSquare className="w-5 h-5 mr-2" /> WhatsApp
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => setSelectedSale(null)}
                     variant="outline"
                     className="py-4 border-mm-crd text-mm-txw"

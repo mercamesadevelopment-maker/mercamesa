@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
+import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import {
   Package,
   Truck,
@@ -96,8 +97,7 @@ export function OrderCard({
             </h3>
 
             <p className="text-xs text-mm-txw">
-              Pedido #
-              {order.order_id?.slice(0, 8)} •{' '}
+              Pedido {formatOrderCode(order.order_code, order.order_id)} •{' '}
               {order.created_at
                 ? new Date(
                     order.created_at
