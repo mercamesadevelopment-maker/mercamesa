@@ -178,6 +178,7 @@ export type Database = {
           name: string
           owner_group_id: string | null
           siigo_id: string
+          siigo_synced_at: string | null
           slug: string
           updated_at: string
         }
@@ -198,6 +199,7 @@ export type Database = {
           name: string
           owner_group_id?: string | null
           siigo_id: string
+          siigo_synced_at?: string | null
           slug: string
           updated_at?: string
         }
@@ -218,6 +220,7 @@ export type Database = {
           name?: string
           owner_group_id?: string | null
           siigo_id?: string
+          siigo_synced_at?: string | null
           slug?: string
           updated_at?: string
         }
@@ -470,6 +473,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          siigo_id_type: string | null
           slug: string
           sort_order: number
           updated_at: string
@@ -480,6 +484,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          siigo_id_type?: string | null
           slug: string
           sort_order?: number
           updated_at?: string
@@ -490,6 +495,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          siigo_id_type?: string | null
           slug?: string
           sort_order?: number
           updated_at?: string
@@ -992,6 +998,7 @@ export type Database = {
           buyer_type: Database["public"]["Enums"]["buyer_type"]
           client_id: string | null
           client_idempotency_key: string | null
+          code: string
           consecutive: number
           created_at: string
           delivery_address_id: string | null
@@ -1012,6 +1019,7 @@ export type Database = {
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
           client_id?: string | null
           client_idempotency_key?: string | null
+          code?: string
           consecutive?: number
           created_at?: string
           delivery_address_id?: string | null
@@ -1032,6 +1040,7 @@ export type Database = {
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
           client_id?: string | null
           client_idempotency_key?: string | null
+          code?: string
           consecutive?: number
           created_at?: string
           delivery_address_id?: string | null
@@ -1409,6 +1418,7 @@ export type Database = {
           phone: string | null
           reputation_score: number | null
           role_id: string
+          siigo_customer_id: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
@@ -1432,6 +1442,7 @@ export type Database = {
           phone?: string | null
           reputation_score?: number | null
           role_id: string
+          siigo_customer_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
@@ -1455,11 +1466,26 @@ export type Database = {
           phone?: string | null
           reputation_score?: number | null
           role_id?: string
+          siigo_customer_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_identification_type_id_fkey"
+            columns: ["identification_type_id"]
+            isOneToOne: false
+            referencedRelation: "identification_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_person_type_id_fkey"
+            columns: ["person_type_id"]
+            isOneToOne: false
+            referencedRelation: "person_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_role_id_fkey"
             columns: ["role_id"]
@@ -1550,6 +1576,59 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      siigo_invoices: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          order_id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          siigo_invoice_id: string | null
+          siigo_number: string | null
+          stamped: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          siigo_invoice_id?: string | null
+          siigo_number?: string | null
+          stamped?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          siigo_invoice_id?: string | null
+          siigo_number?: string | null
+          stamped?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siigo_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_categories: {
         Row: {
@@ -1839,33 +1918,39 @@ export type Database = {
       }
       store_orders: {
         Row: {
+          code: string
           created_at: string
           has_refrigerated: boolean
           id: string
           notes: string | null
           order_id: string
+          split_index: number
           status: Database["public"]["Enums"]["order_status"]
           store_id: string
           subtotal: number
           updated_at: string
         }
         Insert: {
+          code?: string
           created_at?: string
           has_refrigerated?: boolean
           id?: string
           notes?: string | null
           order_id: string
+          split_index?: number
           status?: Database["public"]["Enums"]["order_status"]
           store_id: string
           subtotal?: number
           updated_at?: string
         }
         Update: {
+          code?: string
           created_at?: string
           has_refrigerated?: boolean
           id?: string
           notes?: string | null
           order_id?: string
+          split_index?: number
           status?: Database["public"]["Enums"]["order_status"]
           store_id?: string
           subtotal?: number
@@ -2158,7 +2243,9 @@ export type Database = {
           department: string | null
           municipality: string | null
           neighborhood: string | null
+          order_code: string | null
           order_id: string | null
+          parent_code: string | null
           payment_method: string | null
           payment_method_label: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null

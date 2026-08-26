@@ -1,17 +1,28 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderStatus } from '@/src/types';
 
+/** Lo que pasó con el domicilio al cambiar el estado, para poder avisarlo. */
+export interface DeliveryRequestOutcome {
+  requested: boolean;
+  /** Mensaje para el vendedor cuando la solicitud no prosperó. */
+  error?: string;
+}
+
 /**
  * Cambia el estado de un pedido de tienda y lo registra en el histórico.
  *
  * Estaba duplicada byte a byte en los hooks de admin y seller; se centraliza acá
  * para que el disparo del domicilio ocurra una sola vez y no se desincronicen.
+ *
+ * Devuelve el resultado de la solicitud del domicilio: el cambio de estado nunca
+ * se revierte por un fallo de Pibox, pero quien llama debe poder avisarle al
+ * vendedor que el mensajero no quedó pedido.
  */
 export async function updateStoreOrderStatus(
   storeOrderId: string,
   status: OrderStatus,
   notes?: string
-): Promise<void> {
+): Promise<DeliveryRequestOutcome> {
   const supabase = createSupabaseBrowserClient();
 
   const { error: updateError } = await supabase
@@ -40,16 +51,26 @@ export async function updateStoreOrderStatus(
   // de pedir el mensajero. Va por el servidor porque el token de Pibox es
   // secreto y no puede viajar al navegador.
   if (status === 'at_collection') {
-    await requestPiboxDelivery(storeOrderId);
+    return requestPiboxDelivery(storeOrderId, user?.id ?? null);
   }
+
+  return { requested: false };
 }
 
 /**
- * Solicita el domicilio. Deliberadamente NO propaga el error: si Pibox falla o
- * está desactivado, el cambio de estado ya quedó guardado y el domicilio se
- * puede solicitar después a mano. Revertir el estado sería peor.
+ * Solicita el domicilio.
+ *
+ * No propaga el error como excepción —revertir el cambio de estado sería peor—,
+ * pero tampoco lo esconde: antes solo hacía `console.warn` y el vendedor veía el
+ * pedido pasar a "Listo Recogida" sin que existiera ningún mensajero en camino.
+ * El motivo queda en el histórico del pedido y se devuelve para mostrarlo.
  */
-async function requestPiboxDelivery(storeOrderId: string): Promise<void> {
+async function requestPiboxDelivery(
+  storeOrderId: string,
+  userId: string | null
+): Promise<DeliveryRequestOutcome> {
+  let message: string;
+
   try {
     const response = await fetch('/api/pibox/bookings', {
       method: 'POST',
@@ -57,14 +78,44 @@ async function requestPiboxDelivery(storeOrderId: string): Promise<void> {
       body: JSON.stringify({ store_order_id: storeOrderId }),
     });
 
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      console.warn(
-        `No se pudo solicitar el domicilio a Pibox (${response.status}):`,
-        result?.error || 'error desconocido'
-      );
-    }
+    if (response.ok) return { requested: true };
+
+    const result = await response.json().catch(() => ({}));
+
+    // 503 es el kill-switch (PIBOX_ENABLED=false): la integración está apagada a
+    // propósito, no es una falla que el vendedor deba reportar.
+    if (response.status === 503) return { requested: false };
+
+    message = result?.error || `El servicio de domicilios respondió ${response.status}.`;
   } catch (err) {
-    console.warn('No se pudo contactar el servicio de domicilios:', err);
+    message =
+      err instanceof Error
+        ? `No se pudo contactar el servicio de domicilios: ${err.message}`
+        : 'No se pudo contactar el servicio de domicilios.';
+  }
+
+  await logDeliveryFailure(storeOrderId, userId, message);
+
+  return { requested: false, error: message };
+}
+
+/** Deja el motivo en el histórico del pedido, que es donde se audita. */
+async function logDeliveryFailure(
+  storeOrderId: string,
+  userId: string | null,
+  message: string
+): Promise<void> {
+  try {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.from('store_order_status_history').insert({
+      store_order_id: storeOrderId,
+      status: 'at_collection',
+      notes: `No se pudo solicitar el domicilio: ${message}`,
+      changed_by: userId,
+    });
+  } catch (err) {
+    // Si ni siquiera se puede registrar, no vale la pena tumbar el flujo: el
+    // mensaje igual se le devuelve al vendedor.
+    console.error('No se pudo registrar el fallo del domicilio en el histórico:', err);
   }
 }

@@ -17,7 +17,8 @@ export class PiboxDataError extends Error {
 
 export interface BookingContext {
   storeOrderId: string;
-  consecutive: number;
+  /** Código legible del pedido (MM-2026-001017-1): es la referencia que ve el mensajero. */
+  code: string;
   subtotal: number;
   orderTotal: number;
   paymentStatus: string;
@@ -62,11 +63,11 @@ export async function loadBookingContext(
     .select(
       `
       id,
+      code,
       subtotal,
       notes,
       stores ( name, phone, marketplaces ( address, latitude, longitude, city ) ),
       orders (
-        consecutive,
         total,
         payment_status,
         delivery_addresses ( address_line, neighborhood, municipality, latitude, longitude ),
@@ -101,7 +102,7 @@ export async function loadBookingContext(
 
   return {
     storeOrderId: row.id,
-    consecutive: order.consecutive,
+    code: row.code,
     subtotal: Number(row.subtotal || 0),
     orderTotal: Number(order.total || 0),
     paymentStatus: order.payment_status,
@@ -147,18 +148,32 @@ export function buildBookingPayload(
   }
 
   // Si alguna dirección no tiene coordenadas, Pibox geocodifica usando city_code.
-  const needsGeocoding =
-    ctx.origin.latitude === null ||
-    ctx.origin.longitude === null ||
-    ctx.destination.latitude === null ||
-    ctx.destination.longitude === null;
+  const originNeedsGeocoding = ctx.origin.latitude === null || ctx.origin.longitude === null;
+  const destinationNeedsGeocoding =
+    ctx.destination.latitude === null || ctx.destination.longitude === null;
+  const needsGeocoding = originNeedsGeocoding || destinationNeedsGeocoding;
 
-  const cityCode =
-    toPiboxCityCode(ctx.destination.municipality) ?? toPiboxCityCode(ctx.origin.city);
+  const destinationCityCode = toPiboxCityCode(ctx.destination.municipality);
+  const originCityCode = toPiboxCityCode(ctx.origin.city);
+
+  /**
+   * `city_code` es uno solo para toda la reserva, así que solo se puede tomar el
+   * de la plaza cuando la entrega es en ese mismo municipio.
+   *
+   * Antes se hacía `destino ?? origen` sin condición, y eso es peligroso: hay
+   * direcciones en Sabaneta y Nobsa, que no están en PIBOX_CITY_CODES. Con el
+   * fallback, Pibox recibía el código de Medellín y buscaba "Calle 78s #40-211"
+   * DENTRO de Medellín — el domicilio salía a un punto equivocado y nadie se
+   * enteraba. Es preferible rechazar y pedir las coordenadas.
+   */
+  const cityCode = destinationNeedsGeocoding
+    ? destinationCityCode
+    : destinationCityCode ?? originCityCode;
 
   if (needsGeocoding && !cityCode) {
+    const municipality = ctx.destination.municipality || 'la dirección de entrega';
     throw new PiboxDataError(
-      `Falta la ubicación en el mapa y "${ctx.destination.municipality}" no es una ciudad que Pibox pueda geocodificar. Guarda las coordenadas de la dirección.`
+      `La dirección de entrega no tiene ubicación en el mapa y "${municipality}" no es una ciudad que Pibox pueda geocodificar. Marca el punto en el mapa para poder despachar.`
     );
   }
 
@@ -206,7 +221,7 @@ export function buildBookingPayload(
                 sub_units: toSubUnits(ctx.subtotal),
                 currency: 'COP',
               },
-              reference: `Mercamesa #${ctx.consecutive}`,
+              reference: `Mercamesa ${ctx.code}`,
               counter_delivery: counterDelivery,
               collected_value: counterDelivery
                 ? { sub_units: toSubUnits(ctx.orderTotal), currency: 'COP' }

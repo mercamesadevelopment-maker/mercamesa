@@ -155,6 +155,8 @@ export function useOrders() {
         return {
           id: so.order_id,
           storeOrderId: so.id, // Store Order specific DB ID
+          code: so.code,
+          parentCode: parentOrder?.code,
           date: so.created_at || new Date().toISOString(),
           storeId: so.store_id,
           storeName: so.stores?.name || 'Mi Tienda',
@@ -210,12 +212,19 @@ export function useOrders() {
     };
   }, [myOrders]);
 
+  // Si el domicilio no se pudo pedir, el cambio de estado igual queda guardado,
+  // pero el vendedor tiene que enterarse: antes fallaba en silencio y el pedido
+  // parecía despachado sin que hubiera mensajero en camino.
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+
   const updateOrderStatus = async (orderId: string, status: OrderStatus, notes?: string) => {
     try {
       const order = myOrders.find(o => o.id === orderId);
       if (!order || !order.storeOrderId) return;
 
-      await updateStoreOrderStatus(order.storeOrderId, status, notes);
+      const outcome = await updateStoreOrderStatus(order.storeOrderId, status, notes);
+      if (outcome.error) setDeliveryError(outcome.error);
+
       await fetchStoreOrders();
     } catch (err) {
       console.error('Error updating store order status:', err);
@@ -228,6 +237,8 @@ export function useOrders() {
     setFilterStatus,
     stats,
     updateOrderStatus,
+    deliveryError,
+    dismissDeliveryError: () => setDeliveryError(null),
     loading,
     stores,
     selectedStoreId,
