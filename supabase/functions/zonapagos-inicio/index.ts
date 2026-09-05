@@ -21,13 +21,46 @@ serve(async (req) => {
     const appUrl = Deno.env.get('ZONAPAGOS_APP_URL') || 'https://mercamesa.vercel.app/'
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // El monto se lee de la orden, NO del cuerpo de la petición.
+    //
+    // Antes se cobraba `compraData.total`, que venía del navegador y no se
+    // contrastaba contra nada: una petición armada a mano podía pagar $1 por un
+    // pedido de $70.000. Es el mismo chequeo que ya hace `zonapagos-pago-token`.
+    if (!compraData?.orderId) {
+      throw new Error('orderId es requerido')
+    }
+
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user } } = await callerClient.auth.getUser()
+
+    if (!user) {
+      throw new Error('Usuario no autenticado')
+    }
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, total')
+      .eq('id', compraData.orderId)
+      .eq('buyer_id', user.id)
+      .single()
+
+    if (orderError || !order) {
+      throw new Error('Orden no encontrada')
+    }
+
+    const amountToCharge = Number(order.total)
 
     // 3. Armar el JSON EXACTO con la estructura que exige Zonapagos
     const zonapagosPayload = {
       "InformacionPago": {
-        "flt_total_con_iva": compraData.total,
+        "flt_total_con_iva": amountToCharge,
         "flt_valor_iva": compraData.iva || 0,
         "str_id_pago": compraData.idPago,
         "str_descripcion_pago": compraData.descripcion,
@@ -89,7 +122,7 @@ serve(async (req) => {
           provider: 'zonapagos',
           str_id_pago: compraData.idPago,
           status: 'pending',
-          amount: compraData.total,
+          amount: amountToCharge,
           payment_url: paymentUrl,
         });
       

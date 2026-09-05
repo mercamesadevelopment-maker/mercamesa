@@ -33,6 +33,22 @@ export type OrderMinPriceHistoryInsert = Pick<
   'min_price' | 'notes'
 >;
 
+export type PricingSettingsRow = Database['public']['Tables']['pricing_settings_history']['Row'] & {
+  profiles?: { full_name: string } | null;
+};
+export type PricingSettingsInsert = Omit<
+  Database['public']['Tables']['pricing_settings_history']['Insert'],
+  'id' | 'created_at' | 'changed_by'
+>;
+
+/** Resultado de crear/verificar en Siigo los productos de servicio. */
+export interface EnsureSiigoProductResult {
+  code: string;
+  name: string;
+  status: 'created' | 'already_exists' | 'error';
+  error?: string;
+}
+
 // El slug lo genera el servidor a partir del nombre, así que no entra en el formulario.
 export type PersonTypeRow = Database['public']['Tables']['person_types']['Row'];
 export type PersonTypeInsert = Omit<

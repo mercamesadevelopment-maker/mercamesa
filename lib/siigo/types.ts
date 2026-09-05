@@ -119,6 +119,8 @@ export interface SiigoInvoicePayload {
   items: SiigoInvoiceItem[];
   payments: SiigoInvoicePayment[];
   additional_fields?: Record<string, string>;
+  /** Obligatorio si el tipo de documento tiene `cost_center: true`. */
+  cost_center?: number;
 }
 
 export interface SiigoInvoiceResponse {

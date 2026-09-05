@@ -37,8 +37,10 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     errorMessage,
     cartByStore,
     subtotal,
-    totalDeliveryFee,
-    total,
+    quote,
+    isQuoting,
+    quoteError,
+    canPlaceOrder,
     getPrice,
     handlePlaceOrder,
     saveCard,
@@ -76,19 +78,42 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     }
   };
 
-  const totalsBreakdown = (
+  /**
+   * Mismo desglose que la factura: tres conceptos. Lo que el comprador ve antes
+   * de pagar es idéntico a lo que le llega facturado.
+   */
+  const totalsBreakdown = quoteError ? (
+    // No es culpa del comprador ni algo que él pueda corregir, así que se usa el
+    // aviso ámbar y no el rojo de error.
+    <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+      <p className="text-xs text-amber-900 leading-relaxed">{quoteError}</p>
+    </div>
+  ) : isQuoting || !quote ? (
+    <div className="space-y-2.5 animate-pulse">
+      <div className="flex justify-between text-mm-txs text-sm">
+        <span>Calculando el total de tu pedido...</span>
+      </div>
+      <div className="h-2 bg-mm-crd/60 rounded-full w-3/4" />
+      <div className="h-2 bg-mm-crd/60 rounded-full w-1/2" />
+    </div>
+  ) : (
     <div className="space-y-2.5">
       <div className="flex justify-between text-mm-txs text-sm">
-        <span>Subtotal productos</span>
-        <span className="font-bold">{fmt(subtotal)}</span>
+        <span>Productos y servicio de compra</span>
+        <span className="font-bold">{fmt(quote.netPurchase)}</span>
       </div>
       <div className="flex justify-between text-mm-txs text-sm">
-        <span>Costo de envío</span>
-        <span className="font-bold">{fmt(totalDeliveryFee)}</span>
+        <span>Domicilio</span>
+        <span className="font-bold">{fmt(quote.deliveryFee)}</span>
+      </div>
+      <div className="flex justify-between text-mm-txs text-sm">
+        <span>Servicio MercaMesa</span>
+        <span className="font-bold">{fmt(quote.platformCommission)}</span>
       </div>
       <div className="pt-3 border-t border-mm-crd/50 flex justify-between items-center">
         <span className="font-bold text-mm-g">Total a pagar</span>
-        <span className="text-2xl font-bold text-mm-g">{fmt(total)}</span>
+        <span className="text-2xl font-bold text-mm-g">{fmt(quote.total)}</span>
       </div>
     </div>
   );
@@ -210,8 +235,11 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                               {group.store.name}
                             </h3>
                           </div>
+                          {/* El envío ya no es un valor fijo: se cotiza con el
+                              operador logístico según la dirección, así que solo
+                              se anuncia que cada tienda despacha por separado. */}
                           <Badge variant="oro" className="text-[10px]">
-                            Envío $ 5.000
+                            Envío propio
                           </Badge>
                         </div>
 
@@ -445,7 +473,9 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   <Button
                     onClick={() => handlePlaceOrder(onClose)}
                     loading={isPlacingOrder}
-                    disabled={!selectedAddressId}
+                    // Sin cotización no hay un total que cobrar, así que no se
+                    // puede pagar.
+                    disabled={!selectedAddressId || !canPlaceOrder}
                     className="flex-grow py-4 text-lg"
                   >
                     Confirmar y pagar

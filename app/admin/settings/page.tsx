@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard, Percent } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
@@ -10,6 +10,7 @@ import { StoreCategoriesTab } from './components/store-categories-tab';
 import { OrderMinPriceTab } from './components/order-min-price-tab';
 import { StoreGroupsTab } from './components/store-groups-tab';
 import { IdentificationTab } from './components/identification-tab';
+import { PricingTab } from './components/pricing-tab';
 
 type TabKey =
   | 'categories'
@@ -19,6 +20,7 @@ type TabKey =
   | 'store_categories'
   | 'store_groups'
   | 'identification'
+  | 'pricing'
   | 'order_min_price';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
@@ -67,10 +69,17 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
       'Tipos de persona y qué identificación admite cada uno (Natural → CC, Jurídica → NIT, Establecimiento de comercio → NIT o RUT)',
   },
   {
+    key: 'pricing',
+    label: 'Tarifas y Comisiones',
+    icon: Percent,
+    description:
+      'Comisión de servicio, mensajes y servicio MercaMesa que se le cobran al comprador, y con qué productos de Siigo se facturan. El domicilio se cotiza en vivo con el operador logístico.',
+  },
+  {
     key: 'order_min_price',
     label: 'Precio Mínimo de Orden',
     icon: Wallet,
-    description: 'Valor mínimo requerido para completar un pedido.',
+    description: 'Valor mínimo en productos requerido para completar un pedido.',
   },
 ];
 
@@ -136,6 +145,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'store_categories' && <StoreCategoriesTab />}
         {activeTab === 'store_groups' && <StoreGroupsTab />}
         {activeTab === 'identification' && <IdentificationTab />}
+        {activeTab === 'pricing' && <PricingTab />}
         {activeTab === 'order_min_price' && <OrderMinPriceTab />}
       </div>
     </div>

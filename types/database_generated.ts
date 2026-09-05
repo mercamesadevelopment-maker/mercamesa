@@ -991,6 +991,53 @@ export type Database = {
           },
         ]
       }
+      pricing_settings_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          message_unit_price: number
+          messages_per_order: number
+          notes: string | null
+          platform_commission_rate: number
+          service_commission_rate: number
+          siigo_delivery_product_code: string
+          siigo_platform_product_code: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          message_unit_price: number
+          messages_per_order: number
+          notes?: string | null
+          platform_commission_rate: number
+          service_commission_rate: number
+          siigo_delivery_product_code: string
+          siigo_platform_product_code: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          message_unit_price?: number
+          messages_per_order?: number
+          notes?: string | null
+          platform_commission_rate?: number
+          service_commission_rate?: number
+          siigo_delivery_product_code?: string
+          siigo_platform_product_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_settings_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address_change_fee: number
@@ -1006,8 +1053,12 @@ export type Database = {
           delivery_fee: number
           discount: number
           id: string
+          messages_amount: number
           notes: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          platform_commission_amount: number
+          pricing_settings_id: string | null
+          service_commission_amount: number
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -1027,8 +1078,12 @@ export type Database = {
           delivery_fee?: number
           discount?: number
           id?: string
+          messages_amount?: number
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          platform_commission_amount?: number
+          pricing_settings_id?: string | null
+          service_commission_amount?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -1048,8 +1103,12 @@ export type Database = {
           delivery_fee?: number
           discount?: number
           id?: string
+          messages_amount?: number
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          platform_commission_amount?: number
+          pricing_settings_id?: string | null
+          service_commission_amount?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number

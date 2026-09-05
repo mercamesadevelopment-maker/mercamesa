@@ -13,6 +13,7 @@ import {
 } from '@/src/features/payment/services/payment.service';
 import { CartItem } from '@/src/types';
 import { checkoutCartDb, clearCartDb } from '../services/cart.service';
+import { quoteCheckout, sumQuotes, type CheckoutQuote } from '../services/checkout-quote.service';
 import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
 import type { Database } from '@/types/database_generated';
 
@@ -94,9 +95,65 @@ export function useCheckout() {
     0
   );
 
-  const deliveryFeePerStore = 5000;
-  const totalDeliveryFee = deliveryFeePerStore * cartByStore.length;
-  const total = subtotal + totalDeliveryFee;
+  // El precio ya no se calcula en el navegador: el servidor cotiza el domicilio
+  // con el operador logístico y aplica las comisiones parametrizadas. Acá solo se
+  // muestra lo que él responde.
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [isQuoting, setIsQuoting] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  // Firma del carrito: evita recotizar cuando cambia algo que no afecta el precio
+  // (notas, por ejemplo) y evita el bucle de un array nuevo en cada render.
+  const cartSignature = state.cart
+    .map((i) => `${i.id}:${i.qty}:${getPrice(i)}`)
+    .sort()
+    .join('|');
+
+  useEffect(() => {
+    if (!selectedAddressId || state.cart.length === 0) {
+      setQuote(null);
+      setQuoteError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsQuoting(true);
+    setQuoteError(null);
+
+    // Una cotización por tienda: cada grupo se despacha por separado y tiene su
+    // propio domicilio.
+    const groups = storesInCart.map((storeId) => ({
+      store_id: String(storeId),
+      delivery_address_id: selectedAddressId,
+      items: state.cart
+        .filter((i) => i.storeId === storeId)
+        .map((i) => ({ store_product_id: String(i.id), quantity: i.qty })),
+    }));
+
+    Promise.all(groups.map(quoteCheckout))
+      .then((quotes) => {
+        if (cancelled) return;
+        setQuote(sumQuotes(quotes));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setQuote(null);
+        setQuoteError(err instanceof Error ? err.message : 'No pudimos calcular el total de tu pedido.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsQuoting(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartSignature, selectedAddressId]);
+
+  const totalDeliveryFee = quote?.deliveryFee ?? 0;
+  const total = quote?.total ?? 0;
+  // Sin cotización no se puede pagar: no hay un total que cobrar.
+  const canPlaceOrder = !!quote && !isQuoting && !quoteError;
 
   const handlePlaceOrder = async (onClose: () => void) => {
     if (isPlacingOrder) return;
@@ -105,6 +162,13 @@ export function useCheckout() {
     // en silencio y quedaba imposible de despachar.
     if (!selectedAddressId) {
       setErrorMessage('Selecciona la dirección a la que quieres recibir tu pedido.');
+      return;
+    }
+
+    // Sin cotización no hay total que cobrar. El servidor también lo rechaza,
+    // pero cortar acá evita un viaje inútil y un mensaje confuso.
+    if (!canPlaceOrder) {
+      setErrorMessage(quoteError ?? 'Estamos calculando el total de tu pedido, espera un momento.');
       return;
     }
 
@@ -149,18 +213,16 @@ export function useCheckout() {
           (acc, i) => acc + getPrice(i) * i.qty,
           0
         );
-        const groupTotal = groupSubtotal + deliveryFeePerStore;
 
+        // Los precios no viajan en el payload: el servidor los recalcula desde la
+        // base y cotiza el domicilio. Mandarlos solo daría la falsa impresión de
+        // que el navegador decide cuánto se cobra.
         const orderPayload = {
           order: {
             buyer_id: buyerId,
             buyer_type: (state.userRole === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
             status: 'pending' as const,
             payment_status: 'pending' as const,
-            subtotal: groupSubtotal,
-            delivery_fee: deliveryFeePerStore,
-            discount: 0,
-            total: groupTotal,
             notes: 'Pedido desde la web',
             delivery_address_id: selectedAddressId,
             client_idempotency_key: `${idempotencyKey}-${group.store.id}`,
@@ -192,6 +254,9 @@ export function useCheckout() {
         }
 
         const orderId = String(orderResult.data.id);
+        // El monto a cobrar sale de la orden que acaba de crear el servidor, no
+        // de una cuenta hecha acá: son la misma cifra solo si nadie manipuló nada.
+        const groupTotal = Number(orderResult.data.total);
         const storeProductIds = group.items.map((i) => String(i.id));
 
         if (paymentChoice === 'saved' && selectedPaymentMethodId) {
@@ -295,6 +360,10 @@ export function useCheckout() {
     subtotal,
     totalDeliveryFee,
     total,
+    quote,
+    isQuoting,
+    quoteError,
+    canPlaceOrder,
     getPrice,
     handlePlaceOrder,
     saveCard,

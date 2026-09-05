@@ -174,6 +174,12 @@ export interface Order {
   discount?: number;
   deliveryFee?: number;
   subtotal?: number;
+  /** Comisión de servicio (2,99%) cobrada al comprador. */
+  serviceCommission?: number;
+  /** Mensajes de seguimiento cobrados al comprador. */
+  messagesAmount?: number;
+  /** Comisión de plataforma, "Servicio MercaMesa" en la factura. */
+  platformCommission?: number;
   history?: OrderStatusHistoryItem[];
 }
 

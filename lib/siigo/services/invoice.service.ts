@@ -19,8 +19,10 @@ export async function createInvoice(
   const headers: Record<string, string> = {};
 
   if (idempotencyKey) {
-    // Siigo rechaza espacios y caracteres especiales, y corta en 30.
-    headers['Idempotency-Key'] = idempotencyKey.replace(/[^A-Za-z0-9-]/g, '').slice(0, 30);
+    // Solo letras y números: Siigo responde `invalid_idempotency_key` incluso
+    // con guiones, así que "MM-2026-001017" se envía como "MM2026001017".
+    // El límite son 30 caracteres.
+    headers['Idempotency-Key'] = idempotencyKey.replace(/[^A-Za-z0-9]/g, '').slice(0, 30);
   }
 
   return siigoFetch<SiigoInvoiceResponse>('/v1/invoices', {

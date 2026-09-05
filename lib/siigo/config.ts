@@ -45,12 +45,16 @@ export const SIIGO_STAMP_SEND = process.env.SIIGO_STAMP_SEND === 'true';
 export const SIIGO_MAIL_SEND = process.env.SIIGO_MAIL_SEND === 'true';
 
 /**
- * Código del producto de Siigo con el que se factura el domicilio.
+ * Códigos de los productos de Siigo con los que se facturan el domicilio y la
+ * comisión de plataforma.
  *
- * Sin él la factura no cuadraría contra lo que el comprador pagó. Si no está
- * configurado, el mapper lo dice explícitamente en vez de omitir el cobro.
+ * Son solo el respaldo: lo normal es que salgan de `pricing_settings_history`,
+ * para que el administrador los cambie sin un despliegue. Si no hay ninguno de
+ * los dos, el mapper lo dice explícitamente en vez de omitir el cobro y emitir
+ * una factura descuadrada.
  */
 export const SIIGO_DELIVERY_PRODUCT_CODE = process.env.SIIGO_DELIVERY_PRODUCT_CODE || '';
+export const SIIGO_PLATFORM_PRODUCT_CODE = process.env.SIIGO_PLATFORM_PRODUCT_CODE || '';
 
 /**
  * Ciudad por defecto del tercero (códigos DANE que exige POST /v1/customers).
@@ -63,6 +67,15 @@ export const SIIGO_DEFAULT_CITY_CODE = process.env.SIIGO_DEFAULT_CITY_CODE || '0
 
 /** Tipo de identificación DIAN cuando el perfil no lo tiene resuelto. */
 export const SIIGO_DEFAULT_ID_TYPE = process.env.SIIGO_DEFAULT_ID_TYPE || '13';
+
+/**
+ * Centro de costo cuando la plaza no lo tiene mapeado.
+ *
+ * El tipo de documento de FV tiene `cost_center: true`, así que Siigo lo exige.
+ * Lo normal es que salga de `marketplaces.siigo_cost_center_id`; este es el
+ * respaldo para no bloquear la facturación por un dato faltante.
+ */
+export const SIIGO_DEFAULT_COST_CENTER_ID = envInt('SIIGO_DEFAULT_COST_CENTER_ID', 10119);
 
 /** Intentos antes de dejar de reintentar una factura. */
 export const SIIGO_MAX_INVOICE_ATTEMPTS = envInt('SIIGO_MAX_INVOICE_ATTEMPTS', 5);

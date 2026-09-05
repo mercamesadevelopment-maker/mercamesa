@@ -403,10 +403,33 @@ export function OrderDetailModal({
                   </div>
                 )}
 
+                {/* Mismos conceptos que la factura, para que el vendedor pueda
+                    explicarle al comprador de dónde sale cada peso. */}
+                {order.serviceCommission !== undefined && order.serviceCommission > 0 && (
+                  <div className="flex justify-between">
+                    <span>Comisión de Servicio</span>
+                    <span className="text-mm-g font-bold">{fmt(order.serviceCommission)}</span>
+                  </div>
+                )}
+
+                {order.messagesAmount !== undefined && order.messagesAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span>Mensajes de Seguimiento</span>
+                    <span className="text-mm-g font-bold">{fmt(order.messagesAmount)}</span>
+                  </div>
+                )}
+
                 {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
                   <div className="flex justify-between">
                     <span>Costo de Envío</span>
                     <span className="text-mm-g font-bold">{fmt(order.deliveryFee)}</span>
+                  </div>
+                )}
+
+                {order.platformCommission !== undefined && order.platformCommission > 0 && (
+                  <div className="flex justify-between">
+                    <span>Servicio MercaMesa</span>
+                    <span className="text-mm-g font-bold">{fmt(order.platformCommission)}</span>
                   </div>
                 )}
 

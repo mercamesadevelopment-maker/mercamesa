@@ -130,6 +130,90 @@ export async function loadBookingContext(
 }
 
 /**
+ * Carga el mismo contexto pero SIN pedido: para cotizar en el carrito, cuando
+ * todavía no existe ni la orden ni el `store_order`.
+ *
+ * `loadBookingContext` parte de un `store_order_id`, así que no sirve antes de
+ * la compra. Acá se arma el contexto desde la tienda y la dirección de entrega,
+ * y el resto del camino (`buildBookingPayload` → `estimateBooking`) se reutiliza
+ * tal cual, de modo que lo que se cotiza es exactamente lo que después se
+ * reserva.
+ */
+export async function loadQuoteContext(
+  supabase: SupabaseClient<any>,
+  input: { storeId: string; deliveryAddressId: string; buyerId: string; subtotal: number }
+): Promise<BookingContext> {
+  const [{ data: store, error: storeError }, { data: address, error: addressError }] =
+    await Promise.all([
+      supabase
+        .from('stores')
+        .select('name, phone, marketplaces ( address, latitude, longitude, city )')
+        .eq('id', input.storeId)
+        .maybeSingle(),
+      supabase
+        .from('delivery_addresses')
+        .select('buyer_id, address_line, neighborhood, municipality, latitude, longitude')
+        .eq('id', input.deliveryAddressId)
+        .maybeSingle(),
+    ]);
+
+  if (storeError) throw new PiboxDataError(storeError.message);
+  if (addressError) throw new PiboxDataError(addressError.message);
+  if (!store) throw new PiboxDataError('La tienda del pedido no existe');
+  if (!address?.address_line) {
+    throw new PiboxDataError('La dirección de entrega seleccionada no existe');
+  }
+  // La dirección se vuelve a verificar acá aunque la ruta ya lo haga: cotizar con
+  // la dirección de otra persona revelaría a dónde vive.
+  if (address.buyer_id !== input.buyerId) {
+    throw new PiboxDataError('La dirección de entrega no pertenece a este usuario');
+  }
+
+  const marketplace = (store as any).marketplaces;
+  if (!marketplace?.address) {
+    throw new PiboxDataError(
+      `La plaza de "${(store as any).name}" no tiene dirección registrada; sin ella no se puede cotizar el domicilio.`
+    );
+  }
+
+  const { data: buyer } = await supabase
+    .from('profiles')
+    .select('full_name, email, phone')
+    .eq('id', input.buyerId)
+    .maybeSingle();
+
+  return {
+    // Todavía no existe el store_order; estos campos solo viajan en el payload
+    // como referencia y no afectan la tarifa.
+    storeOrderId: '',
+    code: 'COTIZACION',
+    subtotal: input.subtotal,
+    orderTotal: input.subtotal,
+    paymentStatus: 'pending',
+    notes: null,
+    store: { name: (store as any).name, phone: (store as any).phone ?? null },
+    origin: {
+      address: marketplace.address,
+      latitude: marketplace.latitude ?? null,
+      longitude: marketplace.longitude ?? null,
+      city: marketplace.city ?? null,
+    },
+    destination: {
+      addressLine: address.address_line,
+      neighborhood: address.neighborhood ?? null,
+      municipality: address.municipality,
+      latitude: address.latitude ?? null,
+      longitude: address.longitude ?? null,
+    },
+    customer: {
+      fullName: buyer?.full_name || 'Cliente',
+      email: buyer?.email ?? null,
+      phone: buyer?.phone ?? null,
+    },
+  };
+}
+
+/**
  * Construye el payload de Pibox. Función pura: no toca red ni base de datos.
  *
  * @param requireCustomerPhone si es true (creación real) exige teléfono del

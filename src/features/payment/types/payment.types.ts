@@ -55,10 +55,6 @@ export interface CreateOrderPayload {
     buyer_type: 'retail' | 'wholesale'
     status: 'pending'
     payment_status: 'pending'
-    subtotal: number
-    delivery_fee: number
-    discount: number
-    total: number
     notes?: string
     delivery_address_id?: string | null
     client_idempotency_key: string

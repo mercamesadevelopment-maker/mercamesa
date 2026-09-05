@@ -25,7 +25,7 @@ create or replace function public.call_app_cron(path text)
 returns bigint
 language plpgsql
 security definer
-set search_path = public, extensions, vault
+set search_path = public, net, vault
 as $$
 declare
   base_url text;
@@ -40,7 +40,10 @@ begin
     raise exception 'Faltan los secretos app_base_url o app_cron_secret en Vault';
   end if;
 
-  return extensions.net.http_post(
+  -- pg_net registra la extension en el esquema `extensions`, pero sus funciones
+  -- viven en el esquema `net`: con `extensions.net.http_post` Postgres lo lee
+  -- como base.esquema.funcion y falla.
+  return net.http_post(
     url := rtrim(base_url, '/') || path,
     headers := jsonb_build_object(
       'Content-Type', 'application/json',

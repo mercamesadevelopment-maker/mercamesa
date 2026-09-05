@@ -175,6 +175,9 @@ export function useOrders() {
           paymentStatus: parentOrder?.payment_status || 'pending',
           discount: parentOrder?.discount ? Number(parentOrder.discount) : 0,
           deliveryFee: parentOrder?.delivery_fee ? Number(parentOrder.delivery_fee) : 0,
+          serviceCommission: Number(parentOrder?.service_commission_amount ?? 0),
+          messagesAmount: Number(parentOrder?.messages_amount ?? 0),
+          platformCommission: Number(parentOrder?.platform_commission_amount ?? 0),
           subtotal: Number(so.subtotal),
           history: historyData,
         };

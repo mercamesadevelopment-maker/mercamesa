@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { CreateOrderPayload } from '@/src/features/payment/types/payment.types';
+import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
+import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
+import {
+  quoteDeliveryFee,
+  DeliveryQuoteUnavailableError,
+} from '@/lib/pricing/delivery-quote';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -122,6 +128,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El pedido debe contener al menos un producto' }, { status: 400 });
     }
 
+    // El domicilio se cotiza contra la tienda que despacha, así que sin ella no
+    // hay pedido posible.
+    if (!storeOrders?.length || !storeOrders[0].store_id) {
+      return NextResponse.json({ error: 'El pedido debe indicar la tienda que lo despacha' }, { status: 400 });
+    }
+
     const { data: dbProducts, error: dbProductsError } = await supabase
       .from('store_products')
       .select(`
@@ -170,7 +182,6 @@ export async function POST(request: Request) {
     });
 
     // 4. Recalculate subtotal for each store order
-    const deliveryFeePerStore = 5000;
     const recalculatedStoreOrders = storeOrders.map(so => {
       // Find items belonging to this store
       const storeItems = recalculatedItems.filter(item => {
@@ -186,12 +197,10 @@ export async function POST(request: Request) {
       };
     });
 
-    const totalDeliveryFee = order.delivery_fee !== undefined ? Number(order.delivery_fee) : (deliveryFeePerStore * storeOrders.length);
-    const recalculatedTotal = recalculatedSubtotal + totalDeliveryFee;
-
-    // --- END SECURE RE-CALCULATION ---
-
     // --- MINIMUM ORDER PRICE VALIDATION ---
+    // Se compara contra el valor de los productos, no contra el total: el mínimo
+    // significa "cuánto compró", y sumarle comisiones y domicilio dejaría pasar
+    // pedidos mucho más pequeños de los que el cliente autorizó.
     const { data: minPriceRow } = await supabase
       .from('order_min_price_history')
       .select('min_price')
@@ -199,12 +208,30 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle();
 
-    if (minPriceRow && recalculatedTotal < minPriceRow.min_price) {
+    if (minPriceRow && recalculatedSubtotal < minPriceRow.min_price) {
       return NextResponse.json({
         error: `El pedido no alcanza el valor mínimo de $${minPriceRow.min_price.toLocaleString('es-CO')} para poder procesarse.`,
       }, { status: 400 });
     }
     // --- END MINIMUM ORDER PRICE VALIDATION ---
+
+    // --- PRICING: comisiones y domicilio, ambos derivados del servidor ---
+    // El `delivery_fee` que mande el navegador se ignora por completo. Antes se
+    // usaba tal cual (`order.delivery_fee !== undefined ? ...`), así que una
+    // petición armada a mano podía guardar un domicilio de $0.
+    const pricingSettings = await loadPricingSettings(supabase);
+
+    // Cada orden es de una sola tienda (el carrito crea una por grupo), así que
+    // hay exactamente una cotización de domicilio por orden.
+    const deliveryFee = await quoteDeliveryFee(supabase, {
+      storeId: String(storeOrders[0].store_id),
+      deliveryAddressId: order.delivery_address_id,
+      buyerId: user.id,
+      subtotal: recalculatedSubtotal,
+    });
+
+    const pricing = computeOrderPricing(recalculatedSubtotal, deliveryFee, pricingSettings);
+    // --- END SECURE RE-CALCULATION ---
 
     const orderInsertData: any = {
       buyer_id: order.buyer_id || null,
@@ -212,10 +239,14 @@ export async function POST(request: Request) {
       buyer_type: isWS ? 'wholesale' : 'retail',
       status: order.status,
       payment_status: order.payment_status,
-      subtotal: recalculatedSubtotal,
-      delivery_fee: totalDeliveryFee,
+      subtotal: pricing.productsSubtotal,
+      service_commission_amount: pricing.serviceCommission,
+      messages_amount: pricing.messagesAmount,
+      platform_commission_amount: pricing.platformCommission,
+      delivery_fee: pricing.deliveryFee,
+      pricing_settings_id: pricingSettings.id,
       discount: 0,
-      total: recalculatedTotal,
+      total: pricing.total,
       notes: order.notes,
       delivery_address_id: order.delivery_address_id,
       delivery_address_snapshot: deliveryAddressSnapshot,
@@ -276,6 +307,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: fullOrder, idempotent: false }, { status: 201 });
   } catch (error: unknown) {
+    // Sin costo de domicilio confiable el pedido no se completa, y se corta
+    // ANTES de insertar nada: crear la orden y dejarla sin envío calculado sería
+    // peor que rechazarla.
+    if (error instanceof DeliveryQuoteUnavailableError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    if (error instanceof PricingConfigError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ error: message }, { status: 400 });
   }

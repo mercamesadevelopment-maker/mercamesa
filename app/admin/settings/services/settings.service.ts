@@ -5,6 +5,7 @@ import {
   DocumentTypeRow, DocumentTypeInsert, DocumentTypeUpdate,
   StoreCategoryRow, StoreCategoryInsert, StoreCategoryUpdate,
   OrderMinPriceHistoryRow, OrderMinPriceHistoryInsert,
+  PricingSettingsRow, PricingSettingsInsert, EnsureSiigoProductResult,
   PersonTypeRow, PersonTypeInsert, PersonTypeUpdate,
   IdentificationTypeRow, IdentificationTypeInsert, IdentificationTypeUpdate,
 } from '../types/settings.types';
@@ -140,6 +141,30 @@ export async function addOrderMinPriceAdjustmentService(payload: OrderMinPriceHi
     body: JSON.stringify(payload),
   });
   return handleResponse<OrderMinPriceHistoryRow>(res);
+}
+
+// ── Pricing Settings ────────────────────────────────────────────────────────
+export async function getPricingSettingsService(): Promise<PricingSettingsRow[]> {
+  const res = await fetch('/api/admin/pricing-settings');
+  return handleResponse<PricingSettingsRow[]>(res);
+}
+
+export async function addPricingSettingsService(payload: PricingSettingsInsert): Promise<PricingSettingsRow> {
+  const res = await fetch('/api/admin/pricing-settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<PricingSettingsRow>(res);
+}
+
+/** Crea o verifica en Siigo los productos con los que se factura cada concepto. */
+export async function ensureSiigoServiceProductsService(): Promise<{
+  results: EnsureSiigoProductResult[];
+  ok: boolean;
+}> {
+  const res = await fetch('/api/admin/pricing-settings/ensure-siigo-products', { method: 'POST' });
+  return handleResponse<{ results: EnsureSiigoProductResult[]; ok: boolean }>(res);
 }
 
 // ── Person Types ────────────────────────────────────────────────────────────
