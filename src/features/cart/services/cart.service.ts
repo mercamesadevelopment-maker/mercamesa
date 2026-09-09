@@ -324,6 +324,78 @@ export async function revertCartDb(orderId: string): Promise<void> {
 }
 
 /**
+ * Devuelve al carrito los ítems que quedaron atrapados en `pending`.
+ *
+ * Al confirmar un pedido, los ítems pasan a `pending` y el carrito se vacía en
+ * pantalla. Si el comprador paga o el pago es rechazado, la página de estado de
+ * pago los resuelve. Pero si simplemente abandona —cierra la pestaña, vuelve
+ * desde otra, o la pasarela se abrió aparte— nadie los resuelve: se quedan en
+ * `pending` para siempre y, como `fetchCart` solo trae los `active`, el carrito
+ * queda vacío de forma permanente.
+ *
+ * Antes esto se intentaba con una clave en `sessionStorage`, que es por pestaña
+ * y justamente no sobrevive esos casos. Acá se parte del comprador y del estado
+ * real de sus órdenes, así que funciona sin importar cómo haya vuelto — y repara
+ * de paso los carritos que ya estaban perdidos.
+ *
+ * Se ejecuta al hidratar la sesión.
+ */
+export async function recoverAbandonedCartDb(buyerId: string): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+
+  const { data: stuck, error } = await supabase
+    .from('cart_items')
+    .select('id, order_id, orders ( payment_status )')
+    .eq('buyer_id', buyerId)
+    .eq('status', 'pending');
+
+  if (error) throw error;
+  if (!stuck || stuck.length === 0) return;
+
+  // La compra se concretó: el carrito ya cumplió su función.
+  const paidOrderIds = Array.from(
+    new Set(
+      stuck
+        .filter((i: any) => i.orders?.payment_status === 'approved')
+        .map((i: any) => i.order_id)
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  // Todo lo demás —pago rechazado, abandonado o la orden cancelada— vuelve al
+  // carrito. `revertCartDb` ya resuelve la fusión de cantidades cuando el
+  // comprador volvió a agregar el mismo producto.
+  const abandonedOrderIds = Array.from(
+    new Set(
+      stuck
+        .filter((i: any) => i.orders?.payment_status !== 'approved')
+        .map((i: any) => i.order_id)
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  for (const orderId of paidOrderIds) {
+    await deleteCartForOrderDb(orderId);
+  }
+
+  for (const orderId of abandonedOrderIds) {
+    await revertCartDb(orderId);
+  }
+
+  // Ítems en `pending` sin orden asociada: no hay nada que consultar, así que
+  // devolverlos al carrito es lo único razonable.
+  const orphanIds = stuck.filter((i: any) => !i.order_id).map((i: any) => i.id);
+  if (orphanIds.length > 0) {
+    const { error: orphanError } = await supabase
+      .from('cart_items')
+      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .in('id', orphanIds);
+
+    if (orphanError) throw orphanError;
+  }
+}
+
+/**
  * Delete pending cart items permanently (e.g. if payment is approved).
  */
 export async function deleteCartForOrderDb(orderId: string): Promise<void> {
