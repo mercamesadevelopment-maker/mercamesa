@@ -45,8 +45,27 @@ export interface GeocodeResult {
   precision: GeocodePrecision;
 }
 
+/**
+ * Por qué falló la geocodificación.
+ *
+ * El comprador siempre ve el mismo mensaje, pero la causa viaja aparte porque
+ * desde fuera son indistinguibles y llevan a arreglos opuestos: falta una
+ * variable de entorno, el token no sirve, o Mapbox se cayó.
+ */
+export type GeocodingErrorCode =
+  /** No hay `MAPBOX_SERVER_TOKEN`. En Vercel, agregarla exige redesplegar. */
+  | 'not_configured'
+  /** Mapbox rechazó el token: valor incorrecto, o creado CON restricción de URL. */
+  | 'token_rejected'
+  /** Mapbox respondió mal por otra razón, o no respondió. */
+  | 'upstream';
+
 export class GeocodingError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly code: GeocodingErrorCode = 'upstream',
+    readonly cause?: unknown
+  ) {
     super(message);
     this.name = 'GeocodingError';
   }
@@ -139,7 +158,10 @@ function getToken(): string {
     return process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   }
 
-  throw new GeocodingError('Falta configurar MAPBOX_SERVER_TOKEN en el servidor.');
+  throw new GeocodingError(
+    'Falta configurar MAPBOX_SERVER_TOKEN en el servidor.',
+    'not_configured'
+  );
 }
 
 /** Extrae una propiedad del contexto de Mapbox v6, que viene como objeto. */
@@ -192,12 +214,22 @@ async function callMapbox(url: URL): Promise<any> {
   try {
     response = await fetch(url.toString(), { cache: 'no-store' });
   } catch (err) {
-    throw new GeocodingError('No se pudo contactar a Mapbox.', err);
+    throw new GeocodingError('No se pudo contactar a Mapbox.', 'upstream', err);
   }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new GeocodingError(`Mapbox respondió ${response.status}: ${detail.slice(0, 200)}`);
+
+    // 401/403 es el token, no el servicio. El 403 es el caso que hay que poder
+    // reconocer de un vistazo: pasa cuando el token se creó CON restricción de
+    // URL, que desde el servidor —sin cabecera `Referer`— Mapbox rechaza.
+    const code =
+      response.status === 401 || response.status === 403 ? 'token_rejected' : 'upstream';
+
+    throw new GeocodingError(
+      `Mapbox respondió ${response.status}: ${detail.slice(0, 200)}`,
+      code
+    );
   }
 
   return response.json();

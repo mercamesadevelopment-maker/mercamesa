@@ -63,8 +63,15 @@ export async function GET(request: Request) {
     if (error instanceof GeocodingError) {
       // El detalle (incluido el estado que devolvió Mapbox) queda en el log; al
       // comprador se le dice qué hacer, que es marcar el punto a mano.
-      console.error('geocoding/search:', error.message, error.cause ?? '');
-      return NextResponse.json({ error: GEOCODING_UNAVAILABLE_MESSAGE }, { status: 503 });
+      console.error('geocoding/search:', error.code, error.message, error.cause ?? '');
+
+      // `code` acompaña al mensaje para poder diagnosticar sin leer los logs del
+      // servidor. No revela nada: solo distingue "falta la variable" de "el token
+      // fue rechazado", que desde fuera se ven igual y se arreglan distinto.
+      return NextResponse.json(
+        { error: GEOCODING_UNAVAILABLE_MESSAGE, code: error.code },
+        { status: 503 }
+      );
     }
 
     const message = error instanceof Error ? error.message : 'Internal Server Error';
