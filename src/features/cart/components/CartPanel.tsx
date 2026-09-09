@@ -14,6 +14,7 @@ import { useCart } from "../hooks/use-cart";
 import { Button, Badge, cn } from "@/src/components/Shared";
 import { fmt } from "@/src/constants";
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
+import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
 import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
 import { CARD_TOKENIZATION_ENABLED } from "@/src/features/payment/config";
 import { CartItem } from "@/src/types";
@@ -69,14 +70,6 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   React.useEffect(() => {
     if (isEmpty) setStep(1);
   }, [isEmpty]);
-
-  const handleDecrement = (item: CartItem) => {
-    if (item.qty === 1) {
-      setDeletingItem(item);
-    } else {
-      updateCartQty(item.id, item.qty - 1);
-    }
-  };
 
   /**
    * Mismo desglose que la factura: tres conceptos. Lo que el comprador ve antes
@@ -297,26 +290,17 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                                     </span>
                                   </div>
 
-                                  {/* Control de cantidad */}
-                                  <div className="flex items-center gap-2 bg-mm-gbg rounded-full px-2 py-1">
-                                    <button
-                                      onClick={() => handleDecrement(item)}
-                                      className="w-5 h-5 flex items-center justify-center font-bold text-mm-txs hover:text-mm-g hover:bg-white rounded-full transition-colors text-xs"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-xs font-bold w-4 text-center">
-                                      {item.qty}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        updateCartQty(item.id, item.qty + 1)
-                                      }
-                                      className="w-5 h-5 flex items-center justify-center font-bold text-mm-txs hover:text-mm-g hover:bg-white rounded-full transition-colors text-xs"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                  {/* Control de cantidad. Bajar de 1 no quita el
+                                      producto de una: pide confirmación. */}
+                                  <QuantityStepper
+                                    size="sm"
+                                    qty={item.qty}
+                                    max={item.stock}
+                                    onChange={(next) =>
+                                      updateCartQty(item.id, next)
+                                    }
+                                    onBelowMin={() => setDeletingItem(item)}
+                                  />
                                 </div>
                               </div>
                             </div>

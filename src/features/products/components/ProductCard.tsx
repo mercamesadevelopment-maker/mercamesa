@@ -6,13 +6,20 @@ import { ShoppingCart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import type { StoreProduct } from '@/app/sections/products/hooks/usePublicProducts';
 
 export function ProductCard({ product }: { product: StoreProduct }) {
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateCartQty } = useCart();
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
+
+  // La cantidad se lee del carrito, no de un estado local: así el contador de la
+  // tarjeta y el del panel del carrito no se pueden desincronizar.
+  const cartItem = cart.find((i) => String(i.id) === String(product.id));
+  const qty = cartItem?.qty ?? 0;
+  const stock = Number(product.stock ?? 0);
 
   // Red de seguridad: si el derivado WebP aún no existe (imagen subida antes
   // del backfill, o formato que sharp no pudo procesar), cae al original.
@@ -99,12 +106,27 @@ export function ProductCard({ product }: { product: StoreProduct }) {
               / {product.measurement_units?.abbreviation}
             </p>
           </div>
-          <button
-            onClick={handleAddToCart}
-            className="w-10 h-10 sm:w-12 sm:h-12 bg-mm-g text-white rounded-2xl flex items-center justify-center hover:bg-mm-oro hover:-translate-y-1 hover:shadow-lg transition-all active:scale-95 shrink-0"
-          >
-            <ShoppingCart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-          </button>
+          {/* Sin stock no hay nada que agregar; con el producto ya en la canasta
+              el botón cede el puesto al contador, que es lo que permite llevar
+              más de uno sin abrir el carrito. */}
+          {stock <= 0 ? null : qty > 0 ? (
+            <QuantityStepper
+              qty={qty}
+              max={stock}
+              onChange={(next) => updateCartQty(product.id, next)}
+              // Bajar de 1 saca el producto de la canasta.
+              min={1}
+              onBelowMin={() => updateCartQty(product.id, 0)}
+            />
+          ) : (
+            <button
+              onClick={handleAddToCart}
+              aria-label="Agregar a la canasta"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-mm-g text-white rounded-2xl flex items-center justify-center hover:bg-mm-oro hover:-translate-y-1 hover:shadow-lg transition-all active:scale-95 shrink-0"
+            >
+              <ShoppingCart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
