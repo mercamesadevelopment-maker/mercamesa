@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeAddress } from '@/lib/addresses/sanitize-address';
 
 export async function GET() {
   try {
@@ -28,8 +29,15 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
+    // Lista explícita de campos: el spread crudo dejaba escribir cualquier
+    // columna, y aceptaba coordenadas vacías que Pibox no detecta como faltantes.
+    const { data: address, error: invalid } = sanitizeAddress(body);
+    if (invalid || !address) {
+      return NextResponse.json({ error: invalid }, { status: 400 });
+    }
+
     // If new address is default, unset others first
-    if (body.is_default) {
+    if (address.is_default) {
       await supabase
         .from('delivery_addresses')
         .update({ is_default: false })
@@ -38,7 +46,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('delivery_addresses')
-      .insert({ ...body, buyer_id: user.id })
+      .insert({ ...address, buyer_id: user.id })
       .select()
       .single();
 

@@ -57,6 +57,14 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
 
   const [deletingItem, setDeletingItem] = React.useState<CartItem | null>(null);
   const [step, setStep] = React.useState<CheckoutStep>(1);
+  /**
+   * La dirección elegida tiene punto en el mapa.
+   *
+   * Sin coordenadas Pibox solo geocodifica 6 ciudades, así que un pedido a
+   * Sabaneta o Envigado se cae al confirmar. Es mejor bloquearlo acá, con el
+   * botón "Completar ubicación" a la vista, que dejarlo pagar y fallar después.
+   */
+  const [addressReady, setAddressReady] = React.useState(false);
 
   const isEmpty = cartByStore.length === 0;
 
@@ -337,6 +345,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <DeliveryAddressSelector
                       selectedAddressId={selectedAddressId}
                       onSelect={setSelectedAddressId}
+                      onReadyChange={setAddressReady}
                     />
 
                     {CARD_TOKENIZATION_ENABLED &&
@@ -459,7 +468,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     loading={isPlacingOrder}
                     // Sin cotización no hay un total que cobrar, así que no se
                     // puede pagar.
-                    disabled={!selectedAddressId || !canPlaceOrder}
+                    disabled={!selectedAddressId || !addressReady || !canPlaceOrder}
                     className="flex-grow py-4 text-lg"
                   >
                     Confirmar y pagar

@@ -11,6 +11,8 @@ import {
   type BusinessHours,
 } from '@/components/ui/business-hours/business-hours-editor';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
+import { MapPicker, type MapPickerChange } from '@/components/ui/map-picker/MapPicker';
+import { toCoordinate, validateColombiaCoordinates } from '@/lib/geocoding/mapbox';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
@@ -145,31 +147,36 @@ export function MarketplaceModal({
     }
   };
 
+  /** El mapa devuelve números; el formulario los guarda como texto. */
+  const handleMapChange = (change: MapPickerChange) => {
+    setErrors((prev) => ({ ...prev, latitude: '', longitude: '' }));
+    setFormData((prev) => ({
+      ...prev,
+      latitude: String(change.latitude),
+      longitude: String(change.longitude),
+      address: change.addressLine || prev.address,
+      city: change.municipality || prev.city,
+      department: change.department || prev.department,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Coordinate validation to prevent database overflow/invalid coordinate range
     const newErrors: Record<string, string> = {};
-    let latitudeStr = formData.latitude;
-    let longitudeStr = formData.longitude;
 
-    if (formData.latitude) {
-      const latVal = parseFloat(formData.latitude);
-      if (isNaN(latVal) || latVal < -90 || latVal > 90) {
-        newErrors.latitude = 'La latitud debe ser un número entre -90 y 90';
-      } else {
-        // Truncate to 7 decimal places matching numeric(10, 7) scale
-        latitudeStr = latVal.toFixed(7);
-      }
+    if (!formData.address.trim()) {
+      // Pibox lo exige para armar la recogida; sin él, `buildBookingPayload`
+      // lanza PiboxDataError al despachar.
+      newErrors.address = 'La dirección es obligatoria para poder despachar pedidos.';
     }
-    if (formData.longitude) {
-      const lngVal = parseFloat(formData.longitude);
-      if (isNaN(lngVal) || lngVal < -180 || lngVal > 180) {
-        newErrors.longitude = 'La longitud debe ser un número entre -180 y 180';
-      } else {
-        // Truncate to 7 decimal places matching numeric(10, 7) scale
-        longitudeStr = lngVal.toFixed(7);
-      }
+
+    const latVal = toCoordinate(formData.latitude);
+    const lngVal = toCoordinate(formData.longitude);
+
+    const coordError = validateColombiaCoordinates(latVal, lngVal);
+    if (coordError) {
+      newErrors.latitude = coordError;
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -179,8 +186,11 @@ export function MarketplaceModal({
 
     const data: Record<string, unknown> = {
       ...formData,
-      latitude: latitudeStr,
-      longitude: longitudeStr,
+      // A número o `null`, nunca cadena vacía: un `''` llega a Pibox como
+      // `Number('') === 0` y manda al mensajero al punto (0,0) sin error.
+      // `numeric(10,7)` obliga además a truncar a 7 decimales.
+      latitude: latVal !== null ? latVal.toFixed(7) : null,
+      longitude: lngVal !== null ? lngVal.toFixed(7) : null,
       business_hours: businessHours,
     };
 
@@ -299,33 +309,29 @@ export function MarketplaceModal({
               value={formData.address}
               onChange={handleChange}
               placeholder="Ej: Calle 50 # 50-50"
+              required
+              error={errors.address}
             />
           </div>
 
-          {/* Latitud + Longitud */}
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Latitud"
-              name="latitude"
-              type="number"
-              step="any"
-              value={formData.latitude}
-              onChange={handleChange}
-              placeholder="6.2442"
-              error={errors.latitude}
-            />
+          {/* La plaza es el punto de RECOGIDA de todos los pedidos de sus
+              tiendas: sin coordenadas, ningún tendero de la plaza puede
+              despachar. Antes se tecleaban a mano y dos de las tres plazas
+              quedaron sin ellas. */}
+          <MapPicker
+            latitude={formData.latitude ? Number(formData.latitude) : null}
+            longitude={formData.longitude ? Number(formData.longitude) : null}
+            onChange={handleMapChange}
+            label="Ubicación de la plaza en el mapa"
+            helpText="Busca la plaza o marca el punto. Es donde el mensajero recoge los pedidos."
+            initialQuery={formData.address}
+          />
 
-            <Input
-              label="Longitud"
-              name="longitude"
-              type="number"
-              step="any"
-              value={formData.longitude}
-              onChange={handleChange}
-              placeholder="-75.5812"
-              error={errors.longitude}
-            />
-          </div>
+          {(errors.latitude || errors.longitude) && (
+            <p className="ml-1 text-xs font-medium text-r">
+              {errors.latitude || errors.longitude}
+            </p>
+          )}
 
           {/* Descripción */}
           <div className="space-y-1">
