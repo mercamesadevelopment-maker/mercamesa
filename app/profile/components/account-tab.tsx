@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
+import { KeyRound, LogOut } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useAccount } from '../hooks/use-account';
 import { EmailChangeModal } from './email-change-modal';
+import { PasswordChangeModal } from './password-change-modal';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
@@ -43,6 +46,10 @@ function AccountTabContent() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [showEmailChange, setShowEmailChange] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [confirmSignOutAll, setConfirmSignOutAll] = useState(false);
+  const [signingOutAll, setSigningOutAll] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     fetchProfile();
@@ -91,6 +98,20 @@ function AccountTabContent() {
     if (ok) {
       setAvatarFile(null);
       setSaved(true);
+    }
+  };
+
+  // `scope: 'global'` revoca los tokens de refresco de TODAS las sesiones del
+  // usuario, no solo la de este navegador. Es lo que se necesita ante una
+  // sospecha de suplantación; sin el scope solo cerraría la sesión actual.
+  const handleSignOutEverywhere = async () => {
+    setSigningOutAll(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut({ scope: 'global' });
+      router.push('/');
+    } finally {
+      setSigningOutAll(false);
     }
   };
 
@@ -209,10 +230,84 @@ function AccountTabContent() {
         </Button>
       </form>
 
+      <div className="mt-10 max-w-xl border-t border-mm-crd pt-8">
+        <h3 className="mb-1 text-xl font-fraunces text-mm-g">Seguridad</h3>
+        <p className="mb-6 text-sm text-mm-txs">
+          Protege el acceso a tu cuenta.
+        </p>
+
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-mm-crd p-4">
+            <div className="flex items-start gap-3">
+              <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-mm-txw" />
+              <div>
+                <p className="text-sm font-bold text-mm-g">Contraseña</p>
+                <p className="text-xs text-mm-txs">
+                  Necesitarás tu contraseña actual para cambiarla.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setShowPasswordChange(true)}
+            >
+              Cambiar contraseña
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-mm-crd p-4">
+            <div className="flex items-start gap-3">
+              <LogOut className="mt-0.5 h-5 w-5 shrink-0 text-mm-txw" />
+              <div>
+                <p className="text-sm font-bold text-mm-g">Sesiones activas</p>
+                <p className="text-xs text-mm-txs">
+                  Cierra tu sesión en todos los dispositivos si crees que alguien más entró a tu cuenta.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              onClick={() => setConfirmSignOutAll(true)}
+            >
+              Cerrar en todos
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <EmailChangeModal
         isOpen={showEmailChange}
         onClose={() => setShowEmailChange(false)}
         currentEmail={profile?.email || ''}
+      />
+
+      <PasswordChangeModal
+        isOpen={showPasswordChange}
+        onClose={() => setShowPasswordChange(false)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmSignOutAll}
+        onClose={() => setConfirmSignOutAll(false)}
+        onConfirm={handleSignOutEverywhere}
+        isLoading={signingOutAll}
+        variant="danger"
+        title="Cerrar sesión en todos los dispositivos"
+        confirmText="Sí, cerrar todo"
+        message={
+          <>
+            Se cerrará tu sesión en este y en cualquier otro dispositivo, y tendrás que
+            volver a ingresar.
+            {'\n\n'}
+            Si sospechas que alguien más entró a tu cuenta,{' '}
+            <span className="font-bold text-mm-g">cambia también tu contraseña</span>: de lo
+            contrario podría volver a ingresar.
+          </>
+        }
       />
     </motion.div>
   );
