@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { canManageStore } from '@/lib/auth/can-manage-store';
 
 export async function GET(
   request: Request,
@@ -78,13 +79,39 @@ export async function POST(
     const file = formData.get('file') as File | null;
 
     if (!documentTypeId) {
-      return NextResponse.json({ error: 'Missing document_type_id' }, { status: 400 });
+      return NextResponse.json({ error: 'Falta indicar el tipo de documento.' }, { status: 400 });
+    }
+
+    // Subir documentación de una tienda es una acción de esa tienda, no de
+    // cualquiera con sesión: antes bastaba con estar autenticado y se podían
+    // tocar los documentos de tiendas ajenas.
+    if (!(await canManageStore(supabase, storeId, user.id))) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para gestionar los documentos de esta tienda.' },
+        { status: 403 }
+      );
+    }
+
+    // Aprobar es la decisión que habilita a la tienda a operar, así que no puede
+    // tomarla la tienda sobre sí misma: exige permiso de administración.
+    if (status === 'approved') {
+      const { data: canApprove } = await supabase.rpc('has_permission', {
+        module_key: 'stores',
+        action_name: 'update',
+      });
+
+      if (!canApprove) {
+        return NextResponse.json(
+          { error: 'Solo un administrador puede aprobar documentos de una tienda.' },
+          { status: 403 }
+        );
+      }
     }
 
     // Get document type slug for naming
     const { data: docType } = await supabase
       .from('document_types')
-      .select('slug')
+      .select('name, slug')
       .eq('id', documentTypeId)
       .single();
 
@@ -104,26 +131,42 @@ export async function POST(
       fileUrl = path;
     }
 
-    // Prepare data for upsert
-    const upsertData: any = {
-      store_id: storeId,
-      document_type_id: documentTypeId,
-      status,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (fileUrl) {
-      upsertData.file_url = fileUrl;
+    // `store_documents.file_url` es NOT NULL, así que un documento no puede
+    // existir sin archivo. Antes se omitía el campo cuando no había ninguno y el
+    // INSERT reventaba con el error crudo de Postgres ("null value in column
+    // file_url..."), justo al hacer algo tan normal como cambiar el estado de un
+    // documento que todavía no se ha subido.
+    if (!fileUrl) {
+      const docName = docType?.name ? `«${docType.name}»` : 'este documento';
+      return NextResponse.json(
+        { error: `Primero debes subir el archivo de ${docName} para poder cambiar su estado.` },
+        { status: 400 }
+      );
     }
 
     const { data, error } = await supabase
       .from('store_documents')
-      .upsert(upsertData, { onConflict: 'store_id,document_type_id' })
+      .upsert(
+        {
+          store_id: storeId,
+          document_type_id: documentTypeId,
+          status,
+          file_url: fileUrl,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'store_id,document_type_id' }
+      )
       .select()
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      // Nunca se devuelve el mensaje crudo de la base: no le dice nada a quien
+      // administra y expone nombres de columnas.
+      console.error('Error guardando documento de tienda:', error.message);
+      return NextResponse.json(
+        { error: 'No se pudo guardar el documento. Verifica el archivo e inténtalo de nuevo.' },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json({ data }, { status: 200 });
