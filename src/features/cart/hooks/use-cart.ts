@@ -36,10 +36,13 @@ export function useCart() {
     dispatch({ type: 'ADD_TO_CART', product, qty });
 
     try {
-      // Get current quantity in the state cart
-      const existing = state.cart.find((i) => i.id === product.id);
-      const newQty = existing ? existing.qty + qty : qty;
-      await addToCartDb(buyerId, String(product.id), newQty, offerId);
+      // Se manda `qty`, no la cantidad acumulada.
+      //
+      // Antes se sumaba acá `existing.qty + qty` y se pasaba el total a
+      // `addToCartDb`, que a su vez vuelve a sumar sobre lo que ya hay en la
+      // tabla. Con dos clics seguidos la base quedaba con más cantidad que la
+      // pantalla, porque además `state.cart` es el valor previo al dispatch.
+      await addToCartDb(buyerId, String(product.id), qty, offerId);
     } catch (e) {
       console.error('Error adding to cart in DB:', e);
     }
