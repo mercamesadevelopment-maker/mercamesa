@@ -15,8 +15,23 @@ type PaymentStatus =
   | 'refunded'
   | 'disputed';
 
+/**
+ * Traduce el código de medio de pago que devuelve ZonaPagos en la posición 22 de
+ * `str_res_pago`.
+ *
+ * `1001` es el que manda producción de verdad. Se verificó contra los dos únicos
+ * pagos que llegaron a una entidad financiera: uno por Nequi (entidad 1507) y
+ * uno por BBVA (entidad 1013), ambos con código 1001. El `2701` que aparece en
+ * la documentación nunca se ha visto, así que se conserva por compatibilidad
+ * pero no es el que llega.
+ *
+ * Sin esta traducción los 13 pagos históricos quedaron todos en 'unknown', que
+ * en Siigo cae en "Clientes Nacionales" (una cuenta por cobrar) en vez del medio
+ * real.
+ */
 function mapZonaPagosMethod(code?: string | null) {
   switch (code) {
+    case '1001':
     case '2701':
       return 'pse';
     case '1000':
@@ -28,16 +43,21 @@ function mapZonaPagosMethod(code?: string | null) {
   }
 }
 
-function getPaymentMethodLabel(method: string, bankName?: string | null) {
+/**
+ * `entityName` es la posición 24: el banco o la billetera con la que se pagó
+ * (NEQUI, BANCO BBVA COLOMBIA S.A....). Se muestra junto al medio porque es lo
+ * que el comprador reconoce de su extracto.
+ */
+function getPaymentMethodLabel(method: string, entityName?: string | null) {
   switch (method) {
     case 'pse':
-      return bankName ? `PSE - ${bankName}` : 'PSE';
+      return entityName ? `PSE - ${entityName}` : 'PSE';
     case 'card':
       return 'Tarjeta de Crédito/Débito';
     case 'cash':
       return 'Efectivo';
     default:
-      return 'Otro';
+      return entityName || 'Otro';
   }
 }
 
@@ -119,19 +139,21 @@ serve(async (req) => {
 
     console.log('ZonaPagos responseParts count:', responseParts.length);
 
-    // According to sample:
-    // 4: Transaction status code (int_estado_pago)
-    // 22: Payment method code (2701=PSE, etc)
-    // 24: Bank Name / Provider
+    // Posiciones verificadas contra respuestas reales de producción:
+    //  4: código de estado de la transacción (1 = aprobada)
+    // 21: número de pago de la pasarela
+    // 22: código del medio de pago (1001 = PSE)
+    // 23: código de la entidad financiera (1507 = Nequi, 1013 = BBVA)
+    // 24: nombre de la entidad (NEQUI, BANCO BBVA COLOMBIA S.A.)
     const transactionCodeRaw = responseParts[4];
     const paymentMethodCode = responseParts[22];
-    const bankName = responseParts[24];
+    const entityName = responseParts[24];
 
     /**
      * Payment method mapping
      */
     const paymentMethod = mapZonaPagosMethod(paymentMethodCode);
-    const paymentMethodLabel = getPaymentMethodLabel(paymentMethod, bankName);
+    const paymentMethodLabel = getPaymentMethodLabel(paymentMethod, entityName);
 
     /**
      * Map payment status
@@ -189,7 +211,7 @@ serve(async (req) => {
         paymentStatus,
         paymentMethod,
         paymentMethodLabel,
-        bankName,
+        entityName,
         rawResponse: result,
       }),
       {

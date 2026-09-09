@@ -1,6 +1,42 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+/**
+ * Mismo mapeo que `zonapagos-sync`. Las dos funciones confirman el mismo pago por
+ * caminos distintos y tienen que dejar el mismo dato en la tabla; antes esta
+ * copia además etiquetaba todo como "PSE - <entidad>" aunque el medio fuera otro.
+ *
+ * `1001` es el código que manda producción, verificado contra los dos pagos que
+ * llegaron a una entidad financiera (Nequi y BBVA). El `2701` de la documentación
+ * no se ha visto nunca, pero se conserva.
+ */
+function mapZonaPagosMethod(code?: string | null) {
+  switch (code) {
+    case '1001':
+    case '2701':
+      return 'pse';
+    case '1000':
+      return 'card';
+    case '3000':
+      return 'cash';
+    default:
+      return 'unknown';
+  }
+}
+
+function getPaymentMethodLabel(method: string, entityName?: string | null) {
+  switch (method) {
+    case 'pse':
+      return entityName ? `PSE - ${entityName}` : 'PSE';
+    case 'card':
+      return 'Tarjeta de Crédito/Débito';
+    case 'cash':
+      return 'Efectivo';
+    default:
+      return entityName || 'Otro';
+  }
+}
+
 serve(async (req) => {
   try {
     // Protección para el cron
@@ -68,8 +104,9 @@ serve(async (req) => {
 
         // Extraer códigos correspondientes
         const transactionCodeRaw = responseParts[4]; // int_estado_pago (999, 4001, 1, 1000, etc.)
-        const paymentMethodCode = responseParts[22];
-        const bankName = responseParts[24];
+        const paymentMethodCode = responseParts[22]; // 1001 = PSE
+        const entityName = responseParts[24]; // NEQUI, BANCO BBVA COLOMBIA S.A.
+        const paymentMethod = mapZonaPagosMethod(paymentMethodCode);
         
         const transactionCode = parseInt(transactionCodeRaw || '-1');
 
@@ -87,8 +124,8 @@ serve(async (req) => {
           .from('payments')
           .update({
             status: paymentStatus,
-            payment_method: paymentMethodCode === '2701' ? 'pse' : (paymentMethodCode === '1000' ? 'card' : 'unknown'),
-            payment_method_label: bankName ? `PSE - ${bankName}` : 'Otro',
+            payment_method: paymentMethod,
+            payment_method_label: getPaymentMethodLabel(paymentMethod, entityName),
             provider_payment_id: responseParts[21] || null, // No. de pago de la pasarela
             callback_response: result,
             updated_at: new Date().toISOString(),
