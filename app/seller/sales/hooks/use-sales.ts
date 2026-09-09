@@ -225,6 +225,9 @@ export function useSales() {
         buyer_id: customer.profile_id || null,
         client_id: client_id,
         buyer_type: 'retail',
+        // Sin esto el servidor la trata como pedido de marketplace y exige
+        // dirección de entrega, cotiza domicilio y aplica el monto mínimo.
+        channel: 'in_store',
         status: 'delivered',
         payment_status: 'approved',
         delivery_fee: 0,

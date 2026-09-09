@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { createSupabaseBrowserClient } from '../lib/supabase/client'; // ajusta la ruta a tu cliente browser
-import { fetchCart, revertCartDb, deleteCartForOrderDb } from './features/cart/services/cart.service';
+import { fetchCart, recoverAbandonedCartDb } from './features/cart/services/cart.service';
 import { 
   Plaza, Store, Product, CartItem, Order, AppNotification, BuyerProfile, RoleKey, Offer, MasterProduct, StoreReview, Sale, SaleStatus 
 } from './types';
@@ -426,26 +426,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Cargar el carrito de la base de datos
         let dbCart: CartItem[] = [];
         try {
-          const isPaymentStatusPage = typeof window !== 'undefined' && window.location.pathname.includes('/orders/payment-status');
-          const pendingOrderId = typeof window !== 'undefined' ? sessionStorage.getItem('pending_checkout_order_id') : null;
+          // La página de estado de pago resuelve ella misma los ítems de su
+          // orden; hacerlo también acá los revertiría justo antes de que ella
+          // los borre.
+          const isPaymentStatusPage =
+            typeof window !== 'undefined' &&
+            window.location.pathname.includes('/orders/payment-status');
 
-          if (pendingOrderId && !isPaymentStatusPage) {
+          if (!isPaymentStatusPage) {
             try {
-              const { data: order } = await supabase
-                .from('orders')
-                .select('payment_status')
-                .eq('id', pendingOrderId)
-                .maybeSingle();
-
-              if (order?.payment_status === 'approved') {
-                await deleteCartForOrderDb(pendingOrderId);
-              } else {
-                await revertCartDb(pendingOrderId);
-              }
+              // Rescata los ítems que quedaron en `pending` porque el comprador
+              // abandonó el pago. No depende de sessionStorage, así que funciona
+              // aunque haya vuelto desde otra pestaña o al día siguiente.
+              await recoverAbandonedCartDb(user.id);
             } catch (e) {
-              console.error('Error auto-reverting pending cart:', e);
-            } finally {
-              sessionStorage.removeItem('pending_checkout_order_id');
+              console.error('Error recuperando el carrito abandonado:', e);
             }
           }
 

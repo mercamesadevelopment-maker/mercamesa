@@ -2,12 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { SearchableSelect, SelectOption } from '@/components/ui/searchable-select';
+import { parseAmount, validateOffer, formatCop, offerFinalPrice } from '@/lib/offers/validate-offer';
 import type { StoreOffer } from '../types/offer.types';
 
 interface StoreProduct {
   id: string;
   store_id: string;
   price_per_unit: number;
+  stock?: number;
   catalog_products?: {
     name: string;
     categories?: {
@@ -29,9 +31,14 @@ interface OfferModalProps {
   allowStatusEdit?: boolean;
 }
 
+/** El descuento se expresa de una sola forma; no se pueden mezclar. */
+type DiscountMode = 'pct' | 'price';
+
 export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allowFeatured = true, allowStatusEdit = true }: OfferModalProps) {
   const [loading, setLoading] = useState(false);
   const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [mode, setMode] = useState<DiscountMode>('pct');
 
   const [formData, setFormData] = useState({
     store_product_id: '',
@@ -53,7 +60,9 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
   }, [isOpen, storeId]);
 
   useEffect(() => {
+    setValidationError(null);
     if (initialData) {
+      setMode(initialData.special_price != null ? 'price' : 'pct');
       setFormData({
         store_product_id: initialData.store_product_id,
         label: initialData.label || '',
@@ -65,6 +74,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
         is_featured: initialData.is_featured,
       });
     } else {
+      setMode('pct');
       setFormData({
         store_product_id: '',
         label: '',
@@ -94,37 +104,88 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     });
   }, [storeProducts, storeId]);
 
+  /**
+   * El producto escogido manda: de él salen la unidad de medida y el precio.
+   * La oferta NO tiene unidad propia —cuelga del producto y hereda la suya— así
+   * que se muestra de solo lectura. Es la forma de garantizar que la unidad de
+   * la oferta coincida siempre con la del inventario.
+   */
+  const selectedProduct = useMemo(
+    () => storeProducts.find((p) => p.id === formData.store_product_id) || null,
+    [storeProducts, formData.store_product_id]
+  );
+
+  const unit = selectedProduct?.measurement_units?.abbreviation || null;
+  const basePrice = selectedProduct ? Number(selectedProduct.price_per_unit) : null;
+
+  const preview = useMemo(() => {
+    if (basePrice === null) return null;
+    const discountPct = mode === 'pct' ? parseAmount(formData.discount_pct) : null;
+    const specialPrice = mode === 'price' ? parseAmount(formData.special_price) : null;
+    if (discountPct === null && specialPrice === null) return null;
+    return offerFinalPrice(basePrice, discountPct, specialPrice);
+  }, [basePrice, mode, formData.discount_pct, formData.special_price]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
+    setValidationError(null);
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
+  const handleModeChange = (next: DiscountMode) => {
+    setMode(next);
+    setValidationError(null);
+    // Limpiar el otro campo: si quedaran ambos con valor, la API rechazaría.
+    setFormData(prev => ({
+      ...prev,
+      discount_pct: next === 'pct' ? prev.discount_pct : '',
+      special_price: next === 'price' ? prev.special_price : '',
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
+
+    if (!formData.store_product_id) {
+      setValidationError('Debes escoger un producto.');
+      return;
+    }
+
+    const discountPct = mode === 'pct' ? parseAmount(formData.discount_pct) : null;
+    const specialPrice = mode === 'price' ? parseAmount(formData.special_price) : null;
+
+    // Las mismas reglas que aplica el servidor, para avisar sin ida y vuelta.
+    const invalid = validateOffer(
+      { discountPct, specialPrice, startsAt: formData.starts_at, endsAt: formData.ends_at || null },
+      basePrice !== null ? { pricePerUnit: basePrice } : null
+    );
+    if (invalid) {
+      setValidationError(invalid);
+      return;
+    }
+
     setLoading(true);
     try {
-      // Ensure we format dates correctly for Supabase (Timestamptz)
-      const submitData: any = { ...formData };
-      submitData.starts_at = new Date(formData.starts_at).toISOString();
-      if (formData.ends_at) {
-        submitData.ends_at = new Date(formData.ends_at).toISOString();
-      } else {
-        submitData.ends_at = null;
-      }
-      if (!allowFeatured) {
-        delete submitData.is_featured;
-      }
-      if (!allowStatusEdit) {
-        delete submitData.status;
-      }
+      const submitData: any = {
+        store_product_id: formData.store_product_id,
+        label: formData.label,
+        discount_pct: discountPct,
+        special_price: specialPrice,
+        starts_at: new Date(formData.starts_at).toISOString(),
+        ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null,
+      };
+
+      if (allowFeatured) submitData.is_featured = formData.is_featured;
+      if (allowStatusEdit) submitData.status = formData.status;
 
       const success = await onSave(initialData?.id || null, submitData as Partial<StoreOffer>);
       if (success) onClose();
     } catch (err) {
-      console.error(err);
+      setValidationError(err instanceof Error ? err.message : 'No se pudo guardar la oferta.');
     } finally {
       setLoading(false);
     }
@@ -134,23 +195,121 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Editar Oferta' : 'Nueva Oferta'} maxWidth="max-w-2xl">
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
+        {validationError && (
+          <div className="rounded-2xl bg-rl px-4 py-3 text-sm font-medium text-r">
+            {validationError}
+          </div>
+        )}
+
         <SearchableSelect
           label="Producto de la Tienda"
           required
           disabled={!!initialData}
           value={formData.store_product_id}
-          onChange={(val) => setFormData(prev => ({ ...prev, store_product_id: val }))}
+          onChange={(val) => { setValidationError(null); setFormData(prev => ({ ...prev, store_product_id: val })); }}
           placeholder="Selecciona un producto..."
           options={productOptions}
         />
 
+        {/* Unidad y precio del inventario, de solo lectura: la oferta hereda la
+            unidad del producto, así que no puede contradecirla. */}
+        {selectedProduct && (
+          <div className="rounded-2xl border border-mm-crd bg-mm-gbg/20 p-4">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-mm-txw">
+              Según tu inventario
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <p className="text-[11px] text-mm-txw">Unidad de medida</p>
+                <p className="text-sm font-bold text-mm-g">{unit || 'Sin unidad'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-mm-txw">Precio actual</p>
+                <p className="text-sm font-bold text-mm-g">
+                  {basePrice !== null ? `${formatCop(basePrice)}${unit ? ` / ${unit}` : ''}` : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-mm-txw">Existencias</p>
+                <p className="text-sm font-bold text-mm-g">
+                  {selectedProduct.stock != null ? `${selectedProduct.stock}${unit ? ` ${unit}` : ''}` : '—'}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-mm-txs">
+              La oferta usa esta misma unidad. Para ofrecer otra presentación, publícala como
+              producto aparte en tu inventario.
+            </p>
+          </div>
+        )}
+
         <Input label="Etiqueta Promocional (Opcional)" name="label" value={formData.label} onChange={handleChange} placeholder="Ej: ¡Oferta de la Semana!" />
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Input label="Porcentaje de Descuento (%)" name="discount_pct" type="number" step="0.01" value={formData.discount_pct} onChange={handleChange} placeholder="Ej: 15" />
-          <Input label="Precio Especial ($)" name="special_price" type="number" step="0.01" value={formData.special_price} onChange={handleChange} placeholder="Ej: 2000" />
+        <div className="space-y-3">
+          <label className="ml-1 text-sm font-medium text-mm-txs">¿Cómo quieres aplicar el descuento? *</label>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleModeChange('pct')}
+              className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${
+                mode === 'pct'
+                  ? 'border-mm-g bg-mm-g text-white'
+                  : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g'
+              }`}
+            >
+              Porcentaje
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange('price')}
+              className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${
+                mode === 'price'
+                  ? 'border-mm-g bg-mm-g text-white'
+                  : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g'
+              }`}
+            >
+              Precio especial
+            </button>
+          </div>
+
+          {mode === 'pct' ? (
+            <Input
+              label="Porcentaje de Descuento (%)"
+              name="discount_pct"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max="99.99"
+              required
+              value={formData.discount_pct}
+              onChange={handleChange}
+              placeholder="Ej: 15"
+            />
+          ) : (
+            <Input
+              label={unit ? `Precio especial por ${unit} ($)` : 'Precio Especial ($)'}
+              name="special_price"
+              type="number"
+              step="0.01"
+              min="1"
+              required
+              value={formData.special_price}
+              onChange={handleChange}
+              placeholder="Ej: 2000"
+            />
+          )}
+
+          {preview !== null && basePrice !== null && (
+            <p className="ml-1 text-xs text-mm-txs">
+              El comprador pagaría{' '}
+              <span className="font-bold text-mm-g">
+                {formatCop(preview)}{unit ? ` / ${unit}` : ''}
+              </span>{' '}
+              en vez de {formatCop(basePrice)}.
+            </p>
+          )}
         </div>
-        <p className="text-[10px] text-mm-txw ml-1 -mt-4">Nota: Usa el porcentaje o el precio fijo. Si usas ambos, se priorizará el precio fijo según la lógica de tu negocio.</p>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Input label="Fecha de Inicio" name="starts_at" type="date" value={formData.starts_at} onChange={handleChange} required />

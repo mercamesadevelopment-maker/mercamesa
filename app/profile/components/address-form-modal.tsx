@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
-import { MapPicker } from '@/components/ui/map-picker/MapPicker';
+import { MapPicker, type MapPickerChange } from '@/components/ui/map-picker/MapPicker';
 import type { AddressFormValues, DeliveryAddress } from '../types/address.types';
 
 export const EMPTY_ADDRESS_FORM: AddressFormValues = {
@@ -71,8 +71,32 @@ export function AddressFormModal({
       setForm((prev) => ({ ...prev, [key]: e.target.value })),
   });
 
+  /**
+   * Al escoger una sugerencia, Mapbox devuelve municipio y departamento ya
+   * normalizados. Se aprovechan: ahí se acaban los "Antiqouia" y los "sabaneta"
+   * en minúscula que hay hoy en la base. Siguen siendo editables.
+   *
+   * Cuando el punto viene de un clic o de arrastrar el pin no hay texto que
+   * copiar, así que solo se actualizan las coordenadas y se respeta lo que el
+   * comprador ya escribió.
+   */
+  const handleMapChange = (change: MapPickerChange) => {
+    setForm((prev) => ({
+      ...prev,
+      latitude: change.latitude,
+      longitude: change.longitude,
+      address_line: change.addressLine || prev.address_line,
+      neighborhood: change.neighborhood || prev.neighborhood,
+      municipality: change.municipality || prev.municipality,
+      department: change.department || prev.department,
+    }));
+  };
+
+  const hasCoords = form.latitude !== null && form.longitude !== null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasCoords) return;
     await onSubmit(form);
   };
 
@@ -96,8 +120,19 @@ export function AddressFormModal({
           <MapPicker
             latitude={form.latitude}
             longitude={form.longitude}
-            onChange={(lat, lon) => setForm((prev) => ({ ...prev, latitude: lat, longitude: lon }))}
+            onChange={handleMapChange}
+            initialQuery={editing ? '' : form.address_line}
           />
+
+          {/* Sin punto no hay despacho posible: Pibox solo geocodifica 6
+              ciudades, y todo el Área Metropolitana menos Medellín queda fuera.
+              Se dice el motivo acá y no como error genérico al enviar. */}
+          {!hasCoords && (
+            <p className="ml-1 flex items-start gap-1.5 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Marca el punto exacto en el mapa. Sin él no podemos enviarte el pedido.
+            </p>
+          )}
 
           <div className="flex items-center gap-3 p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
             <input
@@ -126,7 +161,11 @@ export function AddressFormModal({
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1 flex items-center justify-center gap-2" disabled={submitting}>
+            <Button
+              type="submit"
+              className="flex-1 flex items-center justify-center gap-2"
+              disabled={submitting || !hasCoords}
+            >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {editing ? 'Guardar Cambios' : 'Agregar Dirección'}
             </Button>

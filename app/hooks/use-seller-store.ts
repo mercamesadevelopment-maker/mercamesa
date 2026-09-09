@@ -53,22 +53,13 @@ export function useSellerStore() {
             name: m.stores?.name || 'Mi Tienda'
           }));
         } else {
-          // Fallback to the first store in DB
-          const { data: firstStore, error: firstStoreError } = await supabase
-            .from('stores')
-            .select('id, name')
-            .limit(1)
-            .maybeSingle();
-
-          if (firstStoreError) {
-            console.error('Error fetching fallback store:', firstStoreError);
-          }
-            
-          if (firstStore) {
-            finalStores = [{ id: firstStore.id, name: firstStore.name }];
-          } else {
-            setError('User is not a member of any store and no stores exist in DB.');
-          }
+          // Sin tiendas asociadas no se elige ninguna.
+          //
+          // Antes esto caía a "la primera tienda de la base", de modo que un
+          // usuario sin `store_members` terminaba gestionando el inventario, las
+          // ofertas y el horario de una tienda que no es suya. Con la pantalla
+          // de configuración de tienda eso sería, además, poder editarla.
+          setError('Tu usuario no está asociado a ninguna tienda. Pídele al equipo de MercaMesa que te asocie a la tuya.');
         }
 
         setStores(finalStores);

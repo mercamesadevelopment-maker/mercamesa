@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeAddress } from '@/lib/addresses/sanitize-address';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -12,8 +13,16 @@ export async function PUT(request: Request, { params }: Params) {
 
     const body = await request.json();
 
+    // Sin esta lista, un `buyer_id` en el cuerpo se escribía igual: el
+    // `.eq('buyer_id')` de abajo filtra la fila vieja, no lo que se guarda, así
+    // que se podía reasignar una dirección a otra cuenta.
+    const { data: address, error: invalid } = sanitizeAddress(body);
+    if (invalid || !address) {
+      return NextResponse.json({ error: invalid }, { status: 400 });
+    }
+
     // If setting as default, unset others first
-    if (body.is_default) {
+    if (address.is_default) {
       await supabase
         .from('delivery_addresses')
         .update({ is_default: false })
@@ -23,7 +32,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     const { data, error } = await supabase
       .from('delivery_addresses')
-      .update(body)
+      .update(address)
       .eq('id', id)
       .eq('buyer_id', user.id) // ownership check
       .select()

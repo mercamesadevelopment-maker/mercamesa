@@ -41,9 +41,11 @@ export function useOffers() {
       await fetchOffers(storeId);
       return true;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error saving offer';
-      alert(msg);
-      return false;
+      // Se relanza en vez de alertar: los mensajes de validación del servidor
+      // ("el precio especial debe ser menor…", "ya hay otra oferta en esas
+      // fechas") tienen que verse dentro del formulario, junto al campo que hay
+      // que corregir, no en un cuadro suelto del navegador.
+      throw err instanceof Error ? err : new Error('Error saving offer');
     }
   };
 

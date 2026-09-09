@@ -303,10 +303,10 @@ export function useCheckout() {
 
         if (paymentUrl) {
           try {
+            // La recuperación del carrito ya no depende de una marca en
+            // sessionStorage: al volver, la hidratación consulta los ítems
+            // `pending` del comprador contra el estado de sus órdenes.
             await checkoutCartDb(buyerId, orderId, storeProductIds);
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('pending_checkout_order_id', orderId);
-            }
           } catch (e) {
             console.error('Error updating cart status to pending in DB:', e);
           }

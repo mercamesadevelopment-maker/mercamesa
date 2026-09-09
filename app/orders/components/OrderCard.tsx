@@ -11,6 +11,7 @@ import {
   CreditCard,
   Wallet,
   Image as ImageIcon,
+  RotateCcw,
 } from 'lucide-react';
 
 import {
@@ -23,6 +24,7 @@ import {
 
 import { Button, cn } from '@/src/components/Shared';
 import { OrderDetailModal } from './OrderDetailModal';
+import { ReorderModal } from './ReorderModal';
 
 interface OrderCardProps {
   order: OrderDetail;
@@ -73,6 +75,7 @@ export function OrderCard({
   const products = (order.products as any[]) || [];
 
   const [showDetail, setShowDetail] = useState(false);
+  const [showReorder, setShowReorder] = useState(false);
 
   return (
     <motion.div
@@ -237,6 +240,15 @@ export function OrderCard({
             Ver detalles
           </Button>
 
+          {/* La recompra parte del pedido, no del carrito, así que se ofrece
+              incluso en pedidos cancelados: el comprador puede querer repetirlo. */}
+          {products.length > 0 && order.order_id && (
+            <Button variant="outline" size="sm" onClick={() => setShowReorder(true)}>
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+              Recomprar
+            </Button>
+          )}
+
           {order.status === 'delivered' &&
             onRate && (
               <Button
@@ -266,6 +278,14 @@ export function OrderCard({
         onClose={() => setShowDetail(false)}
         order={order}
       />
+
+      {order.order_id && (
+        <ReorderModal
+          isOpen={showReorder}
+          onClose={() => setShowReorder(false)}
+          orderId={order.order_id}
+        />
+      )}
     </motion.div>
   );
 }

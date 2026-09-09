@@ -318,9 +318,11 @@ export function buildInvoicePayload(ctx: OrderInvoiceContext): SiigoInvoicePaylo
     );
   }
 
+  const invoiceDate = todayInBogota();
+
   return {
     document: { id: SIIGO_FV_DOCUMENT_ID },
-    date: todayInBogota(),
+    date: invoiceDate,
     customer: { identification: ctx.buyer.identification, branch_office: '0' },
     seller: SIIGO_SELLER_ID,
     stamp: { send: SIIGO_STAMP_SEND },
@@ -332,6 +334,19 @@ export function buildInvoicePayload(ctx: OrderInvoiceContext): SiigoInvoicePaylo
       {
         id: toSiigoPaymentTypeId(ctx.paymentMethod),
         value: money(ctx.total),
+        /**
+         * Obligatorio para los tipos de pago a crédito.
+         *
+         * Los pagos por PSE llegan con `payment_method = 'unknown'` (ZonaPagos no
+         * lo discrimina) y caen en "Clientes Nacionales" (6542), que es una
+         * cuenta por cobrar y exige vencimiento: sin este campo Siigo responde
+         * `parameter_required: payments[0].due_date`.
+         *
+         * Va con la fecha de la factura porque el comprador ya pagó: el pedido
+         * solo se factura después de que el pago quedó aprobado, así que no hay
+         * plazo pendiente.
+         */
+        due_date: invoiceDate,
       },
     ],
   };

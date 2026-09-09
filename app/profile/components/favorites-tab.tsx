@@ -1,19 +1,41 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
+import type { FavoriteStore } from '@/src/features/favorites/types/favorite.types';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Store as StoreIcon, Heart, Loader2 } from 'lucide-react';
 
 export function FavoritesTab() {
   const router = useRouter();
   const { favoriteStores, loading, error, fetchFavorites, removeFavorite } = useFavorites();
 
+  // Quitar un favorito es un clic pequeño dentro de una tarjeta que además
+  // navega, así que se confirma antes de borrar.
+  const [storeToRemove, setStoreToRemove] = useState<FavoriteStore | null>(null);
+  const [removing, setRemoving] = useState(false);
+
   useEffect(() => {
     fetchFavorites();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleConfirmRemove = async () => {
+    if (!storeToRemove) return;
+    setRemoving(true);
+    try {
+      await removeFavorite(storeToRemove.storeId);
+      setStoreToRemove(null);
+    } catch {
+      // `removeFavorite` ya dejó el mensaje en `error`; el modal se cierra
+      // para que quede a la vista.
+      setStoreToRemove(null);
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   return (
     <motion.div
@@ -62,7 +84,7 @@ export function FavoritesTab() {
                 className="p-2 text-r hover:bg-rl rounded-full transition-all relative z-10 shrink-0"
                 onClick={(e) => {
                   e.stopPropagation();
-                  removeFavorite(store.storeId);
+                  setStoreToRemove(store);
                 }}
               >
                 <Heart className="w-5 h-5 fill-r" />
@@ -71,6 +93,22 @@ export function FavoritesTab() {
           ))
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!storeToRemove}
+        onClose={() => setStoreToRemove(null)}
+        onConfirm={handleConfirmRemove}
+        isLoading={removing}
+        variant="danger"
+        title="Quitar de favoritas"
+        confirmText="Sí, quitar"
+        message={
+          <>
+            <span className="font-bold text-mm-g">{storeToRemove?.name}</span> dejará de
+            aparecer en tus tiendas favoritas. Puedes volver a marcarla cuando quieras.
+          </>
+        }
+      />
     </motion.div>
   );
 }

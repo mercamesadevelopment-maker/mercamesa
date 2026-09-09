@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Eye, Upload, Check, AlertTriangle, AlertCircle, Loader } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Button, Badge } from '@/src/components/Shared';
 
 interface StoreDocumentsModalProps {
@@ -35,6 +36,9 @@ export function StoreDocumentsModal({
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [fileEdits, setFileEdits] = useState<Record<string, File>>({});
   const [statusEdits, setStatusEdits] = useState<Record<string, 'pending' | 'approved' | 'rejected'>>({});
+  // El repo no tiene librería de toasts: los errores posteriores a una acción se
+  // muestran con ConfirmModal, igual que en la pestaña de parametrización.
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchDocs = async () => {
     try {
@@ -71,7 +75,20 @@ export function StoreDocumentsModal({
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
+      // Se corta antes de mandar nada: sin archivo, el documento no puede
+      // existir, y el servidor respondería con un error por cada uno.
+      const sinArchivo = documents.filter(
+        (d) => !d.file_url && !fileEdits[d.id] && (statusEdits[d.id] || d.status) !== d.status
+      );
+      if (sinArchivo.length > 0) {
+        const nombres = sinArchivo.map((d) => `«${d.name}»`).join(', ');
+        throw new Error(
+          `Primero debes subir el archivo de ${nombres} para poder cambiar su estado.`
+        );
+      }
+
       for (const doc of documents) {
         const file = fileEdits[doc.id];
         const status = statusEdits[doc.id] || doc.status;
@@ -102,8 +119,10 @@ export function StoreDocumentsModal({
       }
       onSaved();
       onClose();
-    } catch (err: any) {
-      alert(err.message || 'Ocurrió un error al guardar los documentos.');
+    } catch (err: unknown) {
+      setSaveError(
+        err instanceof Error ? err.message : 'Ocurrió un error al guardar los documentos.'
+      );
     } finally {
       setSaving(false);
     }
@@ -148,6 +167,8 @@ export function StoreDocumentsModal({
                 const isFileEdited = !!fileEdits[doc.id];
                 const currentStatus = statusEdits[doc.id] || doc.status;
                 const isStatusEdited = currentStatus !== doc.status;
+                // Ya subido antes, o seleccionado ahora y pendiente de guardar.
+                const hasFile = !!doc.file_url || isFileEdited;
 
                 return (
                   <div key={doc.id} className="py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -193,11 +214,14 @@ export function StoreDocumentsModal({
                         />
                       </label>
 
-                      {/* Status Selector */}
+                      {/* Status Selector. Sin archivo no hay estado que cambiar:
+                          el documento aún no existe. */}
                       <select
                         value={currentStatus}
+                        disabled={!hasFile}
+                        title={!hasFile ? 'Sube primero el archivo para poder cambiar su estado' : undefined}
                         onChange={(e) => handleStatusChange(doc.id, e.target.value as any)}
-                        className="px-3 py-1.5 rounded-lg border border-mm-crd bg-white text-xs text-mm-g font-semibold focus:border-mm-g outline-none transition-all cursor-pointer shadow-sm min-h-[34px]"
+                        className="px-3 py-1.5 rounded-lg border border-mm-crd bg-white text-xs text-mm-g font-semibold focus:border-mm-g outline-none transition-all cursor-pointer shadow-sm min-h-[34px] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-mm-gbg"
                       >
                         <option value="pending">Pendiente</option>
                         <option value="approved">Aprobado</option>
@@ -231,6 +255,17 @@ export function StoreDocumentsModal({
           </>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!saveError}
+        onClose={() => setSaveError(null)}
+        onConfirm={() => setSaveError(null)}
+        title="No se pudieron guardar los documentos"
+        message={saveError ?? ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </Modal>
   );
 }

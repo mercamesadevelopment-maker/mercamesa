@@ -21,15 +21,38 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const storeId = searchParams.get('store_id');
 
+  /**
+   * Esta ruta sirve dos usos muy distintos y hay que distinguirlos:
+   *
+   * - La vitrina pública (`/sections/products`, la página de una tienda), que la
+   *   consultan compradores y visitantes.
+   * - El panel del vendedor, que necesita también sus productos inactivos.
+   *
+   * Antes no distinguía nada: sin `store_id` devolvía TODOS los productos de
+   * TODAS las tiendas con su precio mayorista, su stock y su código interno, a
+   * cualquiera que llamara la ruta. Ahora el modo de gestión hay que ganárselo.
+   */
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isManaging =
+    !!storeId && !!user && (await canManageStore(supabase, storeId, user.id));
+
   let query = supabase.from('store_products').select(`
     *,
     catalog_products ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
-    stores ( name, marketplaces ( name ) ),
+    stores!inner ( name, is_active, marketplaces ( name ) ),
     measurement_units ( abbreviation )
   `);
 
   if (storeId) {
     query = query.eq('store_id', storeId);
+  }
+
+  if (!isManaging) {
+    // Modo vitrina: solo lo que está publicado, y de tiendas activas.
+    query = query.eq('is_active', true).eq('stores.is_active', true);
   }
 
   query = query

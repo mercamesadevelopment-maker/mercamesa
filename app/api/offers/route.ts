@@ -3,6 +3,9 @@ import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/supabase-image';
 import { createNotification } from '../../../lib/notifications/create-notification';
+import { canManageStore } from '@/lib/auth/can-manage-store';
+import { parseAmount, validateOffer } from '@/lib/offers/validate-offer';
+import { findOverlappingOffer } from '@/lib/offers/find-overlapping-offer';
 
 type StoreOfferInsert = Database['public']['Tables']['store_offers']['Insert'];
 
@@ -69,11 +72,57 @@ export async function POST(request: Request) {
     const requesterRole = (requesterProfile?.roles as any)?.name;
     const canFeature = requesterRole === 'admin' || requesterRole === 'superadmin';
 
+    if (!body.store_product_id) {
+      return NextResponse.json({ error: 'Debes escoger un producto.' }, { status: 400 });
+    }
+
+    // El producto manda: de él salen la tienda (para autorizar) y el precio del
+    // inventario (para validar que la oferta realmente descuente).
+    const { data: storeProduct } = await supabase
+      .from('store_products')
+      .select('id, store_id, price_per_unit')
+      .eq('id', body.store_product_id)
+      .maybeSingle();
+
+    if (!storeProduct) {
+      return NextResponse.json({ error: 'El producto seleccionado no existe.' }, { status: 404 });
+    }
+
+    // Antes bastaba con estar autenticado: cualquiera podía crear ofertas sobre
+    // los productos de cualquier tienda.
+    if (!(await canManageStore(supabase, storeProduct.store_id, user.id))) {
+      return NextResponse.json(
+        { error: 'No tienes permisos sobre esta tienda.' },
+        { status: 403 }
+      );
+    }
+
+    const discountPct = parseAmount(body.discount_pct);
+    const specialPrice = parseAmount(body.special_price);
+
+    const invalid = validateOffer(
+      { discountPct, specialPrice, startsAt: body.starts_at, endsAt: body.ends_at || null },
+      { pricePerUnit: Number(storeProduct.price_per_unit) }
+    );
+    if (invalid) {
+      return NextResponse.json({ error: invalid }, { status: 400 });
+    }
+
+    const overlap = await findOverlappingOffer(
+      supabase,
+      body.store_product_id,
+      body.starts_at,
+      body.ends_at || null
+    );
+    if (overlap) {
+      return NextResponse.json({ error: overlap }, { status: 409 });
+    }
+
     const insertData: StoreOfferInsert = {
       store_product_id: body.store_product_id,
       label: body.label || null,
-      discount_pct: body.discount_pct ? Number(body.discount_pct) : null,
-      special_price: body.special_price ? Number(body.special_price) : null,
+      discount_pct: discountPct,
+      special_price: specialPrice,
       starts_at: body.starts_at,
       ends_at: body.ends_at || null,
       status: 'pending',

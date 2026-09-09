@@ -14,6 +14,7 @@ import { useCart } from "../hooks/use-cart";
 import { Button, Badge, cn } from "@/src/components/Shared";
 import { fmt } from "@/src/constants";
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
+import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
 import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
 import { CARD_TOKENIZATION_ENABLED } from "@/src/features/payment/config";
 import { CartItem } from "@/src/types";
@@ -56,6 +57,14 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
 
   const [deletingItem, setDeletingItem] = React.useState<CartItem | null>(null);
   const [step, setStep] = React.useState<CheckoutStep>(1);
+  /**
+   * La dirección elegida tiene punto en el mapa.
+   *
+   * Sin coordenadas Pibox solo geocodifica 6 ciudades, así que un pedido a
+   * Sabaneta o Envigado se cae al confirmar. Es mejor bloquearlo acá, con el
+   * botón "Completar ubicación" a la vista, que dejarlo pagar y fallar después.
+   */
+  const [addressReady, setAddressReady] = React.useState(false);
 
   const isEmpty = cartByStore.length === 0;
 
@@ -69,14 +78,6 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   React.useEffect(() => {
     if (isEmpty) setStep(1);
   }, [isEmpty]);
-
-  const handleDecrement = (item: CartItem) => {
-    if (item.qty === 1) {
-      setDeletingItem(item);
-    } else {
-      updateCartQty(item.id, item.qty - 1);
-    }
-  };
 
   /**
    * Mismo desglose que la factura: tres conceptos. Lo que el comprador ve antes
@@ -297,26 +298,17 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                                     </span>
                                   </div>
 
-                                  {/* Control de cantidad */}
-                                  <div className="flex items-center gap-2 bg-mm-gbg rounded-full px-2 py-1">
-                                    <button
-                                      onClick={() => handleDecrement(item)}
-                                      className="w-5 h-5 flex items-center justify-center font-bold text-mm-txs hover:text-mm-g hover:bg-white rounded-full transition-colors text-xs"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="text-xs font-bold w-4 text-center">
-                                      {item.qty}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        updateCartQty(item.id, item.qty + 1)
-                                      }
-                                      className="w-5 h-5 flex items-center justify-center font-bold text-mm-txs hover:text-mm-g hover:bg-white rounded-full transition-colors text-xs"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
+                                  {/* Control de cantidad. Bajar de 1 no quita el
+                                      producto de una: pide confirmación. */}
+                                  <QuantityStepper
+                                    size="sm"
+                                    qty={item.qty}
+                                    max={item.stock}
+                                    onChange={(next) =>
+                                      updateCartQty(item.id, next)
+                                    }
+                                    onBelowMin={() => setDeletingItem(item)}
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -353,6 +345,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <DeliveryAddressSelector
                       selectedAddressId={selectedAddressId}
                       onSelect={setSelectedAddressId}
+                      onReadyChange={setAddressReady}
                     />
 
                     {CARD_TOKENIZATION_ENABLED &&
@@ -475,7 +468,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     loading={isPlacingOrder}
                     // Sin cotización no hay un total que cobrar, así que no se
                     // puede pagar.
-                    disabled={!selectedAddressId || !canPlaceOrder}
+                    disabled={!selectedAddressId || !addressReady || !canPlaceOrder}
                     className="flex-grow py-4 text-lg"
                   >
                     Confirmar y pagar

@@ -7,6 +7,7 @@ import {
   quoteDeliveryFee,
   DeliveryQuoteUnavailableError,
 } from '@/lib/pricing/delivery-quote';
+import { canManageStore } from '@/lib/auth/can-manage-store';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -61,53 +62,71 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: existingOrder, idempotent: true }, { status: 200 });
     }
 
-    // --- DELIVERY ADDRESS VALIDATION ---
-    // La dirección no puede confiarse al cliente: hay que verificar que exista
-    // y que sea del comprador, o cualquiera podría mandar el id de la dirección
-    // de otra persona.
-    if (!order.delivery_address_id) {
-      return NextResponse.json(
-        { error: 'Debes seleccionar una dirección de entrega para el pedido.' },
-        { status: 400 }
-      );
+    /**
+     * Canal de la venta. Una venta de mostrador no es un pedido del marketplace:
+     * el comprador está parado frente al tendero, así que no hay dirección de
+     * entrega, no hay domicilio que cotizar y no aplica el monto mínimo de
+     * compra.
+     *
+     * Hasta ahora no existía la distinción, y la venta en sitio mandaba el mismo
+     * cuerpo que el marketplace pero sin `delivery_address_id`: la petición moría
+     * en el 400 de más abajo, nunca se creaba la orden y por eso el stock jamás
+     * se descontaba. El síntoma reportado ("no descuenta el stock") era en
+     * realidad "la venta no se registra".
+     */
+    const isInStore = (order as any).channel === 'in_store';
+
+    let deliveryAddressSnapshot: Record<string, unknown> | null = null;
+
+    if (!isInStore) {
+      // --- DELIVERY ADDRESS VALIDATION ---
+      // La dirección no puede confiarse al cliente: hay que verificar que exista
+      // y que sea del comprador, o cualquiera podría mandar el id de la dirección
+      // de otra persona.
+      if (!order.delivery_address_id) {
+        return NextResponse.json(
+          { error: 'Debes seleccionar una dirección de entrega para el pedido.' },
+          { status: 400 }
+        );
+      }
+
+      const { data: deliveryAddress, error: addressError } = await supabase
+        .from('delivery_addresses')
+        .select('id, buyer_id, label, address_line, neighborhood, municipality, department, latitude, longitude')
+        .eq('id', order.delivery_address_id)
+        .maybeSingle();
+
+      if (addressError) {
+        return NextResponse.json({ error: addressError.message }, { status: 400 });
+      }
+
+      if (!deliveryAddress) {
+        return NextResponse.json(
+          { error: 'La dirección de entrega seleccionada no existe.' },
+          { status: 400 }
+        );
+      }
+
+      if (deliveryAddress.buyer_id !== user.id) {
+        return NextResponse.json(
+          { error: 'La dirección de entrega no pertenece a este usuario.' },
+          { status: 403 }
+        );
+      }
+
+      // Copia congelada: la orden debe conservar a dónde se envió, aunque después
+      // el comprador edite o borre esa dirección.
+      deliveryAddressSnapshot = {
+        label: deliveryAddress.label,
+        address_line: deliveryAddress.address_line,
+        neighborhood: deliveryAddress.neighborhood,
+        municipality: deliveryAddress.municipality,
+        department: deliveryAddress.department,
+        latitude: deliveryAddress.latitude,
+        longitude: deliveryAddress.longitude,
+      };
+      // --- END DELIVERY ADDRESS VALIDATION ---
     }
-
-    const { data: deliveryAddress, error: addressError } = await supabase
-      .from('delivery_addresses')
-      .select('id, buyer_id, label, address_line, neighborhood, municipality, department, latitude, longitude')
-      .eq('id', order.delivery_address_id)
-      .maybeSingle();
-
-    if (addressError) {
-      return NextResponse.json({ error: addressError.message }, { status: 400 });
-    }
-
-    if (!deliveryAddress) {
-      return NextResponse.json(
-        { error: 'La dirección de entrega seleccionada no existe.' },
-        { status: 400 }
-      );
-    }
-
-    if (deliveryAddress.buyer_id !== user.id) {
-      return NextResponse.json(
-        { error: 'La dirección de entrega no pertenece a este usuario.' },
-        { status: 403 }
-      );
-    }
-
-    // Copia congelada: la orden debe conservar a dónde se envió, aunque después
-    // el comprador edite o borre esa dirección.
-    const deliveryAddressSnapshot = {
-      label: deliveryAddress.label,
-      address_line: deliveryAddress.address_line,
-      neighborhood: deliveryAddress.neighborhood,
-      municipality: deliveryAddress.municipality,
-      department: deliveryAddress.department,
-      latitude: deliveryAddress.latitude,
-      longitude: deliveryAddress.longitude,
-    };
-    // --- END DELIVERY ADDRESS VALIDATION ---
 
     // --- SECURE PRICE VALIDATION & RE-CALCULATION ON SERVER SIDE ---
     // 1. Check buyer type (retail vs wholesale) securely from the database
@@ -134,6 +153,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El pedido debe indicar la tienda que lo despacha' }, { status: 400 });
     }
 
+    // Una venta de mostrador la registra la tienda, no un comprador cualquiera:
+    // sin esto, cualquier usuario podría crear ventas ya "entregadas" y pagadas
+    // en una tienda ajena, descontándole el inventario.
+    if (isInStore && !(await canManageStore(supabase, String(storeOrders[0].store_id), user.id))) {
+      return NextResponse.json(
+        { error: 'No tienes permisos para registrar ventas en esta tienda.' },
+        { status: 403 }
+      );
+    }
+
     const { data: dbProducts, error: dbProductsError } = await supabase
       .from('store_products')
       .select(`
@@ -141,6 +170,7 @@ export async function POST(request: Request) {
         price_per_unit,
         wholesale_price,
         store_id,
+        stock,
         catalog_products ( name ),
         measurement_units ( abbreviation )
       `)
@@ -197,21 +227,57 @@ export async function POST(request: Request) {
       };
     });
 
+    // --- STOCK VALIDATION ---
+    // No se validaba en ningún punto: ni al agregar al carrito ni acá, donde el
+    // select ni siquiera pedía la columna. Se podían pedir 999 de un producto con
+    // 2, y el trigger que descuenta tampoco impide dejar el stock en negativo.
+    const outOfStock = recalculatedItems
+      .map((item) => {
+        const dbProd = (dbProducts as any[]).find((p) => p.id === item.store_product_id);
+        const available = Number(dbProd?.stock ?? 0);
+        return { name: item.catalog_name, unit: item.unit_name, requested: item.quantity, available };
+      })
+      .filter((l) => l.requested > l.available);
+
+    if (outOfStock.length > 0) {
+      const detalle = outOfStock
+        .map((l) =>
+          l.available <= 0
+            ? `${l.name} (sin existencias)`
+            : `${l.name} (quedan ${l.available} ${l.unit || ''})`.trim()
+        )
+        .join(', ');
+
+      return NextResponse.json(
+        {
+          error: `No hay existencias suficientes de: ${detalle}. Ajusta las cantidades e intenta de nuevo.`,
+          outOfStock,
+        },
+        { status: 409 }
+      );
+    }
+    // --- END STOCK VALIDATION ---
+
     // --- MINIMUM ORDER PRICE VALIDATION ---
     // Se compara contra el valor de los productos, no contra el total: el mínimo
     // significa "cuánto compró", y sumarle comisiones y domicilio dejaría pasar
     // pedidos mucho más pequeños de los que el cliente autorizó.
-    const { data: minPriceRow } = await supabase
-      .from('order_min_price_history')
-      .select('min_price')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    //
+    // No aplica en mostrador: el mínimo existe para que valga la pena despachar
+    // un domicilio, y acá el comprador se lleva la compra en la mano.
+    if (!isInStore) {
+      const { data: minPriceRow } = await supabase
+        .from('order_min_price_history')
+        .select('min_price')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (minPriceRow && recalculatedSubtotal < minPriceRow.min_price) {
-      return NextResponse.json({
-        error: `El pedido no alcanza el valor mínimo de $${minPriceRow.min_price.toLocaleString('es-CO')} para poder procesarse.`,
-      }, { status: 400 });
+      if (minPriceRow && recalculatedSubtotal < minPriceRow.min_price) {
+        return NextResponse.json({
+          error: `El pedido no alcanza el valor mínimo de $${minPriceRow.min_price.toLocaleString('es-CO')} para poder procesarse.`,
+        }, { status: 400 });
+      }
     }
     // --- END MINIMUM ORDER PRICE VALIDATION ---
 
@@ -219,18 +285,41 @@ export async function POST(request: Request) {
     // El `delivery_fee` que mande el navegador se ignora por completo. Antes se
     // usaba tal cual (`order.delivery_fee !== undefined ? ...`), así que una
     // petición armada a mano podía guardar un domicilio de $0.
-    const pricingSettings = await loadPricingSettings(supabase);
+    /**
+     * En mostrador el comprador paga el precio de la tienda y ya: no hay
+     * domicilio que cotizar, ni comisión de servicio, ni mensajes, ni comisión de
+     * plataforma. Esas se cobran por intermediar una venta a distancia, y acá no
+     * hay intermediación.
+     */
+    const pricing = isInStore
+      ? {
+          productsSubtotal: recalculatedSubtotal,
+          serviceCommission: 0,
+          messagesAmount: 0,
+          platformCommission: 0,
+          deliveryFee: 0,
+          total: recalculatedSubtotal,
+        }
+      : null;
 
-    // Cada orden es de una sola tienda (el carrito crea una por grupo), así que
-    // hay exactamente una cotización de domicilio por orden.
-    const deliveryFee = await quoteDeliveryFee(supabase, {
-      storeId: String(storeOrders[0].store_id),
-      deliveryAddressId: order.delivery_address_id,
-      buyerId: user.id,
-      subtotal: recalculatedSubtotal,
-    });
+    let pricingSettingsId: string | null = null;
 
-    const pricing = computeOrderPricing(recalculatedSubtotal, deliveryFee, pricingSettings);
+    let finalPricing = pricing;
+    if (!finalPricing) {
+      const pricingSettings = await loadPricingSettings(supabase);
+      pricingSettingsId = pricingSettings.id;
+
+      // Cada orden es de una sola tienda (el carrito crea una por grupo), así que
+      // hay exactamente una cotización de domicilio por orden.
+      const deliveryFee = await quoteDeliveryFee(supabase, {
+        storeId: String(storeOrders[0].store_id),
+        deliveryAddressId: order.delivery_address_id!,
+        buyerId: user.id,
+        subtotal: recalculatedSubtotal,
+      });
+
+      finalPricing = computeOrderPricing(recalculatedSubtotal, deliveryFee, pricingSettings);
+    }
     // --- END SECURE RE-CALCULATION ---
 
     const orderInsertData: any = {
@@ -239,16 +328,16 @@ export async function POST(request: Request) {
       buyer_type: isWS ? 'wholesale' : 'retail',
       status: order.status,
       payment_status: order.payment_status,
-      subtotal: pricing.productsSubtotal,
-      service_commission_amount: pricing.serviceCommission,
-      messages_amount: pricing.messagesAmount,
-      platform_commission_amount: pricing.platformCommission,
-      delivery_fee: pricing.deliveryFee,
-      pricing_settings_id: pricingSettings.id,
+      subtotal: finalPricing.productsSubtotal,
+      service_commission_amount: finalPricing.serviceCommission,
+      messages_amount: finalPricing.messagesAmount,
+      platform_commission_amount: finalPricing.platformCommission,
+      delivery_fee: finalPricing.deliveryFee,
+      pricing_settings_id: pricingSettingsId,
       discount: 0,
-      total: pricing.total,
+      total: finalPricing.total,
       notes: order.notes,
-      delivery_address_id: order.delivery_address_id,
+      delivery_address_id: isInStore ? null : order.delivery_address_id,
       delivery_address_snapshot: deliveryAddressSnapshot,
       client_idempotency_key: order.client_idempotency_key,
     };

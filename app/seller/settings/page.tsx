@@ -1,26 +1,45 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock, Loader2, Star, Store } from 'lucide-react';
+import { Clock, Loader2, Star, Store, Info } from 'lucide-react';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { StoreHoursTab } from './components/store-hours-tab';
+import { StoreProfileTab } from './components/store-profile-tab';
 import { StoreReputationTab } from './components/store-reputation-tab';
 
-type TabKey = 'hours' | 'reputation';
+type TabKey = 'profile' | 'hours' | 'reputation';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
+  { key: 'profile', label: 'Datos de la tienda', icon: Store },
   { key: 'hours', label: 'Horario', icon: Clock },
   { key: 'reputation', label: 'Calificaciones', icon: Star },
 ];
 
 export default function SellerSettingsPage() {
-  const { stores, storeId, storeName, loading: loadingStore, selectStore } = useSellerStore();
-  const [activeTab, setActiveTab] = useState<TabKey>('hours');
+  const { stores, storeId, storeName, loading: loadingStore, error, selectStore } = useSellerStore();
+  const [activeTab, setActiveTab] = useState<TabKey>('profile');
 
   if (loadingStore) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="w-8 h-8 animate-spin text-mm-txw" />
+      </div>
+    );
+  }
+
+  // Sin tienda asociada no hay nada que configurar. Antes el hook caía a "la
+  // primera tienda de la base", lo que aquí sería editar una tienda ajena.
+  if (!storeId) {
+    return (
+      <div className="p-6 lg:p-10 max-w-2xl mx-auto">
+        <div className="rounded-3xl border border-mm-crd bg-white p-8 text-center">
+          <Info className="mx-auto mb-4 h-10 w-10 text-mm-txw" />
+          <h1 className="mb-2 text-2xl font-fraunces text-mm-g">Aún no tienes una tienda</h1>
+          <p className="text-sm text-mm-txs">
+            {error ||
+              'Tu usuario no está asociado a ninguna tienda. Pídele al equipo de MercaMesa que te asocie a la tuya.'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -76,6 +95,7 @@ export default function SellerSettingsPage() {
       </div>
 
       <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
+        {activeTab === 'profile' && <StoreProfileTab storeId={storeId} />}
         {activeTab === 'hours' && <StoreHoursTab storeId={storeId} />}
         {activeTab === 'reputation' && <StoreReputationTab storeId={storeId} />}
       </div>
