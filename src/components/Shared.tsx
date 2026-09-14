@@ -104,6 +104,32 @@ export function Input({ label, error, className, ...props }: React.InputHTMLAttr
   );
 }
 
+/**
+ * Desplegable con la misma etiqueta y el mismo borde que `Input`, para que un
+ * formulario que mezcla los dos no se vea a dos aguas.
+ *
+ * Estaba definido dentro de BuyerRegisterModal; se subió acá al necesitarlo
+ * también el formulario de invitación.
+ */
+export function Select({ label, error, className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string }) {
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      {label && <label className="text-sm font-medium text-mm-txs ml-1">{label}</label>}
+      <select
+        className={cn(
+          "px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g focus:ring-2 focus:ring-mm-gll outline-none transition-all",
+          error && "border-r ring-rl",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      {error && <span className="text-xs text-r ml-1">{error}</span>}
+    </div>
+  );
+}
+
 export function StepBar({ step, total, color = "#2A4E12" }: { step: number; total: number; color?: string }) {
   return (
     <div className="flex items-center justify-between w-full max-w-xs mx-auto mb-8 relative">

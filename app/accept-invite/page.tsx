@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button, Input, Select } from '@/src/components/Shared';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
 export default function AcceptInvite() {
   const router = useRouter();
@@ -16,8 +17,15 @@ export default function AcceptInvite() {
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
 
+  const { personTypes, loading: loadingTypes } = useIdentificationTypes();
+
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [personTypeId, setPersonTypeId] = useState('');
+  const [identificationTypeId, setIdentificationTypeId] = useState('');
+  const [documentNumber, setDocumentNumber] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [contactName, setContactName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -83,11 +91,49 @@ export default function AcceptInvite() {
     checkInvitation();
   }, []);
 
+  // El primero de la lista queda preseleccionado, igual que en el registro de
+  // comprador.
+  useEffect(() => {
+    if (!personTypeId && personTypes.length > 0) {
+      setPersonTypeId(personTypes[0].id);
+    }
+  }, [personTypes, personTypeId]);
+
+  const personType = personTypes.find((p) => p.id === personTypeId) ?? null;
+  const identificationOptions = personType?.identification_types ?? [];
+
+  // Al cambiar el tipo de persona, una identificación ya elegida puede dejar de
+  // ser válida (Natural con NIT). Se limpia en vez de dejar la combinación mala.
+  useEffect(() => {
+    if (identificationTypeId && !identificationOptions.some((t) => t.id === identificationTypeId)) {
+      setIdentificationTypeId('');
+    }
+  }, [identificationOptions, identificationTypeId]);
+
+  // Qué campos de nombre se piden lo dice el catálogo, no un `if` sobre
+  // "jurídica": "Establecimiento de comercio" también lleva razón social.
+  const requiresBusinessName = personType?.requires_business_name ?? false;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!fullName.trim() || !phone.trim() || !password || !confirmPassword) {
+    if (!phone.trim() || !password || !confirmPassword) {
+      setError('Por favor completa todos los campos.');
+      return;
+    }
+
+    if (!personTypeId || !identificationTypeId || !documentNumber.trim()) {
+      setError('Selecciona el tipo de persona, el tipo de identificación y escribe el número.');
+      return;
+    }
+
+    if (requiresBusinessName) {
+      if (!businessName.trim() || !contactName.trim()) {
+        setError('La razón social y el nombre del contacto son obligatorios para este tipo de persona.');
+        return;
+      }
+    } else if (!fullName.trim()) {
       setError('Por favor completa todos los campos.');
       return;
     }
@@ -108,9 +154,14 @@ export default function AcceptInvite() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: fullName.trim(),
+          fullName: requiresBusinessName ? undefined : fullName.trim(),
           phone: phone.trim(),
-          password
+          password,
+          person_type_id: personTypeId,
+          identification_type_id: identificationTypeId,
+          document_number: documentNumber.trim(),
+          business_name: requiresBusinessName ? businessName.trim() : undefined,
+          contact_name: requiresBusinessName ? contactName.trim() : undefined
         })
       });
 
@@ -223,16 +274,18 @@ export default function AcceptInvite() {
                   </div>
                 </div>
 
-                <div className="relative">
-                  <Input
-                    label="Nombre Completo"
-                    name="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ej: Carlos Alberto Gómez"
-                    required
-                  />
-                </div>
+                {!requiresBusinessName && (
+                  <div className="relative">
+                    <Input
+                      label="Nombre Completo"
+                      name="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Ej: Carlos Alberto Gómez"
+                      required
+                    />
+                  </div>
+                )}
 
                 <div className="relative">
                   <Input
@@ -244,6 +297,75 @@ export default function AcceptInvite() {
                     required
                   />
                 </div>
+
+                <Select
+                  label="Tipo de persona"
+                  name="person_type_id"
+                  value={personTypeId}
+                  onChange={(e) => setPersonTypeId(e.target.value)}
+                  disabled={loadingTypes}
+                  required
+                >
+                  <option value="" disabled>
+                    {loadingTypes ? 'Cargando...' : 'Selecciona...'}
+                  </option>
+                  {personTypes.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </Select>
+
+                <Select
+                  label="Tipo de identificación"
+                  name="identification_type_id"
+                  value={identificationTypeId}
+                  onChange={(e) => setIdentificationTypeId(e.target.value)}
+                  disabled={!personTypeId}
+                  required
+                >
+                  <option value="" disabled>
+                    {personTypeId ? 'Selecciona...' : 'Elige primero el tipo de persona'}
+                  </option>
+                  {identificationOptions.map((type) => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </Select>
+
+                <div className="relative">
+                  <Input
+                    label="Número de identificación"
+                    name="document_number"
+                    value={documentNumber}
+                    onChange={(e) => setDocumentNumber(e.target.value)}
+                    placeholder="Ej: 1234567890"
+                    required
+                  />
+                </div>
+
+                {requiresBusinessName && (
+                  <>
+                    <div className="relative">
+                      <Input
+                        label="Razón social"
+                        name="business_name"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="Ej: Frutas del Campo S.A.S."
+                        required
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <Input
+                        label="Nombre del contacto principal"
+                        name="contact_name"
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        placeholder="Ej: Carlos Alberto Gómez"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="relative">
                   <Input
