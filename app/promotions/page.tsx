@@ -44,13 +44,13 @@ export default function PromotionsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 pb-24">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">
+          <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">
             Promociones y Ofertas 🔥
           </h1>
-          <p className="text-mm-txs">
+          <p className="text-sm sm:text-base text-mm-txs">
             Ahorra con los mejores descuentos de nuestras tiendas asociadas.
           </p>
         </div>
@@ -87,7 +87,8 @@ export default function PromotionsPage() {
       </div>
 
       {filteredOffers.length > 0 ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        // Dos columnas desde móvil: cada tarjeta mide ~165px a 375px, por eso todo lo de adentro se compacta por debajo de `sm`.
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
           {filteredOffers.map((offer) => {
             const product = offer.store_products?.catalog_products;
 
@@ -95,10 +96,10 @@ export default function PromotionsPage() {
               <motion.div
                 key={offer.id}
                 whileHover={{ y: -5 }}
-                className="bg-white rounded-[32px] border border-mm-crd shadow-sm overflow-hidden flex flex-col group cursor-pointer"
+                className="bg-white rounded-2xl sm:rounded-[32px] border border-mm-crd shadow-sm overflow-hidden flex flex-col group cursor-pointer min-w-0"
                 onClick={() => setSelectedOffer(offer)}
               >
-                <div className="h-48 bg-mm-gbg flex items-center justify-center text-5xl group-hover:scale-105 transition-transform overflow-hidden relative">
+                <div className="h-32 sm:h-48 bg-mm-gbg flex items-center justify-center text-4xl sm:text-5xl group-hover:scale-105 transition-transform overflow-hidden relative">
                   {offer.imageSignedUrl ? (
                     <img
                       src={offer.imageSignedUrl}
@@ -109,31 +110,32 @@ export default function PromotionsPage() {
                     <span>🎁</span>
                   )}
 
-                  <div className="absolute top-4 left-4">
+                  {/* right-2: una etiqueta larga se corta con "…" en vez de salirse de la tarjeta angosta. */}
+                  <div className="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4">
                     <Badge
                       variant="oro"
-                      className="text-[10px] uppercase font-bold tracking-widest shadow-md"
+                      className="inline-block max-w-full truncate align-top text-[10px] uppercase font-bold tracking-widest shadow-md"
                     >
                       {offer.label || 'OFERTA'}
                     </Badge>
                   </div>
                 </div>
 
-                <div className="p-5 flex flex-col flex-grow">
+                <div className="p-3 sm:p-5 flex flex-col flex-grow">
                   <div className="flex-grow">
-                    <h3 className="font-bold text-mm-g leading-tight mb-1 group-hover:text-mm-oro transition-colors line-clamp-2">
+                    <h3 className="text-sm sm:text-base font-bold text-mm-g leading-tight mb-1 group-hover:text-mm-oro transition-colors line-clamp-2 break-words">
                       {product?.name || 'Producto en Oferta'}
                     </h3>
                   </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-mm-gbg">
-                    <span className="bg-rl text-r px-3 py-1 rounded-full font-bold text-sm">
+                  <div className="flex items-center justify-between gap-2 mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-mm-gbg">
+                    <span className="bg-rl text-r px-2 py-0.5 sm:px-3 sm:py-1 rounded-full font-bold text-xs sm:text-sm whitespace-nowrap truncate">
                       {offer.discount_pct
                         ? `${offer.discount_pct}% OFF`
                         : `-$${offer.special_price?.toLocaleString('es-CO')}`}
                     </span>
 
-                    <div className="w-8 h-8 rounded-full bg-mm-g/10 flex items-center justify-center text-mm-g group-hover:bg-mm-g group-hover:text-white transition-colors">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full bg-mm-g/10 flex items-center justify-center text-mm-g group-hover:bg-mm-g group-hover:text-white transition-colors">
                       <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>

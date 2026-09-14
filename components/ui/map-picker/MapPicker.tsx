@@ -326,7 +326,9 @@ export function MapPicker({
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => results.length > 0 && setShowResults(true)}
             placeholder="Busca tu dirección: Calle 78 sur 40-211, Sabaneta"
-            className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-mm-crd bg-white text-sm outline-none transition-all focus:border-mm-g"
+            // text-base en móvil: iOS hace zoom al enfocar campos de menos de
+            // 16px, y dentro del modal ese zoom descuadra el mapa.
+            className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-mm-crd bg-white text-base sm:text-sm outline-none transition-all focus:border-mm-g"
           />
           {searching && (
             <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-mm-txw" />

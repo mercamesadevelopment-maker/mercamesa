@@ -60,10 +60,10 @@ export function Table<T>({
           <thead>
             <tr className="bg-mm-gbg/50 border-b border-mm-crd">
               {onSelectionChange && (
-                <th className="px-6 py-4 w-12 text-center">
-                  <input 
-                    type="checkbox" 
-                    checked={allSelectedOnPage} 
+                <th className="px-3 sm:px-6 py-4 w-12 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allSelectedOnPage}
                     onChange={handleSelectAll}
                     className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g cursor-pointer"
                   />
@@ -73,7 +73,7 @@ export function Table<T>({
                 <th
                   key={col.key}
                   className={cn(
-                    "px-6 py-4 text-xs font-bold text-mm-txw uppercase tracking-widest",
+                    "px-3 sm:px-6 py-4 text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap",
                     col.sortable && "cursor-pointer hover:bg-mm-gbg/80 transition-colors"
                   )}
                   onClick={() => col.sortable && onSort?.(col.key)}
@@ -87,7 +87,7 @@ export function Table<T>({
                 </th>
               ))}
               {actions && (
-                <th className="px-6 py-4 text-xs font-bold text-mm-txw uppercase tracking-widest">
+                <th className="px-3 sm:px-6 py-4 text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">
                   Acciones
                 </th>
               )}
@@ -96,7 +96,7 @@ export function Table<T>({
           <tbody className="divide-y divide-mm-crd">
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (actions ? 1 : 0) + (onSelectionChange ? 1 : 0)} className="px-6 py-8 text-center text-mm-txw text-sm">
+                <td colSpan={columns.length + (actions ? 1 : 0) + (onSelectionChange ? 1 : 0)} className="px-3 sm:px-6 py-8 text-center text-mm-txw text-sm">
                   {emptyMessage}
                 </td>
               </tr>
@@ -130,10 +130,10 @@ export function Table<T>({
                       onClick={() => expandableContent && toggleRow(index)}
                     >
                       {onSelectionChange && (
-                        <td className="px-6 py-4 w-12 text-center" onClick={(e) => e.stopPropagation()}>
-                          <input 
-                            type="checkbox" 
-                            checked={isSelected || false} 
+                        <td className="px-3 sm:px-6 py-4 w-12 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected || false}
                             onChange={() => {}}
                             onClick={handleSelectRow}
                             className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g cursor-pointer"
@@ -141,12 +141,12 @@ export function Table<T>({
                         </td>
                       )}
                       {columns.map((col) => (
-                        <td key={col.key} className="px-6 py-4">
+                        <td key={col.key} className="px-3 sm:px-6 py-4">
                           {col.render ? col.render(item) : (item as any)[col.key]}
                         </td>
                       ))}
                       {actions && (
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-4">
                           {actions(item)}
                         </td>
                       )}
@@ -179,8 +179,8 @@ export function Table<T>({
 
       {/* Pagination Footer */}
       {(page !== undefined && totalPages !== undefined) && (
-        <div className="border-t border-mm-crd bg-mm-gbg/30 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-mm-txs">
+        <div className="border-t border-mm-crd bg-mm-gbg/30 px-3 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-mm-txs">
             <span>Mostrar</span>
             <select
               value={rowsPerPage}
@@ -194,7 +194,7 @@ export function Table<T>({
             <span>por página</span>
           </div>
 
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-4 text-xs sm:text-sm">
             <span className="text-mm-txs">
               Página <span className="font-bold text-mm-g">{page}</span> de <span className="font-bold text-mm-g">{totalPages || 1}</span>
             </span>

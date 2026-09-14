@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { KeyRound, LogOut } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button, Input, Select } from '@/src/components/Shared';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useAccount } from '../hooks/use-account';
 import { EmailChangeModal } from './email-change-modal';
@@ -123,9 +123,9 @@ function AccountTabContent() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm"
+      className="bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[40px] border border-mm-crd shadow-sm"
     >
-      <h2 className="text-3xl font-fraunces text-mm-g mb-8">Mi Cuenta</h2>
+      <h2 className="text-2xl sm:text-3xl font-fraunces text-mm-g mb-6 sm:mb-8">Mi Cuenta</h2>
 
       {incomplete && (
         <div className="mb-6 bg-amber-50 text-amber-800 text-sm font-medium px-4 py-3 rounded-2xl border border-amber-200">
@@ -146,8 +146,8 @@ function AccountTabContent() {
       )}
 
       <form className="space-y-6 max-w-xl" onSubmit={handleSubmit}>
-        <div className="flex items-center gap-6 mb-8">
-          <div className="w-24 h-24 bg-mm-gll rounded-full flex items-center justify-center text-5xl border-4 border-white shadow-lg overflow-hidden relative">
+        <div className="flex items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 bg-mm-gll rounded-full flex items-center justify-center text-4xl sm:text-5xl border-4 border-white shadow-lg overflow-hidden relative">
             {avatarSrc ? (
               <img
                 src={avatarSrc}
@@ -180,23 +180,24 @@ function AccountTabContent() {
           />
           <Input
             label="Teléfono"
+            type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
 
           <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-sm font-medium text-mm-txs ml-1">Tipo de identificación</label>
-            <select
+            <Select
+              label="Tipo de identificación"
               value={identificationTypeId}
               onChange={(e) => setIdentificationTypeId(e.target.value)}
               disabled={identificationOptions.length === 0}
-              className="px-4 py-2.5 rounded-xl border-1.5 border-mm-crd bg-white focus:border-mm-g focus:ring-2 focus:ring-mm-gll outline-none transition-all disabled:opacity-60"
+              className="disabled:opacity-60"
             >
               <option value="" disabled>Selecciona...</option>
               {identificationOptions.map((type) => (
                 <option key={type.id} value={type.id}>{type.name}</option>
               ))}
-            </select>
+            </Select>
             {profile?.person_types?.name && (
               <p className="text-xs text-mm-txw ml-1">
                 Opciones válidas para {profile.person_types.name}.
@@ -206,18 +207,22 @@ function AccountTabContent() {
 
           <Input
             label="Número de identificación"
+            inputMode="numeric"
             value={documentNumber}
             onChange={(e) => setDocumentNumber(e.target.value)}
           />
 
-          <div className="sm:col-span-2 flex items-end gap-3">
-            <div className="flex-grow">
+          {/* Apilado en móvil: en fila, "Cambiar correo" dejaba el campo con
+              ~130px y el correo no se alcanzaba a leer. */}
+          <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="flex-grow min-w-0">
               <Input label="Email" value={profile?.email || ''} disabled />
             </div>
             <Button
               variant="outline"
               size="md"
               type="button"
+              className="w-full sm:w-auto shrink-0 whitespace-nowrap"
               onClick={() => setShowEmailChange(true)}
             >
               Cambiar correo
@@ -230,15 +235,17 @@ function AccountTabContent() {
         </Button>
       </form>
 
-      <div className="mt-10 max-w-xl border-t border-mm-crd pt-8">
+      <div className="mt-8 sm:mt-10 max-w-xl border-t border-mm-crd pt-6 sm:pt-8">
         <h3 className="mb-1 text-xl font-fraunces text-mm-g">Seguridad</h3>
-        <p className="mb-6 text-sm text-mm-txs">
+        <p className="mb-4 sm:mb-6 text-sm text-mm-txs">
           Protege el acceso a tu cuenta.
         </p>
 
+        {/* En móvil el botón baja a todo el ancho. Con `flex-wrap` quedaba
+            suelto a la izquierda, y no se leía como la acción de esa fila. */}
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-mm-crd p-4">
-            <div className="flex items-start gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-mm-crd p-4">
+            <div className="flex items-start gap-3 min-w-0">
               <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-mm-txw" />
               <div>
                 <p className="text-sm font-bold text-mm-g">Contraseña</p>
@@ -251,14 +258,15 @@ function AccountTabContent() {
               variant="outline"
               size="sm"
               type="button"
+              className="w-full sm:w-auto shrink-0 whitespace-nowrap"
               onClick={() => setShowPasswordChange(true)}
             >
               Cambiar contraseña
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-mm-crd p-4">
-            <div className="flex items-start gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-mm-crd p-4">
+            <div className="flex items-start gap-3 min-w-0">
               <LogOut className="mt-0.5 h-5 w-5 shrink-0 text-mm-txw" />
               <div>
                 <p className="text-sm font-bold text-mm-g">Sesiones activas</p>
@@ -271,6 +279,7 @@ function AccountTabContent() {
               variant="outline"
               size="sm"
               type="button"
+              className="w-full sm:w-auto shrink-0 whitespace-nowrap"
               onClick={() => setConfirmSignOutAll(true)}
             >
               Cerrar en todos

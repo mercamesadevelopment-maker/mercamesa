@@ -9,6 +9,7 @@ import { CartStoreConflictModal } from '@/src/features/cart/components/CartStore
 import { cn } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
+import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,8 +18,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { fetchNotifications } = useNotifications();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const isNoLayoutPage = pathname === '/' || pathname === '/accept-invite';
+
+  // Evita que el drawer móvil quede abierto tras navegar a otra ruta.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   // Si la sesión se cae mientras ya estamos en una página protegida (token
   // vencido, logout desde otra pestaña), saca al usuario en vez de dejarlo
@@ -42,13 +50,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#FAFAF5]">
       <Topbar
         onCartOpen={() => setIsCartOpen(true)}
-        onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggleSidebar={() =>
+          isDesktop ? setSidebarCollapsed(v => !v) : setMobileNavOpen(v => !v)
+        }
       />
-      <Sidebar collapsed={sidebarCollapsed} />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
       <main
         className={cn(
-          "pt-16 min-h-screen transition-all duration-300",
-          sidebarCollapsed ? "pl-20" : "pl-64"
+          "pt-16 min-h-screen pl-0 transition-all duration-300",
+          sidebarCollapsed ? "lg:pl-20" : "lg:pl-64"
         )}
       >
         {children}
