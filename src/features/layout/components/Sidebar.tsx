@@ -4,8 +4,16 @@ import { Sidebar as DynamicSidebar } from '@/components/ui/shell/components/Side
 
 interface SidebarProps {
   collapsed: boolean;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function Sidebar({ collapsed }: SidebarProps) {
-  return <DynamicSidebar collapsed={collapsed} />;
+export function Sidebar({ collapsed, mobileOpen, onMobileClose }: SidebarProps) {
+  return (
+    <DynamicSidebar
+      collapsed={collapsed}
+      mobileOpen={mobileOpen}
+      onMobileClose={onMobileClose}
+    />
+  );
 }

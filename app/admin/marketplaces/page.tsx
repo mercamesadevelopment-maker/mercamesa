@@ -76,13 +76,13 @@ export default function MarketplacesAdmin() {
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Plazas</h2>
           <p className="text-sm text-mm-txs mt-1">Administra los marketplaces de la plataforma.</p>
         </div>
-        <Button size="sm" onClick={() => { setEditingPlaza(null); setIsModalOpen(true); }}>
+        <Button size="sm" onClick={() => { setEditingPlaza(null); setIsModalOpen(true); }} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" /> Nueva Plaza
         </Button>
       </div>

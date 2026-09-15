@@ -106,13 +106,16 @@ export function AddressFormModal({
       onClose={() => !submitting && onClose()}
       title={editing ? 'Editar Dirección' : 'Nueva Dirección'}
       maxWidth="max-w-lg"
+      // `dvh` y no `vh`: en Safari móvil 90vh incluye la barra de direcciones,
+      // y con un formulario tan largo los botones de guardar quedaban tapados.
+      maxHeight="90dvh"
     >
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Etiqueta (ej: Casa, Trabajo)" {...field('label')} placeholder="Opcional" />
           <Input label="Dirección" {...field('address_line')} placeholder="Ej: Calle 45 # 23-12" required />
           <Input label="Barrio / Sector" {...field('neighborhood')} placeholder="Opcional" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <Input label="Municipio" {...field('municipality')} placeholder="Ej: Medellín" required />
             <Input label="Departamento" {...field('department')} placeholder="Ej: Antioquia" required />
           </div>
@@ -134,13 +137,13 @@ export function AddressFormModal({
             </p>
           )}
 
-          <div className="flex items-center gap-3 p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
+          <div className="flex items-center gap-3 p-3 sm:p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
             <input
               type="checkbox"
               id="is_default"
               checked={form.is_default}
               onChange={(e) => setForm((prev) => ({ ...prev, is_default: e.target.checked }))}
-              className="w-5 h-5 rounded border-mm-crd text-mm-g focus:ring-mm-g"
+              className="w-5 h-5 shrink-0 rounded border-mm-crd text-mm-g focus:ring-mm-g"
             />
             <label htmlFor="is_default" className="text-sm font-bold text-mm-g cursor-pointer">
               Establecer como dirección predeterminada
@@ -151,11 +154,13 @@ export function AddressFormModal({
             <p className="text-sm text-r font-medium bg-rl px-4 py-2 rounded-xl">{error}</p>
           )}
 
-          <div className="pt-4 flex gap-3">
+          {/* Apilados en móvil, con la acción principal arriba: lado a lado, "Agregar
+              Dirección" no cabía en media columna y se partía en dos líneas. */}
+          <div className="pt-2 sm:pt-4 flex flex-col-reverse sm:flex-row gap-3">
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              className="w-full sm:flex-1"
               onClick={onClose}
               disabled={submitting}
             >
@@ -163,7 +168,7 @@ export function AddressFormModal({
             </Button>
             <Button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 flex items-center justify-center gap-2 whitespace-nowrap"
               disabled={submitting || !hasCoords}
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}

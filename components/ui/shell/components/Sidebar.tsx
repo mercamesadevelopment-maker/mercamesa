@@ -5,19 +5,32 @@ import { cn } from '@/src/components/Shared';
 import { useRouter, usePathname } from 'next/navigation';
 import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
 
 interface SidebarProps {
   collapsed: boolean;
+  /** Controla el drawer en viewports < lg. Ignorado en desktop. */
+  mobileOpen?: boolean;
+  /** Se invoca al navegar, cerrar sesión o tocar el backdrop en móvil. */
+  onMobileClose?: () => void;
 }
 
 export function Sidebar({
   collapsed,
+  mobileOpen = false,
+  onMobileClose,
 }: SidebarProps) {
   const { state } = useApp();
 
   const router = useRouter();
 
   const pathname = usePathname();
+
+  // < lg: el Sidebar es un drawer a todo el ancho que se despliega desde
+  // debajo del Topbar, no el riel colapsable de desktop — por eso el prop
+  // `collapsed` (que refleja preferencia de desktop) se ignora ahí.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const effectiveCollapsed = isDesktop && collapsed;
 
   const roleId = state.buyerProfile?.role_id;
 
@@ -82,6 +95,11 @@ export function Sidebar({
     );
   };
 
+  const navigateTo = (route: string) => {
+    router.push(route);
+    onMobileClose?.();
+  };
+
   const renderIcon = (
     iconName: string | null
   ) => {
@@ -113,12 +131,23 @@ export function Sidebar({
     state.buyerProfile?.avatar?.trim();
 
   return (
-    <aside
-      className={cn(
-        'fixed top-16 left-0 h-[calc(100vh-64px)] bg-white border-r border-mm-crd z-50 flex flex-col transition-all duration-300',
-        collapsed ? 'w-20' : 'w-64'
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 top-16 z-40 bg-black/40 lg:hidden"
+          onClick={onMobileClose}
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          'fixed left-0 top-16 z-50 flex flex-col bg-white border-mm-crd transition-all duration-300',
+          'w-full h-[calc(100vh-64px)] border-b shadow-xl',
+          'lg:h-[calc(100vh-64px)] lg:border-r lg:border-b-0 lg:shadow-none',
+          effectiveCollapsed ? 'lg:w-20' : 'lg:w-64',
+          isDesktop || mobileOpen ? 'translate-y-0' : '-translate-y-full'
+        )}
+      >
       <div className="flex-grow py-6 px-3 space-y-2 overflow-y-auto scrollbar-hide">
         {loading ? (
           <div className="space-y-2 px-1">
@@ -127,7 +156,7 @@ export function Sidebar({
                 key={i}
                 className={cn(
                   'h-11 rounded-2xl bg-mm-gbg animate-pulse',
-                  collapsed
+                  effectiveCollapsed
                     ? 'w-11 mx-auto'
                     : 'w-full'
                 )}
@@ -177,15 +206,15 @@ export function Sidebar({
                   onClick={() => {
                     if (
                       hasSubItems &&
-                      !collapsed
+                      !effectiveCollapsed
                     ) {
                       toggleMenu(item.id);
                     } else {
-                      router.push(route);
+                      navigateTo(route);
                     }
                   }}
                   title={
-                    collapsed
+                    effectiveCollapsed
                       ? item.label
                       : undefined
                   }
@@ -194,7 +223,7 @@ export function Sidebar({
                     isActive
                       ? 'bg-mm-gbg text-mm-g'
                       : 'text-mm-txs hover:bg-mm-gbg/50 hover:text-mm-g',
-                    collapsed &&
+                    effectiveCollapsed &&
                       'justify-center px-0'
                   )}
                 >
@@ -207,13 +236,13 @@ export function Sidebar({
                     )}
                   />
 
-                  {!collapsed && (
+                  {!effectiveCollapsed && (
                     <span className="truncate">
                       {item.label}
                     </span>
                   )}
 
-                  {!collapsed &&
+                  {!effectiveCollapsed &&
                     hasSubItems && (
                       <LucideIcons.ChevronDown
                         className={cn(
@@ -224,13 +253,13 @@ export function Sidebar({
                       />
                     )}
 
-                  {collapsed &&
+                  {effectiveCollapsed &&
                     isActive && (
                       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-mm-g rounded-l-full" />
                     )}
                 </button>
 
-                {!collapsed &&
+                {!effectiveCollapsed &&
                   hasSubItems &&
                   isOpen && (
                     <div className="pl-9 space-y-1 overflow-hidden">
@@ -251,7 +280,7 @@ export function Sidebar({
                             <button
                               key={sub.id}
                               onClick={() =>
-                                router.push(
+                                navigateTo(
                                   subRoute
                                 )
                               }
@@ -283,10 +312,10 @@ export function Sidebar({
       <div
         className={cn(
           'p-4 border-t border-mm-crd transition-all',
-          collapsed ? 'px-2' : 'px-4'
+          effectiveCollapsed ? 'px-2' : 'px-4'
         )}
       >
-        {!collapsed ? (
+        {!effectiveCollapsed ? (
           <div className="bg-mm-gbg p-3 rounded-2xl flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0 overflow-hidden border border-mm-crd">
               {avatar ? (
@@ -338,23 +367,25 @@ export function Sidebar({
 
             await supabase.auth.signOut();
 
+            onMobileClose?.();
             router.push('/');
           }}
           title="Cerrar sesión"
           className={cn(
             'w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-r hover:bg-rl rounded-xl transition-all',
-            collapsed && 'px-0'
+            effectiveCollapsed && 'px-0'
           )}
         >
           <LucideIcons.LogOut className="w-4 h-4" />
 
-          {!collapsed && (
+          {!effectiveCollapsed && (
             <span>
               Cerrar sesión
             </span>
           )}
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

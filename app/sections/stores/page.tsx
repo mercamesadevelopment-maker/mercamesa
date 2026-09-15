@@ -31,7 +31,7 @@ export default function StoresSectionPage() {
   const allCategories = ['Todas', ...Array.from(new Set(stores.map(s => s.description || 'General'))).slice(0, 10)]; // Using description as category for now, or you could use a dedicated category field if it exists.
 
   const filteredStores = stores.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
                           (s.description || '').toLowerCase().includes(search.toLowerCase());
     const matchesPlaza = plazaId === 'all' || s.marketplace_id === plazaId;
     const matchesCat = activeCat === 'Todas' || s.description === activeCat;
@@ -42,26 +42,28 @@ export default function StoresSectionPage() {
   if (error) return <div className="p-12 text-center text-r">Error: {error}</div>;
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-fade-up pb-24">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-up pb-24">
       <div>
-        <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todas las Tiendas</h1>
-        <p className="text-mm-txs">Nuestros expertos tenderos listos para servirte.</p>
+        <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">Todas las Tiendas</h1>
+        <p className="text-sm sm:text-base text-mm-txs">Nuestros expertos tenderos listos para servirte.</p>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-mm-txw" />
-            <input 
-              type="text" 
-              placeholder="Buscar tienda por nombre o especialidad..." 
+            {/* text-base en móvil: iOS hace zoom al enfocar campos de menos de 16px. */}
+            <input
+              type="text"
+              enterKeyHint="search"
+              placeholder="Buscar tienda o especialidad..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:border-mm-g transition-all"
+              className="w-full bg-white border border-mm-crd rounded-full py-2.5 pl-11 pr-4 text-base sm:text-sm outline-none focus:border-mm-g transition-all"
             />
           </div>
-          <select 
-            className="px-4 py-2.5 rounded-full border border-mm-crd text-sm outline-none focus:border-mm-g bg-white"
+          <select
+            className="w-full sm:w-auto sm:min-w-56 px-4 py-2.5 rounded-full border border-mm-crd text-base sm:text-sm outline-none focus:border-mm-g bg-white"
             value={plazaId}
             onChange={(e) => setPlazaId(e.target.value)}
           >
@@ -71,13 +73,14 @@ export default function StoresSectionPage() {
             ))}
           </select>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {/* En móvil los chips llegan al borde de la pantalla en vez de cortarse en el padding. */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
           {allCategories.map(c => (
             <button
               key={c}
               onClick={() => setActiveCat(c)}
               className={cn(
-                "px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
+                "shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
                 activeCat === c ? "bg-mm-g text-white shadow-md" : "bg-white border border-mm-crd text-mm-txs hover:border-mm-g"
               )}
             >
@@ -87,13 +90,13 @@ export default function StoresSectionPage() {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {filteredStores.map(store => (
           <motion.div
             key={store.id}
             whileHover={{ y: -8 }}
             onClick={() => router.push(`/stores/${store.slug}`)}
-            className="relative bg-white rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-6 flex flex-col group"
+            className="relative bg-white rounded-3xl sm:rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-4 sm:p-6 flex flex-col group"
           >
             {state.isLoggedIn && (
               <button
@@ -101,7 +104,8 @@ export default function StoresSectionPage() {
                   e.stopPropagation();
                   toggleFavorite(store.id);
                 }}
-                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all"
+                aria-label={isFavorite(store.id) ? 'Quitar de favoritas' : 'Agregar a favoritas'}
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-2.5 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all"
               >
                 <Heart
                   className={cn(
@@ -112,8 +116,9 @@ export default function StoresSectionPage() {
               </button>
             )}
 
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-16 h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform">
+            {/* Con sesión, el corazón va encima de esta fila: se le reserva el espacio para que no tape el nombre. */}
+            <div className={cn('flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4', state.isLoggedIn && 'pr-10')}>
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform">
                 {store.logoSignedUrl ? (
                   <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover" />
                 ) : (
@@ -124,13 +129,13 @@ export default function StoresSectionPage() {
                 <Badge variant="oro" className="mb-1 text-[10px] uppercase font-bold tracking-widest block truncate">
                   {store.marketplaces?.name || 'Plaza'}
                 </Badge>
-                <h3 className="font-bold text-mm-g leading-tight truncate">{store.name}</h3>
+                <h3 className="font-bold text-mm-g leading-tight line-clamp-2 break-words">{store.name}</h3>
               </div>
             </div>
-            
-            <p className="text-xs text-mm-txs line-clamp-2 mb-4 flex-grow">{store.description}</p>
-            
-            <div className="pt-4 border-t border-mm-gbg flex items-center justify-between">
+
+            <p className="text-xs text-mm-txs line-clamp-2 mb-3 sm:mb-4 flex-grow">{store.description}</p>
+
+            <div className="pt-3 sm:pt-4 border-t border-mm-gbg flex items-center justify-between">
               <div className="flex items-center gap-1 text-mm-oro text-xs font-bold">
                 <Star className="w-4 h-4 fill-mm-oro" /> {(store.reputation_score || 5.0).toFixed(1)}
               </div>
@@ -140,7 +145,7 @@ export default function StoresSectionPage() {
         ))}
       </div>
       {filteredStores.length === 0 && (
-        <div className="py-20 text-center text-mm-txw">
+        <div className="py-12 sm:py-20 text-center text-mm-txw">
           No encontramos tiendas con esos filtros.
         </div>
       )}

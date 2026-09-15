@@ -66,7 +66,7 @@ export function AddressesTab() {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="space-y-6"
+        className="space-y-4 sm:space-y-6"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-fraunces text-mm-g"></h2>
@@ -82,7 +82,7 @@ export function AddressesTab() {
           </div>
         )}
 
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {loading && addresses.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-mm-txw" />
@@ -95,14 +95,14 @@ export function AddressesTab() {
             addresses.map((addr) => (
               <div
                 key={addr.id}
-                className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm flex items-center gap-6"
+                className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-mm-crd shadow-sm flex items-start sm:items-center gap-3 sm:gap-6"
               >
-                <div className="w-14 h-14 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 text-mm-g">
-                  <MapPin className="w-7 h-7" />
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-mm-gbg rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 text-mm-g">
+                  <MapPin className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
                 <div className="flex-grow min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h4 className="font-bold text-mm-g">
+                    <h4 className="font-bold text-mm-g break-words">
                       {addr.label ?? addr.address_line}
                     </h4>
                     {addr.is_default && (
@@ -111,7 +111,8 @@ export function AddressesTab() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-mm-txs truncate">
+                  {/* Dos líneas en móvil: en una sola, a este ancho, la dirección se cortaba antes del número. */}
+                  <p className="text-sm text-mm-txs line-clamp-2 sm:line-clamp-1 break-words">
                     {addr.address_line}
                     {addr.neighborhood ? `, ${addr.neighborhood}` : ''}
                   </p>
@@ -124,16 +125,19 @@ export function AddressesTab() {
                     </p>
                   )}
                 </div>
-                <div className="flex gap-2 shrink-0">
+                {/* En móvil los botones van uno sobre otro: en fila le quitaban ~80px al texto. */}
+                <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 shrink-0 -my-1 -mr-1 sm:m-0">
                   <button
-                    className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+                    className="p-2.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
                     onClick={() => openEdit(addr)}
+                    aria-label="Editar dirección"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
+                    className="p-2.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
                     onClick={() => handleDelete(addr.id)}
+                    aria-label="Eliminar dirección"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

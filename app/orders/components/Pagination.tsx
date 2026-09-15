@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/src/components/Shared';
+import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
 
 interface PaginationProps {
   currentPage: number;
@@ -39,26 +40,32 @@ function getPageWindow(current: number, total: number, siblingCount = 1): (numbe
 }
 
 export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
+  // Con un vecino por lado la ventana llega a 7 casillas: 7×40px + flechas ≈ 416px,
+  // más ancho que un celular. Sin vecinos son 5 (1 … actual … última) y caben.
+  // Es un conteo de elementos, no un estilo, por eso no se resuelve con CSS.
+  const isWide = useMediaQuery('(min-width: 640px)');
+
   if (totalPages <= 1) return null;
 
-  const pageWindow = getPageWindow(currentPage, totalPages);
+  const pageWindow = getPageWindow(currentPage, totalPages, isWide ? 1 : 0);
 
   return (
-    <div className="flex justify-center items-center gap-2 mt-10">
+    <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-6 sm:mt-10">
       <button
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
+        aria-label="Página anterior"
         className="p-2 rounded-xl bg-white border border-mm-crd text-mm-g disabled:opacity-30 disabled:cursor-not-allowed hover:bg-mm-gbg transition-all"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
-      <div className="flex gap-2">
+      <div className="flex gap-1.5 sm:gap-2">
         {pageWindow.map((page, i) =>
           page === ELLIPSIS ? (
             <span
               key={`ellipsis-${i}`}
-              className="w-10 h-10 flex items-center justify-center text-sm text-mm-txw select-none"
+              className="w-6 sm:w-10 h-10 flex items-center justify-center text-sm text-mm-txw select-none"
             >
               …
             </span>
@@ -66,6 +73,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
             <button
               key={page}
               onClick={() => onPageChange(page)}
+              aria-current={currentPage === page ? 'page' : undefined}
               className={cn(
                 "w-10 h-10 rounded-xl font-bold text-sm transition-all",
                 currentPage === page
@@ -82,6 +90,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <button
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
+        aria-label="Página siguiente"
         className="p-2 rounded-xl bg-white border border-mm-crd text-mm-g disabled:opacity-30 disabled:cursor-not-allowed hover:bg-mm-gbg transition-all"
       >
         <ChevronRight className="w-5 h-5" />

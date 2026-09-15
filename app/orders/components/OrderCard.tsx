@@ -52,6 +52,10 @@ export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { color: string; icon:
   disputed: { color: 'bg-purple-100 text-purple-600', icon: CreditCard },
 };
 
+// En móvil los botones del pie se reparten el ancho en vez de ir en una fila
+// que no cabe; desde `sm` recuperan su tamaño natural.
+const FOOTER_BUTTON_CLASS = 'flex-1 sm:flex-none whitespace-nowrap';
+
 export function OrderCard({
   order,
   onRate,
@@ -64,7 +68,7 @@ export function OrderCard({
     }).format(amount);
   };
 
-  const statusInfo = order.status 
+  const statusInfo = order.status
     ? { label: ORDER_STATUS_LABELS[order.status], ...ORDER_STATUS_CONFIG[order.status] }
     : { label: 'Desconocido', color: 'bg-mm-gbg text-mm-txw', icon: Clock };
 
@@ -81,12 +85,12 @@ export function OrderCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-[32px] border border-mm-crd shadow-sm overflow-hidden"
+      className="bg-white rounded-3xl sm:rounded-[32px] border border-mm-crd shadow-sm overflow-hidden"
     >
       {/* HEADER */}
-      <div className="p-6 border-b border-mm-crd flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-mm-gbg rounded-2xl flex items-center justify-center overflow-hidden border border-mm-crd shadow-inner">
+      <div className="p-4 sm:p-6 border-b border-mm-crd flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-mm-gbg rounded-xl sm:rounded-2xl flex items-center justify-center overflow-hidden border border-mm-crd shadow-inner shrink-0">
             <img
               src={`https://api.dicebear.com/7.x/initials/svg?seed=${order.store_name}`}
               alt={order.store_name || 'Tienda'}
@@ -94,8 +98,8 @@ export function OrderCard({
             />
           </div>
 
-          <div>
-            <h3 className="font-bold text-mm-g">
+          <div className="min-w-0">
+            <h3 className="font-bold text-mm-g break-words">
               {order.store_name}
             </h3>
 
@@ -112,7 +116,7 @@ export function OrderCard({
 
         <div
           className={cn(
-            'px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2',
+            'px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 shrink-0',
             statusInfo.color
           )}
         >
@@ -122,10 +126,10 @@ export function OrderCard({
       </div>
 
       {/* CONTENT */}
-      <div className="p-6 grid md:grid-cols-2 gap-8">
+      <div className="p-4 sm:p-6 grid md:grid-cols-2 gap-6 sm:gap-8">
         {/* PRODUCTS */}
         <div>
-          <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-4">
+          <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-3 sm:mb-4">
             Productos
           </p>
 
@@ -134,9 +138,10 @@ export function OrderCard({
               (item: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between text-sm"
+                  className="flex items-center justify-between gap-3 text-sm"
                 >
-                  <div className="flex items-center gap-2">
+                  {/* min-w-0 + flex-1: un nombre largo se recorta a dos líneas en vez de empujar el precio. */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="w-8 h-8 bg-mm-gbg rounded-lg flex items-center justify-center text-lg overflow-hidden shrink-0 border border-mm-crd/50">
                       {item.image_url ? (
                         <img
@@ -149,13 +154,13 @@ export function OrderCard({
                       )}
                     </div>
 
-                    <span className="text-mm-txs font-medium">
+                    <span className="text-mm-txs font-medium line-clamp-2 break-words">
                       {item.quantity}x{' '}
                       {item.catalog_name}
                     </span>
                   </div>
 
-                  <span className="font-bold text-mm-g">
+                  <span className="font-bold text-mm-g shrink-0 whitespace-nowrap">
                     {formatCurrency(
                       item.total_price
                     )}
@@ -172,12 +177,12 @@ export function OrderCard({
           <div className="flex items-start gap-3">
             <MapPin className="w-5 h-5 text-mm-txw shrink-0 mt-0.5" />
 
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">
                 Entrega en
               </p>
 
-              <p className="text-sm text-mm-txs">
+              <p className="text-sm text-mm-txs break-words">
                 {order.address_line},{' '}
                 {order.neighborhood},{' '}
                 {order.municipality}
@@ -224,27 +229,28 @@ export function OrderCard({
       </div>
 
       {/* FOOTER */}
-      <div className="p-6 bg-mm-gbg/30 border-t border-mm-crd flex items-center justify-between">
-        <div className="flex flex-col">
+      {/* En móvil el total va arriba y los botones debajo: los tres juntos no caben en una fila de ~330px. */}
+      <div className="p-4 sm:p-6 bg-mm-gbg/30 border-t border-mm-crd flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-baseline justify-between sm:flex-col sm:items-start">
           <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
             Total Pagado
           </span>
 
-          <span className="text-2xl font-fraunces text-mm-g">
+          <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
             {formatCurrency(order.total || 0)}
           </span>
         </div>
 
-        <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => setShowDetail(true)}>
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <Button variant="outline" size="sm" className={FOOTER_BUTTON_CLASS} onClick={() => setShowDetail(true)}>
             Ver detalles
           </Button>
 
           {/* La recompra parte del pedido, no del carrito, así que se ofrece
               incluso en pedidos cancelados: el comprador puede querer repetirlo. */}
           {products.length > 0 && order.order_id && (
-            <Button variant="outline" size="sm" onClick={() => setShowReorder(true)}>
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            <Button variant="outline" size="sm" className={FOOTER_BUTTON_CLASS} onClick={() => setShowReorder(true)}>
+              <RotateCcw className="w-3.5 h-3.5" />
               Recomprar
             </Button>
           )}
@@ -253,6 +259,7 @@ export function OrderCard({
             onRate && (
               <Button
                 size="sm"
+                className={FOOTER_BUTTON_CLASS}
                 onClick={() =>
                   order.store_id &&
                   onRate(order.store_id)
@@ -266,6 +273,7 @@ export function OrderCard({
             <Button
               variant="danger"
               size="sm"
+              className={FOOTER_BUTTON_CLASS}
             >
               Cancelar
             </Button>
