@@ -6,35 +6,13 @@ import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 import { useApp } from '@/src/store';
-import { Button, Input, cn } from '@/src/components/Shared';
+import { Button, Input, Select } from '@/src/components/Shared';
 import { useAuthHooks } from '../hooks/useAuth';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
 const TERMS_VERSION = '2026-07-24';
 
 type BuyerType = 'retail' | 'wholesale';
-
-function Select({
-  label,
-  children,
-  className,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string }) {
-  return (
-    <div className="flex w-full flex-col gap-1.5">
-      {label && <label className="ml-1 text-sm font-medium text-mm-txs">{label}</label>}
-      <select
-        className={cn(
-          'rounded-xl border-1.5 border-mm-crd bg-white px-4 py-2.5 outline-none transition-all focus:border-mm-g focus:ring-2 focus:ring-mm-gll',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
 
 export function BuyerRegisterModal({
   isOpen,

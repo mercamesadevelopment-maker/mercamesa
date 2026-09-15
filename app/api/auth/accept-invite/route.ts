@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
+import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate';
 
 export async function GET(request: Request) {
   try {
@@ -45,10 +46,63 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado o la sesión de invitación ha expirado.' }, { status: 401 });
     }
 
-    const { password, fullName, phone } = await request.json();
+    // Campos tomados uno a uno, nunca con un spread: el `role_id` sale de la
+    // invitación, no del cuerpo.
+    const {
+      password,
+      fullName,
+      phone,
+      person_type_id,
+      identification_type_id,
+      document_number,
+      business_name,
+      contact_name,
+    } = await request.json();
 
-    if (!password || !fullName) {
-      return NextResponse.json({ error: 'El nombre completo y la contraseña son campos obligatorios.' }, { status: 400 });
+    if (!password) {
+      return NextResponse.json({ error: 'La contraseña es un campo obligatorio.' }, { status: 400 });
+    }
+
+    // Todo lo que sigue se valida ANTES de tocar la contraseña. El orden
+    // importa: `updateUser({ password })` no se puede deshacer, y un cuerpo
+    // inválido dejaría al invitado con la contraseña cambiada, sin perfil y sin
+    // tienda — o sea, sin poder entrar ni volver a intentarlo.
+    const personType = person_type_id
+      ? await getPersonTypeRules(supabase, String(person_type_id))
+      : null;
+
+    if (!personType) {
+      return NextResponse.json({ error: 'El tipo de persona no es válido' }, { status: 400 });
+    }
+
+    // La regla del cliente (Natural → CC, Jurídica → NIT, Establecimiento → NIT
+    // o RUT) vive en la tabla puente. Filtrar el desplegable no basta: sin esta
+    // comprobación, un POST a mano registraría una persona Natural con NIT.
+    const pairError = await validateIdentificationPair(
+      supabase,
+      String(person_type_id),
+      identification_type_id ? String(identification_type_id) : null
+    );
+    if (pairError) {
+      return NextResponse.json({ error: pairError.message }, { status: 400 });
+    }
+
+    if (!document_number || !String(document_number).trim()) {
+      return NextResponse.json({ error: 'El número de identificación es obligatorio.' }, { status: 400 });
+    }
+
+    // Qué campos de nombre se exigen es una propiedad del tipo de persona, no un
+    // `if` sobre 'juridica': "Establecimiento de comercio" también lleva razón
+    // social.
+    if (personType.requiresBusinessName) {
+      if (!business_name || !contact_name) {
+        return NextResponse.json(
+          { error: 'La razón social y el nombre del contacto son requeridos para este tipo de persona' },
+          { status: 400 }
+        );
+      }
+    } else if (!fullName) {
+      return NextResponse.json({ error: 'El nombre completo es un campo obligatorio.' }, { status: 400 });
     }
 
     // 2. Fetch the invitation details using the secure service role client
@@ -82,9 +136,16 @@ export async function POST(request: Request) {
       .insert({
         id: user.id,
         email: user.email!,
-        full_name: fullName,
+        // Cuando el tipo de persona lleva razón social, el nombre visible es el
+        // del contacto: mismo criterio que `register-buyer`.
+        full_name: personType.requiresBusinessName ? contact_name : fullName,
         phone: phone || null,
         role_id: roleId,
+        person_type_id: personType.id,
+        identification_type_id: String(identification_type_id),
+        document_number: String(document_number).trim(),
+        business_name: personType.requiresBusinessName ? business_name : null,
+        contact_name: personType.requiresBusinessName ? contact_name : null,
         language: 'es',
         is_active: true
       });
