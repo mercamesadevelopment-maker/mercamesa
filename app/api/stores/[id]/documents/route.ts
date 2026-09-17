@@ -92,20 +92,40 @@ export async function POST(
       );
     }
 
-    // Aprobar es la decisión que habilita a la tienda a operar, así que no puede
-    // tomarla la tienda sobre sí misma: exige permiso de administración.
-    if (status === 'approved') {
-      const { data: canApprove } = await supabase.rpc('has_permission', {
-        module_key: 'stores',
-        action_name: 'update',
-      });
+    // Revisar la documentación —aprobar, rechazar o devolver a pendiente— es la
+    // decisión que habilita a la tienda a operar, así que no puede tomarla la
+    // tienda sobre sí misma.
+    //
+    // No basta con mirar `status === 'approved'` como antes: «Rechazado» también
+    // es una decisión del revisor, y volver a «Pendiente» borraría una
+    // aprobación. Por eso el estado que manda el cliente **se ignora** salvo que
+    // quien guarda tenga permiso de administración.
+    const { data: canReview } = await supabase.rpc('has_permission', {
+      module_key: 'stores',
+      action_name: 'update',
+    });
 
-      if (!canApprove) {
+    const ESTADOS = ['pending', 'approved', 'rejected'] as const;
+    let finalStatus: (typeof ESTADOS)[number];
+
+    if (canReview) {
+      if (!ESTADOS.includes(status as (typeof ESTADOS)[number])) {
+        return NextResponse.json({ error: 'El estado indicado no es válido.' }, { status: 400 });
+      }
+      finalStatus = status as (typeof ESTADOS)[number];
+    } else {
+      // Sin archivo nuevo no hay nada que la tienda pueda guardar: lo único que
+      // quedaría sería el estado, y eso no le corresponde.
+      if (!file || file.size === 0) {
         return NextResponse.json(
-          { error: 'Solo un administrador puede aprobar documentos de una tienda.' },
+          { error: 'Solo un administrador puede cambiar el estado de un documento.' },
           { status: 403 }
         );
       }
+
+      // Un archivo nuevo no lo ha revisado nadie, así que vuelve a la cola del
+      // administrador aunque el anterior estuviera aprobado.
+      finalStatus = 'pending';
     }
 
     // Get document type slug for naming

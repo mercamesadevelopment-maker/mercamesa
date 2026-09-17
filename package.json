@@ -5,9 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 4005",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 4005",
     "gen:types": "pnpm dlx supabase gen types typescript --project-id zaqvcpehhmkiyjdbcufj > types/database_generated.ts",
     "backfill:images": "tsx scripts/backfill-image-variants.ts",
     "pibox:hooks": "tsx scripts/pibox-webhooks.ts",

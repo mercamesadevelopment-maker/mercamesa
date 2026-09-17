@@ -33,13 +33,13 @@ export function useDocumentTypes() {
     }
   };
 
+  /** Relanza el error: la confirmación y el aviso son de la vista, no del hook. */
   const deleteDocumentType = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este tipo de documento?')) return;
     try {
       await deleteDocumentTypeService(id);
       await fetchDocumentTypes();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar tipo de documento');
+      throw new Error(err instanceof Error ? err.message : 'Error al eliminar tipo de documento');
     }
   };
 

@@ -1,24 +1,49 @@
+/**
+ * Envía un POST a una ruta de `/api/auth` y devuelve su JSON.
+ *
+ * Existe porque `res.json()` a secas asume que el servidor siempre responde
+ * JSON, y no siempre es así: si la ruta no existe, o el servidor de desarrollo
+ * quedó con una compilación vieja, Next devuelve su página 404 en HTML. Eso
+ * reventaba con «Unexpected token '<', "<!DOCTYPE "... is not valid JSON», que
+ * es lo que veía el usuario en el formulario en vez de un motivo entendible.
+ *
+ * `fallback` es lo que se muestra cuando la respuesta no trae un `error` propio.
+ */
+async function post(path: string, body?: unknown, fallback = 'No pudimos completar la operación') {
+  const res = await fetch(path, {
+    method: 'POST',
+    ...(body === undefined
+      ? {}
+      : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+  });
+
+  const text = await res.text();
+
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    // Respuesta que no es JSON: se ignora el cuerpo y se informa por estado.
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || `${fallback} (error ${res.status})`);
+  }
+
+  if (data === null) {
+    throw new Error(`${fallback}: el servidor respondió algo inesperado.`);
+  }
+
+  return data;
+}
+
 export const authService = {
   async login(email: string, password: string) {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    return post('/api/auth/login', { email, password }, 'No pudimos iniciar sesión');
   },
 
   async register(payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; buyer_type?: string; person_type_id?: string; identification_type_id?: string; document_number?: string }) {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    return post('/api/auth/register', payload, 'No pudimos crear la cuenta');
   },
 
   async registerBuyer(payload: {
@@ -36,53 +61,27 @@ export const authService = {
     buyer_type: 'retail' | 'wholesale';
     terms_version: string;
   }) {
-    const res = await fetch('/api/auth/register-buyer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    return post('/api/auth/register-buyer', payload, 'No pudimos crear la cuenta');
   },
 
   async forgotPassword(email: string) {
-    const res = await fetch('/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    return post('/api/auth/forgot-password', { email }, 'No pudimos enviar el código');
   },
 
   async verifyResetCode(email: string, code: string) {
-    const res = await fetch('/api/auth/verify-reset-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    const data = await post('/api/auth/verify-reset-code', { email, code }, 'No pudimos verificar el código');
     return data as { reset_token: string };
   },
 
   async resetPassword(email: string, resetToken: string, newPassword: string) {
-    const res = await fetch('/api/auth/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, reset_token: resetToken, new_password: newPassword }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    return post(
+      '/api/auth/reset-password',
+      { email, reset_token: resetToken, new_password: newPassword },
+      'No pudimos cambiar la contraseña'
+    );
   },
 
   async logout() {
-    const res = await fetch('/api/auth/logout', { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
+    return post('/api/auth/logout', undefined, 'No pudimos cerrar la sesión');
   }
 };

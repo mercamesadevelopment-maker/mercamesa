@@ -33,13 +33,13 @@ export function useMeasurementUnits() {
     }
   };
 
+  /** Relanza el error: la confirmación y el aviso son de la vista, no del hook. */
   const deleteUnit = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta unidad de medida?')) return;
     try {
       await deleteMeasurementUnitService(id);
       await fetchUnits();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar unidad de medida');
+      throw new Error(err instanceof Error ? err.message : 'Error al eliminar unidad de medida');
     }
   };
 

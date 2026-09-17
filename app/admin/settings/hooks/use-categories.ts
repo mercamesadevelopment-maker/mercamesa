@@ -33,13 +33,19 @@ export function useCategories() {
     }
   };
 
+  /**
+   * Borra y relanza el error para que lo muestre el componente.
+   *
+   * Antes preguntaba con `confirm()` y avisaba con `alert()`, los cuadros grises
+   * del navegador. No se podía usar `ConfirmModal` desde acá porque un hook no
+   * renderiza JSX: la confirmación es de la vista, así que vive en la pestaña.
+   */
   const deleteCategory = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta categoría?')) return;
     try {
       await deleteCategoryService(id);
       await fetchCategories();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar categoría');
+      throw new Error(err instanceof Error ? err.message : 'Error al eliminar categoría');
     }
   };
 

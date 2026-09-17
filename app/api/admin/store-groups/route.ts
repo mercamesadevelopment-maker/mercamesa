@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { uniqueSlug } from '@/lib/catalog-import/slug';
+import { embeddedCount } from '@/lib/db/embedded-count';
 
 /**
  * Grupos de tiendas: la unidad de propiedad del catálogo maestro.
@@ -22,16 +23,24 @@ export async function GET() {
 
     // Se traen las tiendas de cada grupo: la pantalla los administra juntos y
     // sin ellas no se sabría a quién afecta borrar un grupo.
+    // Los productos exclusivos no impiden borrar el grupo, pero al borrarlo
+    // quedan públicos: el conteo viaja con el listado para poder advertirlo en
+    // la confirmación en vez de descubrirlo con un 409 a mitad de camino.
     const { data, error } = await supabase
       .from('store_groups')
-      .select('*, stores ( id, name, slug )')
+      .select('*, stores ( id, name, slug ), catalog_products(count)')
       .order('name', { ascending: true });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ data }, { status: 200 });
+    const withCounts = (data ?? []).map((row: any) => {
+      const { catalog_products, ...group } = row;
+      return { ...group, exclusive_product_count: embeddedCount(catalog_products) };
+    });
+
+    return NextResponse.json({ data: withCounts }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ error: message }, { status: 500 });

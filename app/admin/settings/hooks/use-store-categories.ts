@@ -33,13 +33,13 @@ export function useStoreCategories() {
     }
   };
 
+  /** Relanza el error: la confirmación y el aviso son de la vista, no del hook. */
   const deleteCategory = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta categoría de tienda?')) return;
     try {
       await deleteStoreCategoryService(id);
       await fetchCategories();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar categoría de tienda');
+      throw new Error(err instanceof Error ? err.message : 'Error al eliminar categoría de tienda');
     }
   };
 
