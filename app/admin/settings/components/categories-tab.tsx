@@ -6,8 +6,29 @@ import { useCategories } from '../hooks/use-categories';
 import { CategoryRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { motion, AnimatePresence } from 'motion/react';
+
+/**
+ * Motivo por el que una categoría no se puede borrar, o `null` si sí se puede.
+ *
+ * El listado ya trae los conteos, así que esto se sabe antes de ofrecer el
+ * borrado: el servidor responde lo mismo, pero llegar hasta allá significaba
+ * confirmar para que le dijeran que no.
+ */
+function motivoBloqueo(item: CategoryRow): string | null {
+  const productos = item.product_count ?? 0;
+  const hijas = item.child_count ?? 0;
+
+  if (productos > 0 && hijas > 0) {
+    return `Tiene ${productos} producto(s) y ${hijas} subcategoría(s) asociados.`;
+  }
+  if (productos > 0) return `Tiene ${productos} producto(s) asociado(s).`;
+  if (hijas > 0) return `Tiene ${hijas} subcategoría(s) asociada(s).`;
+  return null;
+}
 
 export function CategoriesTab() {
   const { categories, loading, error, saveCategory, deleteCategory } = useCategories();
@@ -16,6 +37,10 @@ export function CategoriesTab() {
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Confirmación y aviso de borrado con el modal de la aplicación, en vez de
+  // `confirm()`/`alert()` del navegador.
+  const borrado = useDeleteConfirm<CategoryRow>((item) => deleteCategory(item.id));
 
   const [formData, setFormData] = useState({
     name: '',
@@ -96,6 +121,21 @@ export function CategoriesTab() {
     }
   };
 
+  /**
+   * El slug es único en la base. La lista completa ya está en memoria, así que
+   * el choque se avisa junto al campo mientras se escribe, sin esperar al
+   * servidor —que lo valida igual, porque otro administrador puede haberlo
+   * usado entre que se cargó esta pantalla y se guarda.
+   */
+  const slugEnUso = useMemo(
+    () =>
+      formData.slug.trim() !== '' &&
+      categories.some(
+        (c) => c.slug === formData.slug.trim() && c.id !== editingCategory?.id
+      ),
+    [categories, formData.slug, editingCategory]
+  );
+
   const columns = [
     {
       key: 'name',
@@ -126,6 +166,26 @@ export function CategoriesTab() {
           )}
         </span>
       ),
+    },
+    {
+      key: 'product_count',
+      label: 'En uso',
+      sortable: true,
+      render: (item: CategoryRow) => {
+        const productos = item.product_count ?? 0;
+        const hijas = item.child_count ?? 0;
+
+        if (productos === 0 && hijas === 0) {
+          return <span className="text-xs text-mm-txw italic">Sin usar</span>;
+        }
+
+        return (
+          <div className="flex flex-col gap-0.5 text-xs text-mm-txs">
+            {productos > 0 && <span>{productos} producto(s)</span>}
+            {hijas > 0 && <span>{hijas} subcategoría(s)</span>}
+          </div>
+        );
+      },
     },
     {
       key: 'sort_order',
@@ -177,24 +237,31 @@ export function CategoriesTab() {
         onPageChange={setPage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
-        actions={(item: CategoryRow) => (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleOpenEdit(item)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-              title="Editar"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => deleteCategory(item.id)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-              title="Eliminar"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        actions={(item: CategoryRow) => {
+          const bloqueo = motivoBloqueo(item);
+
+          return (
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleOpenEdit(item)}
+                className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+                title="Editar"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              {/* Deshabilitado con el motivo a la vista: el servidor lo iba a
+                  rechazar igual, y así el clic no se pierde. */}
+              <button
+                onClick={() => borrado.ask(item)}
+                disabled={!!bloqueo}
+                title={bloqueo ? `No se puede eliminar. ${bloqueo} Puedes desactivarla.` : 'Eliminar'}
+                className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-mm-txw"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        }}
       />
 
       <AnimatePresence>
@@ -245,6 +312,7 @@ export function CategoriesTab() {
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                   placeholder="ej: frutas-y-verduras"
                   required
+                  error={slugEnUso ? 'Ya existe otra categoría con este slug.' : undefined}
                 />
 
                 <div className="flex flex-col gap-1.5">
@@ -300,7 +368,7 @@ export function CategoriesTab() {
                   <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                  <Button type="submit" className="flex-1" disabled={isSubmitting || slugEnUso}>
                     {isSubmitting ? 'Guardando...' : 'Guardar'}
                   </Button>
                 </div>
@@ -309,6 +377,33 @@ export function CategoriesTab() {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={!!borrado.target}
+        onClose={borrado.cancel}
+        onConfirm={borrado.confirm}
+        title="Eliminar categoría"
+        message={
+          <>
+            ¿Eliminar <span className="font-bold text-mm-g">{borrado.target?.name}</span>? Esta acción
+            no se puede deshacer. Si más adelante la vas a necesitar, desactívala en vez de borrarla.
+          </>
+        }
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={borrado.isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!borrado.error}
+        onClose={borrado.dismissError}
+        onConfirm={borrado.dismissError}
+        title="No se puede eliminar"
+        message={borrado.error || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }

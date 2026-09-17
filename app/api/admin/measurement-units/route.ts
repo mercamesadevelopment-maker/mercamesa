@@ -1,20 +1,33 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { embeddedCount } from '@/lib/db/embedded-count';
 
 export async function GET() {
   try {
     const supabase = await createClient();
 
+    // Los conteos viajan con el listado para avisar qué unidad no se puede
+    // borrar antes de que alguien lo intente; son los mismos que comprueba el
+    // DELETE.
     const { data, error } = await supabase
       .from('measurement_units')
-      .select('*')
+      .select('*, catalog_products(count), store_products(count)')
       .order('name', { ascending: true });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ data }, { status: 200 });
+    const withCounts = (data ?? []).map((row: any) => {
+      const { catalog_products, store_products, ...unit } = row;
+      return {
+        ...unit,
+        catalog_product_count: embeddedCount(catalog_products),
+        store_product_count: embeddedCount(store_products),
+      };
+    });
+
+    return NextResponse.json({ data: withCounts }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ error: message }, { status: 500 });

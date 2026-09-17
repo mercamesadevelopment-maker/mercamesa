@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { embeddedCount } from '@/lib/db/embedded-count';
 
 export async function GET() {
   try {
@@ -10,7 +11,9 @@ export async function GET() {
       // La pista del embed autorreferenciado tiene que ser la columna
       // (`parent_id`) y no la tabla: con `modules!parent_id` PostgREST resolvía
       // la dirección contraria y devolvía los hijos en vez del padre.
-      .select('*, parent:parent_id(label)')
+      // Esa misma dirección "contraria" sirve para contar los sub-módulos, que
+      // son los que impiden borrar un módulo padre.
+      .select('*, parent:parent_id(label), children:modules!parent_id(count)')
       .order('sort_order', { ascending: true })
       .order('label', { ascending: true });
 
@@ -18,7 +21,12 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ data }, { status: 200 });
+    const withCounts = (data ?? []).map((row: any) => {
+      const { children, ...module } = row;
+      return { ...module, child_count: embeddedCount(children) };
+    });
+
+    return NextResponse.json({ data: withCounts }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ error: message }, { status: 500 });

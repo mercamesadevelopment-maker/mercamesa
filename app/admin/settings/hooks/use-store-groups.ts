@@ -13,6 +13,12 @@ export interface StoreGroupRow {
   description: string | null;
   created_at: string;
   stores: StoreGroupStore[];
+  /**
+   * Productos del catálogo exclusivos de este grupo. No impiden borrarlo, pero
+   * al borrarlo quedan públicos: el conteo viaja con el listado para poder
+   * advertirlo en la confirmación.
+   */
+  exclusive_product_count?: number;
 }
 
 async function readError(res: Response, fallback: string): Promise<never> {
@@ -88,26 +94,30 @@ export function useStoreGroups() {
     await fetchGroups();
   };
 
-  const deleteGroup = async (id: string) => {
-    if (!confirm('¿Eliminar este grupo de tiendas?')) return;
+  /**
+   * Borra el grupo. `force` salta el 409 que el servidor devuelve cuando hay
+   * productos exclusivos —borrarlo los vuelve públicos—, y esa consecuencia se
+   * confirma en la vista, no acá: un hook no abre diálogos.
+   *
+   * Devuelve el aviso del servidor cuando hace falta confirmarlo, en vez de
+   * preguntarlo con dos `confirm()` encadenados como antes.
+   */
+  const deleteGroup = async (id: string, force = false): Promise<{ needsConfirm: string } | null> => {
+    const url = force
+      ? `/api/admin/store-groups/${id}?confirm=true`
+      : `/api/admin/store-groups/${id}`;
 
-    let res = await fetch(`/api/admin/store-groups/${id}`, { method: 'DELETE' });
+    const res = await fetch(url, { method: 'DELETE' });
 
-    // El servidor devuelve 409 cuando el grupo tiene productos exclusivos:
-    // borrarlo los vuelve públicos, así que esa consecuencia se confirma aparte.
     if (res.status === 409) {
       const json = await res.json().catch(() => ({}));
-      if (!confirm(`${json.error}\n\n¿Eliminar el grupo de todas formas?`)) return;
-      res = await fetch(`/api/admin/store-groups/${id}?confirm=true`, { method: 'DELETE' });
+      return { needsConfirm: json.error || 'Este grupo tiene productos exclusivos.' };
     }
 
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      alert(json.error || 'Error al eliminar el grupo');
-      return;
-    }
+    if (!res.ok) await readError(res, 'Error al eliminar el grupo');
 
     await fetchGroups();
+    return null;
   };
 
   return { groups, stores, loading, error, fetchGroups, saveGroup, setGroupStores, deleteGroup };

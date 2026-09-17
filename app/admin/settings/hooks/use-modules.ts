@@ -33,13 +33,13 @@ export function useModules() {
     }
   };
 
+  /** Relanza el error: la confirmación y el aviso son de la vista, no del hook. */
   const deleteModule = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este módulo?')) return;
     try {
       await deleteModuleService(id);
       await fetchModules();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar módulo');
+      throw new Error(err instanceof Error ? err.message : 'Error al eliminar módulo');
     }
   };
 

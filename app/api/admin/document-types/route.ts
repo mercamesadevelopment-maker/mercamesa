@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { embeddedCount } from '@/lib/db/embedded-count';
 
 export async function GET() {
   try {
     const supabase = await createClient();
 
+    // Cuántos documentos de tienda usan cada tipo: es lo que impide borrarlo, y
+    // saberlo acá evita ofrecer un borrado que el servidor va a rechazar.
     const { data, error } = await supabase
       .from('document_types')
-      .select('*')
+      .select('*, store_documents(count)')
       .order('name', { ascending: true });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ data }, { status: 200 });
+    const withCounts = (data ?? []).map((row: any) => {
+      const { store_documents, ...documentType } = row;
+      return { ...documentType, store_document_count: embeddedCount(store_documents) };
+    });
+
+    return NextResponse.json({ data: withCounts }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Error interno del servidor';
     return NextResponse.json({ error: message }, { status: 500 });

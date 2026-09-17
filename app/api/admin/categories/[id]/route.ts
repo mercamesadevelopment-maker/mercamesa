@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { uniqueViolationMessage, DUPLICATE_FALLBACK_MESSAGE } from '@/lib/db/unique-violation';
+import { categorySlugMessage, categorySlugMap } from '@/lib/admin/settings-messages';
 
 export async function PUT(
   request: Request,
@@ -26,6 +28,24 @@ export async function PUT(
     const body = await request.json();
     const { name, slug, description, parent_id, sort_order, is_active } = body;
 
+    // El slug es único en la base. Sin esta comprobación, editarlo con uno ya
+    // usado devolvía el error crudo de Postgres —«duplicate key value violates
+    // unique constraint "categories_slug_key"»— que no dice qué corregir.
+    // `neq('id', id)` es lo que permite guardar una categoría sin cambiarle el
+    // slug: si no, chocaría consigo misma.
+    if (slug !== undefined) {
+      const { data: enUso } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', slug)
+        .neq('id', id)
+        .maybeSingle();
+
+      if (enUso) {
+        return NextResponse.json({ error: categorySlugMessage(slug) }, { status: 400 });
+      }
+    }
+
     const { data, error } = await supabase
       .from('categories')
       .update({
@@ -41,7 +61,13 @@ export async function PUT(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      // Respaldo por si dos administradores guardan el mismo slug a la vez.
+      const message =
+        uniqueViolationMessage(error, categorySlugMap(String(slug))) ??
+        (error.code === '23505' ? DUPLICATE_FALLBACK_MESSAGE : 'No se pudo guardar la categoría.');
+
+      console.error('Error actualizando categoría:', error.message);
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     return NextResponse.json({ data }, { status: 200 });

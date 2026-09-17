@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useStoreGroups, type StoreGroupRow } from '../hooks/use-store-groups';
 
 /**
@@ -26,6 +27,33 @@ export function StoreGroupsTab() {
 
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
+
+  // Borrar un grupo no se bloquea nunca: se advierte. Por eso no se usa el hook
+  // compartido de borrado, que asume que el servidor puede negarse.
+  const [deleteTarget, setDeleteTarget] = useState<StoreGroupRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      // El conteo ya se advirtió en el mensaje, así que se confirma de una vez.
+      // Si el servidor pide confirmación igual (aparecieron productos exclusivos
+      // después de cargar la tabla), se reintenta forzando: la advertencia que
+      // vería es la que ya aceptó.
+      const pendiente = await deleteGroup(deleteTarget.id, (deleteTarget.exclusive_product_count ?? 0) > 0);
+      if (pendiente?.needsConfirm) {
+        await deleteGroup(deleteTarget.id, true);
+      }
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      setDeleteTarget(null);
+      setDeleteError(err instanceof Error ? err.message : 'No se pudo eliminar el grupo');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const filteredGroups = useMemo(
     () =>
@@ -175,7 +203,7 @@ export function StoreGroupsTab() {
               <Edit2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => deleteGroup(item.id)}
+              onClick={() => setDeleteTarget(item)}
               className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
               title="Eliminar"
             >
@@ -291,6 +319,39 @@ export function StoreGroupsTab() {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar grupo de tiendas"
+        message={
+          <>
+            ¿Eliminar <span className="font-bold text-mm-g">{deleteTarget?.name}</span>?
+            {(deleteTarget?.exclusive_product_count ?? 0) > 0 && (
+              <>
+                {'\n\n'}
+                Tiene <span className="font-bold text-mm-g">{deleteTarget?.exclusive_product_count} producto(s) exclusivos</span>.
+                Al eliminarlo quedarán públicos y cualquier tienda podrá publicarlos con sus imágenes.
+              </>
+            )}
+          </>
+        }
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteError}
+        onClose={() => setDeleteError(null)}
+        onConfirm={() => setDeleteError(null)}
+        title="No se pudo eliminar"
+        message={deleteError || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }

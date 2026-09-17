@@ -5,12 +5,15 @@ import { Plus, Edit2, Trash2, Search, X, LayoutGrid } from 'lucide-react';
 import { useModules } from '../hooks/use-modules';
 import { ModuleRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function ModulesTab() {
   const { modules, loading, error, saveModule, deleteModule } = useModules();
+  const borrado = useDeleteConfirm<ModuleRow>((item) => deleteModule(item.id));
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleRow | null>(null);
@@ -143,6 +146,19 @@ export function ModulesTab() {
       render: (item: ModuleRow) => <span className="text-sm text-mm-g font-mono">{item.sort_order}</span>,
     },
     {
+      key: 'child_count',
+      label: 'Sub-módulos',
+      sortable: true,
+      render: (item: ModuleRow) => {
+        const hijos = item.child_count ?? 0;
+        return hijos === 0 ? (
+          <span className="text-xs text-mm-txw italic">Ninguno</span>
+        ) : (
+          <span className="text-xs text-mm-txs">{hijos}</span>
+        );
+      },
+    },
+    {
       key: 'is_active',
       label: 'Estado',
       sortable: true,
@@ -196,9 +212,14 @@ export function ModulesTab() {
               <Edit2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => deleteModule(item.id)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-              title="Eliminar"
+              onClick={() => borrado.ask(item)}
+              disabled={(item.child_count ?? 0) > 0}
+              title={
+                (item.child_count ?? 0) > 0
+                  ? `No se puede eliminar. Tiene ${item.child_count} sub-módulo(s).`
+                  : 'Eliminar'
+              }
+              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-mm-txw"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -334,6 +355,33 @@ export function ModulesTab() {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={!!borrado.target}
+        onClose={borrado.cancel}
+        onConfirm={borrado.confirm}
+        title="Eliminar módulo"
+        message={
+          <>
+            ¿Eliminar <span className="font-bold text-mm-g">{borrado.target?.label}</span>? Dejará de
+            aparecer en el menú y se perderán los permisos que los roles tengan sobre él.
+          </>
+        }
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={borrado.isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!borrado.error}
+        onClose={borrado.dismissError}
+        onConfirm={borrado.dismissError}
+        title="No se puede eliminar"
+        message={borrado.error || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }

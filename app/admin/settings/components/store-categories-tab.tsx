@@ -5,12 +5,15 @@ import { Plus, Edit2, Trash2, Search, X, Store } from 'lucide-react';
 import { useStoreCategories } from '../hooks/use-store-categories';
 import { StoreCategoryRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function StoreCategoriesTab() {
   const { categories, loading, error, saveCategory, deleteCategory } = useStoreCategories();
+  const borrado = useDeleteConfirm<StoreCategoryRow>((item) => deleteCategory(item.id));
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<StoreCategoryRow | null>(null);
@@ -116,6 +119,19 @@ export function StoreCategoriesTab() {
       render: (item: StoreCategoryRow) => <span className="text-sm text-mm-g font-mono">{item.sort_order}</span>,
     },
     {
+      key: 'store_count',
+      label: 'En uso',
+      sortable: true,
+      render: (item: StoreCategoryRow) => {
+        const tiendas = item.store_count ?? 0;
+        return tiendas === 0 ? (
+          <span className="text-xs text-mm-txw italic">Sin usar</span>
+        ) : (
+          <span className="text-xs text-mm-txs">{tiendas} tienda(s)</span>
+        );
+      },
+    },
+    {
       key: 'is_active',
       label: 'Estado',
       sortable: true,
@@ -169,9 +185,14 @@ export function StoreCategoriesTab() {
               <Edit2 className="w-4 h-4" />
             </button>
             <button
-              onClick={() => deleteCategory(item.id)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-              title="Eliminar"
+              onClick={() => borrado.ask(item)}
+              disabled={(item.store_count ?? 0) > 0}
+              title={
+                (item.store_count ?? 0) > 0
+                  ? `No se puede eliminar. La usan ${item.store_count} tienda(s). Puedes desactivarla.`
+                  : 'Eliminar'
+              }
+              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-mm-txw"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -273,6 +294,33 @@ export function StoreCategoriesTab() {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={!!borrado.target}
+        onClose={borrado.cancel}
+        onConfirm={borrado.confirm}
+        title="Eliminar categoría de tienda"
+        message={
+          <>
+            ¿Eliminar <span className="font-bold text-mm-g">{borrado.target?.name}</span>? Esta acción
+            no se puede deshacer. Si la vas a necesitar más adelante, desactívala en vez de borrarla.
+          </>
+        }
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={borrado.isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!borrado.error}
+        onClose={borrado.dismissError}
+        onConfirm={borrado.dismissError}
+        title="No se puede eliminar"
+        message={borrado.error || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }

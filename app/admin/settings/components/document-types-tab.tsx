@@ -5,12 +5,15 @@ import { Plus, Edit2, Trash2, Search, X, FileCheck } from 'lucide-react';
 import { useDocumentTypes } from '../hooks/use-document-types';
 import { DocumentTypeRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function DocumentTypesTab() {
   const { documentTypes, loading, error, saveDocumentType, deleteDocumentType } = useDocumentTypes();
+  const borrado = useDeleteConfirm<DocumentTypeRow>((item) => deleteDocumentType(item.id));
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingType, setEditingType] = useState<DocumentTypeRow | null>(null);
@@ -102,6 +105,19 @@ export function DocumentTypesTab() {
       ),
     },
     {
+      key: 'store_document_count',
+      label: 'En uso',
+      sortable: true,
+      render: (item: DocumentTypeRow) => {
+        const usos = item.store_document_count ?? 0;
+        return usos === 0 ? (
+          <span className="text-xs text-mm-txw italic">Sin usar</span>
+        ) : (
+          <span className="text-xs text-mm-txs">{usos} documento(s) de tienda</span>
+        );
+      },
+    },
+    {
       key: 'is_required',
       label: 'Requerido',
       sortable: true,
@@ -145,24 +161,30 @@ export function DocumentTypesTab() {
         onPageChange={setPage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
-        actions={(item: DocumentTypeRow) => (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleOpenEdit(item)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-              title="Editar"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => deleteDocumentType(item.id)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-              title="Eliminar"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        actions={(item: DocumentTypeRow) => {
+          const usos = item.store_document_count ?? 0;
+          const bloqueo = usos > 0 ? `Hay ${usos} documento(s) de tienda de este tipo.` : null;
+
+          return (
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleOpenEdit(item)}
+                className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+                title="Editar"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => borrado.ask(item)}
+                disabled={!!bloqueo}
+                title={bloqueo ? `No se puede eliminar. ${bloqueo}` : 'Eliminar'}
+                className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-mm-txw"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        }}
       />
 
       <AnimatePresence>
@@ -238,6 +260,33 @@ export function DocumentTypesTab() {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={!!borrado.target}
+        onClose={borrado.cancel}
+        onConfirm={borrado.confirm}
+        title="Eliminar tipo de documento"
+        message={
+          <>
+            ¿Eliminar <span className="font-bold text-mm-g">{borrado.target?.name}</span>? Dejará de
+            pedirse a las tiendas. Esta acción no se puede deshacer.
+          </>
+        }
+        variant="danger"
+        confirmText="Eliminar"
+        isLoading={borrado.isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={!!borrado.error}
+        onClose={borrado.dismissError}
+        onConfirm={borrado.dismissError}
+        title="No se puede eliminar"
+        message={borrado.error || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
+      />
     </div>
   );
 }
