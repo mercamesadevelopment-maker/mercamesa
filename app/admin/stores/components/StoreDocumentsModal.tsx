@@ -10,6 +10,17 @@ interface StoreDocumentsModalProps {
   storeId: string;
   storeName: string;
   onSaved: () => void;
+  /**
+   * Habilita decidir el estado (Pendiente/Aprobado/Rechazado).
+   *
+   * Por defecto `false`: este modal también lo abre el tendero desde
+   * /seller/onboarding, y aprobar su propia documentación es justamente lo que
+   * no puede hacer. Él sube y consulta; el estado lo decide el administrador.
+   *
+   * Es comodidad de interfaz, no la protección: quien manda es el servidor, que
+   * ignora el estado que venga de quien no tenga permiso de administración.
+   */
+  canReview?: boolean;
 }
 
 interface DocumentItem {
@@ -30,6 +41,7 @@ export function StoreDocumentsModal({
   storeId,
   storeName,
   onSaved,
+  canReview = false,
 }: StoreDocumentsModalProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,42 +91,53 @@ export function StoreDocumentsModal({
     try {
       // Se corta antes de mandar nada: sin archivo, el documento no puede
       // existir, y el servidor respondería con un error por cada uno.
-      const sinArchivo = documents.filter(
-        (d) => !d.file_url && !fileEdits[d.id] && (statusEdits[d.id] || d.status) !== d.status
-      );
-      if (sinArchivo.length > 0) {
-        const nombres = sinArchivo.map((d) => `«${d.name}»`).join(', ');
-        throw new Error(
-          `Primero debes subir el archivo de ${nombres} para poder cambiar su estado.`
+      if (canReview) {
+        const sinArchivo = documents.filter(
+          (d) => !d.file_url && !fileEdits[d.id] && (statusEdits[d.id] || d.status) !== d.status
         );
+        if (sinArchivo.length > 0) {
+          const nombres = sinArchivo.map((d) => `«${d.name}»`).join(', ');
+          throw new Error(
+            `Primero debes subir el archivo de ${nombres} para poder cambiar su estado.`
+          );
+        }
       }
 
       for (const doc of documents) {
         const file = fileEdits[doc.id];
         const status = statusEdits[doc.id] || doc.status;
 
-        // Save if status is edited or new file is uploaded
-        if (file || status !== doc.status) {
-          const formData = new FormData();
-          formData.append('document_type_id', doc.id);
+        // Sin permiso de revisión lo único que se envía son archivos nuevos.
+        const hayCambio = canReview ? file || status !== doc.status : !!file;
+        if (!hayCambio) continue;
+
+        const formData = new FormData();
+        formData.append('document_type_id', doc.id);
+
+        // El estado solo viaja cuando quien guarda puede decidirlo. Si no, el
+        // servidor lo resuelve: un archivo nuevo vuelve a quedar en revisión.
+        // Mandarlo igual era lo que rompía el reemplazo de un documento ya
+        // aprobado — el servidor veía «approved» y respondía 403.
+        if (canReview) {
           formData.append('status', status);
-          if (file) {
-            formData.append('file', file);
-          }
-          if (doc.file_url && !file) {
-            // If there's an existing file and we just change status, send the existing file_url
-            formData.append('file_url', doc.file_url);
-          }
+        }
 
-          const res = await fetch(`/api/stores/${storeId}/documents`, {
-            method: 'POST',
-            body: formData,
-          });
+        if (file) {
+          formData.append('file', file);
+        }
+        if (doc.file_url && !file) {
+          // If there's an existing file and we just change status, send the existing file_url
+          formData.append('file_url', doc.file_url);
+        }
 
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || 'Error al guardar el documento');
-          }
+        const res = await fetch(`/api/stores/${storeId}/documents`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Error al guardar el documento');
         }
       }
       onSaved();
@@ -146,7 +169,7 @@ export function StoreDocumentsModal({
       title={`Documentos de ${storeName}`}
       maxWidth="max-w-3xl"
     >
-      <div className="p-8 space-y-6">
+      <div className="p-4 sm:p-8 space-y-6">
         {loading ? (
           <div className="py-20 text-center text-mm-txw">
             <Loader className="w-8 h-8 animate-spin mx-auto mb-2 text-mm-g" />
@@ -157,8 +180,19 @@ export function StoreDocumentsModal({
             <div className="bg-mm-gbg/20 p-4 rounded-2xl border border-mm-crd/50 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-mm-g shrink-0 mt-0.5" />
               <div className="text-xs text-mm-g font-medium leading-relaxed">
-                Para que la tienda pueda invitar a nuevos miembros y operar en la plataforma,
-                debes subir y marcar como <strong>Aprobado</strong> cada uno de los documentos requeridos.
+                {canReview ? (
+                  <>
+                    Para que la tienda pueda invitar a nuevos miembros y operar en la plataforma,
+                    debes subir y marcar como <strong>Aprobado</strong> cada uno de los documentos requeridos.
+                  </>
+                ) : (
+                  <>
+                    Sube cada uno de los documentos requeridos. Un administrador los revisará y
+                    los marcará como <strong>Aprobado</strong>; hasta entonces la tienda no puede
+                    invitar nuevos miembros ni operar en la plataforma. Si reemplazas un archivo
+                    ya aprobado, vuelve a quedar en revisión.
+                  </>
+                )}
               </div>
             </div>
 
@@ -214,30 +248,32 @@ export function StoreDocumentsModal({
                         />
                       </label>
 
-                      {/* Status Selector. Sin archivo no hay estado que cambiar:
-                          el documento aún no existe. */}
-                      <select
-                        value={currentStatus}
-                        disabled={!hasFile}
-                        title={!hasFile ? 'Sube primero el archivo para poder cambiar su estado' : undefined}
-                        onChange={(e) => handleStatusChange(doc.id, e.target.value as any)}
-                        className="px-3 py-1.5 rounded-lg border border-mm-crd bg-white text-xs text-mm-g font-semibold focus:border-mm-g outline-none transition-all cursor-pointer shadow-sm min-h-[34px] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-mm-gbg"
-                      >
-                        <option value="pending">Pendiente</option>
-                        <option value="approved">Aprobado</option>
-                        <option value="rejected">Rechazado</option>
-                      </select>
+                      {/* Status Selector. Solo para quien revisa; sin archivo no
+                          hay estado que cambiar: el documento aún no existe. */}
+                      {canReview && (
+                        <select
+                          value={currentStatus}
+                          disabled={!hasFile}
+                          title={!hasFile ? 'Sube primero el archivo para poder cambiar su estado' : undefined}
+                          onChange={(e) => handleStatusChange(doc.id, e.target.value as any)}
+                          className="px-3 py-1.5 rounded-lg border border-mm-crd bg-white text-xs text-mm-g font-semibold focus:border-mm-g outline-none transition-all cursor-pointer shadow-sm min-h-[34px] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-mm-gbg"
+                        >
+                          <option value="pending">Pendiente</option>
+                          <option value="approved">Aprobado</option>
+                          <option value="rejected">Rechazado</option>
+                        </select>
+                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            <div className="pt-2 flex gap-3">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row gap-3">
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1"
+                className="w-full sm:flex-1"
                 onClick={onClose}
                 disabled={saving}
               >
@@ -245,7 +281,7 @@ export function StoreDocumentsModal({
               </Button>
               <Button
                 type="button"
-                className="flex-1"
+                className="w-full sm:flex-1"
                 onClick={handleSave}
                 loading={saving}
               >

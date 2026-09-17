@@ -252,6 +252,9 @@ export default function StoresAdmin() {
             storeId={selectedStoreForDocs.id}
             storeName={selectedStoreForDocs.name}
             onSaved={fetchStores}
+            // Aprobar o rechazar es decisión del administrador. El mismo modal
+            // lo abre el tendero desde /seller/onboarding, y allí no se pasa.
+            canReview
           />
         )}
       </AnimatePresence>
