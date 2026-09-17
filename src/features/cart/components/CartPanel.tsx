@@ -8,7 +8,14 @@ import {
   X,
   AlertTriangle,
   ChevronLeft,
+  ShieldCheck,
 } from "lucide-react";
+import { Disclosure } from "@/components/ui/disclosure/Disclosure";
+import {
+  SECURITY_NOTICE_TITLE,
+  SECURITY_NOTICE_SUMMARY,
+  SECURITY_NOTICE_DETAILS,
+} from "@/lib/copy/security-notice";
 import { useCheckout } from "../hooks/useCheckout";
 import { useCart } from "../hooks/use-cart";
 import { Button, Badge, cn } from "@/src/components/Shared";
@@ -419,6 +426,25 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                           cuenta que, una vez finalizado el pago, no será
                           posible agregar más productos a esta orden.
                         </p>
+                      </div>
+                    </div>
+
+                    {/* Aviso de seguridad. En gris y no en ámbar a propósito:
+                        dos alertas del mismo color compiten entre sí y esta no
+                        avisa de un problema. El detalle va plegado — entero son
+                        ~180 palabras justo encima del botón de pagar. */}
+                    <div className="flex items-start gap-2.5 bg-mm-gbg/40 border border-mm-crd/40 rounded-2xl p-4">
+                      <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-mm-g" />
+                      <div className="text-xs text-mm-txs leading-relaxed space-y-2">
+                        <p className="font-bold text-mm-g">{SECURITY_NOTICE_TITLE}</p>
+                        <p>{SECURITY_NOTICE_SUMMARY}</p>
+                        <Disclosure label="Ver recomendaciones de seguridad">
+                          <div className="space-y-2 pt-2">
+                            {SECURITY_NOTICE_DETAILS.map((parrafo) => (
+                              <p key={parrafo}>{parrafo}</p>
+                            ))}
+                          </div>
+                        </Disclosure>
                       </div>
                     </div>
                   </motion.div>

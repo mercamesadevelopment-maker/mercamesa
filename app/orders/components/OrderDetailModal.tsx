@@ -9,7 +9,13 @@ import {
   Clock,
   ShoppingBag,
   Image as ImageIcon,
+  ShieldCheck,
 } from 'lucide-react';
+
+import {
+  DELIVERY_CODE_NOTICE,
+  DELIVERY_CODE_NOTICE_TITLE,
+} from '@/lib/copy/security-notice';
 
 import {
   OrderDetail,
@@ -199,6 +205,24 @@ export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalPro
         <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm flex items-center justify-between">
           <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">Total Pagado</span>
           <span className="text-2xl font-fraunces text-mm-g">{formatCurrency(order.total || 0)}</span>
+        </div>
+
+        {/* Seguridad. Va acá y no antes de pagar: el código de entrega solo
+            existe cuando el pedido ya está en camino, así que este es el momento
+            en que el consejo se puede aplicar. */}
+        <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-4 border-b border-mm-crd/65 pb-4">
+            <div className="w-9 h-9 bg-mm-gbg/45 rounded-xl flex items-center justify-center text-mm-g">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <h3 className="font-bold text-mm-g text-base">{DELIVERY_CODE_NOTICE_TITLE}</h3>
+          </div>
+
+          <div className="space-y-2.5 text-xs text-mm-txs leading-relaxed">
+            {DELIVERY_CODE_NOTICE.map((parrafo) => (
+              <p key={parrafo}>{parrafo}</p>
+            ))}
+          </div>
         </div>
 
         {/* Footer */}
