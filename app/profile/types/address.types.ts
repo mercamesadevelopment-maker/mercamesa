@@ -17,6 +17,8 @@ export interface AddressFormValues {
   neighborhood: string;
   municipality: string;
   department: string;
+  /** Cómo llegar a la puerta: piso, apartamento, punto de referencia. */
+  delivery_instructions: string;
   is_default: boolean;
   /** Las usa Pibox para que el mensajero encuentre el punto exacto */
   latitude: number | null;

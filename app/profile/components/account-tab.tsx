@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { KeyRound, LogOut } from 'lucide-react';
 import { Button, Input, Select } from '@/src/components/Shared';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAccount } from '../hooks/use-account';
 import { EmailChangeModal } from './email-change-modal';
 import { PasswordChangeModal } from './password-change-modal';
@@ -178,12 +179,7 @@ function AccountTabContent() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
-          <Input
-            label="Teléfono"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+          <PhoneInput label="Teléfono" value={phone} onChange={setPhone} />
 
           <div className="flex flex-col gap-1.5 w-full">
             <Select

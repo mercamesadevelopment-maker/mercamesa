@@ -164,6 +164,8 @@ export interface Order {
   status: OrderStatus;
   buyerId: string;
   address: string;
+  /** Indicaciones del comprador para llegar a la puerta (piso, apartamento, referencia). */
+  deliveryInstructions?: string | null;
   paymentMethod: string;
   buyerName?: string;
   buyerPhone?: string | null;

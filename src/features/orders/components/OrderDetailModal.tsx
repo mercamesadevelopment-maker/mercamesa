@@ -363,6 +363,13 @@ export function OrderDetailModal({
                   <div>
                     <p className="text-[9px] text-mm-txw font-black uppercase tracking-wider leading-none mb-1">Dirección de Entrega</p>
                     <p className="text-xs text-mm-txs font-medium leading-relaxed">{order.address}</p>
+                    {/* Lo que el comprador escribió para que lo encuentren: piso,
+                        apartamento, punto de referencia. */}
+                    {order.deliveryInstructions && (
+                      <p className="mt-1 text-xs text-mm-txs italic leading-relaxed">
+                        {order.deliveryInstructions}
+                      </p>
+                    )}
                   </div>
                 </div>
 

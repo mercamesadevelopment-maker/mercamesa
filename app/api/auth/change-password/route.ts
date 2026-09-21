@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { createSupabaseServiceClient } from '../../../../lib/supabase/service'
 import { sendEmail, passwordChangedEmail } from '../../../../lib/email/resend'
+import { authErrorMessage } from '@/lib/auth/auth-error-messages'
 
 const MIN_PASSWORD_LENGTH = 8
 
@@ -54,7 +55,12 @@ export async function POST(request: Request) {
     })
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 400 })
+      const { message } = authErrorMessage(
+        updateError,
+        'No pudimos cambiar la contraseña. Intenta de nuevo.',
+        'change-password'
+      )
+      return NextResponse.json({ error: message }, { status: 400 })
     }
 
     // El aviso es informativo: si el cambio no fue el dueño de la cuenta, es la

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
-import { formatDeliveryAddress } from '@/src/features/orders/utils/format-delivery-address';
+import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
 
 export function useOrders() {
   const [stores, setStores] = useState<Array<{ id: string; name: string }>>([]);
@@ -68,7 +68,8 @@ export function useOrders() {
               address_line,
               neighborhood,
               municipality,
-              department
+              department,
+              delivery_instructions
             )
           ),
           store_order_status_history (
@@ -125,6 +126,10 @@ export function useOrders() {
           parentOrder?.delivery_address_snapshot,
           parentOrder?.delivery_addresses
         );
+        const deliveryInstructions = getDeliveryInstructions(
+          parentOrder?.delivery_address_snapshot,
+          parentOrder?.delivery_addresses
+        );
 
         // Filter and map items belonging to this order's store
         const storeItems: OrderItem[] = (itemsData || [])
@@ -166,6 +171,7 @@ export function useOrders() {
           status: so.status as OrderStatus,
           buyerId: buyer?.full_name || parentOrder?.buyer_id || 'Cliente',
           address: addressStr,
+          deliveryInstructions,
           paymentMethod: parentOrder?.payment_status === 'approved' ? 'Tarjeta (Aprobado)' : 'Pendiente de Pago',
           buyerName: client?.full_name || buyer?.full_name || 'Cliente',
           buyerPhone: client?.phone || buyer?.phone || null,

@@ -7,6 +7,7 @@ import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 import { useApp } from '@/src/store';
 import { Button, Input, Select } from '@/src/components/Shared';
+import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAuthHooks } from '../hooks/useAuth';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
@@ -17,13 +18,20 @@ type BuyerType = 'retail' | 'wholesale';
 export function BuyerRegisterModal({
   isOpen,
   onClose,
+  onLoginClick,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Salida hacia el inicio de sesión cuando el correo ya tiene cuenta. Recibe el
+   * correo escrito para no obligar a teclearlo otra vez. Sin este prop el aviso
+   * se muestra igual, solo sin botón.
+   */
+  onLoginClick?: (email: string) => void;
 }) {
   const { dispatch } = useApp();
   const router = useRouter();
-  const { registerBuyer, loading, error } = useAuthHooks();
+  const { registerBuyer, loading, error, errorCode } = useAuthHooks();
 
   const { personTypes, loading: loadingTypes } = useIdentificationTypes();
 
@@ -32,6 +40,13 @@ export function BuyerRegisterModal({
   const [personTypeId, setPersonTypeId] = useState('');
   const [identificationTypeId, setIdentificationTypeId] = useState('');
   const [buyerType, setBuyerType] = useState<BuyerType>('retail');
+  // El resto del formulario se lee con `FormData`, pero el teléfono necesita
+  // estado: el selector de país y el campo son un solo valor en E.164.
+  const [phone, setPhone] = useState('');
+  // Se guarda al enviar para poder pasarlo al inicio de sesión si resulta que
+  // ese correo ya tiene cuenta; el campo se lee con `FormData` y para entonces
+  // ya no está a mano.
+  const [submittedEmail, setSubmittedEmail] = useState('');
 
   // El primero de la lista queda preseleccionado, como antes lo estaba "Natural".
   useEffect(() => {
@@ -61,14 +76,17 @@ export function BuyerRegisterModal({
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirm_password') as string;
+    const email = formData.get('email') as string;
 
     if (password !== confirmPassword) {
       return;
     }
 
+    setSubmittedEmail(email);
+
     try {
       await registerBuyer({
-        email: formData.get('email') as string,
+        email,
         password,
         person_type_id: personTypeId,
         identification_type_id: identificationTypeId,
@@ -146,7 +164,21 @@ export function BuyerRegisterModal({
 
               {error && (
                 <div className="mb-5 rounded-2xl bg-red-100 p-4 text-sm text-red-600">
-                  {error}
+                  <p>{error}</p>
+
+                  {/* Si el correo ya tiene cuenta, el aviso no basta: hay que
+                      poder entrar desde aquí. El camino inverso (login →
+                      registro) ya existía. */}
+                  {errorCode === 'email_exists' && onLoginClick && (
+                    <button
+                      type="button"
+                      onClick={() => onLoginClick(submittedEmail)}
+                      className="mt-2 inline-flex items-center gap-1 font-semibold text-red-700 underline underline-offset-2 transition-colors hover:text-red-900"
+                    >
+                      Iniciar sesión
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -201,7 +233,13 @@ export function BuyerRegisterModal({
 
                 <Input label="Correo electrónico" name="email" type="email" placeholder="juan@correo.com" required className="sm:col-span-2" />
 
-                <Input label="Teléfono celular" name="phone" type="tel" placeholder="+57 300 000 0000" required />
+                <PhoneInput
+                  label="Teléfono celular"
+                  name="phone"
+                  value={phone}
+                  onChange={setPhone}
+                  required
+                />
 
                 <div className="relative">
                   <Input

@@ -4,6 +4,7 @@ import { Database } from '../../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../lib/supabase/supabase-image';
 import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate';
 import { canManageStore } from '@/lib/auth/can-manage-store';
+import { toE164 } from '@/lib/phone/phone';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
@@ -103,14 +104,35 @@ export async function PUT(
     const body = await request.json();
     const updateData: Partial<StoreUpdate> = {};
 
-    MEMBER_EDITABLE_FIELDS.forEach((field) => {
+    // Los teléfonos se normalizan a E.164 antes de guardar; lo que no sea un
+    // número se rechaza en vez de quedar como texto en la columna.
+    const PHONE_FIELDS: Record<string, string> = {
+      phone: 'El teléfono no es un número válido.',
+      whatsapp: 'El WhatsApp no es un número válido.',
+    };
+
+    for (const field of MEMBER_EDITABLE_FIELDS) {
       const val = body[field];
       // `String(val)` convertía un null explícito en la cadena "null"; vaciar un
       // campo opcional debe guardarlo como null.
-      if (val === undefined) return;
-      (updateData as Record<string, unknown>)[field] =
-        val === null || val === '' ? null : String(val);
-    });
+      if (val === undefined) continue;
+
+      if (val === null || val === '') {
+        (updateData as Record<string, unknown>)[field] = null;
+        continue;
+      }
+
+      if (field in PHONE_FIELDS) {
+        const e164 = toE164(String(val));
+        if (!e164) {
+          return NextResponse.json({ error: PHONE_FIELDS[field] }, { status: 400 });
+        }
+        (updateData as Record<string, unknown>)[field] = e164;
+        continue;
+      }
+
+      (updateData as Record<string, unknown>)[field] = String(val);
+    }
 
     // `name` es obligatorio en la tabla: no se puede vaciar.
     if (updateData.name === null) {

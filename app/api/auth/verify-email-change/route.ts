@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { createClient } from '../../../../lib/supabase/server'
 import { createSupabaseServiceClient } from '../../../../lib/supabase/service'
 import { sendEmail, emailChangeConfirmedEmail } from '../../../../lib/email/resend'
+import { authErrorMessage } from '@/lib/auth/auth-error-messages'
 
 const GENERIC_ERROR = { error: 'Código inválido o expirado' }
 
@@ -58,7 +59,13 @@ export async function POST(request: Request) {
     })
 
     if (updateUserError) {
-      return NextResponse.json({ error: updateUserError.message }, { status: 400 })
+      // El caso típico es que ese correo ya esté tomado por otra cuenta.
+      const { message } = authErrorMessage(
+        updateUserError,
+        'No pudimos cambiar el correo. Intenta de nuevo.',
+        'verify-email-change'
+      )
+      return NextResponse.json({ error: message }, { status: 400 })
     }
 
     const { error: profileError } = await service

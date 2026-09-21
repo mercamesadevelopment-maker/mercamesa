@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button, Input, Textarea } from '@/src/components/Shared';
+import { MAX_DELIVERY_INSTRUCTIONS } from '@/lib/addresses/limits';
 import { Modal } from '@/components/ui/modal/modal';
 import { MapPicker, type MapPickerChange } from '@/components/ui/map-picker/MapPicker';
 import type { AddressFormValues, DeliveryAddress } from '../types/address.types';
@@ -13,6 +14,7 @@ export const EMPTY_ADDRESS_FORM: AddressFormValues = {
   neighborhood: '',
   municipality: '',
   department: '',
+  delivery_instructions: '',
   is_default: false,
   latitude: null,
   longitude: null,
@@ -25,6 +27,7 @@ export function addressToFormValues(addr: DeliveryAddress): AddressFormValues {
     neighborhood: addr.neighborhood ?? '',
     municipality: addr.municipality,
     department: addr.department,
+    delivery_instructions: addr.delivery_instructions ?? '',
     is_default: addr.is_default,
     latitude: addr.latitude ?? null,
     longitude: addr.longitude ?? null,
@@ -136,6 +139,20 @@ export function AddressFormModal({
               Marca el punto exacto en el mapa. Sin él no podemos enviarte el pedido.
             </p>
           )}
+
+          {/* Va después del mapa a propósito: primero se ubica el punto, luego
+              se explica cómo llegar a la puerta desde ahí. */}
+          <Textarea
+            label="Indicaciones para la entrega"
+            value={form.delivery_instructions}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, delivery_instructions: e.target.value }))
+            }
+            placeholder="Ej: Apartamento 302, segundo piso. Timbre dañado, llamar al llegar."
+            rows={3}
+            maxLength={MAX_DELIVERY_INSTRUCTIONS}
+            hint="Opcional. Se las mostramos al mensajero para que encuentre tu puerta."
+          />
 
           <div className="flex items-center gap-3 p-3 sm:p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
             <input

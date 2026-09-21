@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getPiboxDefaultPackageSizeCd, getPiboxServiceTypeId } from '../client';
 import { toPiboxCityCode, toSubUnits } from '../constants';
+import { splitE164 } from '@/lib/phone/phone';
 import type { PiboxBookingEnvelope } from '../types';
 
 /**
@@ -38,6 +39,8 @@ export interface BookingContext {
     addressLine: string;
     neighborhood: string | null;
     municipality: string;
+    /** Cómo llegar a la puerta: piso, apartamento, punto de referencia. */
+    deliveryInstructions: string | null;
     latitude: number | null;
     longitude: number | null;
   };
@@ -70,7 +73,7 @@ export async function loadBookingContext(
       orders (
         total,
         payment_status,
-        delivery_addresses ( address_line, neighborhood, municipality, latitude, longitude ),
+        delivery_addresses ( address_line, neighborhood, municipality, delivery_instructions, latitude, longitude ),
         profiles ( full_name, email, phone )
       )
     `
@@ -118,6 +121,7 @@ export async function loadBookingContext(
       addressLine: address.address_line,
       neighborhood: address.neighborhood ?? null,
       municipality: address.municipality,
+      deliveryInstructions: address.delivery_instructions ?? null,
       latitude: address.latitude ?? null,
       longitude: address.longitude ?? null,
     },
@@ -152,7 +156,7 @@ export async function loadQuoteContext(
         .maybeSingle(),
       supabase
         .from('delivery_addresses')
-        .select('buyer_id, address_line, neighborhood, municipality, latitude, longitude')
+        .select('buyer_id, address_line, neighborhood, municipality, delivery_instructions, latitude, longitude')
         .eq('id', input.deliveryAddressId)
         .maybeSingle(),
     ]);
@@ -202,6 +206,7 @@ export async function loadQuoteContext(
       addressLine: address.address_line,
       neighborhood: address.neighborhood ?? null,
       municipality: address.municipality,
+      deliveryInstructions: address.delivery_instructions ?? null,
       latitude: address.latitude ?? null,
       longitude: address.longitude ?? null,
     },
@@ -228,6 +233,17 @@ export function buildBookingPayload(
   if (requireCustomerPhone && !ctx.customer.phone) {
     throw new PiboxDataError(
       'El comprador no tiene teléfono registrado y el mensajero necesita poder contactarlo.'
+    );
+  }
+
+  // Pibox pide el indicativo y el número por separado. Los teléfonos se guardan
+  // en E.164, así que se parten acá en vez de suponer que todos son de Colombia.
+  const customerPhone = splitE164(ctx.customer.phone);
+  const senderPhone = splitE164(ctx.store.phone);
+
+  if (requireCustomerPhone && !customerPhone) {
+    throw new PiboxDataError(
+      'El teléfono del comprador no tiene un formato válido; el mensajero no podría llamarlo.'
     );
   }
 
@@ -264,6 +280,20 @@ export function buildBookingPayload(
   // Contra entrega: si el pago aún no está aprobado, el mensajero recauda el total.
   const counterDelivery = ctx.paymentStatus !== 'approved';
 
+  /**
+   * Segunda línea de la dirección de destino: el barrio y las indicaciones que
+   * dejó el comprador ("apartamento 302, segundo piso").
+   *
+   * Es el mismo campo con el que arriba se le dice al conductor qué local buscar
+   * dentro de la plaza. Se combinan en vez de reemplazar: el barrio ayuda a
+   * ubicar la zona y las indicaciones a rematar en la puerta. Sin indicaciones
+   * queda solo el barrio, exactamente como antes.
+   */
+  const destinationSecondaryAddress = [ctx.destination.neighborhood, ctx.destination.deliveryInstructions]
+    .map((part) => (part ?? '').trim())
+    .filter(Boolean)
+    .join(' · ');
+
   return {
     booking: {
       address: ctx.origin.address,
@@ -272,8 +302,14 @@ export function buildBookingPayload(
       ...(ctx.origin.latitude !== null && ctx.origin.longitude !== null
         ? { lat: Number(ctx.origin.latitude), lon: Number(ctx.origin.longitude) }
         : {}),
-      ...(ctx.store.phone
-        ? { sender_phone: ctx.store.phone, sender_country_code: '57' }
+      // El indicativo sale del propio número y ya no está escrito a mano: desde
+      // que los formularios tienen selector de país, dar por hecho el 57 sería
+      // mandarle a Pibox un indicativo que no corresponde.
+      ...(senderPhone
+        ? {
+            sender_phone: senderPhone.nationalNumber,
+            sender_country_code: senderPhone.countryCode,
+          }
         : {}),
       requested_service_type_id: getPiboxServiceTypeId(),
       return_to_origin: false,
@@ -283,8 +319,8 @@ export function buildBookingPayload(
       stops: [
         {
           address: ctx.destination.addressLine,
-          ...(ctx.destination.neighborhood
-            ? { secondary_address: ctx.destination.neighborhood }
+          ...(destinationSecondaryAddress
+            ? { secondary_address: destinationSecondaryAddress }
             : {}),
           ...(ctx.destination.latitude !== null && ctx.destination.longitude !== null
             ? {
@@ -294,8 +330,8 @@ export function buildBookingPayload(
             : {}),
           customer: {
             name: ctx.customer.fullName,
-            country_code: '57',
-            phone: ctx.customer.phone || '',
+            country_code: customerPhone?.countryCode ?? '57',
+            phone: customerPhone?.nationalNumber ?? '',
             ...(ctx.customer.email ? { email: ctx.customer.email } : {}),
           },
           packages: [

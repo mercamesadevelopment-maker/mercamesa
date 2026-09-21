@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import { Button, Input, Select } from '@/src/components/Shared';
+import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 
@@ -287,16 +288,13 @@ export default function AcceptInvite() {
                   </div>
                 )}
 
-                <div className="relative">
-                  <Input
-                    label="Celular / Teléfono"
-                    name="phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Ej: 3001234567"
-                    required
-                  />
-                </div>
+                <PhoneInput
+                  label="Celular / Teléfono"
+                  name="phone"
+                  value={phone}
+                  onChange={setPhone}
+                  required
+                />
 
                 <Select
                   label="Tipo de persona"

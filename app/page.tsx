@@ -19,6 +19,9 @@ export default function Page() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isBuyerRegisterOpen, setIsBuyerRegisterOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  // Correo que viaja del registro al inicio de sesión cuando resulta que ya
+  // tenía cuenta, para no obligar a escribirlo de nuevo.
+  const [loginEmail, setLoginEmail] = useState('');
 
   useEffect(() => {
     if (state.isLoggedIn) {
@@ -264,6 +267,7 @@ export default function Page() {
           <LoginModal
             isOpen={isLoginOpen}
             onClose={() => setIsLoginOpen(false)}
+            defaultEmail={loginEmail}
             onRegisterClick={() => {
               setIsLoginOpen(false);
               setIsBuyerRegisterOpen(true);
@@ -276,7 +280,15 @@ export default function Page() {
         )}
         {isRegisterOpen && <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />}
         {isBuyerRegisterOpen && (
-          <BuyerRegisterModal isOpen={isBuyerRegisterOpen} onClose={() => setIsBuyerRegisterOpen(false)} />
+          <BuyerRegisterModal
+            isOpen={isBuyerRegisterOpen}
+            onClose={() => setIsBuyerRegisterOpen(false)}
+            onLoginClick={(email) => {
+              setLoginEmail(email);
+              setIsBuyerRegisterOpen(false);
+              setIsLoginOpen(true);
+            }}
+          />
         )}
         {isForgotPasswordOpen && (
           <ForgotPasswordModal

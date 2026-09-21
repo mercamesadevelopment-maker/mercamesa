@@ -14,11 +14,14 @@ export function LoginModal({
   onClose,
   onRegisterClick,
   onForgotPasswordClick,
+  defaultEmail,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onRegisterClick?: () => void;
   onForgotPasswordClick?: () => void;
+  /** Correo con el que llega la persona; p. ej. desde el registro, cuando ya tenía cuenta. */
+  defaultEmail?: string;
 }) {
   const router = useRouter();
 
@@ -118,6 +121,7 @@ export function LoginModal({
               name="email"
               type="email"
               placeholder="ejemplo@correo.com"
+              defaultValue={defaultEmail}
               required
             />
 

@@ -1,4 +1,5 @@
 import { toCoordinate, validateColombiaCoordinates } from '@/lib/geocoding/mapbox';
+import { MAX_DELIVERY_INSTRUCTIONS } from './limits';
 
 /**
  * Convierte el cuerpo que manda el navegador en algo seguro de escribir.
@@ -24,6 +25,8 @@ export interface SanitizedAddress {
   neighborhood: string | null;
   municipality: string;
   department: string;
+  /** Cómo llegar a la puerta: piso, apartamento, punto de referencia. */
+  delivery_instructions: string | null;
   is_default: boolean;
   latitude: number;
   longitude: number;
@@ -58,6 +61,13 @@ export function sanitizeAddress(body: unknown): SanitizeResult {
   if (!municipality) return { error: 'El municipio es obligatorio.' };
   if (!department) return { error: 'El departamento es obligatorio.' };
 
+  const deliveryInstructions = optionalText(b.delivery_instructions);
+  if (deliveryInstructions && deliveryInstructions.length > MAX_DELIVERY_INSTRUCTIONS) {
+    return {
+      error: `Las indicaciones para la entrega no pueden pasar de ${MAX_DELIVERY_INSTRUCTIONS} caracteres.`,
+    };
+  }
+
   const latitude = toCoordinate(b.latitude);
   const longitude = toCoordinate(b.longitude);
 
@@ -71,6 +81,7 @@ export function sanitizeAddress(body: unknown): SanitizeResult {
       neighborhood: optionalText(b.neighborhood),
       municipality,
       department,
+      delivery_instructions: deliveryInstructions,
       is_default: b.is_default === true,
       // El validador ya descartó null; el `!` es solo para el compilador.
       latitude: latitude!,

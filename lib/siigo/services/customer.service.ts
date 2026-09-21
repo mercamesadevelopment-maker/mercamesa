@@ -6,6 +6,7 @@ import {
   SIIGO_DEFAULT_STATE_CODE,
 } from '../config';
 import type { SiigoCustomer, SiigoCustomerPayload, SiigoCustomersResponse } from '../types';
+import { toNationalDigits } from '@/lib/phone/phone';
 
 /** Busca un tercero por número de identificación. `null` si no existe. */
 export async function findCustomerByIdentification(
@@ -83,8 +84,12 @@ export function buildCustomerPayload(buyer: BuyerForSiigo): SiigoCustomerPayload
     },
   };
 
-  if (buyer.phone) {
-    payload.phones = [{ number: buyer.phone }];
+  // Siigo espera el número como se marca en el país, sin el indicativo. Para un
+  // número colombiano es exactamente lo que se enviaba antes de guardar en E.164.
+  const phoneNumber = toNationalDigits(buyer.phone);
+
+  if (phoneNumber) {
+    payload.phones = [{ number: phoneNumber }];
   }
 
   const contactName = isCompany ? buyer.contactName || displayName : displayName;
@@ -95,7 +100,7 @@ export function buildCustomerPayload(buyer: BuyerForSiigo): SiigoCustomerPayload
       first_name: firstName,
       last_name: lastName,
       ...(buyer.email && { email: buyer.email }),
-      ...(buyer.phone && { phone: { number: buyer.phone } }),
+      ...(phoneNumber && { phone: { number: phoneNumber } }),
     },
   ];
 

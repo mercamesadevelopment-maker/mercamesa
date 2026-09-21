@@ -9,6 +9,25 @@
  *
  * `fallback` es lo que se muestra cuando la respuesta no trae un `error` propio.
  */
+/**
+ * Error de una respuesta de la API que conserva su `code`.
+ *
+ * El mensaje ya viene en español desde el servidor, pero la interfaz a veces
+ * necesita distinguir el motivo —por ejemplo, ofrecer "Iniciar sesión" cuando el
+ * correo ya tiene cuenta— y compararlo por texto sería frágil.
+ */
+export class ApiError extends Error {
+  readonly code: string | null;
+  readonly status: number;
+
+  constructor(message: string, code: string | null, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
 async function post(path: string, body?: unknown, fallback = 'No pudimos completar la operación') {
   const res = await fetch(path, {
     method: 'POST',
@@ -27,7 +46,11 @@ async function post(path: string, body?: unknown, fallback = 'No pudimos complet
   }
 
   if (!res.ok) {
-    throw new Error(data?.error || `${fallback} (error ${res.status})`);
+    throw new ApiError(
+      data?.error || `${fallback} (error ${res.status})`,
+      data?.code ?? null,
+      res.status
+    );
   }
 
   if (data === null) {
