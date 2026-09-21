@@ -126,6 +126,11 @@ export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalPro
               <p className="text-sm text-mm-txs">
                 {order.address_line}, {order.neighborhood}, {order.municipality}
               </p>
+              {order.delivery_instructions && (
+                <p className="mt-1 text-sm text-mm-txs italic">
+                  {order.delivery_instructions}
+                </p>
+              )}
             </div>
           </div>
 

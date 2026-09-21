@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
 import { uploadVariants } from '../../../lib/images/generate';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
+import { toE164 } from '@/lib/phone/phone';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 
@@ -99,8 +100,17 @@ export async function POST(request: Request) {
     const description = (body.description as string) || null;
     const contact_name = (body.contact_name as string) || null;
     const contact_email = (body.contact_email as string) || null;
-    const phone = (body.phone as string) || null;
-    const whatsapp = (body.whatsapp as string) || null;
+    // Los teléfonos se guardan siempre en E.164 (+573001234567): Pibox recibe el
+    // indicativo aparte del número, y sin un formato fijo no hay cómo separarlos.
+    const phone = body.phone ? toE164(body.phone as string) : null;
+    const whatsapp = body.whatsapp ? toE164(body.whatsapp as string) : null;
+
+    if (body.phone && !phone) {
+      return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
+    }
+    if (body.whatsapp && !whatsapp) {
+      return NextResponse.json({ error: 'El WhatsApp no es un número válido.' }, { status: 400 });
+    }
     const is_active = body.is_active === true || body.is_active === 'true';
     const business_hours = body.business_hours || null;
 

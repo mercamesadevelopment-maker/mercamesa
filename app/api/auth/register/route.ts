@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { Database } from '../../../../types/database_generated'
 import { validateIdentificationPair } from '@/lib/identification/validate'
+import { authErrorMessage } from '@/lib/auth/auth-error-messages'
+import { rollbackSignUp } from '@/lib/auth/rollback-signup'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
@@ -44,13 +46,21 @@ export async function POST(request: Request) {
     })
 
     if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 })
+      const { message, code } = authErrorMessage(
+        authError,
+        'No pudimos crear la cuenta. Intenta de nuevo.',
+        'register'
+      )
+      return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
     const userId = authData.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User creation failed' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'No pudimos crear la cuenta. Intenta de nuevo.' },
+        { status: 500 }
+      )
     }
 
     // 2. Create the profile
@@ -73,7 +83,15 @@ export async function POST(request: Request) {
       .insert(profileData)
 
     if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 400 })
+      // Igual que en `register-buyer`: sin perfil la cuenta no sirve, y dejar el
+      // usuario de Auth creado dejaría ese correo bloqueado para siempre.
+      console.error('[auth] register: falló el insert del perfil', profileError)
+      await rollbackSignUp(userId, 'register')
+
+      return NextResponse.json(
+        { error: 'No pudimos completar el registro. Revisa los datos e intenta de nuevo.' },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json({ user: authData.user, profile: profileData }, { status: 201 })

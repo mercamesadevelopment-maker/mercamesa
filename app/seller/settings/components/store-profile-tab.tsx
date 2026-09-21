@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, Image as ImageIcon, MapPin } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
 import { useStoreProfile } from '../hooks/use-store-profile';
+import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
 
 interface StoreProfileTabProps {
   storeId: string | null;
@@ -237,10 +238,20 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
           />
         </div>
 
-        <Input label="Nombre de contacto" value={form.contact_name} onChange={handleChange('contact_name')} />
-        <Input label="Correo de contacto" type="email" value={form.contact_email} onChange={handleChange('contact_email')} />
-        <Input label="Teléfono" value={form.phone} onChange={handleChange('phone')} />
-        <Input label="WhatsApp" value={form.whatsapp} onChange={handleChange('whatsapp')} />
+        {/* El mismo bloque que usa el admin desde /admin/stores. */}
+        <StoreContactFields
+          className="sm:col-span-2"
+          values={{
+            contact_name: form.contact_name,
+            contact_email: form.contact_email,
+            phone: form.phone,
+            whatsapp: form.whatsapp,
+          }}
+          onChange={(field, value) => {
+            setSaved(false);
+            setForm((prev) => ({ ...prev, [field]: value }));
+          }}
+        />
       </div>
 
       <div className="flex justify-end">

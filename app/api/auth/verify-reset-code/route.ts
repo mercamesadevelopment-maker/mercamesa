@@ -57,7 +57,13 @@ export async function POST(request: Request) {
       .eq('id', row.id)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      // Fallo interno al marcar el código como usado: el detalle va al log, no
+      // a la pantalla.
+      console.error('[auth] verify-reset-code: no se pudo consumir el código', updateError)
+      return NextResponse.json(
+        { error: 'No pudimos verificar el código. Intenta de nuevo.' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ reset_token: resetToken }, { status: 200 })

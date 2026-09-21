@@ -9,6 +9,7 @@ import {
   type BusinessHours,
 } from '@/components/ui/business-hours/business-hours-editor';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
+import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
@@ -190,16 +191,21 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         {/* Horario de atención */}
         <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Input label="Nombre de Contacto" name="contact_name" value={formData.contact_name} onChange={handleChange} placeholder="Ej: José Pérez" />
-          <Input label="Correo de Contacto" name="contact_email" type="email" value={formData.contact_email} onChange={handleChange} placeholder="tienda@correo.com" error={emailError || undefined} />
-        </div>
-
-        {/* Teléfono + WhatsApp */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Input label="Teléfono" name="phone" value={formData.phone} onChange={handleChange} placeholder="+57 300 000 0000" />
-          <Input label="WhatsApp" name="whatsapp" value={formData.whatsapp} onChange={handleChange} placeholder="+573000000000" />
-        </div>
+        {/* Contacto, teléfono y WhatsApp: el mismo bloque que edita el tendero
+            desde su panel, compartido para que no se separen con el tiempo. */}
+        <StoreContactFields
+          values={{
+            contact_name: formData.contact_name,
+            contact_email: formData.contact_email,
+            phone: formData.phone,
+            whatsapp: formData.whatsapp,
+          }}
+          onChange={(field, value) => {
+            if (field === 'contact_email') setEmailError(null);
+            setFormData((prev) => ({ ...prev, [field]: value }));
+          }}
+          emailError={emailError}
+        />
 
         {/* Activa */}
         <div className="flex items-center gap-2 px-1">

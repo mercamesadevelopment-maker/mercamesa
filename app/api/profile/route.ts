@@ -7,6 +7,7 @@ import {
   validateIdentificationPair,
   validateIdentificationTypeExists,
 } from '@/lib/identification/validate';
+import { toE164 } from '@/lib/phone/phone';
 
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
@@ -57,13 +58,28 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const updateData: Partial<ProfileUpdate> = {};
 
-    const fields: (keyof ProfileUpdate)[] = ['full_name', 'phone', 'document_number'];
+    const fields: (keyof ProfileUpdate)[] = ['full_name', 'document_number'];
     fields.forEach((field) => {
       const val = body[field as string];
       if (val !== undefined) {
         (updateData as Record<string, unknown>)[field] = String(val);
       }
     });
+
+    // El teléfono va aparte: se guarda en E.164 y se rechaza lo que no sea un
+    // número. Antes entraba con `String(val)` sin mirar, y por eso hay un perfil
+    // con un correo escrito en esta columna.
+    if (body.phone !== undefined) {
+      if (body.phone === null || body.phone === '') {
+        updateData.phone = null;
+      } else {
+        const e164 = toE164(String(body.phone));
+        if (!e164) {
+          return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
+        }
+        updateData.phone = e164;
+      }
+    }
 
     // El tipo de identificación se valida contra el tipo de persona que YA tiene
     // el perfil: `person_type` no es editable desde acá, así que cambiar la

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { Database } from '../../../../types/database_generated'
+import { authErrorMessage } from '@/lib/auth/auth-error-messages'
+import { rollbackSignUp } from '@/lib/auth/rollback-signup'
 import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate'
+import { toE164 } from '@/lib/phone/phone'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
@@ -68,6 +71,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Debes aceptar los términos y condiciones' }, { status: 400 })
     }
 
+    // El teléfono se guarda en E.164; lo que no sea un número se rechaza.
+    const phoneE164 = phone ? toE164(String(phone)) : null
+    if (phone && !phoneE164) {
+      return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 })
+    }
+
     // El role_id del comprador se resuelve en el servidor, nunca se confía en un role_id enviado por el cliente
     const { data: buyerRole, error: roleError } = await supabase
       .from('roles')
@@ -85,20 +94,30 @@ export async function POST(request: Request) {
     })
 
     if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 })
+      // El caso más común acá es un correo que ya tiene cuenta. El `code` viaja
+      // al cliente para que el formulario pueda ofrecer iniciar sesión.
+      const { message, code } = authErrorMessage(
+        authError,
+        'No pudimos crear la cuenta. Intenta de nuevo.',
+        'register-buyer'
+      )
+      return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
     const userId = authData.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User creation failed' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'No pudimos crear la cuenta. Intenta de nuevo.' },
+        { status: 500 }
+      )
     }
 
     const profileData: ProfileInsert = {
       id: userId,
       email,
       full_name: personType.requiresBusinessName ? contact_name : full_name,
-      phone: phone || null,
+      phone: phoneE164,
       role_id: buyerRole.id,
       buyer_type,
       person_type_id: personType.id,
@@ -117,7 +136,16 @@ export async function POST(request: Request) {
       .insert(profileData)
 
     if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 400 })
+      // Sin el perfil la cuenta no sirve, y dejar el usuario de Auth creado
+      // bloquearía ese correo para siempre. Se deshace el signUp para que la
+      // persona pueda reintentar.
+      console.error('[auth] register-buyer: falló el insert del perfil', profileError)
+      await rollbackSignUp(userId, 'register-buyer')
+
+      return NextResponse.json(
+        { error: 'No pudimos completar tu registro. Revisa los datos e intenta de nuevo.' },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json({ user: authData.user, profile: profileData }, { status: 201 })

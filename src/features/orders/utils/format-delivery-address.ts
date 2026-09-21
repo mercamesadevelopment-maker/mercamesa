@@ -3,6 +3,7 @@ interface AddressParts {
   neighborhood?: string | null;
   municipality?: string | null;
   department?: string | null;
+  delivery_instructions?: string | null;
 }
 
 /**
@@ -29,4 +30,25 @@ export function formatDeliveryAddress(
     .join(', ');
 
   return text || fallbackLabel;
+}
+
+/**
+ * Las indicaciones del comprador para llegar a la puerta ("apartamento 302,
+ * segundo piso"), con el mismo criterio de `formatDeliveryAddress`: primero la
+ * copia congelada de la orden, luego el JOIN vigente.
+ *
+ * Van aparte y no dentro del texto de la dirección a propósito: ese texto de una
+ * línea alimenta las tablas y los listados, y un párrafo ahí los rompería.
+ *
+ * Las órdenes anteriores a esta columna tienen el snapshot sin la clave, así que
+ * devuelven `null` y no se muestra nada.
+ */
+export function getDeliveryInstructions(
+  snapshot: unknown,
+  joined: AddressParts | null | undefined
+): string | null {
+  const parts = (snapshot as AddressParts | null) ?? joined;
+  const text = (parts?.delivery_instructions ?? '').trim();
+
+  return text || null;
 }

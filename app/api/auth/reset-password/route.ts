@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '../../../../lib/supabase/service'
+import { authErrorMessage } from '@/lib/auth/auth-error-messages'
 
 const GENERIC_ERROR = { error: 'El enlace de recuperación es inválido o expiró' }
 
@@ -45,7 +46,14 @@ export async function POST(request: Request) {
     })
 
     if (updateUserError) {
-      return NextResponse.json({ error: updateUserError.message }, { status: 400 })
+      // Casi siempre es una contraseña que no cumple la política; el mensaje en
+      // español dice qué corregir en vez de mostrar el texto de Supabase.
+      const { message } = authErrorMessage(
+        updateUserError,
+        'No pudimos cambiar la contraseña. Intenta de nuevo.',
+        'reset-password'
+      )
+      return NextResponse.json({ error: message }, { status: 400 })
     }
 
     // El token es de un solo uso: se invalida aunque el reseteo haya fallado antes de llegar aquí.

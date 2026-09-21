@@ -168,6 +168,11 @@ export function DeliveryAddressSelector({
                 <p className="text-[11px] text-mm-txw truncate">
                   {addr.municipality}, {addr.department}
                 </p>
+                {addr.delivery_instructions && (
+                  <p className="text-[11px] text-mm-txs italic truncate">
+                    {addr.delivery_instructions}
+                  </p>
+                )}
                 {!hasCoords(addr) && (
                   <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-amber-700">
                     <AlertTriangle className="h-3 w-3 shrink-0" />

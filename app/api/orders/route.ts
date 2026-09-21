@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
       const { data: deliveryAddress, error: addressError } = await supabase
         .from('delivery_addresses')
-        .select('id, buyer_id, label, address_line, neighborhood, municipality, department, latitude, longitude')
+        .select('id, buyer_id, label, address_line, neighborhood, municipality, department, delivery_instructions, latitude, longitude')
         .eq('id', order.delivery_address_id)
         .maybeSingle();
 
@@ -122,6 +122,7 @@ export async function POST(request: Request) {
         neighborhood: deliveryAddress.neighborhood,
         municipality: deliveryAddress.municipality,
         department: deliveryAddress.department,
+        delivery_instructions: deliveryAddress.delivery_instructions,
         latitude: deliveryAddress.latitude,
         longitude: deliveryAddress.longitude,
       };

@@ -3,7 +3,7 @@ import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
-import { formatDeliveryAddress } from '@/src/features/orders/utils/format-delivery-address';
+import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 
 export interface UnifiedHistoryItem {
@@ -20,6 +20,8 @@ export interface UnifiedHistoryItem {
   paymentStatus: string;
   paymentMethod: string;
   address?: string;
+  /** Indicaciones del comprador para llegar a la puerta; nunca en ventas físicas. */
+  deliveryInstructions?: string | null;
 }
 
 export function useSalesHistory() {
@@ -60,7 +62,8 @@ export function useSalesHistory() {
               address_line,
               neighborhood,
               municipality,
-              department
+              department,
+              delivery_instructions
             )
           )
         `)
@@ -107,6 +110,13 @@ export function useSalesHistory() {
               parentOrder?.delivery_addresses
             );
 
+        const deliveryInstructions = isLocal
+          ? null
+          : getDeliveryInstructions(
+              parentOrder?.delivery_address_snapshot,
+              parentOrder?.delivery_addresses
+            );
+
         const storeItems: OrderItem[] = (itemsData || [])
           .filter((item: any) => item.order_id === so.order_id)
           .map((item: any) => ({
@@ -139,6 +149,7 @@ export function useSalesHistory() {
           paymentStatus: parentOrder?.payment_status === 'approved' ? 'Pagado' : 'Aprobado',
           paymentMethod: isLocal ? 'Efectivo' : 'Tarjeta de Crédito',
           address: addressStr,
+          deliveryInstructions,
         };
       });
 

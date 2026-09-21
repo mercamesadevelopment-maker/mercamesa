@@ -119,6 +119,11 @@ export function AddressesTab() {
                   <p className="text-xs text-mm-txw">
                     {addr.municipality}, {addr.department}
                   </p>
+                  {addr.delivery_instructions && (
+                    <p className="mt-1 text-xs text-mm-txs italic line-clamp-2 break-words">
+                      {addr.delivery_instructions}
+                    </p>
+                  )}
                   {(addr.latitude === null || addr.longitude === null) && (
                     <p className="text-[11px] text-amber-700 mt-1">
                       Sin ubicación en el mapa — el mensajero podría no encontrarla.

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate';
+import { toE164 } from '@/lib/phone/phone';
+import { authErrorMessage } from '@/lib/auth/auth-error-messages';
 
 export async function GET(request: Request) {
   try {
@@ -87,6 +89,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: pairError.message }, { status: 400 });
     }
 
+    // El teléfono se guarda en E.164; lo que no sea un número se rechaza acá y
+    // no llega a la base.
+    const phoneE164 = phone ? toE164(String(phone)) : null;
+    if (phone && !phoneE164) {
+      return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
+    }
+
     if (!document_number || !String(document_number).trim()) {
       return NextResponse.json({ error: 'El número de identificación es obligatorio.' }, { status: 400 });
     }
@@ -126,7 +135,12 @@ export async function POST(request: Request) {
     // 3. Set the user's password in auth.users
     const { error: passwordError } = await supabase.auth.updateUser({ password });
     if (passwordError) {
-      return NextResponse.json({ error: `Error de contraseña: ${passwordError.message}` }, { status: 400 });
+      const { message } = authErrorMessage(
+        passwordError,
+        'No pudimos guardar la contraseña. Intenta de nuevo.',
+        'accept-invite'
+      );
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     // 4. Create the profile record in profiles
@@ -139,7 +153,7 @@ export async function POST(request: Request) {
         // Cuando el tipo de persona lleva razón social, el nombre visible es el
         // del contacto: mismo criterio que `register-buyer`.
         full_name: personType.requiresBusinessName ? contact_name : fullName,
-        phone: phone || null,
+        phone: phoneE164,
         role_id: roleId,
         person_type_id: personType.id,
         identification_type_id: String(identification_type_id),

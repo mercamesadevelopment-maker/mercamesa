@@ -397,6 +397,7 @@ export type Database = {
           address_line: string
           buyer_id: string
           created_at: string
+          delivery_instructions: string | null
           department: string
           id: string
           is_default: boolean
@@ -410,6 +411,7 @@ export type Database = {
           address_line: string
           buyer_id: string
           created_at?: string
+          delivery_instructions?: string | null
           department?: string
           id?: string
           is_default?: boolean
@@ -423,6 +425,7 @@ export type Database = {
           address_line?: string
           buyer_id?: string
           created_at?: string
+          delivery_instructions?: string | null
           department?: string
           id?: string
           is_default?: boolean
@@ -2361,6 +2364,7 @@ export type Database = {
           buyer_id: string | null
           created_at: string | null
           delivery_address_id: string | null
+          delivery_instructions: string | null
           department: string | null
           municipality: string | null
           neighborhood: string | null
@@ -2400,6 +2404,7 @@ export type Database = {
         Returns: number
       }
       call_app_cron: { Args: { path: string }; Returns: number }
+      fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       has_permission: {
         Args: { action_name: string; module_key: string }
         Returns: boolean
