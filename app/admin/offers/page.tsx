@@ -101,6 +101,9 @@ function OffersAdminContent() {
 
               <div className="flex-grow relative z-10">
                 <h3 className="text-lg font-bold text-mm-g mb-1 leading-tight">{product?.name || 'Producto Desconocido'}</h3>
+                {offer.store_products?.stores?.name && (
+                  <p className="text-[11px] text-mm-txw font-bold uppercase tracking-wide mb-1">{offer.store_products.stores.name}</p>
+                )}
                 {offer.label && (
                   <p className="text-xs font-medium text-mm-oro mb-2 bg-mm-oro/10 inline-block px-2 py-1 rounded-md">{offer.label}</p>
                 )}

@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('store_offers')
       .insert(insertData)
-      .select('*, store_products ( store_id, catalog_products ( name ) )')
+      .select('*, store_products ( store_id, catalog_products ( name ), stores ( name ) )')
       .single();
 
     if (error) {
@@ -147,11 +147,12 @@ export async function POST(request: Request) {
 
       const adminIds = (admins || []).map((a) => a.id);
       const productName = (data as any)?.store_products?.catalog_products?.name || 'un producto';
+      const storeName = (data as any)?.store_products?.stores?.name || 'una tienda';
 
       await createNotification({
         type: 'store_offer_pending',
         title: 'Nueva oferta pendiente de revisión',
-        message: `Se creó una oferta para "${productName}" que está esperando tu aprobación.`,
+        message: `${storeName} creó una oferta para "${productName}" que está esperando tu aprobación.`,
         entityType: 'store_offer',
         entityId: data.id,
         createdBy: user.id,

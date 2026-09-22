@@ -117,6 +117,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
 
   const unit = selectedProduct?.measurement_units?.abbreviation || null;
   const basePrice = selectedProduct ? Number(selectedProduct.price_per_unit) : null;
+  const storeName = initialData?.store_products?.stores?.name;
 
   const preview = useMemo(() => {
     if (basePrice === null) return null;
@@ -192,7 +193,12 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Editar Oferta' : 'Nueva Oferta'} maxWidth="max-w-2xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? `Editar Oferta${storeName ? ` — ${storeName}` : ''}` : 'Nueva Oferta'}
+      maxWidth="max-w-2xl"
+    >
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
         {validationError && (

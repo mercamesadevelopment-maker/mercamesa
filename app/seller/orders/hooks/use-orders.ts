@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
@@ -12,10 +12,17 @@ export function useOrders() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
 
-  // Synchronize selectedStoreId with storeId when storeId loads,
+  // Synchronize selectedStoreId with storeId once storeId first loads,
   // default to 'all' if there are multiple stores.
+  //
+  // Solo debe correr una vez: el efecto de abajo sincroniza selectedStoreId
+  // hacia storeId global, y si este efecto también reaccionara a cada cambio
+  // de storeId entraría en bucle, deshaciendo la selección del vendedor
+  // apenas la elegía.
+  const didInitStoreFilter = useRef(false);
   useEffect(() => {
-    if (storeId) {
+    if (storeId && !didInitStoreFilter.current) {
+      didInitStoreFilter.current = true;
       if (stores.length > 1) {
         setSelectedStoreId('all');
       } else {

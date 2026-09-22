@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
@@ -23,8 +22,6 @@ export function LoginModal({
   /** Correo con el que llega la persona; p. ej. desde el registro, cuando ya tenía cuenta. */
   defaultEmail?: string;
 }) {
-  const router = useRouter();
-
   const { login, loading, error } = useAuthHooks();
 
   const [showPass, setShowPass] = useState(false);
@@ -42,7 +39,12 @@ export function LoginModal({
 
       onClose();
 
-      router.push(ROLE_ROUTES[result.roleKey] || '/marketplaces');
+      // Navegación completa (no router.push): el login corre en el servidor
+      // y deja la sesión en cookies httpOnly. El cliente Supabase del
+      // navegador que usa AppProvider ya está montado desde antes del login
+      // y no se entera de esas cookies nuevas sin recrearse — por eso hace
+      // falta recargar la página al llegar a la ruta destino.
+      window.location.href = ROLE_ROUTES[result.roleKey] || '/marketplaces';
     } catch (err) {
       // El error ya se maneja en el hook
       console.error(err);

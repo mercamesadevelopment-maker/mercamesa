@@ -298,7 +298,9 @@ export function OrdersView({
                     </h3>
                     <div className="flex flex-wrap items-center gap-2.5 text-xs text-mm-txs">
                       <span className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" /> {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <Clock className="w-3 h-3" />
+                        {new Date(order.date).toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' })}{' '}
+                        {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       {stores.length > storeFilterThreshold && (
                         <span className="bg-mm-gbg text-mm-g px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-mm-crd/50">
