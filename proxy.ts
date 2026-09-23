@@ -4,12 +4,28 @@ import { createServerClient } from '@supabase/ssr'
 const PUBLIC_PATHS = ['/', '/accept-invite']
 
 const ROLE_FAMILY_BY_PREFIX: Record<string, string[]> = {
-  '/admin': ['admin'],
+  // superadmin entra a todo /admin; el filtro fino por módulo lo hace el bloque 2.
+  '/admin': ['admin', 'superadmin'],
   '/seller': ['seller', 'store_owner'],
   '/delivery': ['delivery'],
 }
 
 const normalize = (p: string) => (p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p)
+
+/**
+ * Rebote por falta de permisos, marcado.
+ *
+ * La página de inicio reenvía a quien tiene sesión a la ruta de su rol, así que
+ * un rebote sin marca se convierte en un ping-pong: el proxy manda a `/`, la
+ * página manda de vuelta, y lo único que se ve es una página congelada. Pasó de
+ * verdad con `superadmin`, y costó encontrarlo justamente porque no se parecía
+ * a un problema de permisos.
+ */
+function rebotarSinPermiso(request: NextRequest) {
+  const url = new URL('/', request.url)
+  url.searchParams.set('sin_acceso', normalize(request.nextUrl.pathname))
+  return NextResponse.redirect(url)
+}
 
 export async function proxy(request: NextRequest) {
   const supabaseResponse = NextResponse.next()
@@ -57,7 +73,7 @@ export async function proxy(request: NextRequest) {
   // 1) Familia de rol por prefijo de sección (admin/seller/delivery)
   const matchedPrefix = Object.keys(ROLE_FAMILY_BY_PREFIX).find((p) => pathname.startsWith(p))
   if (matchedPrefix && !ROLE_FAMILY_BY_PREFIX[matchedPrefix].includes(roleName)) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return rebotarSinPermiso(request)
   }
 
   // 2) Permiso fino sobre el módulo exacto de esta ruta, si existe uno definido
@@ -71,7 +87,7 @@ export async function proxy(request: NextRequest) {
       .eq('module_id', moduleRow.id)
       .eq('actions.name', 'read')
 
-    if (!count) return NextResponse.redirect(new URL('/', request.url))
+    if (!count) return rebotarSinPermiso(request)
   }
 
   return supabaseResponse
