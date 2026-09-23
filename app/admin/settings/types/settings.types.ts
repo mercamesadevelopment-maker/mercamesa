@@ -25,6 +25,11 @@ export type MeasurementUnitUpdate = Partial<MeasurementUnitInsert>;
 export type ModuleRow = Database['public']['Tables']['modules']['Row'] & {
   parent?: { label: string } | null;
   child_count?: number;
+  /**
+   * Los roles con la acción `read` sobre este módulo: los que lo ven en el menú
+   * y los únicos que `proxy.ts` deja entrar a su ruta.
+   */
+  read_roles?: { id: string; name: string; label: string }[];
 };
 export type ModuleInsert = Omit<Database['public']['Tables']['modules']['Insert'], 'id' | 'created_at'>;
 export type ModuleUpdate = Partial<ModuleInsert>;
