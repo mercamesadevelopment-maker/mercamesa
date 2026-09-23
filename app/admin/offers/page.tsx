@@ -56,18 +56,18 @@ function OffersAdminContent() {
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Ofertas</h2>
           <p className="text-sm text-mm-txs mt-1">Administra los descuentos y precios especiales de tus productos.</p>
         </div>
-        <Button size="sm" onClick={() => { setEditingOffer(null); setIsModalOpen(true); }}>
+        <Button size="sm" className="w-full sm:w-auto whitespace-nowrap" onClick={() => { setEditingOffer(null); setIsModalOpen(true); }}>
           <Plus className="w-4 h-4 mr-2" /> Nueva Oferta
         </Button>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {paginatedData.map(offer => {
           const product = offer.store_products?.catalog_products;
           const isExpired = offer.ends_at && new Date(offer.ends_at) < new Date();
@@ -80,7 +80,7 @@ function OffersAdminContent() {
           };
 
           return (
-            <div key={offer.id} className="bg-white p-6 rounded-[32px] border border-mm-crd shadow-sm relative overflow-hidden group hover:border-mm-g/40 transition-all flex flex-col">
+            <div key={offer.id} className="bg-white p-4 sm:p-6 rounded-[32px] border border-mm-crd shadow-sm relative overflow-hidden group hover:border-mm-g/40 transition-all flex flex-col">
               <div className="absolute top-0 right-0 w-24 h-24 bg-mm-g/5 -mr-8 -mt-8 rounded-full transition-transform group-hover:scale-110" />
               
               <div className="flex items-start justify-between mb-4 relative z-10">
@@ -92,15 +92,20 @@ function OffersAdminContent() {
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <Badge variant={isActive ? 'success' : offer.status === 'pending' ? 'warning' : 'default'}>
+                  <Badge
+                    variant={isActive ? 'success' : offer.status === 'pending' ? 'warning' : 'default'}
+                    className="whitespace-nowrap"
+                  >
                     {isExpired ? 'Expirada' : statusLabels[offer.status] || offer.status}
                   </Badge>
-                  {offer.is_featured && <Badge variant="oro">Destacada</Badge>}
+                  {offer.is_featured && <Badge variant="oro" className="whitespace-nowrap">Destacada</Badge>}
                 </div>
               </div>
 
               <div className="flex-grow relative z-10">
-                <h3 className="text-lg font-bold text-mm-g mb-1 leading-tight">{product?.name || 'Producto Desconocido'}</h3>
+                {/* La tarjeta es `overflow-hidden`: sin `break-words` un nombre largo
+                    no envuelve, se recorta y desaparece sin dejar rastro. */}
+                <h3 className="text-lg font-bold text-mm-g mb-1 leading-tight break-words line-clamp-2">{product?.name || 'Producto Desconocido'}</h3>
                 {offer.label && (
                   <p className="text-xs font-medium text-mm-oro mb-2 bg-mm-oro/10 inline-block px-2 py-1 rounded-md">{offer.label}</p>
                 )}
@@ -110,21 +115,21 @@ function OffersAdminContent() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-mm-gbg mt-auto relative z-10">
-                <div className="text-mm-g font-bold text-lg">
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-mm-gbg mt-auto relative z-10">
+                <div className="min-w-0 truncate text-mm-g font-bold text-lg">
                   {offer.special_price 
                     ? fmt(offer.special_price) 
                     : offer.discount_pct ? `${offer.discount_pct}% OFF` : 'Sin precio'}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 shrink-0">
                   <button 
-                    className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors" 
+                    className="p-2.5 sm:p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors" 
                     onClick={() => { setEditingOffer(offer); setIsModalOpen(true); }}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button 
-                    className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors" 
+                    className="p-2.5 sm:p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors" 
                     onClick={() => deleteOffer(offer.id)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -136,7 +141,7 @@ function OffersAdminContent() {
         })}
 
         {offers.length === 0 && (
-          <div className="col-span-full py-20 bg-white/50 rounded-[40px] border-2 border-dashed border-mm-crd flex flex-col items-center justify-center">
+          <div className="col-span-full py-12 sm:py-20 bg-white/50 rounded-[40px] border-2 border-dashed border-mm-crd flex flex-col items-center justify-center">
             <Tag className="w-12 h-12 text-mm-txw mb-4 opacity-40" />
             <p className="text-mm-txw font-medium">No hay ofertas creadas aún</p>
             <Button variant="ghost" className="mt-4" onClick={() => { setEditingOffer(null); setIsModalOpen(true); }}>
@@ -148,11 +153,11 @@ function OffersAdminContent() {
 
       {/* Custom Pagination for Cards */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-mm-crd shadow-sm mt-6">
-          <p className="text-sm text-mm-txs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white px-3 sm:px-6 py-4 rounded-2xl border border-mm-crd shadow-sm mt-6">
+          <p className="text-xs sm:text-sm text-mm-txs text-center sm:text-left">
             Mostrando <span className="font-bold text-mm-g">{(page - 1) * rowsPerPage + 1}</span> a <span className="font-bold text-mm-g">{Math.min(page * rowsPerPage, offers.length)}</span> de <span className="font-bold text-mm-g">{offers.length}</span> ofertas
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
