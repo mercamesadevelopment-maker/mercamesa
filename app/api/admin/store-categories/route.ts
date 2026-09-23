@@ -6,10 +6,12 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    // Cuántas tiendas usan cada categoría: es lo que impide borrarla.
+    // Cuántas tiendas usan cada categoría: es lo que impide borrarla. Se cuenta
+    // sobre los vínculos, que es donde viven las categorías de una tienda desde
+    // que puede tener varias.
     const { data, error } = await supabase
       .from('store_categories')
-      .select('*, stores(count)')
+      .select('*, store_category_links(count)')
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true });
 
@@ -18,8 +20,8 @@ export async function GET() {
     }
 
     const withCounts = (data ?? []).map((row: any) => {
-      const { stores, ...category } = row;
-      return { ...category, store_count: embeddedCount(stores) };
+      const { store_category_links, ...category } = row;
+      return { ...category, store_count: embeddedCount(store_category_links) };
     });
 
     return NextResponse.json({ data: withCounts }, { status: 200 });

@@ -210,3 +210,48 @@ export async function deleteIdentificationTypeService(id: string): Promise<void>
   const res = await fetch(`/api/admin/identification-types/${id}`, { method: 'DELETE' });
   await handleResponse(res);
 }
+
+// ── Documentos legales ──────────────────────────────────────────────────────
+export interface LegalDocumentRow {
+  id: string;
+  kind: 'terms' | 'privacy';
+  version: number;
+  fileName: string;
+  url: string | null;
+  notes: string | null;
+  publishedAt: string;
+  publishedBy: string | null;
+  notifiedAt: string | null;
+  notifiedCount: number | null;
+  notifyFailed: number | null;
+}
+
+export interface PublishLegalDocumentPayload {
+  kind: 'terms' | 'privacy';
+  file_path: string;
+  file_name: string;
+  notes: string;
+  /** Reemplaza el archivo de la versión vigente sin avisar ni invalidar aceptaciones. */
+  minor_fix: boolean;
+}
+
+export async function getLegalDocumentsService(): Promise<{
+  documents: LegalDocumentRow[];
+  activeUsers: number;
+}> {
+  const res = await fetch('/api/admin/legal-documents');
+  return handleResponse<{ documents: LegalDocumentRow[]; activeUsers: number }>(res);
+}
+
+export async function publishLegalDocumentService(
+  payload: PublishLegalDocumentPayload
+): Promise<{ notified: { enviados: number; fallidos: number } | null }> {
+  const res = await fetch('/api/admin/legal-documents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || 'Error en la petición');
+  return { notified: result.notified ?? null };
+}

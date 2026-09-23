@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Eye, Upload, Check, AlertTriangle, AlertCircle, Loader } from 'lucide-react';
+import { FileText, Eye, Upload, AlertCircle, Loader, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Button, Badge } from '@/src/components/Shared';
@@ -35,6 +35,33 @@ interface DocumentItem {
   uploaded_at: string | null;
 }
 
+/** Una entrada del histórico: una versión subida o una decisión. */
+interface DocumentEvent {
+  id: string;
+  eventType: 'upload' | 'status_change';
+  status: 'pending' | 'approved' | 'rejected';
+  previousStatus: 'pending' | 'approved' | 'rejected' | null;
+  createdAt: string;
+  actorName: string | null;
+  signedUrl: string | null;
+}
+
+const ESTADO_LABEL: Record<string, string> = {
+  pending: 'Pendiente',
+  approved: 'Aprobado',
+  rejected: 'Rechazado',
+};
+
+/** Qué pasó, en una frase. */
+function describirEvento(e: DocumentEvent): string {
+  if (e.eventType === 'upload') {
+    return e.previousStatus
+      ? `Reemplazó el archivo (antes: ${ESTADO_LABEL[e.previousStatus]})`
+      : 'Subió el archivo';
+  }
+  return `Marcó como ${ESTADO_LABEL[e.status]?.toLowerCase() ?? e.status}`;
+}
+
 export function StoreDocumentsModal({
   isOpen,
   onClose,
@@ -51,6 +78,38 @@ export function StoreDocumentsModal({
   // El repo no tiene librería de toasts: los errores posteriores a una acción se
   // muestran con ConfirmModal, igual que en la pestaña de parametrización.
   const [saveError, setSaveError] = useState<string | null>(null);
+  // El histórico se pide al desplegarlo, no al abrir el modal: cada evento
+  // necesita una URL firmada, y firmarlas todas de entrada sería caro y casi
+  // siempre inútil.
+  const [expandido, setExpandido] = useState<string | null>(null);
+  const [historial, setHistorial] = useState<Record<string, DocumentEvent[]>>({});
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+
+  const toggleHistorial = async (documentTypeId: string) => {
+    if (expandido === documentTypeId) {
+      setExpandido(null);
+      return;
+    }
+
+    setExpandido(documentTypeId);
+
+    if (historial[documentTypeId]) return;
+
+    try {
+      setCargandoHistorial(true);
+      const res = await fetch(
+        `/api/stores/${storeId}/documents/history?document_type_id=${documentTypeId}`
+      );
+      const json = await res.json();
+      if (json.data) {
+        setHistorial((prev) => ({ ...prev, [documentTypeId]: json.data }));
+      }
+    } catch (err) {
+      console.error('No se pudo cargar el historial del documento', err);
+    } finally {
+      setCargandoHistorial(false);
+    }
+  };
 
   const fetchDocs = async () => {
     try {
@@ -72,6 +131,10 @@ export function StoreDocumentsModal({
       fetchDocs();
       setFileEdits({});
       setStatusEdits({});
+      // Se descarta lo cacheado: entre una apertura y otra pudieron guardarse
+      // cambios, y mostrar el historial de antes sería mentir sobre el estado.
+      setHistorial({});
+      setExpandido(null);
     }
   }, [isOpen, storeId]);
 
@@ -204,8 +267,11 @@ export function StoreDocumentsModal({
                 // Ya subido antes, o seleccionado ahora y pendiente de guardar.
                 const hasFile = !!doc.file_url || isFileEdited;
 
+                const eventos = historial[doc.id];
+
                 return (
-                  <div key={doc.id} className="py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div key={doc.id} className="py-5">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1 md:max-w-xs">
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-mm-txw shrink-0" />
@@ -214,6 +280,18 @@ export function StoreDocumentsModal({
                       <p className="text-[10px] text-mm-txw font-bold uppercase tracking-wide">
                         {doc.is_required ? 'Obligatorio' : 'Opcional'}
                       </p>
+
+                      {/* Antes no había forma de saber qué archivo se eligió
+                          hasta después de guardar. */}
+                      {isFileEdited && (
+                        <p className="text-xs text-mm-g">
+                          Nuevo: <span className="font-semibold">{fileEdits[doc.id].name}</span>
+                          <br />
+                          <span className="text-mm-txw">
+                            La versión anterior se conserva en el historial.
+                          </span>
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4">
@@ -264,6 +342,70 @@ export function StoreDocumentsModal({
                         </select>
                       )}
                     </div>
+                  </div>
+
+                  {/* Historial: quién subió qué versión y quién decidió sobre
+                      ella. Lo ven la tienda, el admin y el superadmin. */}
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleHistorial(doc.id)}
+                      className="flex items-center gap-1.5 text-xs font-bold text-mm-txw transition-colors hover:text-mm-g"
+                    >
+                      <History className="w-3.5 h-3.5" />
+                      Ver historial
+                      {expandido === doc.id
+                        ? <ChevronUp className="w-3.5 h-3.5" />
+                        : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+
+                    {expandido === doc.id && (
+                      <div className="mt-3 rounded-xl border border-mm-crd/40 bg-mm-gbg/30 p-3">
+                        {cargandoHistorial && !eventos ? (
+                          <div className="flex items-center gap-2 text-xs text-mm-txw">
+                            <Loader className="w-3.5 h-3.5 animate-spin" />
+                            Cargando historial...
+                          </div>
+                        ) : !eventos || eventos.length === 0 ? (
+                          <p className="text-xs text-mm-txw italic">
+                            Este documento todavía no tiene historial.
+                          </p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {eventos.map((e) => (
+                              <li
+                                key={e.id}
+                                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-mm-txs"
+                              >
+                                <span className="font-semibold text-mm-g">{describirEvento(e)}</span>
+                                <span className="text-mm-txw">·</span>
+                                {/* Los documentos anteriores al histórico no
+                                    tienen autor: no hay de dónde sacarlo. */}
+                                <span>{e.actorName ?? 'Autor no registrado'}</span>
+                                <span className="text-mm-txw">·</span>
+                                <span className="text-mm-txw">
+                                  {new Date(e.createdAt).toLocaleString('es-CO', {
+                                    dateStyle: 'medium',
+                                    timeStyle: 'short',
+                                  })}
+                                </span>
+                                {e.signedUrl && (
+                                  <a
+                                    href={e.signedUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-bold text-mm-g hover:underline"
+                                  >
+                                    Ver archivo
+                                  </a>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   </div>
                 );
               })}

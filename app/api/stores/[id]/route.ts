@@ -5,6 +5,7 @@ import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../
 import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { toE164 } from '@/lib/phone/phone';
+import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
@@ -21,6 +22,13 @@ const MEMBER_EDITABLE_FIELDS = [
   'whatsapp',
   'local_address',
 ] as const;
+
+/**
+ * Si la tienda vende al por mayor, al detal o ambas. Son dos banderas y no una
+ * sola opción porque en la plaza el mismo local vende un bulto y vende una
+ * libra. Lo decide la tienda, no la plataforma.
+ */
+const SALES_TYPE_FIELDS = ['is_wholesale', 'is_retail'] as const;
 
 /**
  * Campos reservados a la plataforma. El `slug` es la URL pública, `marketplace_id`
@@ -52,7 +60,7 @@ export async function GET(
     .select(`
       *,
       marketplaces ( name ),
-      store_categories ( name ),
+      store_category_links ( store_categories ( id, name ) ),
       store_members (
         id,
         role_id,
@@ -76,7 +84,21 @@ export async function GET(
     ? getSupabaseImageUrl('stores', data.logo_url, PRESET_LOGO)
     : null;
 
-  return NextResponse.json({ data: { ...data, coverSignedUrl, logoSignedUrl } }, { status: 200 });
+  // El embed anidado (vínculo → categoría) no le sirve a nadie tal cual: se
+  // aplana a la lista de categorías, que es lo que consumen el formulario del
+  // tendero, el modal del admin y la ficha pública.
+  const { store_category_links, ...store } = data as typeof data & {
+    store_category_links?: { store_categories: { id: string; name: string } | null }[] | null;
+  };
+
+  const categories = (store_category_links ?? [])
+    .map((l) => l.store_categories)
+    .filter((c): c is { id: string; name: string } => Boolean(c));
+
+  return NextResponse.json(
+    { data: { ...store, categories, coverSignedUrl, logoSignedUrl } },
+    { status: 200 }
+  );
 }
 
 export async function PUT(
@@ -155,8 +177,20 @@ export async function PUT(
       }
     }
 
-    if (body.category_id !== undefined) {
-      updateData.category_id = (body.category_id as string) || null;
+    SALES_TYPE_FIELDS.forEach((field) => {
+      if (body[field] !== undefined) {
+        (updateData as Record<string, unknown>)[field] = Boolean(body[field]);
+      }
+    });
+
+    // Las categorías ya no son una columna de `stores`, así que no van en
+    // `updateData`: se reconcilian aparte, después de guardar la tienda.
+    let categoryIds: string[] | null;
+    try {
+      categoryIds = parseCategoryIds(body.category_ids);
+    } catch (e) {
+      const message = e instanceof CategoryLinksError ? e.message : 'Categorías inválidas.';
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     if (body.business_hours !== undefined) {
@@ -217,18 +251,46 @@ export async function PUT(
     // Puede quedar vacío si el cuerpo solo traía campos reservados al admin, que
     // se descartan en silencio. Sin esto, el `.update({})` devuelve cero filas y
     // el `.single()` responde un error de PostgREST que no dice nada útil.
-    if (Object.keys(updateData).length === 0) {
+    //
+    // Cambiar SOLO las categorías es un cambio válido aunque `updateData` esté
+    // vacío: viven en otra tabla.
+    if (Object.keys(updateData).length === 0 && categoryIds === null) {
       return NextResponse.json(
         { error: 'No hay cambios que guardar, o los campos enviados no se pueden editar desde aquí.' },
         { status: 400 }
       );
     }
 
-    const { data, error } = await supabase.from('stores').update(updateData).eq('id', id).select().single();
+    let data;
 
-    if (error) {
-      console.error('stores PUT: update failed', error);
-      return NextResponse.json({ error: 'No se pudieron guardar los cambios.' }, { status: 400 });
+    if (Object.keys(updateData).length > 0) {
+      const { data: updated, error } = await supabase
+        .from('stores')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('stores PUT: update failed', error);
+        return NextResponse.json({ error: 'No se pudieron guardar los cambios.' }, { status: 400 });
+      }
+      data = updated;
+    } else {
+      const { data: current } = await supabase.from('stores').select().eq('id', id).single();
+      data = current;
+    }
+
+    if (categoryIds !== null) {
+      try {
+        await setStoreCategories(supabase, id, categoryIds);
+      } catch (e) {
+        const message =
+          e instanceof CategoryLinksError
+            ? e.message
+            : 'No se pudieron actualizar las categorías de la tienda.';
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
     }
 
     return NextResponse.json({ data }, { status: 200 });

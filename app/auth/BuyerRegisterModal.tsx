@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-import { useApp } from '@/src/store';
-import { Button, Input, Select } from '@/src/components/Shared';
+import { ROLE_ROUTES } from '@/src/constants';
+import { Button, Input, Select, StepBar } from '@/src/components/Shared';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAuthHooks } from '../hooks/useAuth';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useLegalLinks } from '@/app/hooks/use-legal-links';
 
 const TERMS_VERSION = '2026-07-24';
 
@@ -29,12 +30,30 @@ export function BuyerRegisterModal({
    */
   onLoginClick?: (email: string) => void;
 }) {
-  const { dispatch } = useApp();
   const router = useRouter();
-  const { registerBuyer, loading, error, errorCode } = useAuthHooks();
+  const {
+    registerBuyer,
+    requestSignupCode,
+    login,
+    loading,
+    error,
+    errorCode,
+    cooldownSeconds,
+  } = useAuthHooks();
 
   const { personTypes, loading: loadingTypes } = useIdentificationTypes();
+  // Los documentos legales vigentes, para poder enlazarlos en la casilla. Antes
+  // decía «Acepto los términos y condiciones» sin que hubiera nada que leer.
+  const { terms, privacy } = useLegalLinks();
 
+  // 0 formulario · 1 código · 2 listo. El código va en medio porque la cuenta no
+  // se crea hasta que el correo esté confirmado.
+  const [paso, setPaso] = useState(0);
+  // El formulario se lee con `FormData` al enviarlo, pero ahora hay un paso
+  // después: si no se guardaran acá, los datos se perderían al pasar al código.
+  const [datos, setDatos] = useState<Record<string, string>>({});
+  const [codigo, setCodigo] = useState('');
+  const [claveError, setClaveError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [personTypeId, setPersonTypeId] = useState('');
@@ -70,8 +89,10 @@ export function BuyerRegisterModal({
   // "jurídica": "Establecimiento de comercio" también lleva razón social.
   const requiresBusinessName = personType?.requires_business_name ?? false;
 
+  /** Paso 0: se valida el formulario y se pide el código al correo escrito. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setClaveError(null);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const password = formData.get('password') as string;
@@ -79,29 +100,82 @@ export function BuyerRegisterModal({
     const email = formData.get('email') as string;
 
     if (password !== confirmPassword) {
+      // Antes salía sin decir nada y el botón simplemente no hacía efecto.
+      setClaveError('Las contraseñas no coinciden.');
       return;
     }
 
     setSubmittedEmail(email);
+    setDatos({
+      email,
+      password,
+      document_number: formData.get('document_number') as string,
+      full_name: (formData.get('full_name') as string) || '',
+      business_name: (formData.get('business_name') as string) || '',
+      contact_name: (formData.get('contact_name') as string) || '',
+      phone: formData.get('phone') as string,
+    });
+
+    try {
+      await requestSignupCode(email);
+      setCodigo('');
+      setPaso(1);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /** Paso 1: con el código confirmado, recién ahora se crea la cuenta. */
+  const handleVerificar = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
       await registerBuyer({
-        email,
-        password,
+        email: datos.email,
+        password: datos.password,
         person_type_id: personTypeId,
         identification_type_id: identificationTypeId,
-        document_number: formData.get('document_number') as string,
-        full_name: !requiresBusinessName ? (formData.get('full_name') as string) : undefined,
-        business_name: requiresBusinessName ? (formData.get('business_name') as string) : undefined,
-        contact_name: requiresBusinessName ? (formData.get('contact_name') as string) : undefined,
-        phone: formData.get('phone') as string,
+        document_number: datos.document_number,
+        full_name: !requiresBusinessName ? datos.full_name : undefined,
+        business_name: requiresBusinessName ? datos.business_name : undefined,
+        contact_name: requiresBusinessName ? datos.contact_name : undefined,
+        phone: datos.phone,
         buyer_type: buyerType,
         terms_version: TERMS_VERSION,
+        code: codigo,
       });
 
       setSuccess(true);
     } catch (err) {
-      // El error ya se maneja en el hook
+      console.error(err);
+    }
+  };
+
+  const handleReenviar = async () => {
+    if (cooldownSeconds > 0 || loading) return;
+    try {
+      await requestSignupCode(datos.email);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /**
+   * Entrar tras registrarse.
+   *
+   * Antes esto hacía `dispatch({ type: 'LOGIN', role: buyerType })`: sin perfil
+   * y con el tipo de comprador crudo en lugar del rol. Por eso al entrar se
+   * veían los datos por defecto y ningún módulo. Ahora se inicia sesión de
+   * verdad, que además deja la sesión de Supabase coherente con el estado.
+   */
+  const handleEntrar = async () => {
+    try {
+      const result = await login(datos.email, datos.password);
+      onClose();
+      if ('roleKey' in result) {
+        router.push(ROLE_ROUTES[result.roleKey as keyof typeof ROLE_ROUTES] || '/marketplaces');
+      }
+    } catch (err) {
       console.error(err);
     }
   };
@@ -145,11 +219,8 @@ export function BuyerRegisterModal({
               <Button
                 size="lg"
                 className="mx-auto w-full max-w-xs"
-                onClick={() => {
-                  dispatch({ type: 'LOGIN', role: buyerType });
-                  onClose();
-                  router.push('/marketplaces');
-                }}
+                loading={loading}
+                onClick={handleEntrar}
               >
                 Entrar a mi cuenta
                 <ArrowRight className="h-5 w-5" />
@@ -158,9 +229,28 @@ export function BuyerRegisterModal({
           ) : (
             <>
               <div className="mb-8 text-center">
-                <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Crea tu cuenta de comprador</h2>
-                <p className="text-mm-txs">Regístrate para comprar en MercaMesa.</p>
+                <h2 className="mb-2 font-fraunces text-3xl text-mm-g">
+                  {paso === 1 ? 'Confirma tu correo' : 'Crea tu cuenta de comprador'}
+                </h2>
+                <p className="text-mm-txs">
+                  {paso === 1 ? (
+                    <>
+                      Enviamos un código de 6 dígitos a{' '}
+                      <span className="font-medium text-mm-g">{datos.email}</span>.
+                    </>
+                  ) : (
+                    'Regístrate para comprar en MercaMesa.'
+                  )}
+                </p>
               </div>
+
+              <StepBar step={paso} total={2} />
+
+              {claveError && (
+                <div className="mb-5 rounded-2xl bg-red-100 p-4 text-sm text-red-600">
+                  {claveError}
+                </div>
+              )}
 
               {error && (
                 <div className="mb-5 rounded-2xl bg-red-100 p-4 text-sm text-red-600">
@@ -181,6 +271,52 @@ export function BuyerRegisterModal({
                   )}
                 </div>
               )}
+
+              {paso === 1 ? (
+                <form onSubmit={handleVerificar} className="mx-auto max-w-sm space-y-5">
+                  <Input
+                    label="Código de 6 dígitos"
+                    name="code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={codigo}
+                    onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="text-center text-2xl tracking-[0.5em]"
+                    autoFocus
+                    required
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    loading={loading}
+                    disabled={codigo.length !== 6}
+                  >
+                    Crear cuenta
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setPaso(0)}
+                      className="font-medium text-mm-txs hover:underline"
+                    >
+                      Corregir mis datos
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleReenviar}
+                      disabled={cooldownSeconds > 0 || loading}
+                      className="font-medium text-mm-g hover:underline disabled:cursor-not-allowed disabled:text-mm-txw disabled:no-underline"
+                    >
+                      {cooldownSeconds > 0 ? `Reenviar en ${cooldownSeconds}s` : 'Reenviar código'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
 
               <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
                 <Select
@@ -218,20 +354,20 @@ export function BuyerRegisterModal({
                   ))}
                 </Select>
 
-                <Input label="Número de identificación" name="document_number" placeholder="1234567890" required />
+                <Input label="Número de identificación" name="document_number" defaultValue={datos.document_number} placeholder="1234567890" required />
 
                 {!requiresBusinessName && (
-                  <Input label="Nombre completo" name="full_name" placeholder="Juan Pérez" required className="sm:col-span-2" />
+                  <Input label="Nombre completo" name="full_name" defaultValue={datos.full_name} placeholder="Juan Pérez" required className="sm:col-span-2" />
                 )}
 
                 {requiresBusinessName && (
                   <>
-                    <Input label="Razón social" name="business_name" placeholder="Restaurante El Sabor S.A.S." required />
-                    <Input label="Nombre del contacto principal" name="contact_name" placeholder="Juan Pérez" required />
+                    <Input label="Razón social" name="business_name" defaultValue={datos.business_name} placeholder="Restaurante El Sabor S.A.S." required />
+                    <Input label="Nombre del contacto principal" name="contact_name" defaultValue={datos.contact_name} placeholder="Juan Pérez" required />
                   </>
                 )}
 
-                <Input label="Correo electrónico" name="email" type="email" placeholder="juan@correo.com" required className="sm:col-span-2" />
+                <Input label="Correo electrónico" name="email" type="email" defaultValue={datos.email} placeholder="juan@correo.com" required className="sm:col-span-2" />
 
                 <PhoneInput
                   label="Teléfono celular"
@@ -261,16 +397,45 @@ export function BuyerRegisterModal({
 
                 <Input label="Confirmar contraseña" name="confirm_password" type={showPass ? 'text' : 'password'} placeholder="••••••••" required />
 
-                <div className="mt-2 flex items-center gap-2 text-xs text-mm-txs sm:col-span-2">
-                  <input type="checkbox" required className="rounded border-mm-crd text-mm-g focus:ring-mm-g" />
-                  Acepto los términos y condiciones y la política de privacidad.
+                <div className="mt-2 flex items-start gap-2 text-xs text-mm-txs sm:col-span-2">
+                  <input type="checkbox" required className="mt-0.5 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
+                  <span>
+                    Acepto{' '}
+                    {terms ? (
+                      <a
+                        href={terms.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-mm-g underline underline-offset-2"
+                      >
+                        los términos y condiciones
+                      </a>
+                    ) : (
+                      'los términos y condiciones'
+                    )}{' '}
+                    y{' '}
+                    {privacy ? (
+                      <a
+                        href={privacy.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-mm-g underline underline-offset-2"
+                      >
+                        la política de tratamiento de datos
+                      </a>
+                    ) : (
+                      'la política de tratamiento de datos'
+                    )}
+                    .
+                  </span>
                 </div>
 
                 <Button type="submit" className="mt-4 w-full sm:col-span-2" loading={loading}>
-                  Crear cuenta
+                  Continuar
                   <ArrowRight className="h-5 w-5" />
                 </Button>
               </form>
+              )}
             </>
           )}
         </div>

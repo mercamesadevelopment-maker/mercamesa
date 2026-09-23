@@ -8,6 +8,14 @@ export interface AdminUser {
   email: string | null;
   phone: string | null;
   createdAt: string | null;
+  /** Se actualiza sola: hay un disparador BEFORE UPDATE sobre `profiles`. */
+  updatedAt: string | null;
+  /** De `auth.users`, no de `profiles`. Nulo si nunca ha ingresado. */
+  lastSignInAt: string | null;
+  /** De `auth.users`. Nulo si el correo sigue sin confirmar. */
+  emailVerifiedAt: string | null;
+  /** Cuándo se suprimieron sus datos. La fila existe solo para sostener pedidos. */
+  anonymizedAt: string | null;
   role: { id: string; name: string; label: string } | null;
   stores: { id: string; name: string }[];
 }
@@ -56,5 +64,11 @@ export function useAdminUsers() {
     return revoked;
   }, []);
 
-  return { users, loading, error, fetchUsers, sendPasswordReset, revokeSessions };
+  const anonymizeUser = useCallback(async (userId: string) => {
+    await handle(
+      await fetch(`/api/admin/users/${userId}/anonymize`, { method: 'POST' })
+    );
+  }, []);
+
+  return { users, loading, error, fetchUsers, sendPasswordReset, revokeSessions, anonymizeUser };
 }

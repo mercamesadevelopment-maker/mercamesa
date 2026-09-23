@@ -1,4 +1,5 @@
 import { AppNotification } from '@/src/types';
+import { timeAgo } from '@/lib/dates/relative-time';
 
 interface NotificationRecipientRow {
   id: string;
@@ -15,16 +16,7 @@ interface NotificationRecipientRow {
   } | null;
 }
 
-function timeAgo(dateStr: string): string {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'Justo ahora';
-  if (minutes < 60) return `Hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Hace ${hours} h`;
-  const days = Math.floor(hours / 24);
-  return `Hace ${days} d`;
-}
+
 
 function mapRow(row: NotificationRecipientRow): AppNotification {
   return {

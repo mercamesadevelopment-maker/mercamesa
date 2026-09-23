@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/business-hours/business-hours-editor';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
+import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
@@ -30,9 +32,13 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
   const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [formData, setFormData] = useState({
-    name: '', slug: '', marketplace_id: '', category_id: '', description: '',
+    name: '', slug: '', marketplace_id: '', description: '',
     contact_name: '', contact_email: '', phone: '', whatsapp: '', is_active: true,
   });
+  // Aparte de `formData`, que es todo cadenas: las categorías son varias y el
+  // tipo de venta son dos banderas.
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [salesType, setSalesType] = useState({ is_wholesale: false, is_retail: true });
   const [businessHours, setBusinessHours] = useState<BusinessHours>(createDefaultBusinessHours());
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -54,13 +60,19 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setFormData({
         name: initialData.name || '', slug: initialData.slug || '',
         marketplace_id: initialData.marketplace_id || '',
-        category_id: (initialData as any).category_id || '',
         description: initialData.description || '',
         contact_name: initialData.contact_name || '',
         contact_email: initialData.contact_email || '',
         phone: initialData.phone || '',
         whatsapp: initialData.whatsapp || '',
         is_active: initialData.is_active,
+      });
+      setCategoryIds(
+        ((initialData as any).categories ?? []).map((c: { id: string }) => c.id)
+      );
+      setSalesType({
+        is_wholesale: Boolean((initialData as any).is_wholesale),
+        is_retail: Boolean((initialData as any).is_retail),
       });
       const initialHours = (initialData as any).business_hours;
       setBusinessHours(
@@ -73,10 +85,11 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setFormData({
         name: '', slug: '',
         marketplace_id: marketplaces.length > 0 ? marketplaces[0].id : '',
-        category_id: '',
         description: '', contact_name: '', contact_email: '',
         phone: '', whatsapp: '', is_active: true,
       });
+      setCategoryIds([]);
+      setSalesType({ is_wholesale: false, is_retail: true });
       setBusinessHours(createDefaultBusinessHours());
       setLogoPreview(null);
     }
@@ -111,7 +124,12 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     setEmailError(null);
     setLoading(true);
     try {
-      const payload: Record<string, unknown> = { ...formData, business_hours: businessHours };
+      const payload: Record<string, unknown> = {
+        ...formData,
+        business_hours: businessHours,
+        category_ids: categoryIds,
+        ...salesType,
+      };
 
       if (logoFile) {
         const id = initialData?.id || crypto.randomUUID();
@@ -175,15 +193,19 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-mm-txs ml-1">Categoría de la Tienda</label>
-            <select name="category_id" value={formData.category_id} onChange={handleChange}
-              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
-              <option value="">Sin categoría</option>
-              {storeCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+          <MultiSelect
+            label="Categorías de la Tienda"
+            placeholder="Sin categoría"
+            options={storeCategories.map(c => ({ value: c.id, label: c.name }))}
+            value={categoryIds}
+            onChange={setCategoryIds}
+          />
         </div>
+
+        <StoreSalesTypeFields
+          values={salesType}
+          onChange={(field, value) => setSalesType(prev => ({ ...prev, [field]: value }))}
+        />
 
         {/* Descripción */}
         <Input label="Descripción" name="description" value={formData.description} onChange={handleChange} placeholder="Breve descripción de la tienda" />

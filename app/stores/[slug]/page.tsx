@@ -162,8 +162,16 @@ export default function StoreDetailPage() {
             <Badge variant={store.is_active ? 'success' : 'error'} className="mt-1">
               {store.is_active ? 'Abierta' : 'Cerrada'}
             </Badge>
-            {store.store_categories?.name && (
-              <Badge variant="oro" className="mt-1">{store.store_categories.name}</Badge>
+            {/* Una insignia por categoría: una tienda puede vender carnes y
+                lácteos, y antes solo se veía una de las dos. */}
+            {(store.categories ?? []).map((c: { id: string; name: string }) => (
+              <Badge key={c.id} variant="oro" className="mt-1">{c.name}</Badge>
+            ))}
+
+            {/* «Mayorista» era una categoría; ahora es un dato de la tienda, y
+                sigue viéndose acá porque al comprador le importa. */}
+            {store.is_wholesale && (
+              <Badge variant="oro" className="mt-1">Mayorista</Badge>
             )}
           </div>
 

@@ -11,10 +11,20 @@ import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
 import { ROLE_ROUTES } from '@/src/constants';
+import { useLegalLinks } from './hooks/use-legal-links';
 
 export default function Page() {
   const { state } = useApp();
   const router = useRouter();
+  // El proxy marca así el rebote por falta de permisos. Sin esta marca, la
+  // redirección de abajo lo devolvería a la misma ruta que el proxy acaba de
+  // rechazar, y el ida y vuelta se ve como una página que no hace nada.
+  //
+  // Se lee de `window` y no con `useSearchParams` porque esta página es un
+  // componente de cliente: ese hook obligaría a envolverla en un `Suspense`
+  // para que el build no falle, y no vale la pena por un parámetro.
+  const [sinAcceso, setSinAcceso] = useState<string | null>(null);
+  const { terms, privacy } = useLegalLinks();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isBuyerRegisterOpen, setIsBuyerRegisterOpen] = useState(false);
@@ -24,7 +34,13 @@ export default function Page() {
   const [loginEmail, setLoginEmail] = useState('');
 
   useEffect(() => {
-    if (state.isLoggedIn) {
+    // Se lee acá dentro, y no en un efecto aparte, porque el aviso y la
+    // redirección tienen que decidirse con el mismo dato: si el valor llegara un
+    // ciclo después, este efecto ya habría reenviado a la ruta rechazada.
+    const rebotado = new URLSearchParams(window.location.search).get('sin_acceso');
+    setSinAcceso(rebotado);
+
+    if (state.isLoggedIn && !rebotado) {
       const route = ROLE_ROUTES[state.userRole] || '/marketplaces';
       router.replace(route);
     }
@@ -51,6 +67,16 @@ export default function Page() {
           </button>
         </div>
       </header>
+
+      {/* Rebote del proxy: la cuenta con la que entró no alcanza para esa
+          sección. Se dice cuál era, porque si no la persona solo ve que "no
+          pasó nada" al intentar entrar. */}
+      {sinAcceso && (
+        <div className="fixed top-20 left-0 z-40 w-full border-b border-mm-crd bg-mm-oro/15 px-6 py-3 text-center text-sm text-mm-g lg:px-12">
+          Tu cuenta no tiene acceso a <span className="font-bold">{sinAcceso}</span>. Si crees
+          que debería tenerlo, pídeselo a un administrador.
+        </div>
+      )}
 
       {/* Hero Section */}
       <section
@@ -252,8 +278,30 @@ export default function Page() {
               className="h-10 w-auto brightness-0 invert"
             />
           </div>
-          <div className="flex gap-8 text-sm">
-            <a href="#" className="hover:text-mm-gll transition-colors">Política de tratamiento de datos personales</a>
+          {/* Antes esto era un `href="#"`: el enlace estaba, el documento no.
+              Ahora sale del PDF publicado desde Parametrización, y si todavía no
+              se ha publicado ninguno no se muestra en vez de no llevar a nada. */}
+          <div className="flex flex-wrap justify-center gap-8 text-sm">
+            {privacy && (
+              <a
+                href={privacy.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-mm-gll transition-colors"
+              >
+                Política de tratamiento de datos personales
+              </a>
+            )}
+            {terms && (
+              <a
+                href={terms.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-mm-gll transition-colors"
+              >
+                Términos y condiciones
+              </a>
+            )}
           </div>
           <div className="text-sm text-white/60">
             © 2024 Mercamesa. Todos los derechos reservados.

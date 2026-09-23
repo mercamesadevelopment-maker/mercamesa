@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard, Percent } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard, Percent, Gavel } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
@@ -11,6 +11,7 @@ import { OrderMinPriceTab } from './components/order-min-price-tab';
 import { StoreGroupsTab } from './components/store-groups-tab';
 import { IdentificationTab } from './components/identification-tab';
 import { PricingTab } from './components/pricing-tab';
+import { LegalDocumentsTab } from './components/legal-documents-tab';
 
 type TabKey =
   | 'categories'
@@ -21,7 +22,8 @@ type TabKey =
   | 'store_groups'
   | 'identification'
   | 'pricing'
-  | 'order_min_price';
+  | 'order_min_price'
+  | 'legal';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
   {
@@ -80,6 +82,13 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     label: 'Precio Mínimo de Orden',
     icon: Wallet,
     description: 'Valor mínimo en productos requerido para completar un pedido.',
+  },
+  {
+    key: 'legal',
+    label: 'Términos y Política de Datos',
+    icon: Gavel,
+    description:
+      'Los PDF de los términos y condiciones y de la política de tratamiento de datos. Al publicar una versión nueva se le avisa a todos los usuarios activos y se les vuelve a pedir que la acepten.',
   },
 ];
 
@@ -147,6 +156,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'identification' && <IdentificationTab />}
         {activeTab === 'pricing' && <PricingTab />}
         {activeTab === 'order_min_price' && <OrderMinPriceTab />}
+        {activeTab === 'legal' && <LegalDocumentsTab />}
       </div>
     </div>
   );
