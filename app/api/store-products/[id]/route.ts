@@ -175,18 +175,44 @@ export async function DELETE(
     const authorized = await loadAndAuthorize(supabase, id, user.id);
     if ('response' in authorized) return authorized.response;
 
+    /**
+     * Se cuenta ANTES de intentar, para poder decir cuántos pedidos son.
+     *
+     * De las cuatro claves foráneas que apuntan a `store_products`, solo
+     * `order_items` bloquea el borrado; `cart_items`, `product_stock_movements`
+     * y `store_offers` van en cascada. El mensaje anterior culpaba a las tres
+     * —«pedidos, carritos o movimientos de stock»— y era engañoso en las dos
+     * direcciones: esas dos últimas no impiden nada, se destruyen calladas.
+     */
+    const { count: pedidos } = await supabase
+      .from('order_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('store_product_id', id);
+
+    if ((pedidos ?? 0) > 0) {
+      const message = [
+        `Este producto aparece en ${pedidos} ${pedidos === 1 ? 'pedido' : 'pedidos'} y no se puede eliminar:`,
+        'borrarlo se llevaría por delante ese historial de ventas.',
+        '',
+        'Desactívalo para que deje de mostrarse en la tienda sin perder nada.',
+      ].join('\n');
+
+      return NextResponse.json({ error: message, orderCount: pedidos }, { status: 409 });
+    }
+
     const { error } = await supabase.from('store_products').delete().eq('id', id);
 
     if (error) {
+      // Red de seguridad: alguien pudo comprarlo entre el conteo de arriba y
+      // este borrado.
       if (error.code === '23503') {
-        const message = [
-          'Este producto no puede eliminarse del inventario de la tienda porque ya tiene actividad asociada',
-          '(pedidos, carritos o movimientos de stock registrados).',
-          '',
-          'En vez de eliminarlo, desactívalo para que deje de mostrarse en la tienda sin perder ese historial.',
-        ].join('\n');
-
-        return NextResponse.json({ error: message }, { status: 409 });
+        return NextResponse.json(
+          {
+            error:
+              'Alguien compró este producto mientras lo eliminabas, así que ya no se puede borrar. Desactívalo.',
+          },
+          { status: 409 }
+        );
       }
 
       return NextResponse.json({ error: error.message }, { status: 400 });

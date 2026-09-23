@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History, Upload } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History, Upload, Eye, EyeOff } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
@@ -10,6 +10,9 @@ import { StockMovementModal } from './StockMovementModal';
 import { BulkImportModal } from './bulk-import-modal';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
+import type { Product } from '@/src/types';
 import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 
@@ -37,6 +40,7 @@ export function ProductsView() {
     handleOpenEdit,
     handleAddProduct,
     handleDeleteProduct,
+    toggleProductActive,
     fetchStoreProducts,
     stores,
     storeId,
@@ -127,6 +131,35 @@ export function ProductsView() {
     }
   ];
 
+  /**
+   * Retirar o publicar el producto. El error se muestra en el mismo modal de
+   * aviso que el del borrado, para no inventar un segundo canal.
+   */
+  const [errorEstado, setErrorEstado] = React.useState<string | null>(null);
+  const cambiarEstado = async (item: Product) => {
+    try {
+      await toggleProductActive(item.id, item.status !== 'active');
+    } catch (e: unknown) {
+      setErrorEstado(e instanceof Error ? e.message : 'No se pudo cambiar el estado');
+    }
+  };
+
+  /**
+   * La papelera hace una de dos cosas según el producto.
+   *
+   * Si ya aparece en algún pedido no se puede borrar —`order_items` lo impide en
+   * la base— y lo razonable es desactivarlo: deja de verse en la tienda y el
+   * historial de ventas queda intacto. Si no tiene pedidos, se borra de verdad,
+   * pero antes se avisa de lo que se va en cascada, que hoy nadie ve venir.
+   */
+  const conPedidos = (item: Product) => (item.orderCount ?? 0) > 0;
+
+  const borrado = useDeleteConfirm<Product>((item) =>
+    conPedidos(item)
+      ? toggleProductActive(item.id, false)
+      : handleDeleteProduct(item.id)
+  );
+
   const actions = (item: any) => (
     <div className="flex gap-2">
       <button 
@@ -155,9 +188,19 @@ export function ProductsView() {
       >
         <Edit2 className="w-4 h-4" />
       </button>
+      {/* Publicar o retirar. Sin esto, un producto desactivado no tiene forma de
+          volver y la columna "Estado" sería de solo lectura para siempre. */}
+      <button
+        className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+        onClick={() => cambiarEstado(item)}
+        title={item.status === 'active' ? 'Retirar de la tienda' : 'Publicar en la tienda'}
+      >
+        {item.status === 'active' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
       <button 
         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-        onClick={() => handleDeleteProduct(item.id)}
+        onClick={() => borrado.ask(item)}
+        title="Eliminar"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -425,6 +468,66 @@ export function ProductsView() {
         }}
         onSuccess={fetchStoreProducts}
         product={selectedProductForMovement}
+      />
+
+      <ConfirmModal
+        isOpen={!!borrado.target}
+        onClose={borrado.cancel}
+        onConfirm={borrado.confirm}
+        isLoading={borrado.isDeleting}
+        variant={borrado.target && conPedidos(borrado.target) ? 'warning' : 'danger'}
+        confirmText={
+          borrado.target && conPedidos(borrado.target) ? 'Sí, desactivar' : 'Sí, eliminar'
+        }
+        title={
+          borrado.target && conPedidos(borrado.target)
+            ? 'Este producto no se puede eliminar'
+            : 'Eliminar producto'
+        }
+        message={
+          borrado.target && conPedidos(borrado.target) ? (
+            <>
+              <span className="font-bold text-mm-g">{borrado.target.name}</span> aparece en{' '}
+              <span className="font-bold text-mm-g">
+                {borrado.target.orderCount}{' '}
+                {borrado.target.orderCount === 1 ? 'pedido' : 'pedidos'}
+              </span>
+              . Eliminarlo se llevaría por delante ese historial de ventas, así que la base no
+              lo permite.
+              {'\n\n'}
+              Lo que sí puedes hacer es <span className="font-bold">desactivarlo</span>: deja de
+              mostrarse en tu tienda de inmediato y los pedidos viejos siguen completos. Puedes
+              volver a publicarlo cuando quieras.
+            </>
+          ) : (
+            <>
+              ¿Eliminar <span className="font-bold text-mm-g">{borrado.target?.name}</span> de tu
+              inventario?
+              {'\n\n'}
+              Se borrarán también sus ofertas y su bitácora de movimientos de inventario. No se
+              puede deshacer.
+              {'\n\n'}
+              Si solo quieres dejar de venderlo, desactívalo con el ojo en vez de eliminarlo.
+            </>
+          )
+        }
+      />
+
+      <ConfirmModal
+        isOpen={!!borrado.error || !!errorEstado}
+        onClose={() => {
+          borrado.dismissError();
+          setErrorEstado(null);
+        }}
+        onConfirm={() => {
+          borrado.dismissError();
+          setErrorEstado(null);
+        }}
+        title="No se pudo completar"
+        message={borrado.error || errorEstado || ''}
+        variant="warning"
+        confirmText="Entendido"
+        hideCancel
       />
     </div>
   );

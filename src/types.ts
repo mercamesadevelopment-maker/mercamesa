@@ -101,6 +101,14 @@ export interface Product {
   masterId?: number | string;
   desc: string;
   status: 'active' | 'inactive';
+  /**
+   * En cuántos pedidos aparece este producto.
+   *
+   * Solo lo trae el panel del tendero: `order_items` es la única clave foránea
+   * que impide borrarlo, así que este número es lo que decide si se puede
+   * eliminar o solo desactivar. En la vitrina pública no viaja.
+   */
+  orderCount?: number;
 }
 
 export interface CartItem extends Product {
