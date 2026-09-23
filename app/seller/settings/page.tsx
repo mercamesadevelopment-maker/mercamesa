@@ -1,18 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock, Loader2, Star, Store, Info } from 'lucide-react';
+import { Clock, Loader2, Star, Store, Info, Landmark } from 'lucide-react';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { StoreHoursTab } from './components/store-hours-tab';
 import { StoreProfileTab } from './components/store-profile-tab';
 import { StoreReputationTab } from './components/store-reputation-tab';
+import { BankAccountTab } from './components/bank-account-tab';
 
-type TabKey = 'profile' | 'hours' | 'reputation';
+type TabKey = 'profile' | 'hours' | 'reputation' | 'bank';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'profile', label: 'Datos de la tienda', icon: Store },
   { key: 'hours', label: 'Horario', icon: Clock },
   { key: 'reputation', label: 'Calificaciones', icon: Star },
+  { key: 'bank', label: 'Datos bancarios', icon: Landmark },
 ];
 
 export default function SellerSettingsPage() {
@@ -98,6 +100,7 @@ export default function SellerSettingsPage() {
         {activeTab === 'profile' && <StoreProfileTab storeId={storeId} />}
         {activeTab === 'hours' && <StoreHoursTab storeId={storeId} />}
         {activeTab === 'reputation' && <StoreReputationTab storeId={storeId} />}
+        {activeTab === 'bank' && <BankAccountTab storeId={storeId} />}
       </div>
     </div>
   );
