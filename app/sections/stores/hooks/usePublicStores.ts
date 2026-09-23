@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Database } from '@/types/database_generated';
 
-type Store = Database['public']['Tables']['stores']['Row'] & {
+export type PublicStore = Database['public']['Tables']['stores']['Row'] & {
   logoSignedUrl?: string | null;
   marketplaces?: { name: string } | null;
 };
+type Store = PublicStore;
 
 export function usePublicStores() {
   const [stores, setStores] = useState<Store[]>([]);

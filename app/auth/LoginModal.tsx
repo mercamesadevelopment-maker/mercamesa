@@ -15,6 +15,7 @@ export function LoginModal({
   onRegisterClick,
   onForgotPasswordClick,
   defaultEmail,
+  redirectTo,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -22,6 +23,12 @@ export function LoginModal({
   onForgotPasswordClick?: () => void;
   /** Correo con el que llega la persona; p. ej. desde el registro, cuando ya tenía cuenta. */
   defaultEmail?: string;
+  /**
+   * A dónde ir tras iniciar sesión en vez del panel del rol: el producto o
+   * tienda que le compartieron a la persona antes de que el proxy la mandara
+   * acá por no tener sesión.
+   */
+  redirectTo?: string | null;
 }) {
   const router = useRouter();
 
@@ -40,7 +47,7 @@ export function LoginModal({
 
   const entrar = (roleKey: string) => {
     onClose();
-    router.push(ROLE_ROUTES[roleKey as keyof typeof ROLE_ROUTES] || '/marketplaces');
+    router.push(redirectTo || ROLE_ROUTES[roleKey as keyof typeof ROLE_ROUTES] || '/marketplaces');
   };
 
   const handleLogin = async (e: React.FormEvent) => {

@@ -25,6 +25,10 @@ export default function Page() {
   // para que el build no falle, y no vale la pena por un parámetro.
   const [sinAcceso, setSinAcceso] = useState<string | null>(null);
   const [cuentaInactiva, setCuentaInactiva] = useState(false);
+  // A dónde volver tras iniciar sesión o registrarse: lo que el proxy marcó al
+  // rebotar un link compartido (producto o tienda) sin sesión. Sin esto, tras
+  // loguearse la persona caía en su panel de rol y no en lo que le compartieron.
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const { terms, privacy } = useLegalLinks();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -41,12 +45,28 @@ export default function Page() {
     const params = new URLSearchParams(window.location.search);
     const rebotado = params.get('sin_acceso');
     const inactiva = params.get('cuenta_inactiva') === '1';
+    const redirectParam = params.get('redirect');
+    // Solo una ruta relativa propia: `//host` o `/\host` son formas de colar un
+    // dominio externo en lo que parece una ruta absoluta.
+    const redirect =
+      redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && !redirectParam.startsWith('/\\')
+        ? redirectParam
+        : null;
     setSinAcceso(rebotado);
     setCuentaInactiva(inactiva);
+    setRedirectTo(redirect);
 
     if (state.isLoggedIn && !rebotado && !inactiva) {
-      const route = ROLE_ROUTES[state.userRole] || '/marketplaces';
-      router.replace(route);
+      // Sesión ya abierta en otra pestaña, por ejemplo: no hace falta pasar por
+      // el login, se va directo a lo que se compartió.
+      router.replace(redirect || ROLE_ROUTES[state.userRole] || '/marketplaces');
+      return;
+    }
+
+    // Sin sesión y con un link compartido de por medio: se abre el login de una
+    // vez, en vez de dejar que la persona tenga que encontrar el botón.
+    if (!state.isLoggedIn && redirect) {
+      setIsLoginOpen(true);
     }
   }, [state.isLoggedIn, state.userRole, router]);
 
@@ -330,6 +350,7 @@ export default function Page() {
             isOpen={isLoginOpen}
             onClose={() => setIsLoginOpen(false)}
             defaultEmail={loginEmail}
+            redirectTo={redirectTo}
             onRegisterClick={() => {
               setIsLoginOpen(false);
               setIsBuyerRegisterOpen(true);
@@ -345,6 +366,7 @@ export default function Page() {
           <BuyerRegisterModal
             isOpen={isBuyerRegisterOpen}
             onClose={() => setIsBuyerRegisterOpen(false)}
+            redirectTo={redirectTo}
             onLoginClick={(email) => {
               setLoginEmail(email);
               setIsBuyerRegisterOpen(false);

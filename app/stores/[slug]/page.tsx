@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, MapPin, Heart, MessageSquare } from 'lucide-react';
 import { Badge, Button, cn } from '@/src/components/Shared';
@@ -42,6 +42,19 @@ export default function StoreDetailPage() {
   const [page, setPage] = useState(1);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isReviewsPanelOpen, setIsReviewsPanelOpen] = useState(false);
+
+  // Producto al que apunta un link compartido (`?product=<id>`): se lee de
+  // `window`, igual que `app/page.tsx`, para no meter `useSearchParams` y el
+  // `Suspense` que exige en una página que hoy no lo necesita para nada más.
+  const [highlightProductId, setHighlightProductId] = useState<string | null>(null);
+  // Solo se salta de página/filtros una vez: si no, cada re-render con el
+  // producto encontrado volvería a pisar lo que la persona ya esté navegando.
+  const highlightAppliedRef = useRef(false);
+
+  useEffect(() => {
+    const productParam = new URLSearchParams(window.location.search).get('product');
+    if (productParam) setHighlightProductId(productParam);
+  }, []);
 
   const { reviews, myReview, submitReview, fetchReviews } = useStoreReviews(storeId);
 
@@ -113,6 +126,23 @@ export default function StoreDetailPage() {
   useEffect(() => {
     setPage(1);
   }, [search, activeCat]);
+
+  // Al llegar por un link compartido: limpiar filtros (si hubiera alguno, no
+  // debería) y saltar a la página donde cae el producto, para que aparezca sin
+  // que la persona tenga que buscarlo. Si el producto ya no existe en esta
+  // tienda (borrado, o un id inválido), no pasa nada más: se ve el catálogo
+  // normal.
+  useEffect(() => {
+    if (!highlightProductId || highlightAppliedRef.current || storeProducts.length === 0) return;
+
+    const idx = storeProducts.findIndex((p) => p.id === highlightProductId);
+    highlightAppliedRef.current = true;
+    if (idx === -1) return;
+
+    setSearch('');
+    setActiveCat('Todas');
+    setPage(Math.floor(idx / PRODUCTS_PER_PAGE) + 1);
+  }, [highlightProductId, storeProducts]);
 
   const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -269,7 +299,11 @@ export default function StoreDetailPage() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
               {paginatedProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  highlighted={product.id === highlightProductId}
+                />
               ))}
             </div>
             <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
