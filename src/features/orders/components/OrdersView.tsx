@@ -9,7 +9,9 @@ import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
 import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { StatusNoteModal } from './StatusNoteModal';
+import { RevertStatusModal } from './RevertStatusModal';
 
 interface StoreOption {
   id: string;
@@ -23,6 +25,7 @@ interface OrdersViewProps {
   setFilterStatus: (status: OrderStatus | 'all') => void;
   stats: Record<string, number>;
   updateOrderStatus: (orderId: string, status: OrderStatus, notes?: string) => Promise<void>;
+  revertOrderStatus: (orderId: string, status: OrderStatus, notes: string) => Promise<void>;
   stores: StoreOption[];
   selectedStoreId: string;
   setSelectedStoreId: (id: string) => void;
@@ -36,6 +39,7 @@ export function OrdersView({
   setFilterStatus,
   stats,
   updateOrderStatus,
+  revertOrderStatus,
   stores,
   selectedStoreId,
   setSelectedStoreId,
@@ -49,6 +53,9 @@ export function OrdersView({
     nextStatusLabel: string;
     actionLabel: string;
   } | null>(null);
+  // Pedido cuyo estado se va a corregir hacia atrás (casos extremos).
+  const [revertOrderId, setRevertOrderId] = React.useState<string | null>(null);
+  const revertOrder = filteredOrders.find(o => o.id === revertOrderId) || null;
 
   const ordersPerPage = 6;
   const storeFilterThreshold = variant === 'admin' ? 0 : 1;
@@ -62,81 +69,11 @@ export function OrdersView({
   const startIndex = (currentPage - 1) * ordersPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ordersPerPage);
 
-  const getStatusConfig = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending':
-        return {
-          label: 'Nuevo',
-          color: 'bg-mm-oro text-white',
-          icon: Bell,
-          action: 'Confirmar',
-          next: 'confirmed' as const,
-        };
-      case 'confirmed':
-        return {
-          label: 'Confirmado',
-          color: 'bg-indigo-600 text-white',
-          icon: CheckCircle2,
-          action: 'Preparar',
-          next: 'packing' as const,
-        };
-      case 'paid':
-        return {
-          label: 'Pagado',
-          color: 'bg-emerald-600 text-white',
-          icon: CheckCircle2,
-          action: 'Preparar',
-          next: 'packing' as const,
-        };
-      case 'packing':
-        return {
-          label: 'Empacando',
-          color: 'bg-blue text-white',
-          icon: Loader2,
-          action: 'Listo Recogida',
-          next: 'at_collection' as const,
-        };
-      case 'at_collection':
-        return {
-          label: 'Listo Recogida',
-          color: 'bg-purple-600 text-white',
-          icon: ClipboardList,
-          action: 'Despachar',
-          next: 'dispatched' as const,
-        };
-      case 'dispatched':
-        return {
-          label: 'En Camino',
-          color: 'bg-mm-g text-white',
-          icon: Truck,
-          action: 'Entregado',
-          next: 'delivered' as const,
-        };
-      case 'delivered':
-        return {
-          label: 'Entregado',
-          color: 'bg-mm-gbg text-mm-txs',
-          icon: CheckCircle2,
-          action: null,
-          next: null,
-        };
-      case 'returned':
-        return {
-          label: 'Devuelto',
-          color: 'bg-slate-500 text-white',
-          icon: History,
-          action: null,
-          next: null,
-        };
-      default: // cancelled
-        return {
-          label: 'Cancelado',
-          color: 'bg-r text-white',
-          icon: XCircle,
-          action: null,
-          next: null,
-        };
-    }
+  const handleConfirmRevert = async (targetStatus: OrderStatus, notes: string) => {
+    if (!revertOrderId) return;
+    // Si falla, el error sube al modal para mostrarse; solo se cierra al lograrlo.
+    await revertOrderStatus(revertOrderId, targetStatus, notes);
+    setRevertOrderId(null);
   };
 
   const handleConfirmStatusChange = async (notes: string) => {
@@ -289,7 +226,7 @@ export function OrdersView({
                       <div className="w-14 h-14 bg-mm-gbg rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-mm-crd">
                         📦
                       </div>
-                      <Badge className={cn("px-4 py-1 rounded-xl font-black uppercase text-[10px] tracking-widest", config.color)}>
+                      <Badge className={cn("px-4 py-1 rounded-xl font-black uppercase text-[10px] tracking-widest", config.badgeColor)}>
                         {config.label}
                       </Badge>
                     </div>
@@ -422,6 +359,16 @@ export function OrdersView({
           nextStatusLabel,
           actionLabel
         })}
+        onStartRevert={setRevertOrderId}
+      />
+
+      {/* Corrección a un estado anterior */}
+      <RevertStatusModal
+        isOpen={!!revertOrder}
+        onClose={() => setRevertOrderId(null)}
+        onConfirm={handleConfirmRevert}
+        currentStatus={revertOrder?.status ?? null}
+        targets={revertOrder ? getRevertTargets(revertOrder.status, revertOrder.history) : []}
       />
 
       {/* Status Note Prompt Modal */}
