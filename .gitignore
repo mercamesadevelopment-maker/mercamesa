@@ -4,6 +4,10 @@ build/
 dist/
 coverage/
 
+# Cache incremental de tsc. Cambia en cada build y no aporta nada al repo:
+# estaba versionado y conflictuaba en cada merge.
+*.tsbuildinfo
+
 .DS_Store
 *.log
 
