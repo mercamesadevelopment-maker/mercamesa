@@ -1,6 +1,17 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import type { PeriodoInactivacion } from '@/lib/auth/deactivation';
+
+/** La inactivación vigente de una cuenta. Nula si puede entrar. */
+export interface Inactivacion {
+  reason: string;
+  period: string;
+  /** Nulo = para siempre. */
+  until: string | null;
+  createdAt: string;
+  actorName: string | null;
+}
 
 export interface AdminUser {
   id: string;
@@ -16,6 +27,8 @@ export interface AdminUser {
   emailVerifiedAt: string | null;
   /** Cuándo se suprimieron sus datos. La fila existe solo para sostener pedidos. */
   anonymizedAt: string | null;
+  isActive: boolean;
+  deactivation: Inactivacion | null;
   role: { id: string; name: string; label: string } | null;
   stores: { id: string; name: string }[];
 }
@@ -70,5 +83,34 @@ export function useAdminUsers() {
     );
   }, []);
 
-  return { users, loading, error, fetchUsers, sendPasswordReset, revokeSessions, anonymizeUser };
+  const deactivateUser = useCallback(
+    async (userId: string, reason: string, period: PeriodoInactivacion) => {
+      await handle(
+        await fetch(`/api/admin/users/${userId}/deactivate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason, period }),
+        })
+      );
+    },
+    []
+  );
+
+  const reactivateUser = useCallback(async (userId: string) => {
+    await handle(
+      await fetch(`/api/admin/users/${userId}/reactivate`, { method: 'POST' })
+    );
+  }, []);
+
+  return {
+    users,
+    loading,
+    error,
+    fetchUsers,
+    sendPasswordReset,
+    revokeSessions,
+    anonymizeUser,
+    deactivateUser,
+    reactivateUser,
+  };
 }
