@@ -72,8 +72,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'No tienes permisos para eliminar categorías de tienda' }, { status: 403 });
     }
 
+    // Sobre los vínculos, no sobre `stores.category_id` (obsoleta): si se
+    // quedara contando la columna vieja, el admin podría borrar una categoría
+    // que varias tiendas están usando.
     const { count: storeCount, error: countError } = await supabase
-      .from('stores')
+      .from('store_category_links')
       .select('id', { count: 'exact', head: true })
       .eq('category_id', id);
 

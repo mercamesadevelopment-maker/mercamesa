@@ -7,7 +7,10 @@ export interface StoreProfile {
   contact_email: string | null;
   phone: string | null;
   whatsapp: string | null;
-  category_id: string | null;
+  /** Las categorías de la tienda, ya aplanadas por la ruta. Son varias. */
+  categories: StoreCategory[];
+  is_wholesale: boolean;
+  is_retail: boolean;
   logo_url: string | null;
   cover_image_url: string | null;
   logoSignedUrl: string | null;

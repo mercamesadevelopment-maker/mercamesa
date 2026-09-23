@@ -4,6 +4,7 @@ import { Database } from '../../../types/database_generated';
 import { uploadVariants } from '../../../lib/images/generate';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
 import { toE164 } from '@/lib/phone/phone';
+import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 
@@ -96,7 +97,6 @@ export async function POST(request: Request) {
     const name = body.name as string;
     const slug = body.slug as string;
     const marketplace_id = body.marketplace_id as string;
-    const category_id = (body.category_id as string) || null;
     const description = (body.description as string) || null;
     const contact_name = (body.contact_name as string) || null;
     const contact_email = (body.contact_email as string) || null;
@@ -113,6 +113,22 @@ export async function POST(request: Request) {
     }
     const is_active = body.is_active === true || body.is_active === 'true';
     const business_hours = body.business_hours || null;
+
+    // Las categorías van en `store_category_links`, después de crear la tienda.
+    // Una tienda puede ser mayorista y minorista a la vez, así que son dos
+    // banderas independientes; por defecto, al detal.
+    const is_wholesale = body.is_wholesale === true || body.is_wholesale === 'true';
+    const is_retail = body.is_retail === undefined
+      ? true
+      : body.is_retail === true || body.is_retail === 'true';
+
+    let categoryIds: string[] | null;
+    try {
+      categoryIds = parseCategoryIds(body.category_ids);
+    } catch (e) {
+      const message = e instanceof CategoryLinksError ? e.message : 'Categorías inválidas.';
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
 
     if (!name || !slug || !marketplace_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -162,7 +178,6 @@ export async function POST(request: Request) {
       name,
       slug,
       marketplace_id,
-      category_id,
       description,
       contact_name,
       contact_email,
@@ -170,6 +185,8 @@ export async function POST(request: Request) {
       whatsapp,
       is_active,
       is_verified: false,
+      is_wholesale,
+      is_retail,
       cover_image_url,
       logo_url,
       business_hours,
@@ -179,6 +196,20 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    if (categoryIds !== null && categoryIds.length > 0) {
+      try {
+        await setStoreCategories(supabase, storeId, categoryIds);
+      } catch (e) {
+        // La tienda ya quedó creada: no se deshace por unas categorías, pero
+        // tampoco se calla, porque el admin no vería lo que eligió.
+        const message =
+          e instanceof CategoryLinksError
+            ? `La tienda se creó, pero sus categorías no se pudieron guardar: ${e.message}`
+            : 'La tienda se creó, pero sus categorías no se pudieron guardar.';
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
     }
 
     // Auto-assign or invite contact email as store_owner
