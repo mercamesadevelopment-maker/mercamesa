@@ -88,6 +88,9 @@ export function useProducts() {
         masterId: item.catalog_product_id,
         desc: item.catalog_products?.description || '',
         status: item.is_active ? 'active' : 'inactive',
+        // En cuántos pedidos aparece. Solo llega en modo gestión, y es lo que
+        // decide si el producto se puede borrar o solo desactivar.
+        orderCount: Number(item.order_count ?? 0),
       }));
       setMyProducts(mapped);
     } catch (err) {
@@ -284,16 +287,46 @@ export function useProducts() {
     }
   };
 
+  /**
+   * Borra el producto y RELANZA el error del servidor.
+   *
+   * Antes se lo tragaba con un `console.error`, así que cuando la base lo
+   * impedía el tendero hacía clic, no pasaba nada, y volvía a hacer clic. El
+   * mensaje del 409 explica cuántos pedidos lo tienen y qué hacer en su lugar;
+   * quien lo muestra es la vista, con su `ConfirmModal`.
+   */
   const handleDeleteProduct = async (productId: string | number) => {
-    try {
-      const response = await fetch(`/api/store-products/${productId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Error al eliminar producto');
-      await fetchStoreProducts();
-    } catch (err) {
-      console.error(err);
+    const response = await fetch(`/api/store-products/${productId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const json = await response.json().catch(() => ({}));
+      throw new Error(json.error || 'No se pudo eliminar el producto');
     }
+
+    await fetchStoreProducts();
+  };
+
+  /**
+   * Publica o retira el producto de la tienda.
+   *
+   * El `PUT` ya aceptaba `is_active`, pero la interfaz nunca lo enviaba: el
+   * mensaje de error decía «desactívalo» y no había ningún botón para hacerlo.
+   */
+  const toggleProductActive = async (productId: string | number, isActive: boolean) => {
+    const response = await fetch(`/api/store-products/${productId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: isActive }),
+    });
+
+    if (!response.ok) {
+      const json = await response.json().catch(() => ({}));
+      throw new Error(json.error || 'No se pudo cambiar el estado del producto');
+    }
+
+    await fetchStoreProducts();
   };
 
   const filteredProducts = useMemo(() => {
@@ -368,6 +401,7 @@ export function useProducts() {
     handleOpenEdit,
     handleAddProduct,
     handleDeleteProduct,
+    toggleProductActive,
     fetchStoreProducts,
     stores,
     storeId,

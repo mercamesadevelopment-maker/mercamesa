@@ -11,6 +11,12 @@ import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { motion, AnimatePresence } from 'motion/react';
 
+/** Con más, la fila se desborda; el resto va en el `title` del contador. */
+const MAX_ROLES_VISIBLES = 3;
+
+/** Se resaltan porque son los que administran la plataforma entera. */
+const ROLES_DE_PLATAFORMA = ['admin', 'superadmin'];
+
 export function ModulesTab() {
   const { modules, loading, error, saveModule, deleteModule } = useModules();
   const borrado = useDeleteConfirm<ModuleRow>((item) => deleteModule(item.id));
@@ -138,6 +144,44 @@ export function ModulesTab() {
           )}
         </span>
       ),
+    },
+    {
+      // Qué roles ven el módulo. Antes no había forma de saberlo sin consultar
+      // `role_permissions` a mano contra la base.
+      key: 'read_roles',
+      label: 'Quién lo ve',
+      sortable: false,
+      render: (item: ModuleRow) => {
+        const roles = item.read_roles ?? [];
+
+        // Un módulo que no ve nadie es un módulo huérfano: está en la tabla,
+        // puede estar activo, y no aparece en el menú de ningún rol. Decirlo es
+        // media razón de ser de esta columna.
+        if (roles.length === 0) {
+          return <span className="text-xs text-amber-700 italic">Nadie</span>;
+        }
+
+        const visibles = roles.slice(0, MAX_ROLES_VISIBLES);
+        const resto = roles.length - visibles.length;
+
+        return (
+          <div className="flex flex-wrap items-center gap-1">
+            {visibles.map((r) => (
+              <Badge key={r.id} variant={ROLES_DE_PLATAFORMA.includes(r.name) ? 'oro' : 'default'}>
+                {r.label}
+              </Badge>
+            ))}
+            {resto > 0 && (
+              <span
+                className="text-xs text-mm-txw"
+                title={roles.slice(MAX_ROLES_VISIBLES).map((r) => r.label).join(', ')}
+              >
+                +{resto}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'sort_order',

@@ -141,11 +141,18 @@ export const DEFAULT_BUYER_PROFILE: BuyerProfile = {
   phone: "+57 300 123 4567",
   email: "maria.garcia@gmail.com",
   avatar: "https://picsum.photos/seed/maria/200/200",
-  memberSince: "Enero 2024",
-  rating: 4.9,
-  totalOrders: 23,
-  totalSpent: 1240000,
-  loyaltyPoints: 1860,
+  // En cero, no inventadas. Estas cinco cifras nunca se rellenaron desde la
+  // base, así que el tablero del comprador le mostraba a cualquiera —incluido
+  // quien se acababa de registrar— 23 pedidos y $1.240.000 gastados.
+  //
+  // El tablero ya no las usa: pide las suyas a `/api/profile/stats`. Se dejan
+  // en cero y no se borran del tipo porque `BuyerProfile` lo comparten
+  // direcciones, medios de pago y favoritos, que sí son reales.
+  memberSince: "",
+  rating: 0,
+  totalOrders: 0,
+  totalSpent: 0,
+  loyaltyPoints: 0,
   addresses: [
     { id: "a1", label: "Casa", street: "Cra 70 #45-12", neighborhood: "Laureles", city: "Medellín", notes: "Apto 302, timbre azul", isDefault: true, icon: "🏠" },
     { id: "a2", label: "Trabajo", street: "Cl 10 #43-01", neighborhood: "El Centro", city: "Medellín", notes: "Piso 4, preguntar por María", isDefault: false, icon: "🏢" },
