@@ -24,6 +24,7 @@ export default function Page() {
   // componente de cliente: ese hook obligaría a envolverla en un `Suspense`
   // para que el build no falle, y no vale la pena por un parámetro.
   const [sinAcceso, setSinAcceso] = useState<string | null>(null);
+  const [cuentaInactiva, setCuentaInactiva] = useState(false);
   const { terms, privacy } = useLegalLinks();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -37,10 +38,13 @@ export default function Page() {
     // Se lee acá dentro, y no en un efecto aparte, porque el aviso y la
     // redirección tienen que decidirse con el mismo dato: si el valor llegara un
     // ciclo después, este efecto ya habría reenviado a la ruta rechazada.
-    const rebotado = new URLSearchParams(window.location.search).get('sin_acceso');
+    const params = new URLSearchParams(window.location.search);
+    const rebotado = params.get('sin_acceso');
+    const inactiva = params.get('cuenta_inactiva') === '1';
     setSinAcceso(rebotado);
+    setCuentaInactiva(inactiva);
 
-    if (state.isLoggedIn && !rebotado) {
+    if (state.isLoggedIn && !rebotado && !inactiva) {
       const route = ROLE_ROUTES[state.userRole] || '/marketplaces';
       router.replace(route);
     }
@@ -71,10 +75,20 @@ export default function Page() {
       {/* Rebote del proxy: la cuenta con la que entró no alcanza para esa
           sección. Se dice cuál era, porque si no la persona solo ve que "no
           pasó nada" al intentar entrar. */}
-      {sinAcceso && (
+      {sinAcceso && !cuentaInactiva && (
         <div className="fixed top-20 left-0 z-40 w-full border-b border-mm-crd bg-mm-oro/15 px-6 py-3 text-center text-sm text-mm-g lg:px-12">
           Tu cuenta no tiene acceso a <span className="font-bold">{sinAcceso}</span>. Si crees
           que debería tenerlo, pídeselo a un administrador.
+        </div>
+      )}
+
+      {/* Rebote del proxy cuando inactivaron la cuenta con la sesión ya abierta.
+          Mismo texto que el del login, para que no parezcan dos problemas
+          distintos. */}
+      {cuentaInactiva && (
+        <div className="fixed top-20 left-0 z-40 w-full border-b border-mm-crd bg-mm-oro/15 px-6 py-3 text-center text-sm text-mm-g lg:px-12">
+          Tu cuenta está inactiva. Si crees que es un error, escríbenos a{' '}
+          <span className="font-bold">soporte@mercamesa.com</span>.
         </div>
       )}
 

@@ -6,6 +6,7 @@ import {
   markCodeConsumed,
   GENERIC_CODE_ERROR,
 } from '@/lib/auth/verification-codes'
+import { bloqueoPorInactividad } from '@/lib/auth/deactivation'
 
 /**
  * Segundo paso del ingreso de admin y superadmin: valida el código y **recién
@@ -55,6 +56,15 @@ export async function POST(request: Request) {
 
     if (!resultado.ok) {
       return NextResponse.json({ error: GENERIC_CODE_ERROR }, { status: 400 })
+    }
+
+    // Entre el primer paso y este pueden pasar hasta diez minutos, y en ese rato
+    // le pueden haber quitado el acceso. Se comprueba antes de acuñar la sesión
+    // y después de gastar el código, que ya se validó: acá no hay nada que
+    // filtrar, quien llega hasta este punto ya demostró ser quien dice.
+    const bloqueo = await bloqueoPorInactividad(service, profile.id)
+    if (bloqueo) {
+      return NextResponse.json({ error: bloqueo }, { status: 403 })
     }
 
     const { data: link, error: linkError } = await service.auth.admin.generateLink({

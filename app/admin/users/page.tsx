@@ -1,14 +1,21 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Users, Search, Loader2, KeyRound, LogOut, Store as StoreIcon, UserX } from 'lucide-react';
+import {
+  Users, Search, Loader2, KeyRound, LogOut, Store as StoreIcon, UserX, Ban, UserCheck, UserPlus, X,
+} from 'lucide-react';
 import { Button, Badge } from '@/src/components/Shared';
 import { Table } from '@/components/ui/table/components/Table';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useAdminUsers, type AdminUser } from './hooks/use-admin-users';
+import { useAdminInvitations } from './hooks/use-admin-invitations';
+import { DeactivateUserModal } from './components/DeactivateUserModal';
+import { InviteAdminModal, type RolInvitable } from './components/InviteAdminModal';
 import { timeAgo, fechaCorta, fechaCompleta } from '@/lib/dates/relative-time';
+import type { PeriodoInactivacion } from '@/lib/auth/deactivation';
 
-type ActionKind = 'reset' | 'revoke' | 'anonymize';
+/** Inactivar no entra acá: pide motivo y periodo, y va en su propio modal. */
+type ActionKind = 'reset' | 'revoke' | 'anonymize' | 'reactivate';
 type PendingAction = { user: AdminUser; kind: ActionKind } | null;
 
 /**
@@ -38,17 +45,24 @@ function FechaAuditoria({
 }
 
 export default function AdminUsersPage() {
-  const { users, loading, error, fetchUsers, sendPasswordReset, revokeSessions, anonymizeUser } =
-    useAdminUsers();
+  const {
+    users, loading, error, fetchUsers,
+    sendPasswordReset, revokeSessions, anonymizeUser, deactivateUser, reactivateUser,
+  } = useAdminUsers();
+
+  const { invitations, fetchInvitations, inviteAdmin, cancelInvitation } = useAdminInvitations();
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [pending, setPending] = useState<PendingAction>(null);
   const [working, setWorking] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
+  const [inactivando, setInactivando] = useState<AdminUser | null>(null);
+  const [invitando, setInvitando] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    fetchInvitations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -79,6 +93,13 @@ export default function AdminUsersPage() {
       if (pending.kind === 'reset') {
         const message = await sendPasswordReset(pending.user.id);
         setNotice({ title: 'Código enviado', message });
+      } else if (pending.kind === 'reactivate') {
+        await reactivateUser(pending.user.id);
+        setNotice({
+          title: 'Cuenta reactivada',
+          message: 'Ya puede volver a ingresar. Queda registrado que la reactivaste tú.',
+        });
+        await fetchUsers();
       } else if (pending.kind === 'anonymize') {
         await anonymizeUser(pending.user.id);
         setNotice({
@@ -150,6 +171,21 @@ export default function AdminUsersPage() {
         </>
       ),
     },
+    reactivate: {
+      variant: 'info',
+      title: 'Reactivar la cuenta',
+      confirmText: 'Sí, reactivar',
+      message: (u) => (
+        <>
+          <span className="font-bold text-mm-g">{u.fullName || u.email}</span> volverá a
+          poder ingresar de inmediato, aunque su periodo de inactivación no haya terminado.
+          {'\n\n'}
+          {u.deactivation?.reason
+            ? `Se había inactivado por: "${u.deactivation.reason}"`
+            : 'No hay un motivo registrado para su inactivación.'}
+        </>
+      ),
+    },
     anonymize: {
       variant: 'danger',
       title: 'Suprimir sus datos personales',
@@ -204,8 +240,30 @@ export default function AdminUsersPage() {
     {
       key: 'role',
       label: 'Rol',
-      render: (u: AdminUser) =>
-        u.role ? <Badge>{u.role.label}</Badge> : <span className="text-xs text-mm-txw">Sin rol</span>,
+      render: (u: AdminUser) => (
+        <div className="space-y-1.5">
+          {u.role ? <Badge>{u.role.label}</Badge> : <span className="text-xs text-mm-txw">Sin rol</span>}
+          {/* Solo se anuncia lo inactivo. Marcar también lo activo llenaría la
+              columna de una insignia que no dice nada: es el caso normal. */}
+          {!u.isActive && !u.anonymizedAt && (
+            <p
+              className="text-[11px] font-bold text-r"
+              title={
+                u.deactivation
+                  ? `Motivo: ${u.deactivation.reason}\nPor: ${u.deactivation.actorName || 'desconocido'}\nDesde: ${fechaCompleta(u.deactivation.createdAt)}`
+                  : undefined
+              }
+            >
+              Inactivo
+              {u.deactivation?.until
+                ? ` hasta ${fechaCorta(u.deactivation.until)}`
+                : u.deactivation
+                  ? ' indefinidamente'
+                  : ''}
+            </p>
+          )}
+        </div>
+      ),
     },
     {
       key: 'stores',
@@ -246,16 +304,23 @@ export default function AdminUsersPage() {
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mm-gbg text-mm-g">
-          <Users className="h-6 w-6" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mm-gbg text-mm-g">
+            <Users className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-fraunces text-mm-g">Usuarios</h1>
+            <p className="text-sm text-mm-txs">
+              Todos los usuarios de la plataforma, sin importar su rol.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-fraunces text-mm-g">Usuarios</h1>
-          <p className="text-sm text-mm-txs">
-            Todos los usuarios de la plataforma, sin importar su rol.
-          </p>
-        </div>
+
+        <Button onClick={() => setInvitando(true)}>
+          <UserPlus className="mr-1.5 h-4 w-4" />
+          Invitar administrador
+        </Button>
       </div>
 
       {error && (
@@ -319,6 +384,29 @@ export default function AdminUsersPage() {
                   <LogOut className="mr-1.5 h-3.5 w-3.5" />
                   Cerrar sesiones
                 </Button>
+                {/* Quitar o devolver el acceso. El superadmin no aparece:
+                    inactivarlo dejaría la plataforma sin quién la administre. */}
+                {u.role?.name !== 'superadmin' &&
+                  (u.isActive ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                      onClick={() => setInactivando(u)}
+                    >
+                      <Ban className="mr-1.5 h-3.5 w-3.5" />
+                      Inactivar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPending({ user: u, kind: 'reactivate' })}
+                    >
+                      <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+                      Reactivar
+                    </Button>
+                  ))}
                 <Button
                   variant="outline"
                   size="sm"
@@ -333,6 +421,84 @@ export default function AdminUsersPage() {
           }
         />
       )}
+
+      {/* Las invitaciones van debajo de la tabla y no dentro: todavía no son
+          usuarios —no tienen perfil, rol asignado ni sesión— y mezclarlas
+          obligaría a la tabla a distinguir filas reales de promesas. */}
+      {invitations.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-bold text-mm-g">
+            Invitaciones pendientes ({invitations.length})
+          </h2>
+          <div className="divide-y divide-mm-crd/40 rounded-2xl border border-mm-crd bg-white">
+            {invitations.map((i) => (
+              <div key={i.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-mm-g">{i.email}</p>
+                  <p className="text-xs text-mm-txw">
+                    {i.roleLabel}
+                    {i.invitedByName && ` · invitó ${i.invitedByName}`}
+                    {' · '}
+                    {i.expired ? (
+                      <span className="font-bold text-r">venció</span>
+                    ) : (
+                      <span title={fechaCompleta(i.expiresAt)}>
+                        vence {fechaCorta(i.expiresAt)}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await cancelInvitation(i.id);
+                    } catch (e: unknown) {
+                      setNotice({
+                        title: 'No se pudo cancelar',
+                        message: e instanceof Error ? e.message : 'Error inesperado',
+                      });
+                    }
+                  }}
+                >
+                  <X className="mr-1.5 h-3.5 w-3.5" />
+                  Cancelar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <DeactivateUserModal
+        user={inactivando}
+        onClose={() => setInactivando(null)}
+        onConfirm={async (reason: string, period: PeriodoInactivacion) => {
+          await deactivateUser(inactivando!.id, reason, period);
+          setInactivando(null);
+          setNotice({
+            title: 'Cuenta inactivada',
+            message:
+              'Se le cerraron las sesiones y no podrá volver a entrar. Ten en cuenta que el ' +
+              'acceso ya emitido puede tardar hasta una hora en caducar del todo.',
+          });
+          await fetchUsers();
+        }}
+      />
+
+      <InviteAdminModal
+        isOpen={invitando}
+        onClose={() => setInvitando(false)}
+        onConfirm={async (email: string, roleName: RolInvitable) => {
+          await inviteAdmin(email, roleName);
+          setInvitando(false);
+          setNotice({
+            title: 'Invitación enviada',
+            message: `Le mandamos a ${email} un enlace para definir su contraseña. Vence en 7 días.`,
+          });
+        }}
+      />
 
       <ConfirmModal
         isOpen={!!pending}
