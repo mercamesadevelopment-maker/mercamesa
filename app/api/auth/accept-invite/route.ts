@@ -19,17 +19,39 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Sin filtrar por tipo: ahora también se invita a administrar la
+    // plataforma, y el formulario que se muestra depende de cuál de las dos es.
     const { data: invite } = await serviceSupabase
       .from('invitations')
-      .select('id, store_id, stores(name)')
+      .select('id, store_id, invitation_type, role, expires_at, stores(name)')
       .eq('email', user.email)
-      .eq('invitation_type', 'store_member')
+      .is('accepted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
+
+    // La vigencia se escribía desde el principio y no la miraba nadie: una
+    // invitación de hace ocho meses servía igual. Para un administrador eso es
+    // una puerta abierta indefinidamente.
+    const vencida = !!invite && new Date(invite.expires_at) <= new Date();
+
+    let roleLabel: string | null = null;
+    if (invite?.role) {
+      const { data: rol } = await serviceSupabase
+        .from('roles')
+        .select('label')
+        .eq('id', invite.role)
+        .maybeSingle();
+      roleLabel = rol?.label ?? null;
+    }
 
     return NextResponse.json({
       authenticated: true,
       email: user.email,
-      hasInvite: !!invite,
+      hasInvite: !!invite && !vencida,
+      expired: vencida,
+      invitationType: invite?.invitation_type ?? null,
+      roleLabel,
       storeName: (invite as any)?.stores?.name || 'su tienda asignada'
     }, { status: 200 });
   } catch (error: unknown) {
@@ -65,6 +87,96 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La contraseña es un campo obligatorio.' }, { status: 400 });
     }
 
+    // La invitación se busca antes que nada porque su tipo decide qué datos se
+    // piden: a un administrador no se le exige tipo de persona ni documento,
+    // que son requisitos de facturación de una tienda.
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const serviceSupabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: invite } = await serviceSupabase
+      .from('invitations')
+      .select('*')
+      .eq('email', user.email)
+      .is('accepted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!invite) {
+      return NextResponse.json({ error: 'No se encontró una invitación activa para este correo electrónico.' }, { status: 404 });
+    }
+
+    if (new Date(invite.expires_at) <= new Date()) {
+      return NextResponse.json(
+        { error: 'Esta invitación ya venció. Pídele a quien te invitó que te envíe una nueva.' },
+        { status: 410 }
+      );
+    }
+
+    const esAdmin = invite.invitation_type === 'admin';
+
+    // El teléfono se guarda en E.164 en los dos caminos; lo que no sea un
+    // número se rechaza acá y no llega a la base.
+    const phoneE164 = phone ? toE164(String(phone)) : null;
+    if (phone && !phoneE164) {
+      return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
+    }
+
+    // ------------------------------------------------------------------
+    // Invitación a administrar la plataforma
+    //
+    // Camino corto: nombre, teléfono y contraseña. No hay tienda que asociar ni
+    // datos de facturación que pedir.
+    // ------------------------------------------------------------------
+    if (esAdmin) {
+      if (!fullName || !String(fullName).trim()) {
+        return NextResponse.json({ error: 'El nombre completo es un campo obligatorio.' }, { status: 400 });
+      }
+
+      if (!invite.role) {
+        return NextResponse.json({ error: 'La invitación no indica un rol válido.' }, { status: 400 });
+      }
+
+      // Se valida todo antes de tocar la contraseña: `updateUser` no se puede
+      // deshacer y dejaría al invitado sin poder entrar ni reintentar.
+      const { error: claveError } = await supabase.auth.updateUser({ password });
+      if (claveError) {
+        const { message } = authErrorMessage(
+          claveError,
+          'No pudimos guardar la contraseña. Intenta de nuevo.',
+          'accept-invite'
+        );
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+
+      const { error: perfilError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email!,
+          full_name: String(fullName).trim(),
+          phone: phoneE164,
+          role_id: invite.role,
+          language: 'es',
+          is_active: true,
+        });
+
+      if (perfilError) {
+        return NextResponse.json({ error: `Error al crear perfil: ${perfilError.message}` }, { status: 400 });
+      }
+
+      await serviceSupabase.from('invitations').delete().eq('id', invite.id);
+
+      return NextResponse.json({ success: true, redirectUrl: '/admin' }, { status: 200 });
+    }
+
+    // ------------------------------------------------------------------
+    // Invitación a una tienda (el flujo de siempre)
+    // ------------------------------------------------------------------
+
     // Todo lo que sigue se valida ANTES de tocar la contraseña. El orden
     // importa: `updateUser({ password })` no se puede deshacer, y un cuerpo
     // inválido dejaría al invitado con la contraseña cambiada, sin perfil y sin
@@ -89,13 +201,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: pairError.message }, { status: 400 });
     }
 
-    // El teléfono se guarda en E.164; lo que no sea un número se rechaza acá y
-    // no llega a la base.
-    const phoneE164 = phone ? toE164(String(phone)) : null;
-    if (phone && !phoneE164) {
-      return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
-    }
-
     if (!document_number || !String(document_number).trim()) {
       return NextResponse.json({ error: 'El número de identificación es obligatorio.' }, { status: 400 });
     }
@@ -112,24 +217,6 @@ export async function POST(request: Request) {
       }
     } else if (!fullName) {
       return NextResponse.json({ error: 'El nombre completo es un campo obligatorio.' }, { status: 400 });
-    }
-
-    // 2. Fetch the invitation details using the secure service role client
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const serviceSupabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const { data: invite, error: inviteError } = await serviceSupabase
-      .from('invitations')
-      .select('*')
-      .eq('email', user.email)
-      .eq('invitation_type', 'store_member')
-      .maybeSingle();
-
-    if (!invite) {
-      return NextResponse.json({ error: 'No se encontró una invitación activa para este correo electrónico.' }, { status: 404 });
     }
 
     // 3. Set the user's password in auth.users
@@ -169,7 +256,16 @@ export async function POST(request: Request) {
     }
 
     // 5. Link user to store_members
-    const { error: memberError } = await supabase
+    //
+    // Con la llave de servicio, no con la sesión del invitado: la política
+    // `store_members_write` exige `is_store_member(store_id)`, o sea ser YA
+    // miembro de la tienda a la que uno se está sumando. Así, aceptar una
+    // invitación fallaba siempre acá y dejaba a la persona con perfil pero sin
+    // tienda, y la invitación sin consumir.
+    //
+    // No se está saltando ningún permiso: a qué tienda y con qué rol entra sale
+    // de la invitación, que ya se validó arriba, no del cuerpo de la petición.
+    const { error: memberError } = await serviceSupabase
       .from('store_members')
       .insert({
         store_id: invite.store_id!,
