@@ -1,13 +1,15 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
+import { OrderStatusTimeline } from './OrderStatusTimeline';
 import {
   User, Phone, Mail, FileText, MapPin,
   CreditCard, Calendar, Clock, ShoppingBag,
-  MessageSquare, ChevronRight
+  MessageSquare, ChevronRight, Undo2
 } from 'lucide-react';
 
 interface OrderDetailModalProps {
@@ -15,6 +17,8 @@ interface OrderDetailModalProps {
   onClose: () => void;
   order: Order | null;
   onStartStatusChange: (orderId: string, status: OrderStatus, nextStatusLabel: string, actionLabel: string) => void;
+  /** Abre la corrección a un estado anterior. Sin esta prop no se ofrece la opción. */
+  onStartRevert?: (orderId: string) => void;
 }
 
 export function OrderDetailModal({
@@ -22,78 +26,12 @@ export function OrderDetailModal({
   onClose,
   order,
   onStartStatusChange,
+  onStartRevert,
 }: OrderDetailModalProps) {
   if (!order) return null;
 
-  const getStatusConfig = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending':
-        return {
-          label: 'Nuevo',
-          color: 'bg-mm-orl text-mm-oro border-mm-oro/20',
-          action: 'Confirmar Pedido',
-          next: 'confirmed' as const,
-        };
-      case 'confirmed':
-        return {
-          label: 'Confirmado',
-          color: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-          action: 'Iniciar Empaque',
-          next: 'packing' as const,
-        };
-      case 'paid':
-        return {
-          label: 'Pagado',
-          color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-          action: 'Iniciar Empaque',
-          next: 'packing' as const,
-        };
-      case 'packing':
-        return {
-          label: 'Empacando',
-          color: 'bg-blue-50 text-blue-700 border-blue-200',
-          action: 'Listo para Recoger',
-          next: 'at_collection' as const,
-        };
-      case 'at_collection':
-        return {
-          label: 'Listo para Recoger',
-          color: 'bg-purple-50 text-purple-700 border-purple-200',
-          action: 'Despachar Pedido',
-          next: 'dispatched' as const,
-        };
-      case 'dispatched':
-        return {
-          label: 'En Camino',
-          color: 'bg-amber-50 text-amber-700 border-amber-200',
-          action: 'Marcar como Entregado',
-          next: 'delivered' as const,
-        };
-      case 'delivered':
-        return {
-          label: 'Entregado',
-          color: 'bg-green-50 text-green-700 border-green-200',
-          action: null,
-          next: null,
-        };
-      case 'returned':
-        return {
-          label: 'Devuelto',
-          color: 'bg-slate-50 text-slate-700 border-slate-200',
-          action: null,
-          next: null,
-        };
-      default: // cancelled
-        return {
-          label: 'Cancelado',
-          color: 'bg-red-50 text-red-700 border-red-200',
-          action: null,
-          next: null,
-        };
-    }
-  };
-
   const statusConfig = getStatusConfig(order.status);
+  const canRevert = !!onStartRevert && getRevertTargets(order.status, order.history).length > 0;
   const formattedDate = new Date(order.date).toLocaleDateString([], {
     year: 'numeric',
     month: 'long',
@@ -110,7 +48,7 @@ export function OrderDetailModal({
         order.id,
         statusConfig.next,
         getStatusConfig(statusConfig.next).label,
-        statusConfig.action || 'Confirmar'
+        statusConfig.detailAction || 'Confirmar'
       );
     }
   };
@@ -151,7 +89,7 @@ export function OrderDetailModal({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`px-4 py-1.5 rounded-2xl text-xs font-black uppercase tracking-wider border ${statusConfig.color}`}>
+            <span className={cn('px-4 py-1.5 rounded-2xl text-xs font-black uppercase tracking-wider border', statusConfig.pillColor)}>
               {statusConfig.label}
             </span>
           </div>
@@ -235,53 +173,12 @@ export function OrderDetailModal({
                 </div>
               </div>
 
-              <div className="relative pl-6 border-l-2 border-mm-crd/60 space-y-6 ml-2">
-                {order.history && order.history.length > 0 ? (
-                  order.history.map((h, i) => {
-                    const conf = getStatusConfig(h.status);
-                    const itemDate = new Date(h.createdAt).toLocaleDateString([], {
-                      month: 'short',
-                      day: 'numeric',
-                    });
-                    const itemTime = new Date(h.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    });
-
-                    return (
-                      <div key={h.id || i} className="relative">
-                        {/* Timeline Dot */}
-                        <div className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 border-white ${h.status === order.status ? 'bg-mm-g scale-125 ring-4 ring-mm-gbg' : 'bg-mm-crd'
-                          }`} />
-
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xs text-mm-g">{conf.label}</span>
-                              <span className="text-[10px] text-mm-txw font-semibold">
-                                por {h.changedByName || 'Sistema'}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-mm-txs font-semibold flex items-center gap-1">
-                              <span>{itemDate}</span>
-                              <span>{itemTime}</span>
-                            </div>
-                          </div>
-                          {h.notes && (
-                            <p className="text-xs text-mm-txs italic font-medium bg-slate-50 p-2.5 rounded-xl border border-mm-crd/40 mt-1 leading-relaxed">
-                              "{h.notes}"
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-xs text-mm-txw italic">
-                    No hay registros de cambios de estado todavía.
-                  </div>
-                )}
-              </div>
+              <OrderStatusTimeline
+                history={order.history || []}
+                currentStatus={order.status}
+                getLabel={(s) => getStatusConfig(s).label}
+                showAuthor
+              />
             </div>
 
           </div>
@@ -452,6 +349,20 @@ export function OrderDetailModal({
 
         {/* Footer Actions */}
         <div className="border-t border-mm-crd/60 pt-6 flex flex-col sm:flex-row justify-end items-center gap-3">
+          {/* Corrección para casos extremos: queda a la izquierda y en tono
+              secundario para que no compita con el avance normal del pedido. */}
+          {canRevert && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => onStartRevert?.(order.id)}
+              className="w-full sm:w-auto sm:mr-auto rounded-2xl h-12 text-sm border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors font-bold"
+            >
+              <Undo2 className="w-4 h-4 mr-1" />
+              Regresar estado
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="md"
@@ -468,7 +379,7 @@ export function OrderDetailModal({
               onClick={handleAction}
               className="w-full sm:w-auto rounded-2xl h-12 text-sm font-bold shadow-lg shadow-mm-g/10 bg-mm-g text-white hover:bg-mm-gm"
             >
-              {statusConfig.action}
+              {statusConfig.detailAction}
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
+import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
 import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
 
 export function useOrders() {
@@ -76,6 +77,7 @@ export function useOrders() {
             id,
             status,
             notes,
+            is_reversal,
             created_at,
             profiles:changed_by (
               full_name
@@ -154,6 +156,7 @@ export function useOrders() {
             notes: h.notes,
             createdAt: h.created_at,
             changedByName: h.profiles?.full_name || null,
+            isReversal: !!h.is_reversal,
           }))
           .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
@@ -240,12 +243,23 @@ export function useOrders() {
     }
   };
 
+  // Corrección manual a un estado anterior. A diferencia de updateOrderStatus, el
+  // error se propaga: el modal tiene que mostrar por qué la base lo rechazó.
+  const revertOrderStatus = async (orderId: string, status: OrderStatus, notes: string) => {
+    const order = myOrders.find(o => o.id === orderId);
+    if (!order?.storeOrderId) throw new Error('No se encontró el pedido.');
+
+    await revertStoreOrderStatus(order.storeOrderId, status, notes);
+    await fetchStoreOrders();
+  };
+
   return {
     filteredOrders,
     filterStatus,
     setFilterStatus,
     stats,
     updateOrderStatus,
+    revertOrderStatus,
     deliveryError,
     dismissDeliveryError: () => setDeliveryError(null),
     loading,

@@ -162,6 +162,8 @@ export interface OrderStatusHistoryItem {
   notes: string | null;
   createdAt: string;
   changedByName: string | null;
+  /** Corrección manual (regreso a un estado anterior), no un avance del flujo. */
+  isReversal?: boolean;
 }
 
 export interface Order {
