@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { CreateOrderPayload } from '@/src/features/payment/types/payment.types';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
+import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
 import {
   quoteDeliveryFee,
@@ -186,20 +187,25 @@ export async function POST(request: Request) {
     }
 
     // 3. Recalculate subtotal and reconstruct items securely using database prices
+    //
+    // La oferta vigente la resuelve el servidor, igual que el precio. Antes no
+    // se consultaba `store_offers` acá: el carrito mostraba el descuento y esta
+    // ruta guardaba el precio de lista, o sea que se cobraba de más.
+    const precios = await resolveOfferPrices(supabase, dbProducts as any[], isWS);
+
     let recalculatedSubtotal = 0;
+    let recalculatedListSubtotal = 0;
     const recalculatedItems = items.map(item => {
       const dbProd = (dbProducts as any[]).find(p => p.id === item.store_product_id);
-      if (!dbProd) {
+      const precio = precios.get(item.store_product_id);
+      if (!dbProd || !precio) {
         throw new Error('Producto no encontrado en base de datos');
       }
 
-      // Determine unit price securely from database values
-      const unitPrice = isWS 
-        ? (dbProd.wholesale_price || dbProd.price_per_unit || 0) 
-        : (dbProd.price_per_unit || 0);
-
+      const unitPrice = precio.finalPrice;
       const totalPrice = unitPrice * item.quantity;
       recalculatedSubtotal += totalPrice;
+      recalculatedListSubtotal += precio.listPrice * item.quantity;
 
       return {
         store_product_id: item.store_product_id,
@@ -295,6 +301,8 @@ export async function POST(request: Request) {
     const pricing = isInStore
       ? {
           productsSubtotal: recalculatedSubtotal,
+          productsListSubtotal: recalculatedListSubtotal,
+          discountTotal: Math.max(0, recalculatedListSubtotal - recalculatedSubtotal),
           serviceCommission: 0,
           messagesAmount: 0,
           platformCommission: 0,
@@ -319,7 +327,12 @@ export async function POST(request: Request) {
         subtotal: recalculatedSubtotal,
       });
 
-      finalPricing = computeOrderPricing(recalculatedSubtotal, deliveryFee, pricingSettings);
+      finalPricing = computeOrderPricing(
+        recalculatedSubtotal,
+        deliveryFee,
+        pricingSettings,
+        recalculatedListSubtotal
+      );
     }
     // --- END SECURE RE-CALCULATION ---
 
@@ -335,6 +348,10 @@ export async function POST(request: Request) {
       platform_commission_amount: finalPricing.platformCommission,
       delivery_fee: finalPricing.deliveryFee,
       pricing_settings_id: pricingSettingsId,
+      // Sigue en cero aunque ahora haya ofertas: `subtotal` ya guarda el valor
+      // CON el descuento aplicado, así que apuntarlo también acá lo contaría
+      // dos veces. Además `discount` es de la orden y el detalle lo muestra
+      // contra el subtotal de una sola tienda, que no es el mismo número.
       discount: 0,
       total: finalPricing.total,
       notes: order.notes,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
+import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
 import {
   quoteDeliveryFee,
@@ -69,16 +70,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Las ofertas vigentes las resuelve el servidor. Antes no las miraba, así
+    // que cotizaba a precio de lista mientras el carrito ya mostraba el
+    // descuento: el comprador veía una rebaja que no se le hacía.
+    const precios = await resolveOfferPrices(supabase, dbProducts, isWS);
+
     let productsSubtotal = 0;
+    let productsListSubtotal = 0;
     for (const item of items) {
-      const dbProd = dbProducts.find((p) => p.id === item.store_product_id);
-      if (!dbProd) {
+      const precio = precios.get(item.store_product_id);
+      if (!precio) {
         return NextResponse.json({ error: 'Uno o más productos del pedido no son válidos' }, { status: 400 });
       }
-      const unitPrice = isWS
-        ? Number(dbProd.wholesale_price || dbProd.price_per_unit || 0)
-        : Number(dbProd.price_per_unit || 0);
-      productsSubtotal += unitPrice * Number(item.quantity);
+      productsSubtotal += precio.finalPrice * Number(item.quantity);
+      productsListSubtotal += precio.listPrice * Number(item.quantity);
     }
 
     const settings = await loadPricingSettings(supabase);
@@ -90,7 +95,12 @@ export async function POST(request: Request) {
       subtotal: productsSubtotal,
     });
 
-    const pricing = computeOrderPricing(productsSubtotal, deliveryFee, settings);
+    const pricing = computeOrderPricing(
+      productsSubtotal,
+      deliveryFee,
+      settings,
+      productsListSubtotal
+    );
 
     return NextResponse.json({ data: pricing }, { status: 200 });
   } catch (error: unknown) {
