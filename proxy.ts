@@ -64,11 +64,24 @@ export async function proxy(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role_id, roles(name)')
+    .select('role_id, is_active, roles(name)')
     .eq('id', user.id)
     .single()
 
   const roleName = (profile?.roles as any)?.name
+
+  // 0) Cuenta inactiva
+  //
+  // El login ya lo impide, pero eso no alcanza para quien ya estaba adentro
+  // cuando lo inactivaron: aunque se le cierren las sesiones, el acceso ya
+  // emitido sigue sirviendo hasta una hora. Acá se corta en la siguiente
+  // navegación. El vencimiento del periodo no se resuelve en el proxy —no tiene
+  // service key y esto corre en cada petición—: lo levanta el próximo ingreso.
+  if (profile?.is_active === false) {
+    const url = new URL('/', request.url)
+    url.searchParams.set('cuenta_inactiva', '1')
+    return NextResponse.redirect(url)
+  }
 
   // 1) Familia de rol por prefijo de sección (admin/seller/delivery)
   const matchedPrefix = Object.keys(ROLE_FAMILY_BY_PREFIX).find((p) => pathname.startsWith(p))
