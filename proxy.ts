@@ -3,6 +3,11 @@ import { createServerClient } from '@supabase/ssr'
 
 const PUBLIC_PATHS = ['/', '/accept-invite']
 
+// Únicos destinos a los que puede apuntar un link compartido (producto o
+// tienda). Se preserva solo para estos, para no mandar de vuelta a alguien sin
+// sesión a `/admin/...` tras loguearse, donde de todos modos no tendría permiso.
+const SHAREABLE_PREFIXES = ['/stores/', '/sections/']
+
 const ROLE_FAMILY_BY_PREFIX: Record<string, string[]> = {
   // superadmin entra a todo /admin; el filtro fino por módulo lo hace el bloque 2.
   '/admin': ['admin', 'superadmin'],
@@ -56,7 +61,16 @@ export async function proxy(request: NextRequest) {
   if (isApiRoute) return supabaseResponse
 
   if (!user) {
-    if (!isPublic) return NextResponse.redirect(new URL('/', request.url))
+    if (!isPublic) {
+      const url = new URL('/', request.url)
+      // Para que un link compartido (producto o tienda) funcione de punta a
+      // punta: sin esto, tras iniciar sesión la persona caía en su panel de rol
+      // en vez de en lo que le compartieron.
+      if (SHAREABLE_PREFIXES.some((p) => pathname.startsWith(p))) {
+        url.searchParams.set('redirect', pathname + request.nextUrl.search)
+      }
+      return NextResponse.redirect(url)
+    }
     return supabaseResponse
   }
 

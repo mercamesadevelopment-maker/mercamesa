@@ -12,6 +12,7 @@ import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
 import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { validateStoreFields, STORE_DESCRIPTION_MAX_LENGTH } from '@/lib/stores/validate-store';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
@@ -43,6 +44,10 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  // Errores de formato (nombre/descripción/correo) que no dependen del servidor;
+  // se revisan antes de enviar, para no gastar un viaje a la API en algo que ya
+  // se sabe que va a fallar.
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/marketplaces')
@@ -122,6 +127,20 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError(null);
+    setFormError(null);
+
+    // Correo malformado o descripción demasiado larga: se avisa acá, antes de
+    // subir el logo o llamar a la API, que igual las rechazaría.
+    const fieldsError = validateStoreFields({
+      name: formData.name,
+      description: formData.description,
+      contactEmail: formData.contact_email,
+    });
+    if (fieldsError) {
+      setFormError(fieldsError);
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: Record<string, unknown> = {
@@ -208,7 +227,19 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         />
 
         {/* Descripción */}
-        <Input label="Descripción" name="description" value={formData.description} onChange={handleChange} placeholder="Breve descripción de la tienda" />
+        <div className="flex flex-col gap-1">
+          <Input
+            label="Descripción"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Breve descripción de la tienda"
+            maxLength={STORE_DESCRIPTION_MAX_LENGTH}
+          />
+          <span className="text-[10px] text-mm-txw ml-1">
+            {formData.description.length}/{STORE_DESCRIPTION_MAX_LENGTH}
+          </span>
+        </div>
 
         {/* Horario de atención */}
         <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
@@ -228,6 +259,10 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
           }}
           emailError={emailError}
         />
+
+        {formError && (
+          <div className="text-sm text-r bg-rl px-4 py-2.5 rounded-xl">{formError}</div>
+        )}
 
         {/* Activa */}
         <div className="flex items-center gap-2 px-1">

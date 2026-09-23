@@ -131,7 +131,7 @@ export default function PromotionsPage() {
                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-mm-gbg">
                     <span className="bg-rl text-r px-2 py-0.5 sm:px-3 sm:py-1 rounded-full font-bold text-xs sm:text-sm whitespace-nowrap truncate">
                       {offer.discount_pct
-                        ? `${offer.discount_pct}% OFF`
+                        ? `${offer.discount_pct}% Descuento`
                         : `-$${offer.special_price?.toLocaleString('es-CO')}`}
                     </span>
 

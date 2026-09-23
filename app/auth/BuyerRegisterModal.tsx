@@ -20,6 +20,7 @@ export function BuyerRegisterModal({
   isOpen,
   onClose,
   onLoginClick,
+  redirectTo,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -29,6 +30,11 @@ export function BuyerRegisterModal({
    * se muestra igual, solo sin botón.
    */
   onLoginClick?: (email: string) => void;
+  /**
+   * A dónde ir tras crear la cuenta e iniciar sesión, en vez del panel del rol:
+   * el producto o tienda que le compartieron a la persona antes de registrarse.
+   */
+  redirectTo?: string | null;
 }) {
   const router = useRouter();
   const {
@@ -173,7 +179,7 @@ export function BuyerRegisterModal({
       const result = await login(datos.email, datos.password);
       onClose();
       if ('roleKey' in result) {
-        router.push(ROLE_ROUTES[result.roleKey as keyof typeof ROLE_ROUTES] || '/marketplaces');
+        router.push(redirectTo || ROLE_ROUTES[result.roleKey as keyof typeof ROLE_ROUTES] || '/marketplaces');
       }
     } catch (err) {
       console.error(err);

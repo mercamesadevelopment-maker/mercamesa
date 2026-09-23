@@ -6,6 +6,7 @@ import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/g
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { toE164 } from '@/lib/phone/phone';
 import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
+import { validateStoreFields } from '@/lib/stores/validate-store';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
@@ -159,6 +160,17 @@ export async function PUT(
     // `name` es obligatorio en la tabla: no se puede vaciar.
     if (updateData.name === null) {
       return NextResponse.json({ error: 'El nombre de la tienda es obligatorio.' }, { status: 400 });
+    }
+
+    // Solo se valida lo que llegó en este PUT: si `description` no viene, no se
+    // revalida la longitud de lo que ya estaba guardado.
+    const fieldsError = validateStoreFields({
+      name: updateData.name as string | undefined,
+      description: updateData.description as string | null | undefined,
+      contactEmail: updateData.contact_email as string | null | undefined,
+    });
+    if (fieldsError) {
+      return NextResponse.json({ error: fieldsError }, { status: 400 });
     }
 
     if (isAdmin) {

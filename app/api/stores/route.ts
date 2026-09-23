@@ -5,6 +5,7 @@ import { uploadVariants } from '../../../lib/images/generate';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
 import { toE164 } from '@/lib/phone/phone';
 import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
+import { validateStoreFields } from '@/lib/stores/validate-store';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 
@@ -132,6 +133,13 @@ export async function POST(request: Request) {
 
     if (!name || !slug || !marketplace_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Correo malformado o descripción sin límite: antes nada lo impedía, ni acá
+    // ni en el formulario, así que un dato malo podía guardarse sin aviso.
+    const fieldsError = validateStoreFields({ name, description, contactEmail: contact_email });
+    if (fieldsError) {
+      return NextResponse.json({ error: fieldsError }, { status: 400 });
     }
 
     if (contact_email) {
