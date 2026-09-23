@@ -32,6 +32,45 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_login_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          request_ip: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_user_actions: {
         Row: {
           action: string
@@ -618,6 +657,95 @@ export type Database = {
           },
         ]
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          accepted_ip: string | null
+          document_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_ip?: string | null
+          document_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          accepted_ip?: string | null
+          document_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_acceptances_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_acceptances_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_documents: {
+        Row: {
+          file_name: string
+          file_path: string
+          id: string
+          kind: string
+          notes: string | null
+          notified_at: string | null
+          notified_count: number | null
+          notify_failed: number | null
+          published_at: string
+          published_by: string | null
+          version: number
+        }
+        Insert: {
+          file_name: string
+          file_path: string
+          id?: string
+          kind: string
+          notes?: string | null
+          notified_at?: string | null
+          notified_count?: number | null
+          notify_failed?: number | null
+          published_at?: string
+          published_by?: string | null
+          version: number
+        }
+        Update: {
+          file_name?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          notified_at?: string | null
+          notified_count?: number | null
+          notify_failed?: number | null
+          published_at?: string
+          published_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_documents_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_delivery_users: {
         Row: {
           created_at: string | null
@@ -1153,6 +1281,45 @@ export type Database = {
           },
         ]
       }
+      password_change_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          request_ip: string | null
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       password_reset_codes: {
         Row: {
           attempts: number
@@ -1514,6 +1681,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          anonymized_at: string | null
           avatar_url: string | null
           business_name: string | null
           buyer_type: string | null
@@ -1538,6 +1706,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          anonymized_at?: string | null
           avatar_url?: string | null
           business_name?: string | null
           buyer_type?: string | null
@@ -1562,6 +1731,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          anonymized_at?: string | null
           avatar_url?: string | null
           business_name?: string | null
           buyer_type?: string | null
@@ -1691,6 +1861,42 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_email_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          request_ip: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          request_ip?: string | null
+        }
+        Relationships: []
+      }
       siigo_invoices: {
         Row: {
           attempts: number
@@ -1780,6 +1986,100 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      store_category_links: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          store_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          store_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_category_links_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "store_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_category_links_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_document_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          document_type_id: string
+          event_type: string
+          file_url: string
+          id: string
+          previous_status: string | null
+          status: string
+          store_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          document_type_id: string
+          event_type: string
+          file_url: string
+          id?: string
+          previous_status?: string | null
+          status: string
+          store_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          document_type_id?: string
+          event_type?: string
+          file_url?: string
+          id?: string
+          previous_status?: string | null
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_document_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_document_events_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "document_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_document_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_documents: {
         Row: {
@@ -2239,7 +2539,9 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_retail: boolean
           is_verified: boolean
+          is_wholesale: boolean
           local_address: string | null
           logo_url: string | null
           marketplace_id: string
@@ -2261,7 +2563,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_retail?: boolean
           is_verified?: boolean
+          is_wholesale?: boolean
           local_address?: string | null
           logo_url?: string | null
           marketplace_id: string
@@ -2283,7 +2587,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_retail?: boolean
           is_verified?: boolean
+          is_wholesale?: boolean
           local_address?: string | null
           logo_url?: string | null
           marketplace_id?: string
@@ -2403,6 +2709,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      anonymize_buyer: { Args: { target: string }; Returns: undefined }
       call_app_cron: { Args: { path: string }; Returns: number }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       has_permission: {
