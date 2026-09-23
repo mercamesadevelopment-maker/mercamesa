@@ -119,7 +119,7 @@ function OffersAdminContent() {
                 <div className="min-w-0 truncate text-mm-g font-bold text-lg">
                   {offer.special_price 
                     ? fmt(offer.special_price) 
-                    : offer.discount_pct ? `${offer.discount_pct}% OFF` : 'Sin precio'}
+                    : offer.discount_pct ? `${offer.discount_pct}% Descuento` : 'Sin precio'}
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button 

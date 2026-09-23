@@ -69,7 +69,7 @@ export default function MarketplacesPage() {
                       </div>
                       <div className="flex items-center justify-between gap-2 min-w-0 mt-2">
                         <span className="min-w-0 truncate bg-rl text-r px-3 py-1 rounded-full font-bold text-sm">
-                          {offer.discount_pct ? `${offer.discount_pct}% OFF` : `-$${offer.special_price?.toLocaleString('es-CO')}`}
+                          {offer.discount_pct ? `${offer.discount_pct}% Descuento` : `-$${offer.special_price?.toLocaleString('es-CO')}`}
                         </span>
                         <div className="w-8 h-8 shrink-0 rounded-full bg-mm-g/10 flex items-center justify-center text-mm-g">
                             <ChevronRight className="w-4 h-4" />
