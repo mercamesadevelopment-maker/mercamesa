@@ -1,36 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { emailChangeService } from '../services/email-change.service';
+import { useResendCooldown } from '@/app/hooks/use-resend-cooldown';
 
 export function useEmailChange() {
   const { dispatch } = useApp();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  const startCooldown = useCallback((seconds: number) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setCooldownSeconds(seconds);
-    intervalRef.current = setInterval(() => {
-      setCooldownSeconds((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, []);
+  // La cuenta regresiva es la misma en los cuatro flujos que mandan códigos, y
+  // vive en un hook compartido.
+  const { cooldownSeconds, startCooldown } = useResendCooldown();
 
   const requestChange = useCallback(async (newEmail: string, currentPassword: string) => {
     try {

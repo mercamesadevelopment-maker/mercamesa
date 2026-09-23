@@ -1,16 +1,45 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Users, Search, Loader2, KeyRound, LogOut, Store as StoreIcon } from 'lucide-react';
+import { Users, Search, Loader2, KeyRound, LogOut, Store as StoreIcon, UserX } from 'lucide-react';
 import { Button, Badge } from '@/src/components/Shared';
 import { Table } from '@/components/ui/table/components/Table';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useAdminUsers, type AdminUser } from './hooks/use-admin-users';
+import { timeAgo, fechaCorta, fechaCompleta } from '@/lib/dates/relative-time';
 
-type PendingAction = { user: AdminUser; kind: 'reset' | 'revoke' } | null;
+type ActionKind = 'reset' | 'revoke' | 'anonymize';
+type PendingAction = { user: AdminUser; kind: ActionKind } | null;
+
+/**
+ * Una fecha de auditoría. Muestra lo relativo, que es lo que se lee de un
+ * vistazo, y deja el momento exacto en el `title` para cuando haga falta
+ * precisión. Cuando no hay fecha, dice por qué no la hay en vez de un guion.
+ */
+function FechaAuditoria({
+  etiqueta,
+  valor,
+  vacio,
+}: {
+  etiqueta: string;
+  valor: string | null;
+  vacio: string;
+}) {
+  return (
+    <p className="text-mm-txs">
+      <span className="text-mm-txw">{etiqueta}: </span>
+      {valor ? (
+        <span title={fechaCompleta(valor)}>{timeAgo(valor)}</span>
+      ) : (
+        <span className="text-mm-txw italic">{vacio}</span>
+      )}
+    </p>
+  );
+}
 
 export default function AdminUsersPage() {
-  const { users, loading, error, fetchUsers, sendPasswordReset, revokeSessions } = useAdminUsers();
+  const { users, loading, error, fetchUsers, sendPasswordReset, revokeSessions, anonymizeUser } =
+    useAdminUsers();
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -50,6 +79,15 @@ export default function AdminUsersPage() {
       if (pending.kind === 'reset') {
         const message = await sendPasswordReset(pending.user.id);
         setNotice({ title: 'Código enviado', message });
+      } else if (pending.kind === 'anonymize') {
+        await anonymizeUser(pending.user.id);
+        setNotice({
+          title: 'Datos suprimidos',
+          message:
+            'Se borraron sus datos personales y su cuenta de acceso. Sus pedidos siguen ahí, ' +
+            'sin nombre y con la dirección reducida a municipio y departamento.',
+        });
+        await fetchUsers();
       } else {
         const revoked = await revokeSessions(pending.user.id);
         setNotice({
@@ -72,16 +110,96 @@ export default function AdminUsersPage() {
     }
   };
 
+  /**
+   * Qué dice el diálogo según la acción. Extraído del JSX porque con tres
+   * acciones el ternario anidado dejaba de leerse.
+   */
+  const CONFIRMACIONES: Record<ActionKind, {
+    variant: 'danger' | 'warning' | 'info';
+    title: string;
+    confirmText: string;
+    message: (u: AdminUser) => React.ReactNode;
+  }> = {
+    reset: {
+      variant: 'info',
+      title: 'Enviar código de recuperación',
+      confirmText: 'Enviar código',
+      message: (u) => (
+        <>
+          Le enviaremos un código de 6 dígitos a{' '}
+          <span className="font-bold text-mm-g">{u.email}</span> para que él mismo
+          defina su nueva contraseña.
+          {'\n\n'}
+          Tú no verás ni definirás la contraseña. La acción queda registrada.
+        </>
+      ),
+    },
+    revoke: {
+      variant: 'danger',
+      title: 'Cerrar todas sus sesiones',
+      confirmText: 'Sí, cerrar sesiones',
+      message: (u) => (
+        <>
+          Se cerrarán todas las sesiones de{' '}
+          <span className="font-bold text-mm-g">{u.fullName || u.email}</span>{' '}
+          y tendrá que volver a ingresar.
+          {'\n\n'}
+          Por sí solo esto no basta si sospechas suplantación: el acceso ya emitido puede durar
+          hasta una hora, y quien tenga la contraseña puede volver a entrar. Restablece también
+          su contraseña.
+        </>
+      ),
+    },
+    anonymize: {
+      variant: 'danger',
+      title: 'Suprimir sus datos personales',
+      confirmText: 'Sí, suprimir sus datos',
+      message: (u) => (
+        <>
+          Vas a atender una solicitud de supresión de datos de{' '}
+          <span className="font-bold text-mm-g">{u.fullName || u.email}</span>.
+          {'\n\n'}
+          <span className="font-bold">Se borra:</span> su nombre, correo, teléfono, documento,
+          foto, direcciones guardadas, métodos de pago y su cuenta de acceso. En sus pedidos, la
+          dirección queda reducida a municipio y departamento.
+          {'\n\n'}
+          <span className="font-bold">Se conserva:</span> sus pedidos y facturas —hay deber legal
+          de conservarlos ante la DIAN— y la constancia de que aceptó los términos.
+          {'\n\n'}
+          No se puede deshacer, y la persona no podrá volver a entrar con ese correo (sí
+          registrarse de cero). Queda registrado que lo hiciste tú.
+        </>
+      ),
+    },
+  };
+
+  const confirmacion = {
+    variant: pending ? CONFIRMACIONES[pending.kind].variant : 'info' as const,
+    title: pending ? CONFIRMACIONES[pending.kind].title : '',
+    confirmText: pending ? CONFIRMACIONES[pending.kind].confirmText : '',
+    message: pending ? CONFIRMACIONES[pending.kind].message(pending.user) : '',
+  };
+
   const columns = [
     {
       key: 'fullName',
       label: 'Usuario',
-      render: (u: AdminUser) => (
-        <div>
-          <p className="font-bold text-mm-g">{u.fullName || 'Sin nombre'}</p>
-          <p className="text-xs text-mm-txw">{u.email}</p>
-        </div>
-      ),
+      render: (u: AdminUser) =>
+        u.anonymizedAt ? (
+          // Ya no es una persona: es una fila que sostiene pedidos. Se dice así
+          // en vez de mostrar el correo inventado como si fuera real.
+          <div>
+            <p className="font-bold text-mm-txw italic">Usuario eliminado</p>
+            <p className="text-xs text-mm-txw" title={fechaCompleta(u.anonymizedAt)}>
+              Datos suprimidos {timeAgo(u.anonymizedAt).toLowerCase()}
+            </p>
+          </div>
+        ) : (
+          <div>
+            <p className="font-bold text-mm-g">{u.fullName || 'Sin nombre'}</p>
+            <p className="text-xs text-mm-txw">{u.email}</p>
+          </div>
+        ),
     },
     {
       key: 'role',
@@ -106,9 +224,22 @@ export default function AdminUsersPage() {
       key: 'createdAt',
       label: 'Registro',
       render: (u: AdminUser) => (
-        <span className="text-xs text-mm-txs">
-          {u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CO') : '—'}
+        <span className="text-xs text-mm-txs" title={fechaCompleta(u.createdAt)}>
+          {fechaCorta(u.createdAt)}
         </span>
+      ),
+    },
+    {
+      // Las tres fechas de auditoría en una sola columna: por separado la tabla
+      // quedaría con siete y en pantallas normales no cabría.
+      key: 'actividad',
+      label: 'Actividad',
+      render: (u: AdminUser) => (
+        <div className="space-y-0.5 text-xs">
+          <FechaAuditoria etiqueta="Ingreso" valor={u.lastSignInAt} vacio="Nunca ha ingresado" />
+          <FechaAuditoria etiqueta="Editado" valor={u.updatedAt} vacio="Sin cambios" />
+          <FechaAuditoria etiqueta="Correo" valor={u.emailVerifiedAt} vacio="Sin verificar" />
+        </div>
       ),
     },
   ];
@@ -165,26 +296,41 @@ export default function AdminUsersPage() {
           columns={columns}
           getRowKey={(u) => u.id}
           emptyMessage="No se encontraron usuarios."
-          actions={(u: AdminUser) => (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPending({ user: u, kind: 'reset' })}
-              >
-                <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                Restablecer clave
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPending({ user: u, kind: 'revoke' })}
-              >
-                <LogOut className="mr-1.5 h-3.5 w-3.5" />
-                Cerrar sesiones
-              </Button>
-            </div>
-          )}
+          actions={(u: AdminUser) =>
+            // Sobre una fila ya anonimizada no hay nada que hacer: no tiene
+            // cuenta a la que mandarle nada ni sesiones que cerrar.
+            u.anonymizedAt ? (
+              <span className="text-xs text-mm-txw italic">Sin acciones</span>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPending({ user: u, kind: 'reset' })}
+                >
+                  <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                  Restablecer clave
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPending({ user: u, kind: 'revoke' })}
+                >
+                  <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                  Cerrar sesiones
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-r/40 text-r hover:bg-rl"
+                  onClick={() => setPending({ user: u, kind: 'anonymize' })}
+                >
+                  <UserX className="mr-1.5 h-3.5 w-3.5" />
+                  Suprimir datos
+                </Button>
+              </div>
+            )
+          }
         />
       )}
 
@@ -193,32 +339,10 @@ export default function AdminUsersPage() {
         onClose={() => setPending(null)}
         onConfirm={handleConfirm}
         isLoading={working}
-        variant={pending?.kind === 'revoke' ? 'danger' : 'info'}
-        title={
-          pending?.kind === 'revoke' ? 'Cerrar todas sus sesiones' : 'Enviar código de recuperación'
-        }
-        confirmText={pending?.kind === 'revoke' ? 'Sí, cerrar sesiones' : 'Enviar código'}
-        message={
-          pending?.kind === 'revoke' ? (
-            <>
-              Se cerrarán todas las sesiones de{' '}
-              <span className="font-bold text-mm-g">{pending?.user.fullName || pending?.user.email}</span>{' '}
-              y tendrá que volver a ingresar.
-              {'\n\n'}
-              Por sí solo esto no basta si sospechas suplantación: el acceso ya emitido puede durar
-              hasta una hora, y quien tenga la contraseña puede volver a entrar. Restablece también
-              su contraseña.
-            </>
-          ) : (
-            <>
-              Le enviaremos un código de 6 dígitos a{' '}
-              <span className="font-bold text-mm-g">{pending?.user.email}</span> para que él mismo
-              defina su nueva contraseña.
-              {'\n\n'}
-              Tú no verás ni definirás la contraseña. La acción queda registrada.
-            </>
-          )
-        }
+        variant={confirmacion.variant}
+        title={confirmacion.title}
+        confirmText={confirmacion.confirmText}
+        message={confirmacion.message}
       />
 
       <ConfirmModal
