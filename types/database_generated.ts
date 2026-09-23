@@ -113,6 +113,27 @@ export type Database = {
           },
         ]
       }
+      banks: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       buyer_payment_methods: {
         Row: {
           brand: string | null
@@ -1425,6 +1446,222 @@ export type Database = {
           },
         ]
       }
+      payout_items: {
+        Row: {
+          amount: number
+          bank_account_id: string
+          created_at: string
+          id: string
+          payout_id: string
+          store_id: string
+          store_order_id: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id: string
+          created_at?: string
+          id?: string
+          payout_id: string
+          store_id: string
+          store_order_id: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string
+          created_at?: string
+          id?: string
+          payout_id?: string
+          store_id?: string
+          store_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_items_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "store_bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_items_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_items_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_settings_history: {
+        Row: {
+          bbva_account_number: string
+          bbva_office_code: string
+          changed_by: string | null
+          created_at: string
+          emitter_key: string
+          file_consecutive_offset: number
+          hold_days: number
+          id: string
+          notes: string | null
+          orderer_address: string
+          orderer_city: string
+          orderer_document_number: string
+          orderer_document_type: string
+          orderer_dv: string
+          orderer_name: string
+          orderer_suffix: string
+          payment_concept: string
+        }
+        Insert: {
+          bbva_account_number: string
+          bbva_office_code: string
+          changed_by?: string | null
+          created_at?: string
+          emitter_key: string
+          file_consecutive_offset?: number
+          hold_days?: number
+          id?: string
+          notes?: string | null
+          orderer_address: string
+          orderer_city: string
+          orderer_document_number: string
+          orderer_document_type?: string
+          orderer_dv?: string
+          orderer_name: string
+          orderer_suffix?: string
+          payment_concept?: string
+        }
+        Update: {
+          bbva_account_number?: string
+          bbva_office_code?: string
+          changed_by?: string | null
+          created_at?: string
+          emitter_key?: string
+          file_consecutive_offset?: number
+          hold_days?: number
+          id?: string
+          notes?: string | null
+          orderer_address?: string
+          orderer_city?: string
+          orderer_document_number?: string
+          orderer_document_type?: string
+          orderer_dv?: string
+          orderer_name?: string
+          orderer_suffix?: string
+          payment_concept?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_settings_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payouts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          consecutive: number
+          created_at: string
+          file_name: string | null
+          file_path: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          items_count: number
+          notes: string | null
+          scheduled_for: string
+          settings_id: string | null
+          status: string
+          total_amount: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          consecutive?: never
+          created_at?: string
+          file_name?: string | null
+          file_path?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          items_count?: number
+          notes?: string | null
+          scheduled_for: string
+          settings_id?: string | null
+          status?: string
+          total_amount?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          consecutive?: never
+          created_at?: string
+          file_name?: string | null
+          file_path?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          items_count?: number
+          notes?: string | null
+          scheduled_for?: string
+          settings_id?: string | null
+          status?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "payout_settings_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       person_type_identification_types: {
         Row: {
           identification_type_id: string
@@ -1954,6 +2191,101 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "orders_detail_view"
             referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      store_bank_accounts: {
+        Row: {
+          account_kind: string
+          account_number: string
+          bank_code: string
+          bbva_office_code: string | null
+          created_at: string
+          created_by: string | null
+          holder_address: string | null
+          holder_document_dv: string
+          holder_document_number: string
+          holder_document_type: string
+          holder_email: string | null
+          holder_name: string
+          id: string
+          is_current: boolean
+          rejection_reason: string | null
+          status: string
+          store_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          account_kind: string
+          account_number: string
+          bank_code: string
+          bbva_office_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          holder_address?: string | null
+          holder_document_dv?: string
+          holder_document_number: string
+          holder_document_type: string
+          holder_email?: string | null
+          holder_name: string
+          id?: string
+          is_current?: boolean
+          rejection_reason?: string | null
+          status?: string
+          store_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          account_kind?: string
+          account_number?: string
+          bank_code?: string
+          bbva_office_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          holder_address?: string | null
+          holder_document_dv?: string
+          holder_document_number?: string
+          holder_document_type?: string
+          holder_email?: string | null
+          holder_name?: string
+          id?: string
+          is_current?: boolean
+          rejection_reason?: string | null
+          status?: string
+          store_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_bank_accounts_bank_code_fkey"
+            columns: ["bank_code"]
+            isOneToOne: false
+            referencedRelation: "banks"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "store_bank_accounts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_bank_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_bank_accounts_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2628,6 +2960,64 @@ export type Database = {
             columns: ["store_group_id"]
             isOneToOne: false
             referencedRelation: "store_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_deactivations: {
+        Row: {
+          actor_id: string
+          created_at: string
+          id: string
+          lifted_at: string | null
+          lifted_by: string | null
+          period: string
+          reason: string
+          until: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          period: string
+          reason: string
+          until?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          period?: string
+          reason?: string
+          until?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_deactivations_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_deactivations_lifted_by_fkey"
+            columns: ["lifted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_deactivations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
