@@ -16,6 +16,10 @@ export default function AcceptInvite() {
   const [authenticated, setAuthenticated] = useState(false);
   const [hasInvite, setHasInvite] = useState(false);
   const [storeName, setStoreName] = useState('');
+  // Qué clase de invitación es. A un administrador no se le piden los datos de
+  // facturación de una tienda, porque no va a facturar nada.
+  const [esAdmin, setEsAdmin] = useState(false);
+  const [roleLabel, setRoleLabel] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
   const { personTypes, loading: loadingTypes } = useIdentificationTypes();
@@ -78,6 +82,8 @@ export default function AcceptInvite() {
           if (result.hasInvite) {
             setHasInvite(true);
             setStoreName(result.storeName);
+            setEsAdmin(result.invitationType === 'admin');
+            setRoleLabel(result.roleLabel ?? null);
           }
         } else {
           console.log('API verification response:', result);
@@ -124,12 +130,17 @@ export default function AcceptInvite() {
       return;
     }
 
-    if (!personTypeId || !identificationTypeId || !documentNumber.trim()) {
+    if (!esAdmin && (!personTypeId || !identificationTypeId || !documentNumber.trim())) {
       setError('Selecciona el tipo de persona, el tipo de identificación y escribe el número.');
       return;
     }
 
-    if (requiresBusinessName) {
+    if (esAdmin) {
+      if (!fullName.trim()) {
+        setError('Por favor completa todos los campos.');
+        return;
+      }
+    } else if (requiresBusinessName) {
       if (!businessName.trim() || !contactName.trim()) {
         setError('La razón social y el nombre del contacto son obligatorios para este tipo de persona.');
         return;
@@ -154,16 +165,18 @@ export default function AcceptInvite() {
       const res = await fetch('/api/auth/accept-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: requiresBusinessName ? undefined : fullName.trim(),
-          phone: phone.trim(),
-          password,
-          person_type_id: personTypeId,
-          identification_type_id: identificationTypeId,
-          document_number: documentNumber.trim(),
-          business_name: requiresBusinessName ? businessName.trim() : undefined,
-          contact_name: requiresBusinessName ? contactName.trim() : undefined
-        })
+        body: esAdmin
+          ? JSON.stringify({ fullName: fullName.trim(), phone: phone.trim(), password })
+          : JSON.stringify({
+              fullName: requiresBusinessName ? undefined : fullName.trim(),
+              phone: phone.trim(),
+              password,
+              person_type_id: personTypeId,
+              identification_type_id: identificationTypeId,
+              document_number: documentNumber.trim(),
+              business_name: requiresBusinessName ? businessName.trim() : undefined,
+              contact_name: requiresBusinessName ? contactName.trim() : undefined
+            })
       });
 
       const result = await res.json();
@@ -238,10 +251,23 @@ export default function AcceptInvite() {
               </div>
               <h2 className="text-2xl font-fraunces text-mm-g mb-3">¡Registro Completado! 🎉</h2>
               <p className="text-sm text-mm-txw leading-relaxed mb-8">
-                Tu perfil de vendedor ha sido creado exitosamente y has sido asignado como miembro de la tienda{' '}
-                <span className="font-bold text-mm-g">{storeName}</span>.
+                {esAdmin ? (
+                  <>
+                    Tu cuenta de administrador quedó lista. De ahora en adelante, al ingresar
+                    te pediremos además un código de 6 dígitos que te llegará al correo.
+                  </>
+                ) : (
+                  <>
+                    Tu perfil de vendedor ha sido creado exitosamente y has sido asignado como miembro de la tienda{' '}
+                    <span className="font-bold text-mm-g">{storeName}</span>.
+                  </>
+                )}
               </p>
-              <Button onClick={() => router.push('/seller/onboarding')} size="lg" className="w-full">
+              <Button
+                onClick={() => router.push(esAdmin ? '/admin' : '/seller/onboarding')}
+                size="lg"
+                className="w-full"
+              >
                 Ir a mi panel →
               </Button>
             </motion.div>
@@ -255,7 +281,20 @@ export default function AcceptInvite() {
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-fraunces text-mm-g mb-2">Completar Registro</h2>
                 <p className="text-xs text-mm-txw">
-                  Has sido invitado a formar parte de <span className="font-bold text-mm-g">{storeName}</span>.
+                  {esAdmin ? (
+                    <>
+                      Has sido invitado a administrar MercaMesa
+                      {roleLabel && (
+                        <> como <span className="font-bold text-mm-g">{roleLabel}</span></>
+                      )}
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Has sido invitado a formar parte de{' '}
+                      <span className="font-bold text-mm-g">{storeName}</span>.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -275,7 +314,7 @@ export default function AcceptInvite() {
                   </div>
                 </div>
 
-                {!requiresBusinessName && (
+                {(esAdmin || !requiresBusinessName) && (
                   <div className="relative">
                     <Input
                       label="Nombre Completo"
@@ -296,6 +335,11 @@ export default function AcceptInvite() {
                   required
                 />
 
+                {/* Tipo de persona, identificación y documento son requisitos
+                    de facturación de una tienda. Un administrador no factura,
+                    así que no se le piden. */}
+                {!esAdmin && (
+                  <>
                 <Select
                   label="Tipo de persona"
                   name="person_type_id"
@@ -362,6 +406,8 @@ export default function AcceptInvite() {
                         required
                       />
                     </div>
+                  </>
+                )}
                   </>
                 )}
 

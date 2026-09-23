@@ -32,6 +32,13 @@ export interface PricingSettings {
 export interface OrderPricing {
   /** Lo que reciben los tenderos: el 100% del valor de sus productos. */
   productsSubtotal: number;
+  /**
+   * Lo mismo, pero a precio de lista. Igual a `productsSubtotal` cuando no hay
+   * ofertas; existe solo para poder mostrarle al comprador cuánto se ahorró.
+   */
+  productsListSubtotal: number;
+  /** `productsListSubtotal - productsSubtotal`. Nunca negativo. */
+  discountTotal: number;
   serviceCommission: number;
   messagesAmount: number;
   /** productos + comisión de servicio + mensajes. Base del 15%. */
@@ -50,10 +57,21 @@ function toPesos(value: number): number {
   return Math.round(value);
 }
 
+/**
+ * `productsListSubtotal` se omite cuando no hay ofertas de por medio: vale lo
+ * mismo que el subtotal y obligar a repetirlo en cada llamada solo daría ocasión
+ * de equivocarse.
+ *
+ * Ojo con el orden: el descuento entra por `productsSubtotal`, así que las dos
+ * comisiones y el total se calculan sobre el valor YA rebajado. Es lo correcto
+ * —la plataforma cobra sobre lo que de verdad se vende— y es lo que hace que el
+ * ahorro que ve el comprador sea el que se le descuenta.
+ */
 export function computeOrderPricing(
   productsSubtotal: number,
   deliveryFee: number,
-  settings: PricingSettings
+  settings: PricingSettings,
+  productsListSubtotal: number = productsSubtotal
 ): OrderPricing {
   const serviceCommission = toPesos(productsSubtotal * settings.serviceCommissionRate);
   const messagesAmount = toPesos(settings.messagesPerOrder * settings.messageUnitPrice);
@@ -63,6 +81,8 @@ export function computeOrderPricing(
 
   return {
     productsSubtotal,
+    productsListSubtotal,
+    discountTotal: Math.max(0, productsListSubtotal - productsSubtotal),
     serviceCommission,
     messagesAmount,
     netPurchase,

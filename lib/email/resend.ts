@@ -222,3 +222,32 @@ export function legalDocumentUpdatedEmail(etiqueta: string, version: number, url
     `,
   });
 }
+
+/**
+ * Invitación a administrar la plataforma.
+ *
+ * Va por Resend y no por el correo que manda Supabase con `inviteUserByEmail`
+ * porque ese sale con la plantilla por defecto del proveedor, y sería el único
+ * correo de MercaMesa que no se parece a los demás. El enlace se obtiene aparte
+ * con `generateLink`, que no envía nada por su cuenta.
+ */
+export function adminInvitationEmail(
+  invitadoPor: string,
+  rolEtiqueta: string,
+  url: string,
+  diasParaVencer: number
+) {
+  return plantilla({
+    title: 'Te invitaron a administrar MercaMesa',
+    heading: 'Te invitaron a administrar MercaMesa',
+    body: `
+      <p class="text"><span class="highlight">${invitadoPor}</span> te invitó a MercaMesa con el rol de <span class="highlight">${rolEtiqueta}</span>.</p>
+      <p class="text">Para empezar, abre el enlace y define tu contraseña. La invitación vence en ${diasParaVencer} días.</p>
+      <p class="text">
+        <a href="${url}" style="display:inline-block;background-color:#1A3308;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
+      </p>
+      <p class="text">Si el botón no funciona, copia este enlace en tu navegador:<br><span style="word-break:break-all;">${url}</span></p>
+      <p class="text">Si no esperabas esta invitación, puedes ignorar este correo: sin abrir el enlace no se crea ninguna cuenta.</p>
+    `,
+  });
+}

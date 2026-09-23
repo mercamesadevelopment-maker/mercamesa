@@ -23,6 +23,7 @@ import { fmt } from "@/src/constants";
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
 import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
 import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
+import { DiscountSummary } from "./DiscountSummary";
 import { CARD_TOKENIZATION_ENABLED } from "@/src/features/payment/config";
 import { CartItem } from "@/src/types";
 
@@ -41,6 +42,7 @@ const STEPS: { id: CheckoutStep; label: string }[] = [
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const { updateCartQty, updateCartItemNotes } = useCart();
   const {
+    state,
     isPlacingOrder,
     errorMessage,
     cartByStore,
@@ -297,6 +299,15 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
 
                                 <div className="flex items-center justify-between mt-2">
                                   <div className="flex items-baseline gap-1">
+                                    {/* El precio de lista, cuando la oferta lo
+                                        rebajó. Sin esto el descuento solo se
+                                        nota en el total. */}
+                                    {item.listPrice != null &&
+                                      item.listPrice > getPrice(item) && (
+                                        <p className="text-[10px] font-bold text-mm-txw line-through decoration-r">
+                                          {fmt(item.listPrice)}
+                                        </p>
+                                      )}
                                     <p className="font-bold text-mm-g text-sm">
                                       {fmt(getPrice(item))}
                                     </p>
@@ -407,6 +418,17 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                         />
                         Guardar esta tarjeta para futuros pagos
                       </label>
+                    )}
+
+                    {/* El ahorro, antes del desglose: es la respuesta a "¿me
+                        están haciendo el descuento?", y llega antes que el
+                        total para que el total no se lea como una sorpresa. */}
+                    {quote && (
+                      <DiscountSummary
+                        items={state.cart}
+                        getPrice={getPrice}
+                        discountTotal={quote.discountTotal}
+                      />
                     )}
 
                     {/* Resumen */}
