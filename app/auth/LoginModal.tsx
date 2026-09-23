@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
-import { Button, Input } from '@/src/components/Shared';
+import { Button, Input, StepBar } from '@/src/components/Shared';
 import { ROLE_ROUTES } from '@/src/constants';
 import { useAuthHooks } from '../hooks/useAuth';
 
@@ -25,9 +25,23 @@ export function LoginModal({
 }) {
   const router = useRouter();
 
-  const { login, loading, error } = useAuthHooks();
+  const { login, verifyLoginCode, loading, error, cooldownSeconds } = useAuthHooks();
 
   const [showPass, setShowPass] = useState(false);
+  // Admin y superadmin verifican además con un código al correo. Para el resto
+  // de roles este paso no existe y el modal se ve igual que siempre.
+  const [pasoCodigo, setPasoCodigo] = useState(false);
+  const [correo, setCorreo] = useState('');
+  const [codigo, setCodigo] = useState('');
+  // Se conserva para poder reenviar el código sin hacer escribirlo todo de
+  // nuevo. Vive solo en memoria y mientras el modal esté abierto, igual que
+  // mientras estaba escrito en el campo.
+  const [clave, setClave] = useState('');
+
+  const entrar = (roleKey: string) => {
+    onClose();
+    router.push(ROLE_ROUTES[roleKey as keyof typeof ROLE_ROUTES] || '/marketplaces');
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +54,48 @@ export function LoginModal({
     try {
       const result = await login(email, password);
 
-      onClose();
+      if ('requiresCode' in result && result.requiresCode) {
+        setCorreo(result.email);
+        setClave(password);
+        setCodigo('');
+        setPasoCodigo(true);
+        return;
+      }
 
-      router.push(ROLE_ROUTES[result.roleKey] || '/marketplaces');
+      entrar(result.roleKey);
     } catch (err) {
       // El error ya se maneja en el hook
       console.error(err);
     }
+  };
+
+  const handleVerificar = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const result = await verifyLoginCode(correo, codigo);
+      entrar(result.roleKey);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Reenviar es volver a pedir el ingreso: el servidor invalida el código
+  // anterior y manda uno nuevo. La espera la impone él y la refleja el contador.
+  const handleReenviar = async () => {
+    if (cooldownSeconds > 0 || loading) return;
+    try {
+      await login(correo, clave);
+      setCodigo('');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const volverAlInicio = () => {
+    setPasoCodigo(false);
+    setCodigo('');
+    setClave('');
   };
 
   if (!isOpen) return null;
@@ -99,13 +148,22 @@ export function LoginModal({
           {/* Heading */}
           <div className="mb-8 text-center">
             <h2 className="mb-2 font-fraunces text-3xl text-mm-g">
-              Bienvenido de vuelta
+              {pasoCodigo ? 'Verifica que eres tú' : 'Bienvenido de vuelta'}
             </h2>
 
             <p className="text-mm-txs">
-              Ingresa tus credenciales para continuar.
+              {pasoCodigo ? (
+                <>
+                  Enviamos un código de 6 dígitos a{' '}
+                  <span className="font-medium text-mm-g">{correo}</span>.
+                </>
+              ) : (
+                'Ingresa tus credenciales para continuar.'
+              )}
             </p>
           </div>
+
+          {pasoCodigo && <StepBar step={1} total={2} />}
 
           {/* Error */}
           {error && (
@@ -114,7 +172,54 @@ export function LoginModal({
             </div>
           )}
 
-          {/* Form */}
+          {/* Paso 2: el código, solo para admin y superadmin */}
+          {pasoCodigo ? (
+            <form onSubmit={handleVerificar} className="space-y-5">
+              <Input
+                label="Código de 6 dígitos"
+                name="code"
+                inputMode="numeric"
+                maxLength={6}
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                className="text-center text-2xl tracking-[0.5em]"
+                autoFocus
+                required
+              />
+
+              <Button
+                type="submit"
+                className="w-full py-4 text-lg"
+                loading={loading}
+                disabled={codigo.length !== 6}
+              >
+                Entrar
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={volverAlInicio}
+                  className="font-medium text-mm-txs hover:underline"
+                >
+                  Volver
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleReenviar}
+                  disabled={cooldownSeconds > 0 || loading}
+                  className="font-medium text-mm-g hover:underline disabled:cursor-not-allowed disabled:text-mm-txw disabled:no-underline"
+                >
+                  {cooldownSeconds > 0 ? `Reenviar en ${cooldownSeconds}s` : 'Reenviar código'}
+                </button>
+              </div>
+            </form>
+          ) : (
+
+          /* Form */
           <form onSubmit={handleLogin} className="space-y-5">
             <Input
               label="Correo electrónico"
@@ -168,8 +273,10 @@ export function LoginModal({
               <ArrowRight className="h-5 w-5" />
             </Button>
           </form>
+          )}
 
-          {onRegisterClick && (
+          {/* El registro no tiene sentido mientras se verifica un ingreso. */}
+          {!pasoCodigo && onRegisterClick && (
             <p className="mt-6 text-center text-sm text-mm-txs">
               ¿No tienes cuenta?{' '}
               <button
