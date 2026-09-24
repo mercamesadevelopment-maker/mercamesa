@@ -11,6 +11,7 @@ import {
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
 import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
+import { StorePickupFields, type StorePickupValues } from '@/src/features/stores/components/StorePickupFields';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { validateStoreFields, STORE_DESCRIPTION_MAX_LENGTH } from '@/lib/stores/validate-store';
 
@@ -40,6 +41,11 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   // tipo de venta son dos banderas.
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [salesType, setSalesType] = useState({ is_wholesale: false, is_retail: true });
+  // Aparte porque las coordenadas son números en la base pero texto en el
+  // formulario, igual que en el modal de plazas.
+  const [pickup, setPickup] = useState<StorePickupValues>({
+    address: '', city: '', department: '', latitude: '', longitude: '',
+  });
   const [businessHours, setBusinessHours] = useState<BusinessHours>(createDefaultBusinessHours());
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -85,6 +91,13 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
           ? initialHours
           : createDefaultBusinessHours()
       );
+      setPickup({
+        address: (initialData as any).address || '',
+        city: (initialData as any).city || '',
+        department: (initialData as any).department || '',
+        latitude: (initialData as any).latitude?.toString() || '',
+        longitude: (initialData as any).longitude?.toString() || '',
+      });
       setLogoPreview(initialData.logoSignedUrl || null);
     } else {
       setFormData({
@@ -96,6 +109,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setCategoryIds([]);
       setSalesType({ is_wholesale: false, is_retail: true });
       setBusinessHours(createDefaultBusinessHours());
+      setPickup({ address: '', city: '', department: '', latitude: '', longitude: '' });
       setLogoPreview(null);
     }
     setLogoFile(null);
@@ -141,6 +155,13 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       return;
     }
 
+    // La API lo rechaza igual, pero avisar acá ahorra el viaje y deja el aviso
+    // al lado del mapa, que es donde se arregla.
+    if (pickup.address.trim() && !(pickup.latitude && pickup.longitude)) {
+      setFormError('Marca el punto en el mapa para poder guardar la dirección de recogida.');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: Record<string, unknown> = {
@@ -148,6 +169,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         business_hours: businessHours,
         category_ids: categoryIds,
         ...salesType,
+        ...pickup,
       };
 
       if (logoFile) {
@@ -243,6 +265,15 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
 
         {/* Horario de atención */}
         <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
+
+        {/* Dónde recoge el mensajero. Vacío = se recoge en la plaza. */}
+        <StorePickupFields
+          values={pickup}
+          onChange={setPickup}
+          marketplaceName={
+            marketplaces.find((m) => m.id === formData.marketplace_id)?.name ?? null
+          }
+        />
 
         {/* Contacto, teléfono y WhatsApp: el mismo bloque que edita el tendero
             desde su panel, compartido para que no se separen con el tiempo. */}

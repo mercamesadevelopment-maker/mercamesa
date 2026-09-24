@@ -7,12 +7,17 @@ import { canManageStore } from '@/lib/auth/can-manage-store';
 import { toE164 } from '@/lib/phone/phone';
 import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
 import { validateStoreFields } from '@/lib/stores/validate-store';
+import { parsePickupAddress } from '@/lib/stores/pickup-address';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
 /**
- * Campos que el tendero puede editar de su propia tienda: los descriptivos.
- * `local_address` es la ubicación dentro de la plaza, no una dirección postal.
+ * Campos que el tendero puede editar de su propia tienda.
+ *
+ * `local_address` es la ubicación DENTRO de la plaza ("Local 234, pasillo 3"),
+ * no una dirección postal. La dirección de recogida —`address`, `city`,
+ * `department` y sus coordenadas— se maneja aparte, en `parsePickupAddress`,
+ * porque las coordenadas son números y este bucle guarda todo con `String(val)`.
  */
 const MEMBER_EDITABLE_FIELDS = [
   'name',
@@ -172,6 +177,15 @@ export async function PUT(
     if (fieldsError) {
       return NextResponse.json({ error: fieldsError }, { status: 400 });
     }
+
+    // La dirección de recogida la puede editar tanto el admin como el tendero:
+    // sin ella una tienda independiente no puede despachar, y hacerla depender
+    // del admin la dejaría sin vender mientras tanto.
+    const recogida = parsePickupAddress(body);
+    if (recogida.error) {
+      return NextResponse.json({ error: recogida.error }, { status: 400 });
+    }
+    Object.assign(updateData, recogida.fields);
 
     if (isAdmin) {
       ADMIN_ONLY_FIELDS.forEach((field) => {

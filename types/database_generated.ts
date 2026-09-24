@@ -2862,20 +2862,25 @@ export type Database = {
       }
       stores: {
         Row: {
+          address: string | null
           business_hours: Json | null
           category_id: string | null
           contact_email: string | null
           contact_name: string | null
           cover_image_url: string | null
+          city: string | null
           created_at: string
+          department: string | null
           description: string | null
           id: string
           is_active: boolean
           is_retail: boolean
           is_verified: boolean
           is_wholesale: boolean
+          latitude: number | null
           local_address: string | null
           logo_url: string | null
+          longitude: number | null
           marketplace_id: string
           name: string
           phone: string | null
@@ -2886,20 +2891,25 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          address?: string | null
           business_hours?: Json | null
           category_id?: string | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
+          city?: string | null
           created_at?: string
+          department?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           is_retail?: boolean
           is_verified?: boolean
           is_wholesale?: boolean
+          latitude?: number | null
           local_address?: string | null
           logo_url?: string | null
+          longitude?: number | null
           marketplace_id: string
           name: string
           phone?: string | null
@@ -2910,20 +2920,25 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          address?: string | null
           business_hours?: Json | null
           category_id?: string | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
+          city?: string | null
           created_at?: string
+          department?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           is_retail?: boolean
           is_verified?: boolean
           is_wholesale?: boolean
+          latitude?: number | null
           local_address?: string | null
           logo_url?: string | null
+          longitude?: number | null
           marketplace_id?: string
           name?: string
           phone?: string | null

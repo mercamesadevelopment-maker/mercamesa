@@ -27,8 +27,13 @@ export interface BookingContext {
   store: {
     name: string;
     phone: string | null;
+    /** "Local 234, pasillo 3": referencia para encontrar el local en la plaza. */
+    localAddress: string | null;
   };
-  /** Punto de recogida: la plaza donde está el local */
+  /**
+   * Punto de recogida: la dirección propia de la tienda, o la de su plaza.
+   * Lo decide `resolverOrigen`.
+   */
   origin: {
     address: string;
     latitude: number | null;
@@ -51,11 +56,77 @@ export interface BookingContext {
   };
 }
 
+/*
+ * Los dos `select` de abajo repiten las columnas de `stores` en vez de compartir
+ * una constante: supabase-js analiza la consulta en tiempo de COMPILACIÓN y con
+ * un trozo interpolado devuelve `ParserError`, perdiendo los tipos de todo el
+ * resultado. Si se agrega una columna al origen, hay que tocarlos los dos.
+ */
+
+interface FilaTienda {
+  name: string;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  city?: string | null;
+}
+
+interface FilaPlaza {
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  city?: string | null;
+}
+
+/**
+ * Decide dónde recoge el mensajero: la tienda o su plaza.
+ *
+ * Antes era siempre la plaza, porque `stores` no guardaba ubicación y el local
+ * vivía dentro de ella. Dejó de ser cierto: MercaMesa puede asociarse con una
+ * plaza entera o con una sola tienda, y en el segundo caso no hay plaza de la
+ * que sacar la dirección.
+ *
+ * La elección es por FUENTE COMPLETA, nunca campo por campo. Mezclar la
+ * dirección de la tienda con las coordenadas de la plaza mandaría al mensajero a
+ * la plaza a recoger algo que está en otro lado, y sin fallar: Pibox cotizaría
+ * tan contento contra un punto equivocado.
+ *
+ * Vive acá y no en cada cargador porque son dos —cotización y despacho— y
+ * arreglar uno solo dejaba al tendero sin poder despachar lo que el comprador
+ * sí pudo pagar.
+ */
+export function resolverOrigen(
+  tienda: FilaTienda,
+  plaza: FilaPlaza | null | undefined
+): BookingContext['origin'] {
+  if (tienda.address) {
+    return {
+      address: tienda.address,
+      latitude: tienda.latitude ?? null,
+      longitude: tienda.longitude ?? null,
+      city: tienda.city ?? null,
+    };
+  }
+
+  if (plaza?.address) {
+    return {
+      address: plaza.address,
+      latitude: plaza.latitude ?? null,
+      longitude: plaza.longitude ?? null,
+      city: plaza.city ?? null,
+    };
+  }
+
+  // Nombra las dos salidas: hasta ahora decía solo "la plaza no tiene
+  // dirección" y mandaba a corregir donde quizá no hacía falta. El tendero ve
+  // este texto tal cual cuando marca "Listo Recogida".
+  throw new PiboxDataError(
+    `No hay dónde recoger los pedidos de "${tienda.name}": ni la tienda tiene dirección propia ni su plaza tiene dirección registrada. Cargue una de las dos para poder despachar.`
+  );
+}
+
 /**
  * Carga de la base todo lo que Pibox necesita para un store_order.
- *
- * El origen es la plaza (`marketplaces`) y no la tienda, porque `stores` no
- * guarda dirección ni coordenadas: el local vive físicamente dentro de la plaza.
  */
 export async function loadBookingContext(
   supabase: SupabaseClient<any>,
@@ -69,7 +140,7 @@ export async function loadBookingContext(
       code,
       subtotal,
       notes,
-      stores ( name, phone, marketplaces ( address, latitude, longitude, city ) ),
+      stores ( name, phone, local_address, address, latitude, longitude, city, marketplaces ( address, latitude, longitude, city ) ),
       orders (
         total,
         payment_status,
@@ -93,11 +164,7 @@ export async function loadBookingContext(
   const buyer = order?.profiles;
 
   if (!store) throw new PiboxDataError('El pedido no tiene tienda asociada');
-  if (!marketplace?.address) {
-    throw new PiboxDataError(
-      `La plaza de "${store.name}" no tiene dirección registrada; sin ella el mensajero no sabe dónde recoger.`
-    );
-  }
+  const origin = resolverOrigen(store, marketplace);
   if (!order) throw new PiboxDataError('El pedido de tienda no tiene orden asociada');
   if (!address?.address_line) {
     throw new PiboxDataError('La orden no tiene dirección de entrega registrada');
@@ -110,13 +177,12 @@ export async function loadBookingContext(
     orderTotal: Number(order.total || 0),
     paymentStatus: order.payment_status,
     notes: row.notes ?? null,
-    store: { name: store.name, phone: store.phone ?? null },
-    origin: {
-      address: marketplace.address,
-      latitude: marketplace.latitude ?? null,
-      longitude: marketplace.longitude ?? null,
-      city: marketplace.city ?? null,
+    store: {
+      name: store.name,
+      phone: store.phone ?? null,
+      localAddress: store.local_address ?? null,
     },
+    origin,
     destination: {
       addressLine: address.address_line,
       neighborhood: address.neighborhood ?? null,
@@ -151,7 +217,7 @@ export async function loadQuoteContext(
     await Promise.all([
       supabase
         .from('stores')
-        .select('name, phone, marketplaces ( address, latitude, longitude, city )')
+        .select('name, phone, local_address, address, latitude, longitude, city, marketplaces ( address, latitude, longitude, city )')
         .eq('id', input.storeId)
         .maybeSingle(),
       supabase
@@ -173,12 +239,7 @@ export async function loadQuoteContext(
     throw new PiboxDataError('La dirección de entrega no pertenece a este usuario');
   }
 
-  const marketplace = (store as any).marketplaces;
-  if (!marketplace?.address) {
-    throw new PiboxDataError(
-      `La plaza de "${(store as any).name}" no tiene dirección registrada; sin ella no se puede cotizar el domicilio.`
-    );
-  }
+  const origin = resolverOrigen(store as any, (store as any).marketplaces);
 
   const { data: buyer } = await supabase
     .from('profiles')
@@ -195,13 +256,12 @@ export async function loadQuoteContext(
     orderTotal: input.subtotal,
     paymentStatus: 'pending',
     notes: null,
-    store: { name: (store as any).name, phone: (store as any).phone ?? null },
-    origin: {
-      address: marketplace.address,
-      latitude: marketplace.latitude ?? null,
-      longitude: marketplace.longitude ?? null,
-      city: marketplace.city ?? null,
+    store: {
+      name: (store as any).name,
+      phone: (store as any).phone ?? null,
+      localAddress: (store as any).local_address ?? null,
     },
+    origin,
     destination: {
       addressLine: address.address_line,
       neighborhood: address.neighborhood ?? null,
@@ -297,8 +357,12 @@ export function buildBookingPayload(
   return {
     booking: {
       address: ctx.origin.address,
-      // Le indica al conductor qué local buscar dentro de la plaza
-      secondary_address: ctx.store.name,
+      // Le indica al conductor qué local buscar. Cuando la tienda está dentro de
+      // una plaza, `local_address` ("Local 234, pasillo 3") es justo el dato que
+      // le falta para encontrarla: la columna existía y no llegaba a ningún lado.
+      secondary_address: [ctx.store.name, ctx.store.localAddress]
+        .filter(Boolean)
+        .join(' — '),
       ...(ctx.origin.latitude !== null && ctx.origin.longitude !== null
         ? { lat: Number(ctx.origin.latitude), lon: Number(ctx.origin.longitude) }
         : {}),
