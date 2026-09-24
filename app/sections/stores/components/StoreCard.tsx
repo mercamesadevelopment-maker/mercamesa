@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Store as StoreIcon, Star, Heart, Share2, Check } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { getStoreShareUrl } from '@/src/features/products/utils/share-link';
-import { useCopyLink } from '@/src/features/products/hooks/use-copy-link';
+import { useShareLink } from '@/src/features/products/hooks/use-share-link';
 import type { PublicStore } from '../hooks/usePublicStores';
 
 interface StoreCardProps {
@@ -18,11 +18,11 @@ interface StoreCardProps {
 
 export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: StoreCardProps) {
   const router = useRouter();
-  const { copied, copy } = useCopyLink();
+  const { copied, share } = useShareLink();
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    copy(getStoreShareUrl(store.slug));
+    share(getStoreShareUrl(store.slug), store.name);
   };
 
   return (
@@ -37,8 +37,8 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
       <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-2">
         <button
           onClick={handleShare}
-          aria-label="Copiar link de la tienda"
-          title="Copiar link de la tienda"
+          aria-label="Compartir esta tienda"
+          title="Compartir esta tienda"
           className="p-2.5 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all"
         >
           {copied ? <Check className="w-4.5 h-4.5 text-mm-g" /> : <Share2 className="w-4.5 h-4.5 text-mm-txw" />}
@@ -64,8 +64,14 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
       </div>
 
       {/* Se reserva espacio a la derecha para que estos botones no tapen el
-          nombre: uno o dos íconos según haya sesión. */}
-      <div className={cn('flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4', isLoggedIn ? 'pr-20' : 'pr-10')}>
+          nombre. La cuenta, en el caso más apretado (móvil, con sesión): cada
+          botón mide 38px (`p-2.5` + icono de 18px), más `gap-2` son 84px, más
+          los 12px de `right-3` = 96px. Con `pr-20` (80px) dentro de `p-4`
+          (16px) daba exactamente 96: cero holgura, y como el botón es
+          `bg-white/90` el badge dorado se transparentaba por debajo y se veía
+          superpuesto. Si algún día se agrega un tercer botón, este número sube
+          con él. */}
+      <div className={cn('flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4', isLoggedIn ? 'pr-24' : 'pr-12')}>
         <div className="w-14 h-14 sm:w-16 sm:h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform">
           {store.logoSignedUrl ? (
             <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover" />

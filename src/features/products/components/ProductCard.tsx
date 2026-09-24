@@ -9,7 +9,7 @@ import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/src/features/products/utils/share-link';
-import { useCopyLink } from '@/src/features/products/hooks/use-copy-link';
+import { useShareLink } from '@/src/features/products/hooks/use-share-link';
 import type { StoreProduct } from '@/app/sections/products/hooks/usePublicProducts';
 
 interface ProductCardProps {
@@ -23,7 +23,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   const { cart, addToCart, updateCartQty } = useCart();
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
-  const { copied, copy } = useCopyLink();
+  const { copied, share } = useShareLink();
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
     e.stopPropagation();
     const storeSlug = product.stores?.slug;
     if (!storeSlug) return;
-    copy(getProductShareUrl(storeSlug, product.id));
+    share(getProductShareUrl(storeSlug, product.id), product.catalog_products?.name);
   };
 
   // La cantidad se lee del carrito, no de un estado local: así el contador de la
@@ -91,8 +91,8 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
         {product.stores?.slug && (
           <button
             onClick={handleShare}
-            aria-label="Copiar link del producto"
-            title="Copiar link del producto"
+            aria-label="Compartir este producto"
+            title="Compartir este producto"
             className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-mm-g transition-colors"
           >
             {copied ? <Check className="w-4 h-4 text-mm-g" /> : <Share2 className="w-3.5 h-3.5" />}
