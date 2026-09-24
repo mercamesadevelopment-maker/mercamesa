@@ -14,7 +14,7 @@ export async function GET() {
 
     const denied = await requirePermission(
       supabase,
-      'system-settings',
+      'master-catalog',
       'create',
       'No tienes permisos para crear productos del catálogo'
     );

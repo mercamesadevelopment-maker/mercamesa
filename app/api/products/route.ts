@@ -37,27 +37,96 @@ export async function GET(request: Request) {
     }
   }
 
-  // Paginado: PostgREST corta en 1.000 filas sin avisar, y la carga masiva del
-  // catálogo existe justamente para pasar ese número. Sin esto, el listado del
-  // admin empezaría a ocultar productos en silencio.
-  let data: any[];
-  try {
-    data = await fetchAllRows<any>((from, to) => {
-      const query = supabase
-        .from('catalog_products')
-        .select(`
-          *,
+  /**
+   * Paginación OPCIONAL, y por eso no cambia nada si no se pide.
+   *
+   * El listado del admin traía las 3.588 filas de una vez —2,78 MB— y filtraba
+   * en el navegador. Con `page` pasa a pedir de a una página, y el filtro, la
+   * búsqueda y el orden suben con ella: paginar sin subirlos haría que buscar
+   * solo buscara dentro de la página actual.
+   *
+   * Sin `page` la respuesta es la de siempre, porque hay tres pantallas más que
+   * dependen del catálogo completo: los dos modales de /admin/catalog y el
+   * listado del tendero.
+   */
+  const params = new URL(request.url).searchParams;
+  const page = Number(params.get('page')) || 0;
+  const paginado = page > 0;
+
+  const construirConsulta = (from: number, to: number) => {
+    let query = supabase
+      .from('catalog_products')
+      .select(
+        // Las columnas van una a una en vez de `*` solo para dejar fuera
+        // `search_text`, que es un derivado interno para buscar sin tildes y no
+        // le sirve a nadie en el cliente. El resto es exactamente lo que `*`
+        // devolvía antes.
+        `
+          id, category_id, default_unit_id, name, slug, description, image_url, is_ancestral_food, is_medicinal_plant, is_non_food, is_active, created_by, created_at, updated_at, dane_unit_code, dane_unit_name, siigo_id, owner_group_id, siigo_synced_at,
           categories ( name ),
           measurement_units ( abbreviation )
-        `)
-        .order('id')
-        .range(from, to);
+        `,
+        // El total sirve para las flechas del listado: es el número de filas que
+        // pasan el filtro, no las de esta página.
+        paginado ? { count: 'exact' } : undefined
+      )
+      .range(from, to);
 
-      return storeId ? applyCatalogVisibility(query, storeGroupId) : query;
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Error consultando el catálogo';
-    return NextResponse.json({ error: message }, { status: 400 });
+    if (storeId) query = applyCatalogVisibility(query, storeGroupId) as typeof query;
+
+    if (paginado) {
+      // El término llega ya en minúscula y sin tildes desde `normalizeText`;
+      // `search_text` guarda el nombre y la descripción igual.
+      const search = (params.get('search') || '').trim();
+      if (search) query = query.ilike('search_text', `%${search}%`);
+
+      const categoryIds = (params.get('category_ids') || '').split(',').filter(Boolean);
+      if (categoryIds.length > 0) query = query.in('category_id', categoryIds);
+
+      const group = params.get('group');
+      if (group === '__public__') query = query.is('owner_group_id', null);
+      else if (group) query = query.eq('owner_group_id', group);
+
+      // Lista cerrada: un `sort` que venga de fuera no puede nombrar cualquier
+      // columna. `category` y `default_unit` no están porque viven en tablas
+      // embebidas y ordenar por ellas nunca funcionó en esta pantalla.
+      const ORDENABLES = ['name', 'is_active', 'owner_group_id'] as const;
+      const sort = params.get('sort') as (typeof ORDENABLES)[number] | null;
+      if (sort && ORDENABLES.includes(sort)) {
+        query = query.order(sort, { ascending: params.get('dir') !== 'desc' });
+      }
+    }
+
+    // Siempre al final: desempata para que la paginación sea estable. Sin un
+    // orden total, dos filas con el mismo nombre pueden salir en las dos páginas
+    // o en ninguna. Va DESPUÉS del orden pedido —si fuera antes, mandaría `id` y
+    // el orden elegido no se notaría—.
+    return query.order('id');
+  };
+
+  let data: any[];
+  let count: number | null = null;
+
+  if (paginado) {
+    const pageSize = Math.min(Math.max(Number(params.get('pageSize')) || 20, 1), 200);
+    const from = (page - 1) * pageSize;
+    const { data: filas, count: total, error } = await construirConsulta(from, from + pageSize - 1);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    data = filas ?? [];
+    count = total ?? 0;
+  } else {
+    // Sin paginar hay que recorrerlo entero: PostgREST corta en 1.000 filas sin
+    // avisar, y el catálogo ya pasa de 3.500. Sin esto se ocultarían productos
+    // en silencio.
+    try {
+      data = await fetchAllRows<any>((from, to) => construirConsulta(from, to));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error consultando el catálogo';
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
   }
 
   // Generar URLs con transformación de Supabase (cacheable, sin llamadas de red adicionales)
@@ -68,7 +137,10 @@ export async function GET(request: Request) {
     return { ...product, imageSignedUrl };
   });
 
-  return NextResponse.json({ data: productsWithPublicUrls }, { status: 200 });
+  return NextResponse.json(
+    paginado ? { data: productsWithPublicUrls, count } : { data: productsWithPublicUrls },
+    { status: 200 }
+  );
 }
 
 
@@ -80,7 +152,7 @@ export async function POST(request: Request) {
     // autenticado —aunque fuera como comprador— para escribir en el catálogo.
     const denied = await requirePermission(
       supabase,
-      'system-settings',
+      'master-catalog',
       'create',
       'No tienes permisos para crear productos del catálogo'
     );

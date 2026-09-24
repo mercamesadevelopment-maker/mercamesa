@@ -17,7 +17,8 @@ type CatalogProductInsert = Database['public']['Tables']['catalog_products']['In
 
 export const maxDuration = 60;
 
-const MODULE_KEY = 'system-settings';
+// El módulo propio del catálogo maestro, no `system-settings` (Parametrización).
+const MODULE_KEY = 'master-catalog';
 
 function toInsert(row: ValidatedCatalogRow, createdBy: string): CatalogProductInsert {
   return {

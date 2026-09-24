@@ -7,7 +7,6 @@ import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
 import { BulkImportModal } from './components/BulkImportModal';
 import { Table } from '../../../components/ui/table/components/Table';
-import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge, normalizeText } from '@/src/components/Shared';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
@@ -26,7 +25,8 @@ interface StoreGroup {
 const PUBLIC_FILTER = '__public__';
 
 export default function ProductsAdmin() {
-  const { products, loading, error, fetchProducts, deleteProduct, saveProduct } = useProducts();
+  const { products, total, loading, error, fetchProducts, deleteProduct, saveProduct } =
+    useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -34,8 +34,25 @@ export default function ProductsAdmin() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  /**
+   * Paginación, búsqueda, filtros y orden viven ahora en el servidor.
+   *
+   * Antes esta pantalla se traía las 3.588 filas del catálogo —2,78 MB— y
+   * filtraba en memoria, clonando el arreglo entero con cada tecla y con cada
+   * ordenamiento. Ahora pide de a una página: unos 17 kB.
+   */
+  /** Para no volver a mostrar la pantalla de carga completa tras la primera vez. */
+  const yaCargoUnaVez = React.useRef(false);
+
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   // States for search and filtering
   const [searchQuery, setSearchQuery] = useState('');
+  // El término con rebote: sin esto cada tecla sería una consulta a la base.
+  const [searchAplicada, setSearchAplicada] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [categories, setCategories] = useState<Database['public']['Tables']['categories']['Row'][]>([]);
 
@@ -48,9 +65,11 @@ export default function ProductsAdmin() {
   const [isGroupConfirmOpen, setIsGroupConfirmOpen] = useState(false);
   const [groupError, setGroupError] = useState<string | null>(null);
 
+  // Rebote del buscador: 350 ms sin teclear antes de ir al servidor.
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    const t = setTimeout(() => setSearchAplicada(normalizeText(searchQuery)), 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetch('/api/admin/store-groups')
@@ -106,34 +125,51 @@ export default function ProductsAdmin() {
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [categories]);
 
-  const filteredProducts = React.useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        normalizeText(product.name).includes(normalizeText(searchQuery)) ||
-        normalizeText(product.description || '').includes(normalizeText(searchQuery));
-      
-      const matchesCategory =
-        !selectedCategory ||
-        (product.category_id && selectedCategoryIds.includes(product.category_id));
+  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
 
-      const matchesGroup =
-        !selectedGroupFilter ||
-        (selectedGroupFilter === PUBLIC_FILTER
-          ? !product.owner_group_id
-          : product.owner_group_id === selectedGroupFilter);
-
-      return matchesSearch && matchesCategory && matchesGroup;
-    });
-  }, [products, searchQuery, selectedCategory, selectedCategoryIds, selectedGroupFilter]);
-
-  const {
-    page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
-  } = useTable({ initialData: filteredProducts });
-
-  // Reset page to 1 when filters change
+  // Vuelve a la primera página cuando cambia lo que se está filtrando: quedarse
+  // en la página 7 de un resultado que ahora tiene dos es quedarse en blanco.
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, selectedGroupFilter, setPage]);
+  }, [searchAplicada, selectedCategory, selectedGroupFilter, rowsPerPage]);
+
+  /**
+   * La única consulta al servidor. Se vuelve a lanzar cuando cambia cualquier
+   * cosa que la define, y `fetchProducts` descarta las respuestas que lleguen
+   * fuera de orden.
+   */
+  const recargar = React.useCallback(() => {
+    fetchProducts({
+      page,
+      pageSize: rowsPerPage,
+      search: searchAplicada,
+      categoryIds: selectedCategoryIds,
+      group: selectedGroupFilter,
+      sort: sortKey,
+      dir: sortOrder,
+    });
+  }, [
+    fetchProducts, page, rowsPerPage, searchAplicada,
+    selectedCategoryIds, selectedGroupFilter, sortKey, sortOrder,
+  ]);
+
+  useEffect(() => {
+    recargar();
+  }, [recargar]);
+
+  useEffect(() => {
+    if (!loading) yaCargoUnaVez.current = true;
+  }, [loading]);
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortOrder('asc');
+    }
+    setPage(1);
+  };
 
   const bulkGroupName = bulkGroupId ? groupNameById.get(bulkGroupId) : null;
 
@@ -162,7 +198,7 @@ export default function ProductsAdmin() {
 
       setSelectedIds(new Set());
       setIsGroupConfirmOpen(false);
-      await fetchProducts();
+      recargar();
     } catch (err: unknown) {
       setIsGroupConfirmOpen(false);
       setGroupError(err instanceof Error ? err.message : 'Error al aplicar el grupo');
@@ -242,6 +278,7 @@ export default function ProductsAdmin() {
     setIsDeleting(true);
     try {
       await deleteProduct(deleteTarget.id);
+      recargar();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error eliminando el producto';
       setDeleteError(msg);
@@ -251,8 +288,20 @@ export default function ProductsAdmin() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-mm-txs">Cargando catálogo...</div>;
-  if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
+  /**
+   * La pantalla completa de carga es solo para la PRIMERA vez.
+   *
+   * Ahora cada tecla del buscador lanza una consulta; si `loading` siguiera
+   * reemplazando toda la página, el campo de búsqueda desaparecería y perdería
+   * el foco a media palabra. Después de la primera carga, el estado de espera se
+   * muestra sin desmontar nada.
+   */
+  if (loading && !yaCargoUnaVez.current) {
+    return <div className="p-8 text-center text-mm-txs">Cargando catálogo...</div>;
+  }
+  if (error && products.length === 0) {
+    return <div className="p-8 text-center text-r">Error: {error}</div>;
+  }
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
@@ -337,8 +386,15 @@ export default function ProductsAdmin() {
         </div>
       )}
 
+      {/* Con datos ya en pantalla, el error y la espera se muestran sin desmontar
+          la tabla ni el buscador. */}
+      {error && products.length > 0 && (
+        <div className="rounded-2xl bg-rl px-4 py-3 text-sm font-medium text-r">{error}</div>
+      )}
+
+      <div className={loading ? 'pointer-events-none opacity-60 transition-opacity' : 'transition-opacity'}>
       <Table
-        data={paginatedData}
+        data={products}
         columns={columns}
         selectedKeys={selectedIds}
         onSelectionChange={setSelectedIds}
@@ -368,12 +424,16 @@ export default function ProductsAdmin() {
           </div>
         )}
       />
+      </div>
 
       {isModalOpen && (
         <ProductModal
           isOpen={isModalOpen}
           onClose={() => { setIsModalOpen(false); setEditingProduct(null); }}
-          onSave={saveProduct}
+          onSave={async (id, data) => {
+            await saveProduct(id, data);
+            recargar();
+          }}
           initialData={editingProduct}
         />
       )}
@@ -381,7 +441,7 @@ export default function ProductsAdmin() {
       <BulkImportModal
         isOpen={isBulkImportOpen}
         onClose={() => setIsBulkImportOpen(false)}
-        onImported={fetchProducts}
+        onImported={recargar}
       />
 
       <ConfirmModal

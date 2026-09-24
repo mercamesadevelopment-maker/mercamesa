@@ -279,6 +279,7 @@ export type Database = {
           is_non_food: boolean
           name: string
           owner_group_id: string | null
+          search_text: string | null
           siigo_id: string
           siigo_synced_at: string | null
           slug: string
@@ -300,6 +301,7 @@ export type Database = {
           is_non_food?: boolean
           name: string
           owner_group_id?: string | null
+          search_text?: never
           siigo_id: string
           siigo_synced_at?: string | null
           slug: string
@@ -321,6 +323,7 @@ export type Database = {
           is_non_food?: boolean
           name?: string
           owner_group_id?: string | null
+          search_text?: never
           siigo_id?: string
           siigo_synced_at?: string | null
           slug?: string
