@@ -3,6 +3,12 @@ export interface StoreProfile {
   name: string;
   description: string | null;
   local_address: string | null;
+  /** Dirección de recogida propia. Vacía: se recoge en la plaza. */
+  address: string | null;
+  city: string | null;
+  department: string | null;
+  latitude: number | null;
+  longitude: number | null;
   contact_name: string | null;
   contact_email: string | null;
   phone: string | null;

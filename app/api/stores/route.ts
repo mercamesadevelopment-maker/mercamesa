@@ -6,6 +6,7 @@ import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../
 import { toE164 } from '@/lib/phone/phone';
 import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
 import { validateStoreFields } from '@/lib/stores/validate-store';
+import { parsePickupAddress } from '@/lib/stores/pickup-address';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 
@@ -142,6 +143,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: fieldsError }, { status: 400 });
     }
 
+    // Dirección de recogida propia. Opcional: sin ella se recoge en la plaza.
+    const recogida = parsePickupAddress(body);
+    if (recogida.error) {
+      return NextResponse.json({ error: recogida.error }, { status: 400 });
+    }
+
     if (contact_email) {
       const { data: existingStore, error: checkError } = await supabase
         .from('stores')
@@ -198,6 +205,7 @@ export async function POST(request: Request) {
       cover_image_url,
       logo_url,
       business_hours,
+      ...recogida.fields,
     };
 
     const { data, error } = await supabase.from('stores').insert(insertData).select().single();

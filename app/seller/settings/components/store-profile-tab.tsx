@@ -7,6 +7,7 @@ import { useStoreProfile } from '../hooks/use-store-profile';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
 import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { StorePickupFields, type StorePickupValues } from '@/src/features/stores/components/StorePickupFields';
 
 interface StoreProfileTabProps {
   storeId: string | null;
@@ -32,6 +33,11 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
   // varias y el tipo de venta son dos banderas.
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [salesType, setSalesType] = useState({ is_wholesale: false, is_retail: true });
+  // Aparte del resto: las coordenadas son números en la base y texto acá.
+  const [pickup, setPickup] = useState<StorePickupValues>({
+    address: '', city: '', department: '', latitude: '', longitude: '',
+  });
+  const [pickupError, setPickupError] = useState<string | null>(null);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -60,6 +66,13 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     setSalesType({
       is_wholesale: Boolean(store.is_wholesale),
       is_retail: Boolean(store.is_retail),
+    });
+    setPickup({
+      address: store.address || '',
+      city: store.city || '',
+      department: store.department || '',
+      latitude: store.latitude?.toString() || '',
+      longitude: store.longitude?.toString() || '',
     });
     setLogoFile(null);
     setCoverFile(null);
@@ -105,12 +118,20 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     e.preventDefault();
     setSaved(false);
     setImageError(null);
+    setPickupError(null);
+
+    // La API lo rechaza igual; avisar acá deja el mensaje junto al mapa.
+    if (pickup.address.trim() && !(pickup.latitude && pickup.longitude)) {
+      setPickupError('Marca el punto en el mapa para poder guardar la dirección de recogida.');
+      return;
+    }
 
     const ok = await saveStore(
       {
         name: form.name,
         description: form.description || null,
         local_address: form.local_address || null,
+        ...pickup,
         category_ids: categoryIds,
         is_wholesale: salesType.is_wholesale,
         is_retail: salesType.is_retail,
@@ -239,11 +260,25 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               Le sirve al comprador para encontrarte
-              {store?.marketplaces?.name ? ` dentro de ${store.marketplaces.name}` : ''}. Los envíos
-              se recogen en la dirección de la plaza, así que esto no cambia el costo del domicilio.
+              {store?.marketplaces?.name ? ` dentro de ${store.marketplaces.name}` : ''}, y al
+              mensajero para dar con tu local. No es la dirección de recogida —esa se configura
+              más abajo— y no cambia el costo del domicilio.
             </span>
           </p>
         </div>
+
+        {/* Dónde recoge el mensajero. Vacío = se recoge en la plaza. */}
+        <StorePickupFields
+          className="sm:col-span-2"
+          values={pickup}
+          onChange={(next) => {
+            setSaved(false);
+            setPickupError(null);
+            setPickup(next);
+          }}
+          marketplaceName={store?.marketplaces?.name ?? null}
+          error={pickupError}
+        />
 
         <div className="sm:col-span-2 flex w-full flex-col gap-1.5">
           <label className="ml-1 text-sm font-medium text-mm-txs">Descripción</label>
