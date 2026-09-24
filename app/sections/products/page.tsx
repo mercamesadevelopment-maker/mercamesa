@@ -16,7 +16,7 @@ export default function ProductsPage() {
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
   const [activeCat, setActiveCat] = useState('Todas');
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<'' | 'asc' | 'desc'>('');
+  const [sortBy, setSortBy] = useState<'' | 'asc' | 'desc' | 'price_asc' | 'price_desc'>('');
 
   const ITEMS_PER_PAGE = 20;
 
@@ -57,6 +57,12 @@ export default function ProductsPage() {
         return [...items].sort((a, b) =>
           (b.catalog_products?.name || '').localeCompare(a.catalog_products?.name || '')
         );
+      }
+      if (sortBy === 'price_asc') {
+        return [...items].sort((a, b) => (a.price_per_unit || 0) - (b.price_per_unit || 0));
+      }
+      if (sortBy === 'price_desc') {
+        return [...items].sort((a, b) => (b.price_per_unit || 0) - (a.price_per_unit || 0));
       }
       return items;
     };
@@ -122,12 +128,14 @@ export default function ProductsPage() {
             <span className="text-xs font-bold text-mm-txw uppercase tracking-widest whitespace-nowrap">Ordenar:</span>
             <select
               value={sortBy}
-              onChange={e => setSortBy(e.target.value as '' | 'asc' | 'desc')}
+              onChange={e => setSortBy(e.target.value as '' | 'asc' | 'desc' | 'price_asc' | 'price_desc')}
               className="text-xs font-bold bg-mm-gbg/50 rounded-lg p-1.5 outline-none focus:ring-1 ring-mm-g border-none cursor-pointer text-mm-txs pr-2"
             >
               <option value="">Ninguno</option>
               <option value="asc">A - Z</option>
               <option value="desc">Z - A</option>
+              <option value="price_asc">Precio: menor a mayor</option>
+              <option value="price_desc">Precio: mayor a menor</option>
             </select>
           </div>
         </div>

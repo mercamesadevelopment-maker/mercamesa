@@ -131,7 +131,7 @@ export async function PUT(
       .from('store_offers')
       .update(updateData)
       .eq('id', id)
-      .select('*, store_products ( store_id, catalog_products ( name ) )')
+      .select('*, store_products ( store_id, catalog_products ( name ), stores ( name ) )')
       .single();
 
     if (error) {
@@ -142,6 +142,7 @@ export async function PUT(
       try {
         const storeId = (data as any)?.store_products?.store_id;
         const productName = (data as any)?.store_products?.catalog_products?.name || 'tu oferta';
+        const storeName = (data as any)?.store_products?.stores?.name || 'tu tienda';
 
         if (storeId) {
           const { data: members } = await supabase
@@ -154,7 +155,7 @@ export async function PUT(
           await createNotification({
             type: 'store_offer_reviewed',
             title: 'Actualización de tu oferta',
-            message: `La oferta de "${productName}" ahora está: ${STATUS_LABELS[body.status] || body.status}.`,
+            message: `La oferta de "${productName}" en ${storeName} ahora está: ${STATUS_LABELS[body.status] || body.status}.`,
             entityType: 'store_offer',
             entityId: id,
             createdBy: user.id,
