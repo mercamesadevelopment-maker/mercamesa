@@ -109,11 +109,19 @@ export function StorePickupFields({
         initialQuery={values.address}
       />
 
-      {/* La dirección sin punto no se puede guardar: obligaría a Pibox a
-          adivinar dónde queda, y el mensajero acaba en otro lado. */}
+      {/* Las dos mitades tienen que estar. Una dirección sin punto obligaría a
+          Pibox a adivinar dónde queda; un punto sin dirección no le dice nada al
+          mensajero. Se avisa en los dos sentidos: al principio solo se miraba el
+          primero, y marcar el punto sin dirección se guardaba "bien" y se perdía. */}
       {tieneDireccion && !tienePunto && (
         <p className="ml-1 text-xs font-medium text-amber-700">
           Marca el punto en el mapa para poder guardar esta dirección.
+        </p>
+      )}
+
+      {tienePunto && !tieneDireccion && (
+        <p className="ml-1 text-xs font-medium text-amber-700">
+          Falta la dirección de este punto. Búscala arriba o escríbela a mano.
         </p>
       )}
 

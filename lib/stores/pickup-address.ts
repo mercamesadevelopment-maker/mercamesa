@@ -55,16 +55,27 @@ export function parsePickupAddress(body: Record<string, unknown>): Resultado | F
   const latitude = toCoordinate(body.latitude);
   const longitude = toCoordinate(body.longitude);
 
-  // Sin dirección se limpia todo el bloque, incluidas las coordenadas.
   if (!address) {
+    // Vaciar la dirección Y el punto es quitar la dirección de recogida: es una
+    // operación legítima y se limpia todo el bloque.
+    if (latitude === null && longitude === null) {
+      return {
+        fields: {
+          address: null,
+          latitude: null,
+          longitude: null,
+          city: texto(body.city),
+          department: texto(body.department),
+        },
+      };
+    }
+
+    // Pero un punto SIN dirección no se descarta en silencio. Antes caía en la
+    // rama de arriba y borraba las coordenadas que el usuario acababa de marcar,
+    // devolviendo 200: el formulario decía "guardado" y el dato se perdía.
     return {
-      fields: {
-        address: null,
-        latitude: null,
-        longitude: null,
-        city: texto(body.city),
-        department: texto(body.department),
-      },
+      error:
+        'Marcaste un punto en el mapa pero falta la dirección. Escríbela o búscala para poder guardar.',
     };
   }
 

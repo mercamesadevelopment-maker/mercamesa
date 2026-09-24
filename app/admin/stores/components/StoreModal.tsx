@@ -156,9 +156,16 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     }
 
     // La API lo rechaza igual, pero avisar acá ahorra el viaje y deja el aviso
-    // al lado del mapa, que es donde se arregla.
-    if (pickup.address.trim() && !(pickup.latitude && pickup.longitude)) {
-      setFormError('Marca el punto en el mapa para poder guardar la dirección de recogida.');
+    // al lado del mapa, que es donde se arregla. Los DOS sentidos: un punto sin
+    // dirección también es media dirección.
+    const conDireccion = pickup.address.trim().length > 0;
+    const conPunto = Boolean(pickup.latitude && pickup.longitude);
+    if (conDireccion !== conPunto) {
+      setFormError(
+        conDireccion
+          ? 'Marca el punto en el mapa para poder guardar la dirección de recogida.'
+          : 'Falta la dirección del punto que marcaste. Búscala o escríbela para poder guardar.'
+      );
       return;
     }
 
