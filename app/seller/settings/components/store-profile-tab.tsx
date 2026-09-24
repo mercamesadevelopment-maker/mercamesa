@@ -120,9 +120,17 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     setImageError(null);
     setPickupError(null);
 
-    // La API lo rechaza igual; avisar acá deja el mensaje junto al mapa.
-    if (pickup.address.trim() && !(pickup.latitude && pickup.longitude)) {
-      setPickupError('Marca el punto en el mapa para poder guardar la dirección de recogida.');
+    // La API lo rechaza igual; avisar acá deja el mensaje junto al mapa. Se
+    // comprueban los DOS sentidos: un punto sin dirección también es media
+    // dirección, y antes se colaba y se perdía al guardar.
+    const conDireccion = pickup.address.trim().length > 0;
+    const conPunto = Boolean(pickup.latitude && pickup.longitude);
+    if (conDireccion !== conPunto) {
+      setPickupError(
+        conDireccion
+          ? 'Marca el punto en el mapa para poder guardar la dirección de recogida.'
+          : 'Falta la dirección del punto que marcaste. Búscala o escríbela para poder guardar.'
+      );
       return;
     }
 

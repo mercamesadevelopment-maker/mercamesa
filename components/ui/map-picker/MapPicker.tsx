@@ -65,6 +65,8 @@ export function MapPicker({
   const markerRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
   const onChangeRef = useRef(onChange);
+  /** Los handlers del mapa se registran una sola vez; sin ref verían un closure viejo. */
+  const emitirPuntoManualRef = useRef<(lat: number, lon: number) => void>(() => {});
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
@@ -105,10 +107,7 @@ export function MapPicker({
       marker.on('dragend', () => {
         const { lat: dLat, lng: dLng } = marker.getLatLng();
         setApproximate(false);
-        onChangeRef.current({
-          latitude: Number(dLat.toFixed(6)),
-          longitude: Number(dLng.toFixed(6)),
-        });
+        emitirPuntoManualRef.current(dLat, dLng);
       });
 
       markerRef.current = marker;
@@ -157,10 +156,7 @@ export function MapPicker({
         const { lat, lng } = e.latlng;
         placeMarker(lat, lng);
         setApproximate(false);
-        onChangeRef.current({
-          latitude: Number(lat.toFixed(6)),
-          longitude: Number(lng.toFixed(6)),
-        });
+        emitirPuntoManualRef.current(lat, lng);
       });
 
       // El contenedor suele montarse dentro de un modal que aún se está
@@ -235,6 +231,55 @@ export function MapPicker({
   }, [query]);
 
   /**
+   * El usuario marcó el punto a mano: arrastrando el pin o tocando el mapa.
+   *
+   * Hasta ahora esto emitía SOLO las coordenadas, sin dirección. El texto de
+   * ayuda dice "busca la dirección o marca el punto", pero por la segunda vía el
+   * formulario se quedaba con un punto y la dirección en blanco —y un formulario
+   * que exija las dos lo rechaza, o peor, lo descarta.
+   *
+   * Por eso se pide la inversa, que el endpoint ya soportaba desde el principio
+   * y nadie llamaba. Va en modo permanente porque este valor se guarda, igual
+   * que al elegir una sugerencia: es una llamada por punto marcado, no por tecla.
+   */
+  const emitirPuntoManual = async (lat: number, lon: number) => {
+    const latitude = Number(lat.toFixed(6));
+    const longitude = Number(lon.toFixed(6));
+
+    // Las coordenadas se emiten YA, sin esperar a la red: son lo que el usuario
+    // acaba de señalar y no pueden quedar pendientes de que Mapbox responda.
+    onChangeRef.current({ latitude, longitude });
+
+    try {
+      const res = await fetch(`/api/geocoding/search?lat=${latitude}&lon=${longitude}&confirm=1`);
+      const json = await res.json();
+      // La inversa responde `{ data: [resultado] }`, una lista de uno —no un
+      // objeto—, igual que la búsqueda por texto.
+      const r = json?.data?.[0];
+      if (!res.ok || !r) return;
+
+      onChangeRef.current({
+        latitude,
+        longitude,
+        addressLine: r.addressLine,
+        neighborhood: r.neighborhood,
+        municipality: r.municipality,
+        department: r.department,
+      });
+      setQuery(r.label || r.addressLine || '');
+      suppressSearchRef.current = true;
+    } catch {
+      // Sin cobertura de la inversa el usuario todavía puede escribir la
+      // dirección a mano; el punto ya quedó marcado.
+    }
+  };
+
+  // Se mantiene fresco para los handlers del mapa, registrados una sola vez.
+  useEffect(() => {
+    emitirPuntoManualRef.current = emitirPuntoManual;
+  });
+
+  /**
    * El comprador escogió una sugerencia.
    *
    * Acá —y solo acá— se pide el modo permanente, que es la única llamada que
@@ -285,7 +330,7 @@ export function MapPicker({
 
         placeMarker(lat, lon, 17);
         setApproximate(false);
-        onChangeRef.current({ latitude: lat, longitude: lon });
+        emitirPuntoManualRef.current(lat, lon);
         setLocating(false);
       },
       () => {
