@@ -49,6 +49,10 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
 
     let retailPrice = Number(sp?.price_per_unit || 0);
     let wsPrice = Number(sp?.wholesale_price || sp?.price_per_unit || 0);
+    // El precio de lista, antes de que la oferta lo pise. Se guarda solo si al
+    // final hubo descuento: es lo que permite tachar el original en el carrito.
+    const precioDeLista = retailPrice;
+    let listPrice: number | undefined = undefined;
     let offerExpired = false;
     let originalOfferPrice: number | undefined = undefined;
     let validOfferId: string | null = item.offer_id || null;
@@ -71,6 +75,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
         } else if (linkedOffer.discount_pct != null) {
           retailPrice = Math.round(retailPrice * (1 - Number(linkedOffer.discount_pct) / 100));
         }
+        if (retailPrice < precioDeLista) listPrice = precioDeLista;
       } else {
         // La oferta expiró durante la permanencia en el carrito
         offerExpired = true;
@@ -96,6 +101,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
         } else if (activeOffer.discount_pct != null) {
           retailPrice = Math.round(retailPrice * (1 - Number(activeOffer.discount_pct) / 100));
         }
+        if (retailPrice < precioDeLista) listPrice = precioDeLista;
       }
     }
 
@@ -124,6 +130,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
       offerId: validOfferId,
       offerExpired,
       originalOfferPrice,
+      listPrice,
       notes: item.notes || '',
     } as unknown as CartItem;
   });

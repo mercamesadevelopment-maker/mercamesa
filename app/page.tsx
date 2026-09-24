@@ -11,10 +11,25 @@ import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
 import { ROLE_ROUTES } from '@/src/constants';
+import { useLegalLinks } from './hooks/use-legal-links';
 
 export default function Page() {
   const { state } = useApp();
   const router = useRouter();
+  // El proxy marca así el rebote por falta de permisos. Sin esta marca, la
+  // redirección de abajo lo devolvería a la misma ruta que el proxy acaba de
+  // rechazar, y el ida y vuelta se ve como una página que no hace nada.
+  //
+  // Se lee de `window` y no con `useSearchParams` porque esta página es un
+  // componente de cliente: ese hook obligaría a envolverla en un `Suspense`
+  // para que el build no falle, y no vale la pena por un parámetro.
+  const [sinAcceso, setSinAcceso] = useState<string | null>(null);
+  const [cuentaInactiva, setCuentaInactiva] = useState(false);
+  // A dónde volver tras iniciar sesión o registrarse: lo que el proxy marcó al
+  // rebotar un link compartido (producto o tienda) sin sesión. Sin esto, tras
+  // loguearse la persona caía en su panel de rol y no en lo que le compartieron.
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  const { terms, privacy } = useLegalLinks();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isBuyerRegisterOpen, setIsBuyerRegisterOpen] = useState(false);
@@ -24,9 +39,34 @@ export default function Page() {
   const [loginEmail, setLoginEmail] = useState('');
 
   useEffect(() => {
-    if (state.isLoggedIn) {
-      const route = ROLE_ROUTES[state.userRole] || '/marketplaces';
-      router.replace(route);
+    // Se lee acá dentro, y no en un efecto aparte, porque el aviso y la
+    // redirección tienen que decidirse con el mismo dato: si el valor llegara un
+    // ciclo después, este efecto ya habría reenviado a la ruta rechazada.
+    const params = new URLSearchParams(window.location.search);
+    const rebotado = params.get('sin_acceso');
+    const inactiva = params.get('cuenta_inactiva') === '1';
+    const redirectParam = params.get('redirect');
+    // Solo una ruta relativa propia: `//host` o `/\host` son formas de colar un
+    // dominio externo en lo que parece una ruta absoluta.
+    const redirect =
+      redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && !redirectParam.startsWith('/\\')
+        ? redirectParam
+        : null;
+    setSinAcceso(rebotado);
+    setCuentaInactiva(inactiva);
+    setRedirectTo(redirect);
+
+    if (state.isLoggedIn && !rebotado && !inactiva) {
+      // Sesión ya abierta en otra pestaña, por ejemplo: no hace falta pasar por
+      // el login, se va directo a lo que se compartió.
+      router.replace(redirect || ROLE_ROUTES[state.userRole] || '/marketplaces');
+      return;
+    }
+
+    // Sin sesión y con un link compartido de por medio: se abre el login de una
+    // vez, en vez de dejar que la persona tenga que encontrar el botón.
+    if (!state.isLoggedIn && redirect) {
+      setIsLoginOpen(true);
     }
   }, [state.isLoggedIn, state.userRole, router]);
 
@@ -51,6 +91,26 @@ export default function Page() {
           </button>
         </div>
       </header>
+
+      {/* Rebote del proxy: la cuenta con la que entró no alcanza para esa
+          sección. Se dice cuál era, porque si no la persona solo ve que "no
+          pasó nada" al intentar entrar. */}
+      {sinAcceso && !cuentaInactiva && (
+        <div className="fixed top-20 left-0 z-40 w-full border-b border-mm-crd bg-mm-oro/15 px-6 py-3 text-center text-sm text-mm-g lg:px-12">
+          Tu cuenta no tiene acceso a <span className="font-bold">{sinAcceso}</span>. Si crees
+          que debería tenerlo, pídeselo a un administrador.
+        </div>
+      )}
+
+      {/* Rebote del proxy cuando inactivaron la cuenta con la sesión ya abierta.
+          Mismo texto que el del login, para que no parezcan dos problemas
+          distintos. */}
+      {cuentaInactiva && (
+        <div className="fixed top-20 left-0 z-40 w-full border-b border-mm-crd bg-mm-oro/15 px-6 py-3 text-center text-sm text-mm-g lg:px-12">
+          Tu cuenta está inactiva. Si crees que es un error, escríbenos a{' '}
+          <span className="font-bold">soporte@mercamesa.com</span>.
+        </div>
+      )}
 
       {/* Hero Section */}
       <section
@@ -252,8 +312,30 @@ export default function Page() {
               className="h-10 w-auto brightness-0 invert"
             />
           </div>
-          <div className="flex gap-8 text-sm">
-            <a href="#" className="hover:text-mm-gll transition-colors">Política de tratamiento de datos personales</a>
+          {/* Antes esto era un `href="#"`: el enlace estaba, el documento no.
+              Ahora sale del PDF publicado desde Parametrización, y si todavía no
+              se ha publicado ninguno no se muestra en vez de no llevar a nada. */}
+          <div className="flex flex-wrap justify-center gap-8 text-sm">
+            {privacy && (
+              <a
+                href={privacy.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-mm-gll transition-colors"
+              >
+                Política de tratamiento de datos personales
+              </a>
+            )}
+            {terms && (
+              <a
+                href={terms.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-mm-gll transition-colors"
+              >
+                Términos y condiciones
+              </a>
+            )}
           </div>
           <div className="text-sm text-white/60">
             © 2024 Mercamesa. Todos los derechos reservados.
@@ -268,6 +350,7 @@ export default function Page() {
             isOpen={isLoginOpen}
             onClose={() => setIsLoginOpen(false)}
             defaultEmail={loginEmail}
+            redirectTo={redirectTo}
             onRegisterClick={() => {
               setIsLoginOpen(false);
               setIsBuyerRegisterOpen(true);
@@ -283,6 +366,7 @@ export default function Page() {
           <BuyerRegisterModal
             isOpen={isBuyerRegisterOpen}
             onClose={() => setIsBuyerRegisterOpen(false)}
+            redirectTo={redirectTo}
             onLoginClick={(email) => {
               setLoginEmail(email);
               setIsBuyerRegisterOpen(false);

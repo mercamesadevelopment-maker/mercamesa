@@ -35,7 +35,7 @@ export async function GET(
 
     const { data: history, error: historyError } = await supabase
       .from('store_order_status_history')
-      .select('id, status, notes, created_at, profiles:changed_by ( full_name )')
+      .select('id, status, notes, is_reversal, created_at, profiles:changed_by ( full_name )')
       .eq('store_order_id', storeOrder.id)
       .order('created_at', { ascending: true });
 
@@ -49,6 +49,7 @@ export async function GET(
       notes: h.notes,
       createdAt: h.created_at,
       changedByName: h.profiles?.full_name || null,
+      isReversal: !!h.is_reversal,
     }));
 
     return NextResponse.json({ data }, { status: 200 });

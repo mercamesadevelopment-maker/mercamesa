@@ -101,6 +101,14 @@ export interface Product {
   masterId?: number | string;
   desc: string;
   status: 'active' | 'inactive';
+  /**
+   * En cuántos pedidos aparece este producto.
+   *
+   * Solo lo trae el panel del tendero: `order_items` es la única clave foránea
+   * que impide borrarlo, así que este número es lo que decide si se puede
+   * eliminar o solo desactivar. En la vitrina pública no viaja.
+   */
+  orderCount?: number;
 }
 
 export interface CartItem extends Product {
@@ -110,6 +118,14 @@ export interface CartItem extends Product {
   offerId?: string | null;
   offerExpired?: boolean;
   originalOfferPrice?: number;
+  /**
+   * Precio del inventario antes de la oferta.
+   *
+   * `retailPrice` llega ya sobrescrito con el precio rebajado, así que sin esto
+   * el original se pierde y no hay cómo decirle al comprador cuánto se ahorró.
+   * Solo viene cuando hay una oferta vigente aplicada.
+   */
+  listPrice?: number;
   notes?: string;
 }
 
@@ -146,6 +162,8 @@ export interface OrderStatusHistoryItem {
   notes: string | null;
   createdAt: string;
   changedByName: string | null;
+  /** Corrección manual (regreso a un estado anterior), no un avance del flujo. */
+  isReversal?: boolean;
 }
 
 export interface Order {

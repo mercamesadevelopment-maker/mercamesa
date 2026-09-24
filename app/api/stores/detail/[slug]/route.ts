@@ -16,7 +16,7 @@ export async function GET(
       .select(`
         *,
         marketplaces ( name ),
-        store_categories ( name )
+        store_category_links ( store_categories ( id, name ) )
       `)
       .eq('slug', slug)
       .single();
@@ -34,12 +34,23 @@ export async function GET(
       ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
       : null;
 
-    return NextResponse.json({ 
-      data: { 
-        ...store, 
-        coverSignedUrl, 
+    // Se aplana el embed anidado (vínculo → categoría) a la lista de categorías,
+    // igual que en `/api/stores/[id]`.
+    const { store_category_links, ...rest } = store as typeof store & {
+      store_category_links?: { store_categories: { id: string; name: string } | null }[] | null;
+    };
+
+    const categories = (store_category_links ?? [])
+      .map((l) => l.store_categories)
+      .filter((c): c is { id: string; name: string } => Boolean(c));
+
+    return NextResponse.json({
+      data: {
+        ...rest,
+        categories,
+        coverSignedUrl,
         logoSignedUrl
-      } 
+      }
     }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';

@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, cn } from '@/src/components/Shared';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { OrderStatusTimeline } from '@/src/features/orders/components/OrderStatusTimeline';
 import {
   MapPin,
   CreditCard,
@@ -163,47 +164,11 @@ export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalPro
             <h3 className="font-bold text-mm-g text-base">Historial de Estado</h3>
           </div>
 
-          <div className="relative pl-6 border-l-2 border-mm-crd/60 space-y-5 ml-2">
-            {history.length > 0 ? (
-              history.map((h, i) => {
-                const label = h.status ? ORDER_STATUS_LABELS[h.status] : 'Desconocido';
-                const itemDate = new Date(h.createdAt).toLocaleDateString([], {
-                  month: 'short',
-                  day: 'numeric',
-                });
-                const itemTime = new Date(h.createdAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
-
-                return (
-                  <div key={h.id || i} className="relative">
-                    <div
-                      className={cn(
-                        'absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white',
-                        h.status === order.status ? 'bg-mm-g scale-125 ring-4 ring-mm-gbg' : 'bg-mm-crd'
-                      )}
-                    />
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-bold text-xs text-mm-g">{label}</span>
-                      <span className="text-[10px] text-mm-txs font-semibold">
-                        {itemDate} {itemTime}
-                      </span>
-                    </div>
-                    {h.notes && (
-                      <p className="text-xs text-mm-txs italic font-medium bg-slate-50 p-2.5 rounded-xl border border-mm-crd/40 mt-1 leading-relaxed">
-                        "{h.notes}"
-                      </p>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-xs text-mm-txw italic">
-                No hay registros de cambios de estado todavía.
-              </div>
-            )}
-          </div>
+          <OrderStatusTimeline
+            history={history}
+            currentStatus={order.status}
+            getLabel={(s) => ORDER_STATUS_LABELS[s] || 'Desconocido'}
+          />
         </div>
 
         {/* Total */}

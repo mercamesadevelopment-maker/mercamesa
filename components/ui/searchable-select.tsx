@@ -106,17 +106,20 @@ export function SearchableSelect({
           onClick={() => setIsOpen(!isOpen)}
           className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-mm-crd bg-white text-sm focus:border-mm-g focus:ring-2 focus:ring-mm-g/10 outline-none transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed select-none min-h-[42px]"
         >
-          <span className={selectedOption ? 'text-mm-g font-semibold' : 'text-mm-txw'}>
+          {/* min-w-0 + truncate: las etiquetas traen "Producto (unidad) — Tienda" y
+              pasan de 350px. Sin esto el span se niega a encogerse y saca barra de
+              scroll horizontal dentro del cuerpo del modal. */}
+          <span className={`min-w-0 truncate ${selectedOption ? 'text-mm-g font-semibold' : 'text-mm-txw'}`}>
             {selectedOption ? (
-              <span className="flex items-center gap-2">
-                {selectedOption.emoji && <span>{selectedOption.emoji}</span>}
-                {selectedOption.label}
+              <span className="flex items-center gap-2 min-w-0">
+                {selectedOption.emoji && <span className="shrink-0">{selectedOption.emoji}</span>}
+                <span className="truncate">{selectedOption.label}</span>
               </span>
             ) : (
               placeholder
             )}
           </span>
-          <ChevronDown className={`w-4 h-4 text-mm-txw transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 shrink-0 text-mm-txw transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isOpen && (
@@ -154,12 +157,12 @@ export function SearchableSelect({
                           : 'text-mm-g'
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        {opt.emoji && <span>{opt.emoji}</span>}
-                        {opt.label}
+                      <span className="flex items-center gap-2 min-w-0">
+                        {opt.emoji && <span className="shrink-0">{opt.emoji}</span>}
+                        <span className="truncate">{opt.label}</span>
                       </span>
                       {String(value) === String(opt.value) && (
-                        <Check className="w-4 h-4 text-mm-g" />
+                        <Check className="w-4 h-4 shrink-0 text-mm-g" />
                       )}
                     </button>
                   ))}
@@ -181,12 +184,12 @@ export function SearchableSelect({
                               : 'text-mm-g'
                           }`}
                         >
-                          <span className="flex items-center gap-2 pl-2">
-                            {opt.emoji && <span>{opt.emoji}</span>}
-                            {opt.label}
+                          <span className="flex items-center gap-2 pl-2 min-w-0">
+                            {opt.emoji && <span className="shrink-0">{opt.emoji}</span>}
+                            <span className="truncate">{opt.label}</span>
                           </span>
                           {String(value) === String(opt.value) && (
-                            <Check className="w-4 h-4 text-mm-g" />
+                            <Check className="w-4 h-4 shrink-0 text-mm-g" />
                           )}
                         </button>
                       ))}

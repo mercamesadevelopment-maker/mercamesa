@@ -10,6 +10,7 @@ import { cn } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
 import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
+import { LegalGate } from '@/src/features/legal/components/LegalGate';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -69,6 +70,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <CartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <CartStoreConflictModal />
+
+      {/* Si se publicó una versión nueva de los términos o de la política de
+          datos, no se sigue hasta aceptarla. Se monta acá porque este shell ya
+          envuelve todo lo que exige sesión, y ya espera a que el estado esté
+          hidratado. */}
+      <LegalGate enabled={state._hydrated && state.isLoggedIn} />
     </div>
   );
 }

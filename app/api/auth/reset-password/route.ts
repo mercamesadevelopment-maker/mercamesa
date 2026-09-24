@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceClient } from '../../../../lib/supabase/service'
 import { authErrorMessage } from '@/lib/auth/auth-error-messages'
+import { sendEmail, passwordChangedEmail } from '@/lib/email/resend'
 
 const GENERIC_ERROR = { error: 'El enlace de recuperación es inválido o expiró' }
 
@@ -61,6 +62,19 @@ export async function POST(request: Request) {
       .from('password_reset_codes')
       .update({ reset_token: null, reset_token_expires_at: null })
       .eq('id', row.id)
+
+    // Este camino no avisaba nada. Es justo el que usa quien NO recuerda su
+    // contraseña, o sea el que un atacante con acceso al correo recorrería: sin
+    // aviso, el dueño se enteraba al no poder entrar.
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Tu contraseña fue actualizada - MercaMesa',
+        html: passwordChangedEmail(),
+      })
+    } catch (err) {
+      console.error('reset-password: no se pudo enviar el aviso', err)
+    }
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (error: unknown) {

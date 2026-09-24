@@ -3,11 +3,20 @@ export interface StoreProfile {
   name: string;
   description: string | null;
   local_address: string | null;
+  /** Dirección de recogida propia. Vacía: se recoge en la plaza. */
+  address: string | null;
+  city: string | null;
+  department: string | null;
+  latitude: number | null;
+  longitude: number | null;
   contact_name: string | null;
   contact_email: string | null;
   phone: string | null;
   whatsapp: string | null;
-  category_id: string | null;
+  /** Las categorías de la tienda, ya aplanadas por la ruta. Son varias. */
+  categories: StoreCategory[];
+  is_wholesale: boolean;
+  is_retail: boolean;
   logo_url: string | null;
   cover_image_url: string | null;
   logoSignedUrl: string | null;

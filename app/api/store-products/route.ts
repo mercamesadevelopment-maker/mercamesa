@@ -9,6 +9,7 @@ import {
   validateProductCode,
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
+import { embeddedCount } from '@/lib/db/embedded-count';
 import { EXCLUSIVE_PRODUCT_MESSAGE, findExclusivityViolations } from '@/lib/catalog/visibility';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
@@ -39,12 +40,35 @@ export async function GET(request: Request) {
   const isManaging =
     !!storeId && !!user && (await canManageStore(supabase, storeId, user.id));
 
-  let query = supabase.from('store_products').select(`
-    *,
-    catalog_products ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
-    stores!inner ( name, is_active, marketplaces ( name ) ),
-    measurement_units ( abbreviation )
-  `);
+  /**
+   * En modo gestión se cuenta además en cuántos pedidos aparece el producto.
+   *
+   * `order_items` es la ÚNICA clave foránea que impide borrarlo: las otras tres
+   * que apuntan acá —carritos, movimientos de stock y ofertas— van en cascada y
+   * se destruyen sin avisar. Con este número la pantalla puede decirle al
+   * tendero qué va a pasar ANTES de que haga clic, en vez de dejarlo descubrirlo
+   * con un error.
+   *
+   * En modo vitrina no viaja: cuántas veces se ha vendido algo no es asunto de
+   * quien está mirando el catálogo.
+   */
+  // Los dos `select` van escritos enteros y no armados con una plantilla porque
+  // supabase-js analiza la consulta en tiempo de compilación: con un trozo
+  // interpolado pierde los tipos de todo el resultado.
+  let query = isManaging
+    ? supabase.from('store_products').select(`
+        *,
+        catalog_products ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
+        stores!inner ( name, slug, is_active, marketplaces ( name ) ),
+        measurement_units ( abbreviation ),
+        order_items ( count )
+      `)
+    : supabase.from('store_products').select(`
+        *,
+        catalog_products ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
+        stores!inner ( name, slug, is_active, marketplaces ( name ) ),
+        measurement_units ( abbreviation )
+      `);
 
   if (storeId) {
     query = query.eq('store_id', storeId);
@@ -95,9 +119,11 @@ export async function GET(request: Request) {
     const categoryWithParent = category
       ? { ...category, parent: category.parent_id ? { name: parentNameById.get(category.parent_id) || '' } : null }
       : category;
+    const { order_items, ...rest } = product as any;
     return {
-      ...product,
+      ...rest,
       imageSignedUrl,
+      ...(isManaging ? { order_count: embeddedCount(order_items) } : {}),
       catalog_products: product.catalog_products
         ? { ...product.catalog_products, categories: categoryWithParent }
         : product.catalog_products,

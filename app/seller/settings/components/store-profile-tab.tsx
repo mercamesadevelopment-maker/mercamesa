@@ -5,6 +5,9 @@ import { CheckCircle2, Loader2, Image as ImageIcon, MapPin } from 'lucide-react'
 import { Button, Input } from '@/src/components/Shared';
 import { useStoreProfile } from '../hooks/use-store-profile';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
+import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { StorePickupFields, type StorePickupValues } from '@/src/features/stores/components/StorePickupFields';
 
 interface StoreProfileTabProps {
   storeId: string | null;
@@ -20,12 +23,21 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     name: '',
     description: '',
     local_address: '',
-    category_id: '',
     contact_name: '',
     contact_email: '',
     phone: '',
     whatsapp: '',
   });
+
+  // Aparte del resto del formulario porque no son cadenas: las categorías son
+  // varias y el tipo de venta son dos banderas.
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [salesType, setSalesType] = useState({ is_wholesale: false, is_retail: true });
+  // Aparte del resto: las coordenadas son números en la base y texto acá.
+  const [pickup, setPickup] = useState<StorePickupValues>({
+    address: '', city: '', department: '', latitude: '', longitude: '',
+  });
+  const [pickupError, setPickupError] = useState<string | null>(null);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -45,11 +57,22 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
       name: store.name || '',
       description: store.description || '',
       local_address: store.local_address || '',
-      category_id: store.category_id || '',
       contact_name: store.contact_name || '',
       contact_email: store.contact_email || '',
       phone: store.phone || '',
       whatsapp: store.whatsapp || '',
+    });
+    setCategoryIds((store.categories ?? []).map((c) => c.id));
+    setSalesType({
+      is_wholesale: Boolean(store.is_wholesale),
+      is_retail: Boolean(store.is_retail),
+    });
+    setPickup({
+      address: store.address || '',
+      city: store.city || '',
+      department: store.department || '',
+      latitude: store.latitude?.toString() || '',
+      longitude: store.longitude?.toString() || '',
     });
     setLogoFile(null);
     setCoverFile(null);
@@ -95,13 +118,31 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     e.preventDefault();
     setSaved(false);
     setImageError(null);
+    setPickupError(null);
+
+    // La API lo rechaza igual; avisar acá deja el mensaje junto al mapa. Se
+    // comprueban los DOS sentidos: un punto sin dirección también es media
+    // dirección, y antes se colaba y se perdía al guardar.
+    const conDireccion = pickup.address.trim().length > 0;
+    const conPunto = Boolean(pickup.latitude && pickup.longitude);
+    if (conDireccion !== conPunto) {
+      setPickupError(
+        conDireccion
+          ? 'Marca el punto en el mapa para poder guardar la dirección de recogida.'
+          : 'Falta la dirección del punto que marcaste. Búscala o escríbela para poder guardar.'
+      );
+      return;
+    }
 
     const ok = await saveStore(
       {
         name: form.name,
         description: form.description || null,
         local_address: form.local_address || null,
-        category_id: form.category_id || null,
+        ...pickup,
+        category_ids: categoryIds,
+        is_wholesale: salesType.is_wholesale,
+        is_retail: salesType.is_retail,
         contact_name: form.contact_name || null,
         contact_email: form.contact_email || null,
         phone: form.phone || null,
@@ -196,19 +237,25 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Nombre de la tienda" value={form.name} onChange={handleChange('name')} required />
 
-        <div className="flex w-full flex-col gap-1.5">
-          <label className="ml-1 text-sm font-medium text-mm-txs">Categoría de la tienda</label>
-          <select
-            value={form.category_id}
-            onChange={handleChange('category_id')}
-            className="rounded-xl border border-mm-crd bg-white px-4 py-2.5 outline-none transition-all focus:border-mm-g"
-          >
-            <option value="">Sin categoría</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
+        <MultiSelect
+          label="Categorías de la tienda"
+          placeholder="Sin categoría"
+          options={categories.map((c) => ({ value: c.id, label: c.name }))}
+          value={categoryIds}
+          onChange={(ids) => {
+            setSaved(false);
+            setCategoryIds(ids);
+          }}
+          hint="Elige todas las que vendas; el comprador te encuentra por cada una."
+        />
+
+        <StoreSalesTypeFields
+          values={salesType}
+          onChange={(field, value) => {
+            setSaved(false);
+            setSalesType((prev) => ({ ...prev, [field]: value }));
+          }}
+        />
 
         <div className="sm:col-span-2">
           <Input
@@ -221,11 +268,25 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               Le sirve al comprador para encontrarte
-              {store?.marketplaces?.name ? ` dentro de ${store.marketplaces.name}` : ''}. Los envíos
-              se recogen en la dirección de la plaza, así que esto no cambia el costo del domicilio.
+              {store?.marketplaces?.name ? ` dentro de ${store.marketplaces.name}` : ''}, y al
+              mensajero para dar con tu local. No es la dirección de recogida —esa se configura
+              más abajo— y no cambia el costo del domicilio.
             </span>
           </p>
         </div>
+
+        {/* Dónde recoge el mensajero. Vacío = se recoge en la plaza. */}
+        <StorePickupFields
+          className="sm:col-span-2"
+          values={pickup}
+          onChange={(next) => {
+            setSaved(false);
+            setPickupError(null);
+            setPickup(next);
+          }}
+          marketplaceName={store?.marketplaces?.name ?? null}
+          error={pickupError}
+        />
 
         <div className="sm:col-span-2 flex w-full flex-col gap-1.5">
           <label className="ml-1 text-sm font-medium text-mm-txs">Descripción</label>

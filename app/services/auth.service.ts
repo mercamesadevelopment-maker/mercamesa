@@ -19,12 +19,15 @@
 export class ApiError extends Error {
   readonly code: string | null;
   readonly status: number;
+  /** Segundos que faltan para poder reintentar, cuando el servidor los indica. */
+  readonly retryAfterSeconds?: number;
 
-  constructor(message: string, code: string | null, status: number) {
+  constructor(message: string, code: string | null, status: number, retryAfterSeconds?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -49,7 +52,8 @@ async function post(path: string, body?: unknown, fallback = 'No pudimos complet
     throw new ApiError(
       data?.error || `${fallback} (error ${res.status})`,
       data?.code ?? null,
-      res.status
+      res.status,
+      data?.retryAfterSeconds
     );
   }
 
@@ -63,6 +67,18 @@ async function post(path: string, body?: unknown, fallback = 'No pudimos complet
 export const authService = {
   async login(email: string, password: string) {
     return post('/api/auth/login', { email, password }, 'No pudimos iniciar sesión');
+  },
+
+  /**
+   * Segundo paso del ingreso de admin y superadmin. Recién acá queda la sesión:
+   * el primer paso solo comprueba la contraseña y manda el código.
+   */
+  async verifyLoginCode(email: string, code: string) {
+    return post('/api/auth/verify-login-code', { email, code }, 'No pudimos verificar el código');
+  },
+
+  async requestSignupCode(email: string) {
+    return post('/api/auth/request-signup-code', { email }, 'No pudimos enviar el código');
   },
 
   async register(payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; buyer_type?: string; person_type_id?: string; identification_type_id?: string; document_number?: string }) {
@@ -83,6 +99,8 @@ export const authService = {
     phone: string;
     buyer_type: 'retail' | 'wholesale';
     terms_version: string;
+    /** Código de 6 dígitos que confirma que el correo existe y es suyo. */
+    code: string;
   }) {
     return post('/api/auth/register-buyer', payload, 'No pudimos crear la cuenta');
   },

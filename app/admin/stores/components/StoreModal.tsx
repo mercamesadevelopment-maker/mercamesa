@@ -10,6 +10,10 @@ import {
 } from '@/components/ui/business-hours/business-hours-editor';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
+import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
+import { StorePickupFields, type StorePickupValues } from '@/src/features/stores/components/StorePickupFields';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { validateStoreFields, STORE_DESCRIPTION_MAX_LENGTH } from '@/lib/stores/validate-store';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
@@ -30,13 +34,26 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
   const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [formData, setFormData] = useState({
-    name: '', slug: '', marketplace_id: '', category_id: '', description: '',
+    name: '', slug: '', marketplace_id: '', description: '',
     contact_name: '', contact_email: '', phone: '', whatsapp: '', is_active: true,
+  });
+  // Aparte de `formData`, que es todo cadenas: las categorías son varias y el
+  // tipo de venta son dos banderas.
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [salesType, setSalesType] = useState({ is_wholesale: false, is_retail: true });
+  // Aparte porque las coordenadas son números en la base pero texto en el
+  // formulario, igual que en el modal de plazas.
+  const [pickup, setPickup] = useState<StorePickupValues>({
+    address: '', city: '', department: '', latitude: '', longitude: '',
   });
   const [businessHours, setBusinessHours] = useState<BusinessHours>(createDefaultBusinessHours());
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  // Errores de formato (nombre/descripción/correo) que no dependen del servidor;
+  // se revisan antes de enviar, para no gastar un viaje a la API en algo que ya
+  // se sabe que va a fallar.
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/marketplaces')
@@ -54,7 +71,6 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setFormData({
         name: initialData.name || '', slug: initialData.slug || '',
         marketplace_id: initialData.marketplace_id || '',
-        category_id: (initialData as any).category_id || '',
         description: initialData.description || '',
         contact_name: initialData.contact_name || '',
         contact_email: initialData.contact_email || '',
@@ -62,22 +78,38 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         whatsapp: initialData.whatsapp || '',
         is_active: initialData.is_active,
       });
+      setCategoryIds(
+        ((initialData as any).categories ?? []).map((c: { id: string }) => c.id)
+      );
+      setSalesType({
+        is_wholesale: Boolean((initialData as any).is_wholesale),
+        is_retail: Boolean((initialData as any).is_retail),
+      });
       const initialHours = (initialData as any).business_hours;
       setBusinessHours(
         Array.isArray(initialHours) && initialHours.length === 7
           ? initialHours
           : createDefaultBusinessHours()
       );
+      setPickup({
+        address: (initialData as any).address || '',
+        city: (initialData as any).city || '',
+        department: (initialData as any).department || '',
+        latitude: (initialData as any).latitude?.toString() || '',
+        longitude: (initialData as any).longitude?.toString() || '',
+      });
       setLogoPreview(initialData.logoSignedUrl || null);
     } else {
       setFormData({
         name: '', slug: '',
         marketplace_id: marketplaces.length > 0 ? marketplaces[0].id : '',
-        category_id: '',
         description: '', contact_name: '', contact_email: '',
         phone: '', whatsapp: '', is_active: true,
       });
+      setCategoryIds([]);
+      setSalesType({ is_wholesale: false, is_retail: true });
       setBusinessHours(createDefaultBusinessHours());
+      setPickup({ address: '', city: '', department: '', latitude: '', longitude: '' });
       setLogoPreview(null);
     }
     setLogoFile(null);
@@ -109,9 +141,43 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailError(null);
+    setFormError(null);
+
+    // Correo malformado o descripción demasiado larga: se avisa acá, antes de
+    // subir el logo o llamar a la API, que igual las rechazaría.
+    const fieldsError = validateStoreFields({
+      name: formData.name,
+      description: formData.description,
+      contactEmail: formData.contact_email,
+    });
+    if (fieldsError) {
+      setFormError(fieldsError);
+      return;
+    }
+
+    // La API lo rechaza igual, pero avisar acá ahorra el viaje y deja el aviso
+    // al lado del mapa, que es donde se arregla. Los DOS sentidos: un punto sin
+    // dirección también es media dirección.
+    const conDireccion = pickup.address.trim().length > 0;
+    const conPunto = Boolean(pickup.latitude && pickup.longitude);
+    if (conDireccion !== conPunto) {
+      setFormError(
+        conDireccion
+          ? 'Marca el punto en el mapa para poder guardar la dirección de recogida.'
+          : 'Falta la dirección del punto que marcaste. Búscala o escríbela para poder guardar.'
+      );
+      return;
+    }
+
     setLoading(true);
     try {
-      const payload: Record<string, unknown> = { ...formData, business_hours: businessHours };
+      const payload: Record<string, unknown> = {
+        ...formData,
+        business_hours: businessHours,
+        category_ids: categoryIds,
+        ...salesType,
+        ...pickup,
+      };
 
       if (logoFile) {
         const id = initialData?.id || crypto.randomUUID();
@@ -175,21 +241,46 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-mm-txs ml-1">Categoría de la Tienda</label>
-            <select name="category_id" value={formData.category_id} onChange={handleChange}
-              className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
-              <option value="">Sin categoría</option>
-              {storeCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+          <MultiSelect
+            label="Categorías de la Tienda"
+            placeholder="Sin categoría"
+            options={storeCategories.map(c => ({ value: c.id, label: c.name }))}
+            value={categoryIds}
+            onChange={setCategoryIds}
+          />
         </div>
 
+        <StoreSalesTypeFields
+          values={salesType}
+          onChange={(field, value) => setSalesType(prev => ({ ...prev, [field]: value }))}
+        />
+
         {/* Descripción */}
-        <Input label="Descripción" name="description" value={formData.description} onChange={handleChange} placeholder="Breve descripción de la tienda" />
+        <div className="flex flex-col gap-1">
+          <Input
+            label="Descripción"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Breve descripción de la tienda"
+            maxLength={STORE_DESCRIPTION_MAX_LENGTH}
+          />
+          <span className="text-[10px] text-mm-txw ml-1">
+            {formData.description.length}/{STORE_DESCRIPTION_MAX_LENGTH}
+          </span>
+        </div>
 
         {/* Horario de atención */}
         <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
+
+        {/* Dónde recoge el mensajero. Vacío = se recoge en la plaza. */}
+        <StorePickupFields
+          values={pickup}
+          onChange={setPickup}
+          marketplaceName={
+            marketplaces.find((m) => m.id === formData.marketplace_id)?.name ?? null
+          }
+        />
 
         {/* Contacto, teléfono y WhatsApp: el mismo bloque que edita el tendero
             desde su panel, compartido para que no se separen con el tiempo. */}
@@ -206,6 +297,10 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
           }}
           emailError={emailError}
         />
+
+        {formError && (
+          <div className="text-sm text-r bg-rl px-4 py-2.5 rounded-xl">{formError}</div>
+        )}
 
         {/* Activa */}
         <div className="flex items-center gap-2 px-1">

@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input, cn } from '@/src/components/Shared';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
+import { isValidEmail } from '@/lib/email/validate';
 
 export interface StoreContactValues {
   contact_name: string;
@@ -40,6 +41,14 @@ export function StoreContactFields({
   disabled,
   className,
 }: StoreContactFieldsProps) {
+  // Formato inválido se avisa apenas se sale del campo, sin esperar al submit.
+  // El error que llega por prop (p. ej. "ya está registrado en otra tienda") es
+  // del servidor y tiene prioridad sobre este, que es solo de formato.
+  const [emailTouched, setEmailTouched] = useState(false);
+  const trimmedEmail = values.contact_email.trim();
+  const formatError =
+    emailTouched && trimmedEmail && !isValidEmail(trimmedEmail) ? 'Correo inválido.' : null;
+
   return (
     <div className={cn('grid gap-4 sm:grid-cols-2', className)}>
       <Input
@@ -57,8 +66,9 @@ export function StoreContactFields({
         type="email"
         value={values.contact_email}
         onChange={(e) => onChange('contact_email', e.target.value)}
+        onBlur={() => setEmailTouched(true)}
         placeholder="tienda@correo.com"
-        error={emailError || undefined}
+        error={emailError || formatError || undefined}
         disabled={disabled}
       />
 

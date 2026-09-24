@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { createClient } from '../../../../lib/supabase/server'
 import { createSupabaseServiceClient } from '../../../../lib/supabase/service'
 import { sendEmail, emailChangeCodeEmail, emailChangeNotificationEmail } from '../../../../lib/email/resend'
+import { isValidEmail } from '../../../../lib/email/validate'
 
 const CODE_EXPIRES_MINUTES = 10
 const RESEND_COOLDOWN_SECONDS = 30
@@ -21,8 +22,6 @@ function hashCode(code: string): string {
   return crypto.createHash('sha256').update(code).digest('hex')
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
     const newEmail = (body.new_email as string || '').trim().toLowerCase()
     const currentPassword = body.current_password as string
 
-    if (!newEmail || !EMAIL_REGEX.test(newEmail)) {
+    if (!newEmail || !isValidEmail(newEmail)) {
       return NextResponse.json({ error: 'El nuevo correo no es válido' }, { status: 400 })
     }
 

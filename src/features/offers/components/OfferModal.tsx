@@ -192,14 +192,18 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     }
   };
 
+  // `90dvh` y no el `90vh` por defecto: en Safari móvil `vh` resuelve al viewport
+  // grande (sin barra de direcciones), así que la cabecera del modal queda debajo
+  // del chrome del navegador.
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={initialData ? `Editar Oferta${storeName ? ` — ${storeName}` : ''}` : 'Nueva Oferta'}
       maxWidth="max-w-2xl"
+      maxHeight="90dvh"
     >
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
 
         {validationError && (
           <div className="rounded-2xl bg-rl px-4 py-3 text-sm font-medium text-r">
@@ -258,7 +262,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
             <button
               type="button"
               onClick={() => handleModeChange('pct')}
-              className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${
+              className={`flex-1 whitespace-nowrap rounded-xl border px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold transition-all ${
                 mode === 'pct'
                   ? 'border-mm-g bg-mm-g text-white'
                   : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g'
@@ -269,7 +273,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
             <button
               type="button"
               onClick={() => handleModeChange('price')}
-              className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all ${
+              className={`flex-1 whitespace-nowrap rounded-xl border px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold transition-all ${
                 mode === 'price'
                   ? 'border-mm-g bg-mm-g text-white'
                   : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g'
@@ -327,8 +331,9 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
             {allowStatusEdit && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-mm-txs ml-1">Estado de la oferta</label>
+                {/* text-base en móvil: iOS hace zoom al enfocar campos de menos de 16px. */}
                 <select name="status" value={formData.status} onChange={handleChange}
-                  className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+                  className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-base sm:text-sm">
                   <option value="pending">Pendiente</option>
                   <option value="verified">Verificada</option>
                   <option value="active">Activa</option>
@@ -338,7 +343,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
             )}
 
             {allowFeatured && (
-              <div className="flex items-center gap-2 px-1 pb-2.5">
+              <div className="flex items-center gap-2 px-1 pb-0 sm:pb-2.5">
                 <input type="checkbox" id="is_featured" name="is_featured" checked={formData.is_featured} onChange={handleChange} className="w-4 h-4 rounded border-mm-crd text-mm-g focus:ring-mm-g" />
                 <label htmlFor="is_featured" className="text-sm font-medium text-mm-txs">Oferta Destacada</label>
               </div>
@@ -350,7 +355,10 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
           <p className="text-[10px] text-mm-txw ml-1 -mt-2">Tu oferta será revisada por el equipo de Mercamesa.</p>
         )}
 
-        <div className="pt-2 flex gap-3 pb-2">
+        {/* Apilados en móvil: a la mitad de 295px quedan ~101px de caja de texto y
+            "Guardar Cambios" mide más, así que envolvía y dejaba los dos botones de
+            distinta altura. `col-reverse` mantiene la acción principal arriba. */}
+        <div className="pt-2 flex flex-col-reverse sm:flex-row gap-3 pb-2">
           <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={loading}>Cancelar</Button>
           <Button type="submit" className="flex-1" loading={loading}>
             {initialData ? 'Guardar Cambios' : 'Crear Oferta'}

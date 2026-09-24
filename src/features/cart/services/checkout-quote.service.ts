@@ -40,6 +40,8 @@ export function sumQuotes(quotes: CheckoutQuote[]): CheckoutQuote {
   return quotes.reduce(
     (acc, q) => ({
       productsSubtotal: acc.productsSubtotal + q.productsSubtotal,
+      productsListSubtotal: acc.productsListSubtotal + q.productsListSubtotal,
+      discountTotal: acc.discountTotal + q.discountTotal,
       serviceCommission: acc.serviceCommission + q.serviceCommission,
       messagesAmount: acc.messagesAmount + q.messagesAmount,
       netPurchase: acc.netPurchase + q.netPurchase,
@@ -49,6 +51,8 @@ export function sumQuotes(quotes: CheckoutQuote[]): CheckoutQuote {
     }),
     {
       productsSubtotal: 0,
+      productsListSubtotal: 0,
+      discountTotal: 0,
       serviceCommission: 0,
       messagesAmount: 0,
       netPurchase: 0,

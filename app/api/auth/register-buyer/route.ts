@@ -5,6 +5,13 @@ import { authErrorMessage } from '@/lib/auth/auth-error-messages'
 import { rollbackSignUp } from '@/lib/auth/rollback-signup'
 import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate'
 import { toE164 } from '@/lib/phone/phone'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
+import {
+  consumeCode,
+  markCodeConsumed,
+  GENERIC_CODE_ERROR,
+} from '@/lib/auth/verification-codes'
+import { getCurrentLegalDocuments } from '@/lib/legal/current-documents'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
@@ -23,9 +30,14 @@ export async function POST(request: Request) {
       phone,
       buyer_type,
       terms_version,
+      code,
     } = body
 
     const supabase = await createClient()
+
+    // El correo se normaliza acá y se usa el normalizado en todo lo que sigue:
+    // el código se emitió contra esa forma, y con `Juan@X.com` no coincidiría.
+    const emailNormalizado = (email as string || '').trim().toLowerCase()
 
     // El tipo de persona ya no es una lista fija en el código: sale de
     // `person_types`, que el admin administra desde Parametrización.
@@ -77,6 +89,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 })
     }
 
+    // El código se comprueba ANTES de crear nada. Verificarlo después dejaría
+    // cuentas creadas con correos que no existen: nadie podría recuperarlas, y
+    // el correo quedaría bloqueado para su dueño real.
+    const service = createSupabaseServiceClient()
+    const codeKey = { column: 'email' as const, value: emailNormalizado }
+
+    const verificacion = await consumeCode({
+      service,
+      table: 'signup_email_codes',
+      key: codeKey,
+      code: String(code || ''),
+    })
+
+    if (!verificacion.ok) {
+      return NextResponse.json({ error: GENERIC_CODE_ERROR }, { status: 400 })
+    }
+
     // El role_id del comprador se resuelve en el servidor, nunca se confía en un role_id enviado por el cliente
     const { data: buyerRole, error: roleError } = await supabase
       .from('roles')
@@ -89,7 +118,7 @@ export async function POST(request: Request) {
     }
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: emailNormalizado,
       password,
     })
 
@@ -115,7 +144,7 @@ export async function POST(request: Request) {
 
     const profileData: ProfileInsert = {
       id: userId,
-      email,
+      email: emailNormalizado,
       full_name: personType.requiresBusinessName ? contact_name : full_name,
       phone: phoneE164,
       role_id: buyerRole.id,
@@ -147,6 +176,28 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    // Constancia de qué documentos aceptó, con la versión que el SERVIDOR
+    // considera vigente. `terms_version` la manda el cliente y por eso ya no se
+    // usa para esto: una petición hecha a mano podía declarar cualquier cosa.
+    const vigentes = await getCurrentLegalDocuments(service)
+
+    if (vigentes.length > 0) {
+      const { error: aceptacionError } = await service.from('legal_acceptances').upsert(
+        vigentes.map((d) => ({ user_id: userId, document_id: d.id })),
+        { onConflict: 'user_id,document_id', ignoreDuplicates: true }
+      )
+
+      // No se deshace el registro por esto: la cuenta ya existe y sirve. Sin la
+      // constancia, la pantalla de aceptación se la pedirá al entrar.
+      if (aceptacionError) {
+        console.error('[auth] register-buyer: no se registró la aceptación', aceptacionError)
+      }
+    }
+
+    // Recién ahora se quema el código: si el registro hubiera fallado más
+    // arriba, la persona podría reintentar con el mismo en vez de pedir otro.
+    await markCodeConsumed({ service, table: 'signup_email_codes', id: verificacion.row.id })
 
     return NextResponse.json({ user: authData.user, profile: profileData }, { status: 201 })
   } catch (error: unknown) {
