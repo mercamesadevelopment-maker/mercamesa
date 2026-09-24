@@ -2632,6 +2632,7 @@ export type Database = {
           changed_by: string | null
           created_at: string
           id: string
+          is_reversal: boolean
           notes: string | null
           status: Database["public"]["Enums"]["order_status"]
           store_order_id: string
@@ -2640,6 +2641,7 @@ export type Database = {
           changed_by?: string | null
           created_at?: string
           id?: string
+          is_reversal?: boolean
           notes?: string | null
           status: Database["public"]["Enums"]["order_status"]
           store_order_id: string
@@ -2648,6 +2650,7 @@ export type Database = {
           changed_by?: string | null
           created_at?: string
           id?: string
+          is_reversal?: boolean
           notes?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           store_order_id?: string
@@ -2865,10 +2868,10 @@ export type Database = {
           address: string | null
           business_hours: Json | null
           category_id: string | null
+          city: string | null
           contact_email: string | null
           contact_name: string | null
           cover_image_url: string | null
-          city: string | null
           created_at: string
           department: string | null
           description: string | null
@@ -2894,10 +2897,10 @@ export type Database = {
           address?: string | null
           business_hours?: Json | null
           category_id?: string | null
+          city?: string | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
-          city?: string | null
           created_at?: string
           department?: string | null
           description?: string | null
@@ -2923,10 +2926,10 @@ export type Database = {
           address?: string | null
           business_hours?: Json | null
           category_id?: string | null
+          city?: string | null
           contact_email?: string | null
           contact_name?: string | null
           cover_image_url?: string | null
-          city?: string | null
           created_at?: string
           department?: string | null
           description?: string | null
@@ -3123,6 +3126,14 @@ export type Database = {
       }
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      revert_store_order_status: {
+        Args: {
+          p_notes: string
+          p_store_order_id: string
+          p_target_status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_language: "es" | "en"
