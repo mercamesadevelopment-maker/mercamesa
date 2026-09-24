@@ -44,7 +44,7 @@ export async function PUT(
     // catalog_products no tiene RLS: esta verificación es el control de acceso.
     const denied = await requirePermission(
       supabase,
-      'system-settings',
+      'master-catalog',
       'update',
       'No tienes permisos para editar productos del catálogo'
     );
@@ -136,7 +136,7 @@ export async function DELETE(
 
     const denied = await requirePermission(
       supabase,
-      'system-settings',
+      'master-catalog',
       'delete',
       'No tienes permisos para eliminar productos del catálogo'
     );

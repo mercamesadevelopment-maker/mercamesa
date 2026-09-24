@@ -28,7 +28,7 @@ export async function PATCH(request: Request) {
     // catalog_products no tiene RLS: esta verificación es el control de acceso.
     const denied = await requirePermission(
       supabase,
-      'system-settings',
+      'master-catalog',
       'update',
       'No tienes permisos para editar productos del catálogo'
     );

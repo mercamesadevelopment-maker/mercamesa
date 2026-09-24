@@ -3,7 +3,7 @@ import { ImageIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Input } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
-import { uploadImageDirect } from '@/lib/supabase/client-upload';
+import { uploadImageDirect, removeImageDirect } from '@/lib/supabase/client-upload';
 import { slugify } from '@/lib/catalog-import/slug';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
@@ -32,6 +32,8 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   });
   
   const [imageFile, setImageFile] = useState<File | null>(null);
+  // El motivo real del fallo, en pantalla. Antes solo llegaba a la consola.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,22 +96,52 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      const payload: Record<string, unknown> = { ...formData };
+    setSaveError(null);
 
+    const payload: Record<string, unknown> = { ...formData };
+    /**
+     * La ruta de la imagen recién subida, para poder deshacerla.
+     *
+     * La imagen se sube ANTES de llamar a la API, y el permiso de las dos cosas
+     * es distinto: el bucket pide `products.create` y la API pide el módulo del
+     * catálogo. Cuando la API rechazaba, el archivo ya había quedado en el bucket
+     * y nadie lo borraba: cada intento fallido dejaba basura.
+     */
+    let subida: string | null = null;
+
+    try {
       if (imageFile) {
         const id = initialData?.id || crypto.randomUUID();
         const path = `imgs/${id}/img-${Date.now()}.${imageFile.name.split('.').pop()}`;
         await uploadImageDirect('products', path, imageFile);
+        subida = path;
         payload.id = id;
         payload.image_url = path;
       }
+    } catch (err) {
+      // Se distingue de un fallo al guardar: si no se pudo ni subir, el problema
+      // es el archivo o el permiso sobre el bucket, no el producto.
+      console.error(err);
+      setSaveError(
+        err instanceof Error
+          ? `No se pudo subir la imagen: ${err.message}`
+          : 'No se pudo subir la imagen.'
+      );
+      setLoading(false);
+      return;
+    }
 
+    try {
       await onSave(initialData?.id || null, payload);
       onClose();
     } catch (err) {
       console.error(err);
-      alert('Error al guardar el producto');
+      // El mensaje REAL, no uno genérico. El de antes —"Error al guardar el
+      // producto"— tapaba cosas tan concretas como "No tienes permisos para
+      // editar productos del catálogo", y dejaba el diagnóstico solo en la
+      // consola del navegador de quien lo sufría.
+      setSaveError(err instanceof Error ? err.message : 'No se pudo guardar el producto.');
+      if (subida) await removeImageDirect('products', subida);
     } finally {
       setLoading(false);
     }
@@ -118,6 +150,9 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Editar Producto' : 'Nuevo Producto'}>
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {saveError && (
+          <div className="rounded-2xl bg-rl px-4 py-3 text-sm font-medium text-r">{saveError}</div>
+        )}
 
         {/* Imagen */}
         <div className="space-y-3">
