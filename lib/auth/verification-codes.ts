@@ -29,6 +29,9 @@ const MAX_CODES_PER_KEY = 3;
 const KEY_WINDOW_MINUTES = 15;
 const MAX_REQUESTS_PER_IP = 10;
 const IP_WINDOW_MINUTES = 60;
+/** Cuánto rato después de reclamar un código se sigue tratando como el mismo
+ *  envío. Cubre un doble clic y los reintentos de red, no un código reusado. */
+const CLAIM_DUPLICATE_WINDOW_SECONDS = 60;
 
 /** El mismo mensaje para todo lo que falle al verificar: un código equivocado,
  *  uno vencido y uno de otra persona no deben distinguirse desde afuera. */
@@ -175,6 +178,10 @@ type ConsumeResult =
  * usado: eso se hace con `markCodeConsumed` cuando la operación de verdad haya
  * salido bien, para que un fallo posterior no deje a la persona sin código y sin
  * resultado.
+ *
+ * Por eso mismo NO protege de dos peticiones simultáneas: las dos verifican
+ * bien y las dos siguen. Para lo nuevo usar `claimCode`, que verifica y reclama
+ * en un paso y conserva la misma propiedad vía `releaseCode`.
  */
 export async function consumeCode({
   service,
@@ -211,6 +218,116 @@ export async function consumeCode({
   }
 
   return { ok: true, row };
+}
+
+export type ClaimResult =
+  | { ok: true; row: { id: string; [k: string]: any } }
+  | { ok: false }
+  /** El código era el correcto, pero otra petición ya se lo llevó. */
+  | { ok: 'duplicado' };
+
+/**
+ * Verifica el código Y lo reclama, en un solo paso.
+ *
+ * `consumeCode` solo verifica: marcarlo se deja para el final de la operación,
+ * para que un fallo posterior no queme el código. El efecto secundario es que
+ * dos peticiones a la vez —un doble clic en el botón— pasan LAS DOS la
+ * verificación y siguen las dos adelante. En el registro eso terminaba con la
+ * segunda chocando contra `signUp` y diciéndole a la persona que ya hay una
+ * cuenta con ese correo: la que acababa de crear.
+ *
+ * El reclamo es un solo `UPDATE ... WHERE id = :id AND consumed_at IS NULL`, y
+ * es eso lo que serializa: Postgres bloquea la fila, así que exactamente una
+ * petición se la lleva y el resto recibe cero filas.
+ *
+ * Quien reclama se compromete a llamar a `releaseCode` si la operación falla
+ * después, o el código quedaría quemado sin haber servido para nada — que es
+ * justo lo que `consumeCode` evitaba.
+ */
+export async function claimCode({
+  service,
+  table,
+  key,
+  code,
+}: {
+  service: SupabaseClient<any>;
+  table: CodeTable;
+  key: CodeKey;
+  code: string;
+}): Promise<ClaimResult> {
+  const { data: row } = await service
+    .from(table)
+    .select('*')
+    .eq(key.column, key.value)
+    .is('consumed_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (row && row.attempts < row.max_attempts) {
+    if (hashCode(code) !== row.code_hash) {
+      // Contar el intento fallido es lo que impide probar el millón de
+      // combinaciones de seis dígitos. Ojo: acá NO se reclama nada, o un código
+      // equivocado dejaría inservible al bueno.
+      await service
+        .from(table)
+        .update({ attempts: row.attempts + 1 })
+        .eq('id', row.id);
+
+      return { ok: false };
+    }
+
+    const { data: reclamada } = await service
+      .from(table)
+      .update({ consumed_at: new Date().toISOString() })
+      .eq('id', row.id)
+      .is('consumed_at', null)
+      .select()
+      .maybeSingle();
+
+    if (reclamada) return { ok: true, row: reclamada };
+  }
+
+  /**
+   * No se pudo reclamar. Puede ser un código equivocado o vencido, o puede ser
+   * la segunda mitad de un doble clic: la fila correcta existe, el hash coincide
+   * y la reclamó otra petición hace un instante. Distinguirlo es lo que permite
+   * responder lo mismo que respondió la primera en vez de un error falso.
+   *
+   * La ventana es corta a propósito: pasado ese rato ya no es un doble clic
+   * sino alguien reusando un código quemado.
+   */
+  const { data: reciente } = await service
+    .from(table)
+    .select('*')
+    .eq(key.column, key.value)
+    .eq('code_hash', hashCode(code))
+    .not('consumed_at', 'is', null)
+    .gte('consumed_at', new Date(Date.now() - CLAIM_DUPLICATE_WINDOW_SECONDS * 1000).toISOString())
+    .order('consumed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (reciente) return { ok: 'duplicado' };
+
+  return { ok: false };
+}
+
+/**
+ * Suelta un código reclamado, para que la persona pueda reintentar con el mismo.
+ * Se llama en los caminos de fallo posteriores a `claimCode`.
+ */
+export async function releaseCode({
+  service,
+  table,
+  id,
+}: {
+  service: SupabaseClient<any>;
+  table: CodeTable;
+  id: string;
+}): Promise<void> {
+  await service.from(table).update({ consumed_at: null }).eq('id', id);
 }
 
 export async function markCodeConsumed({

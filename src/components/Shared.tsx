@@ -70,6 +70,11 @@ export function Button({
     lg: "px-8 py-3.5 text-lg",
     xl: "px-10 py-4 text-xl",
   };
+  // Ojo con el orden de `disabled` y `{...props}` de abajo: `disabled` va
+  // DESPUÉS a propósito. Estando antes, el spread lo pisaba con el `disabled`
+  // recibido —o con `undefined` si no venía ninguno—, así que `loading` no
+  // deshabilitaba nada: el botón seguía clicleable con el spinner girando y un
+  // doble clic mandaba dos peticiones.
   return (
     <button 
       className={cn(
@@ -78,8 +83,8 @@ export function Button({
         sizes[size],
         className
       )}
-      disabled={loading || props.disabled}
       {...props}
+      disabled={loading || props.disabled}
     >
       {loading && <Spinner />}
       {children}
