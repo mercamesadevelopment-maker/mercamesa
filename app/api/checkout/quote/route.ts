@@ -70,6 +70,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Los productos tienen que ser de la tienda que se dice. Antes no se
+    // comprobaba: con `store_id` de una tienda y productos de otra, el domicilio
+    // se cotizaba desde una dirección de recogida que no despacha ese pedido. Es
+    // el error que se cuela justo cuando la canasta quedó mezclada.
+    const deOtraTienda = dbProducts.filter((p) => String(p.store_id) !== String(storeId));
+    if (deOtraTienda.length > 0) {
+      return NextResponse.json(
+        { error: 'Los productos del pedido no son de la tienda indicada' },
+        { status: 400 }
+      );
+    }
+
     // Las ofertas vigentes las resuelve el servidor. Antes no las miraba, así
     // que cotizaba a precio de lista mientras el carrito ya mostraba el
     // descuento: el comprador veía una rebaja que no se le hacía.

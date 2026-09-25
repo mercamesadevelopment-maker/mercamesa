@@ -16,7 +16,7 @@ import {
   SECURITY_NOTICE_SUMMARY,
   SECURITY_NOTICE_DETAILS,
 } from "@/lib/copy/security-notice";
-import { useCheckout } from "../hooks/useCheckout";
+import { useCheckout, mensajeMinimo } from "../hooks/useCheckout";
 import { useCart } from "../hooks/use-cart";
 import { Button, Badge, cn } from "@/src/components/Shared";
 import { fmt } from "@/src/constants";
@@ -40,7 +40,7 @@ const STEPS: { id: CheckoutStep; label: string }[] = [
 ];
 
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
-  const { updateCartQty, updateCartItemNotes } = useCart();
+  const { updateCartQty, updateCartItemNotes, removeFromCart } = useCart();
   const {
     state,
     isPlacingOrder,
@@ -51,6 +51,9 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     isQuoting,
     quoteError,
     canPlaceOrder,
+    hasMixedStores,
+    minPrice,
+    storesBelowMinimum,
     getPrice,
     handlePlaceOrder,
     saveCard,
@@ -87,6 +90,29 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   React.useEffect(() => {
     if (isEmpty) setStep(1);
   }, [isEmpty]);
+
+  // Con dos tiendas en la canasta no hay nada que cobrar en el paso 2: el total
+  // que se mostraría suma las dos y solo se puede pagar una. Se devuelve al paso
+  // 1, que es donde se resuelve.
+  React.useEffect(() => {
+    if (hasMixedStores) setStep(1);
+  }, [hasMixedStores]);
+
+  /**
+   * Deja en la canasta solo los productos de una tienda.
+   *
+   * La mezcla la elige el comprador, no la resolvemos por él: quitarle productos
+   * sin avisar es justo lo que hace que un carrito "se vacíe solo". `removeFromCart`
+   * ya borra también en la base.
+   */
+  const quedarseConTienda = async (storeId: string) => {
+    const aQuitar = state.cart.filter(
+      (i) => String(i.storeId) !== String(storeId),
+    );
+    for (const item of aQuitar) {
+      await removeFromCart(item.id);
+    }
+  };
 
   /**
    * Mismo desglose que la factura: tres conceptos. Lo que el comprador ve antes
@@ -229,6 +255,55 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-6"
                   >
+                    {/* Dos tiendas en la canasta. No debería poder armarse
+                        —`addToCart` lo bloquea—, pero la recuperación de un pago
+                        abandonado sí las mezcla. Antes esto pasaba desapercibido
+                        y al pagar se cobraba solo la primera tienda. */}
+                    {hasMixedStores && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-start gap-2.5">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                          <div className="text-xs text-amber-900 leading-relaxed">
+                            <p className="font-bold mb-1">
+                              Tu canasta tiene productos de {cartByStore.length}{" "}
+                              tiendas
+                            </p>
+                            <p>
+                              Cada tienda despacha por separado, así que solo
+                              puedes pagar una a la vez. Elige con cuál sigues:
+                              los productos de las demás se quitarán de la
+                              canasta.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {cartByStore.map((group) => {
+                            const groupSubtotal = group.items.reduce(
+                              (acc, i) => acc + getPrice(i) * i.qty,
+                              0,
+                            );
+                            return (
+                              <button
+                                key={`keep-${group.store.id}`}
+                                type="button"
+                                onClick={() =>
+                                  quedarseConTienda(String(group.store.id))
+                                }
+                                className="flex items-center justify-between gap-3 w-full text-left px-3 py-2 rounded-xl bg-white border border-amber-200 hover:border-mm-g transition-colors"
+                              >
+                                <span className="text-xs font-bold text-mm-g min-w-0 truncate">
+                                  Quedarme con {group.store.name}
+                                </span>
+                                <span className="text-xs font-bold text-mm-txs whitespace-nowrap">
+                                  {fmt(groupSubtotal)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Agrupado por tienda (siempre una sola tienda por carrito) */}
                     {cartByStore.map((group, groupIdx) => (
                       <div
@@ -496,10 +571,21 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   </div>
                   <Button
                     onClick={() => setStep(2)}
+                    // El mínimo se avisa acá y no al pagar: no depende del
+                    // domicilio, así que no hay razón para pedir la dirección
+                    // primero y rechazar el pedido al final.
+                    disabled={hasMixedStores || storesBelowMinimum.length > 0}
                     className="w-full py-4 text-lg"
                   >
                     Continuar
                   </Button>
+                  {minPrice !== null && storesBelowMinimum.length > 0 && (
+                    <p className="text-[11px] text-amber-800 text-center mt-2">
+                      {storesBelowMinimum
+                        .map((t) => mensajeMinimo(t, minPrice))
+                        .join(" ")}
+                    </p>
+                  )}
                 </>
               ) : (
                 <div className="flex gap-3">
