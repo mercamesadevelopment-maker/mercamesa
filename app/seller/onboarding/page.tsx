@@ -188,9 +188,14 @@ export default function SellerOnboarding() {
                 <Button 
                   size="sm"
                   variant="secondary"
-                  onClick={() => router.push('/seller/dashboard')}
+                  // A "Mi Tienda" y no al panel: desde acá la documentación
+                  // deja de ofrecerse en cuanto queda aprobada, y su pestaña
+                  // "Documentos" es el único sitio donde el tendero puede
+                  // volver a verla, consultar el histórico o reemplazar un
+                  // documento vencido.
+                  onClick={() => router.push('/seller/settings')}
                   className="flex items-center gap-2"
-                  title="Ir al panel principal"
+                  title="Ir a mi tienda"
                 >
                   <Check className="w-4 h-4" /> Ir a mi Panel <ArrowRight className="w-4 h-4" />
                 </Button>

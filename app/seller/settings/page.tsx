@@ -1,20 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock, Loader2, Star, Store, Info, Landmark } from 'lucide-react';
+import { Clock, FileText, Loader2, Star, Store, Info, Landmark } from 'lucide-react';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { StoreHoursTab } from './components/store-hours-tab';
 import { StoreProfileTab } from './components/store-profile-tab';
 import { StoreReputationTab } from './components/store-reputation-tab';
 import { BankAccountTab } from './components/bank-account-tab';
+import { StoreDocumentsTab } from './components/store-documents-tab';
 
-type TabKey = 'profile' | 'hours' | 'reputation' | 'bank';
+type TabKey = 'profile' | 'hours' | 'reputation' | 'bank' | 'documents';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'profile', label: 'Datos de la tienda', icon: Store },
   { key: 'hours', label: 'Horario', icon: Clock },
   { key: 'reputation', label: 'Calificaciones', icon: Star },
   { key: 'bank', label: 'Datos bancarios', icon: Landmark },
+  // El tendero solo veía su documentación desde /seller/onboarding, y solo
+  // mientras estuviera incompleta. Una vez aprobada no tenía dónde consultarla
+  // ni dónde reemplazar un documento vencido.
+  { key: 'documents', label: 'Documentos', icon: FileText },
 ];
 
 export default function SellerSettingsPage() {
@@ -101,6 +106,7 @@ export default function SellerSettingsPage() {
         {activeTab === 'hours' && <StoreHoursTab storeId={storeId} />}
         {activeTab === 'reputation' && <StoreReputationTab storeId={storeId} />}
         {activeTab === 'bank' && <BankAccountTab storeId={storeId} />}
+        {activeTab === 'documents' && <StoreDocumentsTab storeId={storeId} />}
       </div>
     </div>
   );
