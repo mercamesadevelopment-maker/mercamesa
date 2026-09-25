@@ -346,6 +346,12 @@ export async function revertCartDb(orderId: string): Promise<void> {
  * de paso los carritos que ya estaban perdidos.
  *
  * Se ejecuta al hidratar la sesión.
+ *
+ * Ojo: esto puede dejar la canasta con productos de DOS tiendas, si el comprador
+ * agregó algo de otra tienda mientras los suyos estaban en `pending` (con la
+ * canasta vacía en pantalla, `addToCart` no tiene con qué comparar). Se deja
+ * así a propósito —el trabajo de esta función es no perder ítems— y la mezcla se
+ * resuelve en el carrito, donde el comprador elige con qué tienda sigue.
  */
 export async function recoverAbandonedCartDb(buyerId: string): Promise<void> {
   const supabase = createSupabaseBrowserClient();
@@ -414,4 +420,33 @@ export async function deleteCartForOrderDb(orderId: string): Promise<void> {
     .eq('order_id', orderId);
 
   if (error) throw error;
+}
+
+/**
+ * El valor mínimo de compra vigente, o `null` si nunca se ha fijado uno.
+ *
+ * Se lee desde el navegador a propósito: el mínimo depende solo del valor de los
+ * productos, no del domicilio, así que el carrito puede avisar en el primer paso
+ * en vez de dejar al comprador llegar hasta "Confirmar y pagar" para enterarse.
+ * La política de SELECT de `order_min_price_history` ya está abierta a
+ * `authenticated`, así que no hace falta una ruta nueva; `GET
+ * /api/admin/order-min-price` no sirve acá porque devuelve el historial completo
+ * con el nombre de quién hizo cada ajuste.
+ *
+ * Esto es un aviso, no la regla: `POST /api/orders` vuelve a comprobarlo contra
+ * la base y es el que decide.
+ */
+export async function fetchOrderMinPrice(): Promise<number | null> {
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from('order_min_price_history')
+    .select('min_price')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data ? Number(data.min_price) : null;
 }

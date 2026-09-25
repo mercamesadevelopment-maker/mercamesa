@@ -174,7 +174,8 @@ export async function POST(request: Request) {
         store_id,
         stock,
         catalog_products ( name ),
-        measurement_units ( abbreviation )
+        measurement_units ( abbreviation ),
+        stores ( name )
       `)
       .in('id', productIds);
 
@@ -281,8 +282,19 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (minPriceRow && recalculatedSubtotal < minPriceRow.min_price) {
+        // El mensaje dice cuánto falta y de qué tienda. El anterior —"El pedido
+        // no alcanza el valor mínimo de $12.000"— no decía ninguna de las dos
+        // cosas, y como el mínimo es POR ORDEN y cada tienda es una orden,
+        // contradecía el subtotal sumado que mostraba el carrito.
+        const faltante = Number(minPriceRow.min_price) - recalculatedSubtotal;
+        const nombreTienda =
+          (dbProducts as any[]).find((p) => String(p.store_id) === String(storeOrders[0].store_id))
+            ?.stores?.name ?? 'esta tienda';
+
         return NextResponse.json({
-          error: `El pedido no alcanza el valor mínimo de $${minPriceRow.min_price.toLocaleString('es-CO')} para poder procesarse.`,
+          error:
+            `Te faltan $${faltante.toLocaleString('es-CO')} para el mínimo de ` +
+            `$${Number(minPriceRow.min_price).toLocaleString('es-CO')} en ${nombreTienda}.`,
         }, { status: 400 });
       }
     }
