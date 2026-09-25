@@ -11,6 +11,8 @@ import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAuthHooks } from '../hooks/useAuth';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
 import { useLegalLinks } from '@/app/hooks/use-legal-links';
+import { toE164 } from '@/lib/phone/phone';
+import { validateDocumentNumber } from '@/lib/identification/validate-document';
 
 const TERMS_VERSION = '2026-07-24';
 
@@ -59,7 +61,9 @@ export function BuyerRegisterModal({
   // después: si no se guardaran acá, los datos se perderían al pasar al código.
   const [datos, setDatos] = useState<Record<string, string>>({});
   const [codigo, setCodigo] = useState('');
-  const [claveError, setClaveError] = useState<string | null>(null);
+  // Los errores del paso 0. Antes solo existía el de la contraseña; el resto
+  // del formulario no se validaba hasta después de confirmar el correo.
+  const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [personTypeId, setPersonTypeId] = useState('');
@@ -98,16 +102,37 @@ export function BuyerRegisterModal({
   /** Paso 0: se valida el formulario y se pide el código al correo escrito. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setClaveError(null);
+    setFormError(null);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirm_password') as string;
     const email = formData.get('email') as string;
+    const documentNumber = (formData.get('document_number') as string) || '';
 
     if (password !== confirmPassword) {
       // Antes salía sin decir nada y el botón simplemente no hacía efecto.
-      setClaveError('Las contraseñas no coinciden.');
+      setFormError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    /**
+     * Todo lo que se pueda comprobar sin servidor, ANTES de pedir el código.
+     *
+     * El teléfono y el documento se validaban solo al crear la cuenta, o sea
+     * después de confirmar el correo: un número mal escrito se descubría al
+     * final, con todo el formulario ya lleno y un código gastado.
+     */
+    const slug = identificationOptions.find((t) => t.id === identificationTypeId)?.slug;
+    const documentoError = validateDocumentNumber(documentNumber, slug);
+    if (documentoError) {
+      setFormError(documentoError);
+      return;
+    }
+
+    // El mismo `toE164` que usa el servidor, para que no puedan discrepar.
+    if (!toE164(phone)) {
+      setFormError('El teléfono no es un número válido. Revisa el indicativo y el número.');
       return;
     }
 
@@ -252,9 +277,9 @@ export function BuyerRegisterModal({
 
               <StepBar step={paso} total={2} />
 
-              {claveError && (
+              {formError && (
                 <div className="mb-5 rounded-2xl bg-red-100 p-4 text-sm text-red-600">
-                  {claveError}
+                  {formError}
                 </div>
               )}
 
@@ -302,6 +327,28 @@ export function BuyerRegisterModal({
                     Crear cuenta
                     <ArrowRight className="h-5 w-5" />
                   </Button>
+
+                  {/* La salida del callejón sin salida.
+                      Si ese correo ya tiene cuenta, la pantalla no puede decirlo
+                      —sería una forma de averiguar quién está registrado— y el
+                      código nunca va a llegar. Al dueño del correo le avisamos por
+                      correo; acá queda el camino para quien lo sospeche. */}
+                  <p className="rounded-2xl bg-mm-gbg/40 p-4 text-center text-xs text-mm-txs">
+                    ¿No te llega? Revisa el correo no deseado. Si ya tenías cuenta con
+                    ese correo, no te enviamos ningún código:{' '}
+                    {onLoginClick ? (
+                      <button
+                        type="button"
+                        onClick={() => onLoginClick(submittedEmail)}
+                        className="font-semibold text-mm-g underline underline-offset-2"
+                      >
+                        inicia sesión
+                      </button>
+                    ) : (
+                      'inicia sesión'
+                    )}
+                    .
+                  </p>
 
                   <div className="flex items-center justify-between text-sm">
                     <button
