@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
@@ -99,9 +99,23 @@ export function BuyerRegisterModal({
   // "jurídica": "Establecimiento de comercio" también lleva razón social.
   const requiresBusinessName = personType?.requires_business_name ?? false;
 
+  /**
+   * Hay un envío en curso.
+   *
+   * `loading` no alcanza: es estado de React y se actualiza de forma asíncrona,
+   * así que entre el primer clic y el re-render queda una rendija por la que
+   * entra el segundo. Un ref cambia en el mismo instante. El botón ya no se deja
+   * clicar (`Button` respeta `loading` desde que se corrigió el orden de
+   * `disabled` frente al spread), pero el `Enter` sostenido sobre el formulario
+   * y los reintentos del navegador no pasan por el botón.
+   */
+  const enviando = useRef(false);
+
   /** Paso 0: se valida el formulario y se pide el código al correo escrito. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Cada envío de más manda un correo de verdad.
+    if (enviando.current) return;
     setFormError(null);
 
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -147,19 +161,26 @@ export function BuyerRegisterModal({
       phone: formData.get('phone') as string,
     });
 
+    enviando.current = true;
     try {
       await requestSignupCode(email);
       setCodigo('');
       setPaso(1);
     } catch (err) {
       console.error(err);
+    } finally {
+      enviando.current = false;
     }
   };
 
   /** Paso 1: con el código confirmado, recién ahora se crea la cuenta. */
   const handleVerificar = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Dos envíos crean dos registros. El servidor ahora responde lo mismo a los
+    // dos, pero no hay razón para mandar el segundo.
+    if (enviando.current) return;
 
+    enviando.current = true;
     try {
       await registerBuyer({
         email: datos.email,
@@ -179,6 +200,8 @@ export function BuyerRegisterModal({
       setSuccess(true);
     } catch (err) {
       console.error(err);
+    } finally {
+      enviando.current = false;
     }
   };
 

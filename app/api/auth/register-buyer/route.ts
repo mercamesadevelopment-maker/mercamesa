@@ -15,13 +15,72 @@ import {
 import { toE164 } from '@/lib/phone/phone'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import {
-  consumeCode,
-  markCodeConsumed,
+  claimCode,
+  releaseCode,
   GENERIC_CODE_ERROR,
 } from '@/lib/auth/verification-codes'
 import { getCurrentLegalDocuments } from '@/lib/legal/current-documents'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
+
+/** Cuánto espera la petición duplicada a que la gemela termine: 20 × 250 ms. */
+const ESPERA_GEMELA_INTENTOS = 20
+const ESPERA_GEMELA_MS = 250
+
+/** El perfil de ese correo, si el registro ya quedó hecho. */
+async function perfilDeEsteCorreo(
+  service: ReturnType<typeof createSupabaseServiceClient>,
+  email: string
+) {
+  const { data } = await service
+    .from('profiles')
+    .select('id, email, full_name, role_id, buyer_type')
+    .eq('email', email)
+    .maybeSingle()
+
+  return data
+}
+
+/**
+ * La respuesta para una petición que llega cuando el registro YA se hizo.
+ *
+ * Es el mismo patrón que `POST /api/orders` con `client_idempotency_key`:
+ * el duplicado no repite el trabajo ni inventa un error, devuelve lo que
+ * devolvió el original. Acá el duplicado nace de un doble clic, así que lo que
+ * la persona debe ver es la pantalla de bienvenida, no "ya hay una cuenta con
+ * este correo" refiriéndose a la suya.
+ *
+ * Solo se llega acá con un código válido de ESE correo, así que no sirve para
+ * averiguar nada sobre cuentas ajenas.
+ */
+async function respuestaDeRegistroYaHecho(
+  service: ReturnType<typeof createSupabaseServiceClient>,
+  email: string
+) {
+  /**
+   * Se espera a que la gemela termine.
+   *
+   * Las dos peticiones salen al mismo tiempo, así que cuando esta descubre que
+   * el código ya está reclamado lo más probable es que la otra siga a mitad de
+   * camino: `signUp`, el insert del perfil y las aceptaciones legales toman su
+   * rato. Responder de una daría un error por algo que está a punto de salir
+   * bien. Se sondea un momento y recién si no aparece se contesta otra cosa.
+   */
+  for (let intento = 0; intento < ESPERA_GEMELA_INTENTOS; intento++) {
+    const perfil = await perfilDeEsteCorreo(service, email)
+    if (perfil) {
+      return NextResponse.json({ profile: perfil, idempotent: true }, { status: 200 })
+    }
+    await new Promise((r) => setTimeout(r, ESPERA_GEMELA_MS))
+  }
+
+  // La gemela falló o se quedó colgada. No hay un éxito que devolver ni tiene
+  // sentido un error de código, así que se dice lo que de verdad está pasando.
+  return NextResponse.json(
+    { error: 'Ya estamos creando tu cuenta con este código. Espera unos segundos e intenta de nuevo.' },
+    { status: 409 }
+  )
+}
 
 export async function POST(request: Request) {
   try {
@@ -135,12 +194,26 @@ export async function POST(request: Request) {
     const service = createSupabaseServiceClient()
     const codeKey = { column: 'email' as const, value: emailNormalizado }
 
-    const verificacion = await consumeCode({
+    /**
+     * Se reclama, no solo se verifica.
+     *
+     * Con `consumeCode` (que verifica y deja el marcado para el final) dos
+     * peticiones simultáneas —el doble clic en "Crear cuenta"— pasaban LAS DOS y
+     * la segunda terminaba diciéndole a la persona que ya hay una cuenta con ese
+     * correo: la que acababa de crear. `claimCode` serializa con un UPDATE
+     * condicional, y `releaseCode` más abajo conserva la propiedad de poder
+     * reintentar con el mismo código si algo falla después.
+     */
+    const verificacion = await claimCode({
       service,
       table: 'signup_email_codes',
       key: codeKey,
       code: String(code || ''),
     })
+
+    if (verificacion.ok === 'duplicado') {
+      return respuestaDeRegistroYaHecho(service, emailNormalizado)
+    }
 
     if (!verificacion.ok) {
       return NextResponse.json({ error: GENERIC_CODE_ERROR }, { status: 400 })
@@ -163,6 +236,11 @@ export async function POST(request: Request) {
     })
 
     if (authError) {
+      // Acá no se cuela un doble clic: de dos peticiones simultáneas solo UNA
+      // consigue reclamar el código, y la otra ya salió por `duplicado` mucho
+      // antes. Quien llega hasta este punto con el reclamo en la mano está
+      // registrando un correo que de verdad ya tiene cuenta.
+      //
       // El caso más común acá es un correo que ya tiene cuenta. El `code` viaja
       // al cliente para que el formulario pueda ofrecer iniciar sesión.
       const { message, code } = authErrorMessage(
@@ -170,6 +248,7 @@ export async function POST(request: Request) {
         'No pudimos crear la cuenta. Intenta de nuevo.',
         'register-buyer'
       )
+      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
       return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
@@ -189,12 +268,14 @@ export async function POST(request: Request) {
         'No pudimos crear la cuenta. Intenta de nuevo.',
         'register-buyer'
       )
+      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
       return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
     const userId = authData.user?.id
 
     if (!userId) {
+      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
       return NextResponse.json(
         { error: 'No pudimos crear la cuenta. Intenta de nuevo.' },
         { status: 500 }
@@ -229,6 +310,8 @@ export async function POST(request: Request) {
       // persona pueda reintentar.
       console.error('[auth] register-buyer: falló el insert del perfil', profileError)
       await rollbackSignUp(userId, 'register-buyer')
+      // El código vuelve a servir: la persona puede reintentar sin pedir otro.
+      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
 
       return NextResponse.json(
         { error: 'No pudimos completar tu registro. Revisa los datos e intenta de nuevo.' },
@@ -253,10 +336,6 @@ export async function POST(request: Request) {
         console.error('[auth] register-buyer: no se registró la aceptación', aceptacionError)
       }
     }
-
-    // Recién ahora se quema el código: si el registro hubiera fallado más
-    // arriba, la persona podría reintentar con el mismo en vez de pedir otro.
-    await markCodeConsumed({ service, table: 'signup_email_codes', id: verificacion.row.id })
 
     return NextResponse.json({ user: authData.user, profile: profileData }, { status: 201 })
   } catch (error: unknown) {
