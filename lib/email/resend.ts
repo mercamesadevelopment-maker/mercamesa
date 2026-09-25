@@ -154,6 +154,27 @@ export function signupCodeEmail(code: string) {
   });
 }
 
+/**
+ * Alguien intentó registrarse con un correo que ya tiene cuenta.
+ *
+ * La pantalla de registro no puede decirlo —sería una forma de averiguar quién
+ * está registrado—, así que quien se quedó esperando un código que nunca iba a
+ * llegar se enteraba por este correo o por ninguno. Va sin código y sin ningún
+ * enlace que cree sesión: es un aviso, no una vía de acceso.
+ */
+export function signupEmailAlreadyRegisteredEmail() {
+  return plantilla({
+    title: 'Ya tienes una cuenta en MercaMesa',
+    heading: 'Ya tienes una cuenta',
+    body: `
+      <p class="text">Alguien intentó crear una cuenta en MercaMesa con este correo, y ya hay una registrada. No creamos ninguna cuenta nueva.</p>
+      <p class="text"><strong>Si fuiste tú:</strong> no necesitas registrarte otra vez, solo inicia sesión. Si no recuerdas tu contraseña, usa la opción de recuperarla desde la pantalla de ingreso.</p>
+      <p class="text">Fecha del intento: <span class="highlight">${momentoEnColombia()}</span></p>
+      <p class="text">Si no fuiste tú, puedes ignorar este correo: tu cuenta sigue intacta y nadie tuvo acceso a ella.</p>
+    `,
+  });
+}
+
 export function adminLoginCodeEmail(code: string) {
   return plantilla({
     title: 'Tu código para ingresar',

@@ -3,7 +3,15 @@ import { createClient } from '../../../../lib/supabase/server'
 import { Database } from '../../../../types/database_generated'
 import { authErrorMessage } from '@/lib/auth/auth-error-messages'
 import { rollbackSignUp } from '@/lib/auth/rollback-signup'
-import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate'
+import {
+  getPersonTypeRules,
+  getIdentificationSlug,
+  validateIdentificationPair,
+} from '@/lib/identification/validate'
+import {
+  validateDocumentNumber,
+  normalizeDocumentNumber,
+} from '@/lib/identification/validate-document'
 import { toE164 } from '@/lib/phone/phone'
 import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import {
@@ -89,6 +97,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 })
     }
 
+    /**
+     * El documento no se validaba en absoluto: ni formato, ni obligatorio, ni
+     * repetido. El formato depende del tipo —el pasaporte lleva letras y los
+     * demás no— y el `slug` se resuelve acá, no se confía en el cliente.
+     *
+     * Va ANTES de consumir el código: un error de formulario no debe quemar un
+     * código y obligar a pedir otro.
+     */
+    const documentSlug = await getIdentificationSlug(supabase, identification_type_id)
+    const documentoLimpio = normalizeDocumentNumber(document_number)
+    const documentoError = validateDocumentNumber(document_number, documentSlug)
+
+    if (documentoError) {
+      return NextResponse.json({ error: documentoError }, { status: 400 })
+    }
+
+    const { data: documentoEnUso } = await createSupabaseServiceClient()
+      .from('profiles')
+      .select('id')
+      .eq('document_number', documentoLimpio)
+      .maybeSingle()
+
+    if (documentoEnUso) {
+      return NextResponse.json(
+        {
+          error:
+            'Ya hay una cuenta registrada con ese número de identificación. Si es tuya, inicia sesión o recupera tu contraseña.',
+        },
+        { status: 400 }
+      )
+    }
+
     // El código se comprueba ANTES de crear nada. Verificarlo después dejaría
     // cuentas creadas con correos que no existen: nadie podría recuperarlas, y
     // el correo quedaría bloqueado para su dueño real.
@@ -133,6 +173,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
+    /**
+     * Supabase no siempre devuelve error con un correo que ya existe.
+     *
+     * Con la confirmación de correo activada, `signUp` responde 200 y un usuario
+     * con `identities` vacío —su propia defensa contra averiguar quién está
+     * registrado—. Sin esta comprobación, el insert del perfil fallaría por
+     * clave duplicada y el `rollbackSignUp` de más abajo BORRARÍA LA CUENTA
+     * REAL de esa persona. El propio helper advierte que no debe llamarse nunca
+     * con un usuario preexistente.
+     */
+    if (authData.user && (authData.user.identities?.length ?? 0) === 0) {
+      const { message, code } = authErrorMessage(
+        { code: 'user_already_exists' },
+        'No pudimos crear la cuenta. Intenta de nuevo.',
+        'register-buyer'
+      )
+      return NextResponse.json({ error: message, code }, { status: 400 })
+    }
+
     const userId = authData.user?.id
 
     if (!userId) {
@@ -153,7 +212,7 @@ export async function POST(request: Request) {
       business_name: personType.requiresBusinessName ? business_name : null,
       contact_name: personType.requiresBusinessName ? contact_name : null,
       identification_type_id: String(identification_type_id),
-      document_number: document_number || null,
+      document_number: documentoLimpio,
       language: 'es',
       is_active: true,
       terms_accepted_at: new Date().toISOString(),
@@ -201,6 +260,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user: authData.user, profile: profileData }, { status: 201 })
   } catch (error: unknown) {
+    // Sin esto, cualquier fallo del registro era invisible en Vercel: la ruta
+    // devolvía 500 y no dejaba rastro de por qué.
+    console.error('[auth] register-buyer: error no controlado', error)
     const message = error instanceof Error ? error.message : 'Internal Server Error'
     return NextResponse.json({ error: message }, { status: 500 })
   }

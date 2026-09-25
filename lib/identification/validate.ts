@@ -83,6 +83,26 @@ export async function validateIdentificationTypeExists(
   return data ? null : { message: 'El tipo de identificación no es válido.' };
 }
 
+/**
+ * El `slug` del tipo de identificación, que es lo que decide el formato válido
+ * del número (`validateDocumentNumber`). Se resuelve en el servidor y no se
+ * confía en lo que mande el cliente.
+ */
+export async function getIdentificationSlug(
+  supabase: SupabaseClient<any>,
+  identificationTypeId: string | null | undefined
+): Promise<string | null> {
+  if (!identificationTypeId) return null;
+
+  const { data } = await supabase
+    .from('identification_types')
+    .select('slug')
+    .eq('id', identificationTypeId)
+    .maybeSingle();
+
+  return (data?.slug as string) ?? null;
+}
+
 export async function getPersonTypeRules(
   supabase: SupabaseClient<any>,
   personTypeId: string

@@ -3122,6 +3122,7 @@ export type Database = {
       }
       anonymize_buyer: { Args: { target: string }; Returns: undefined }
       call_app_cron: { Args: { path: string }; Returns: number }
+      email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       has_permission: {
         Args: { action_name: string; module_key: string }
