@@ -36,10 +36,24 @@ export function useSellerStore() {
           return;
         }
 
-        const { data: members, error: memberError } = await supabase
-          .from('store_members')
-          .select('store_id, stores(name)')
-          .eq('user_id', user.id);
+        // Admin y superadmin no son miembros de ninguna tienda, pero pueden
+        // entrar a páginas de `/seller` que `role_permissions` les abra (hoy,
+        // Clientes solo para superadmin). Para ellos se ofrecen todas las
+        // tiendas activas; a un tendero nunca le llega esta rama.
+        const { data: perfil } = await supabase
+          .from('profiles')
+          .select('roles ( name )')
+          .eq('id', user.id)
+          .maybeSingle();
+        const rol = (perfil?.roles as { name?: string } | null)?.name;
+        const esPlataforma = rol === 'admin' || rol === 'superadmin';
+
+        const { data: members, error: memberError } = esPlataforma
+          ? { data: null, error: null }
+          : await supabase
+              .from('store_members')
+              .select('store_id, stores(name)')
+              .eq('user_id', user.id);
 
         if (memberError) {
           console.error('Error in store_members query:', memberError);
@@ -47,7 +61,18 @@ export function useSellerStore() {
 
         let finalStores: SellerStore[] = [];
 
-        if (members && members.length > 0) {
+        if (esPlataforma) {
+          const { data: todas, error: storesError } = await supabase
+            .from('stores')
+            .select('id, name')
+            .eq('is_active', true)
+            .order('name', { ascending: true });
+
+          if (storesError) console.error('Error listing stores:', storesError);
+          finalStores = (todas ?? []).map((s) => ({ id: s.id, name: s.name }));
+
+          if (finalStores.length === 0) setError('No hay tiendas activas.');
+        } else if (members && members.length > 0) {
           finalStores = members.map((m: any) => ({
             id: m.store_id,
             name: m.stores?.name || 'Mi Tienda'

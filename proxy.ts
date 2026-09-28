@@ -97,15 +97,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 1) Familia de rol por prefijo de sección (admin/seller/delivery)
-  const matchedPrefix = Object.keys(ROLE_FAMILY_BY_PREFIX).find((p) => pathname.startsWith(p))
-  if (matchedPrefix && !ROLE_FAMILY_BY_PREFIX[matchedPrefix].includes(roleName)) {
-    return rebotarSinPermiso(request)
-  }
-
-  // 2) Permiso fino sobre el módulo exacto de esta ruta, si existe uno definido
+  // Permiso fino sobre el módulo exacto de esta ruta, si existe uno definido.
+  // Se resuelve antes que la familia porque puede abrirle la puerta a un rol de
+  // otra familia (ver abajo).
   const { data: moduleRow } = await supabase.from('modules').select('id').eq('path', pathname).maybeSingle()
 
+  let puedeLeerModulo = false
   if (moduleRow) {
     const { count } = await supabase
       .from('role_permissions')
@@ -115,6 +112,16 @@ export async function proxy(request: NextRequest) {
       .eq('actions.name', 'read')
 
     if (!count) return rebotarSinPermiso(request)
+    puedeLeerModulo = true
+  }
+
+  // Familia de rol por prefijo de sección (admin/seller/delivery). Un `read`
+  // explícito en `role_permissions` pesa más: así un módulo de `/seller` puede
+  // quedar solo para superadmin (Clientes) desde la tabla, sin un caso especial
+  // en el código. Las páginas sin módulo siguen protegidas por la familia.
+  const matchedPrefix = Object.keys(ROLE_FAMILY_BY_PREFIX).find((p) => pathname.startsWith(p))
+  if (matchedPrefix && !ROLE_FAMILY_BY_PREFIX[matchedPrefix].includes(roleName) && !puedeLeerModulo) {
+    return rebotarSinPermiso(request)
   }
 
   return supabaseResponse
