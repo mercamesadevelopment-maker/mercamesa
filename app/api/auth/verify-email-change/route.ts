@@ -4,6 +4,7 @@ import { createClient } from '../../../../lib/supabase/server'
 import { createSupabaseServiceClient } from '../../../../lib/supabase/service'
 import { sendEmail, emailChangeConfirmedEmail } from '../../../../lib/email/resend'
 import { authErrorMessage } from '@/lib/auth/auth-error-messages'
+import { chargeAttempt } from '@/lib/auth/verification-codes'
 
 const GENERIC_ERROR = { error: 'Código inválido o expirado' }
 
@@ -40,16 +41,12 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle()
 
-    if (!row || row.attempts >= row.max_attempts) {
+    // El intento se cobra antes de comparar y de forma atómica; ver `chargeAttempt`.
+    if (!row || !(await chargeAttempt({ service, table: 'email_change_codes', row }))) {
       return NextResponse.json(GENERIC_ERROR, { status: 400 })
     }
 
     if (hashCode(code) !== row.code_hash) {
-      await service
-        .from('email_change_codes')
-        .update({ attempts: row.attempts + 1 })
-        .eq('id', row.id)
-
       return NextResponse.json(GENERIC_ERROR, { status: 400 })
     }
 

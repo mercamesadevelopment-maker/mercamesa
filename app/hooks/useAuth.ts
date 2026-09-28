@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ApiError, authService } from '../services/auth.service';
 import { useApp, resolveRoleKey } from '@/src/store';
-import { RoleKey } from '@/src/types';
 import { useResendCooldown } from './use-resend-cooldown';
 
 export function useAuthHooks() {
@@ -114,20 +113,6 @@ export function useAuthHooks() {
     }
   };
 
-  const register = async (payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; roleKey: RoleKey; person_type_id?: string; identification_type_id?: string; document_number?: string }) => {
-    try {
-      setLoading(true);
-      clear();
-      const data = await authService.register(payload);
-      return data;
-    } catch (err: unknown) {
-      capture(err, 'Error al registrar');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const registerBuyer = async (payload: {
     email: string;
     password: string;
@@ -207,7 +192,6 @@ export function useAuthHooks() {
     login,
     verifyLoginCode,
     requestSignupCode,
-    register,
     registerBuyer,
     forgotPassword,
     verifyResetCode,
