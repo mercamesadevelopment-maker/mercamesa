@@ -7,6 +7,7 @@ import { useApp } from '@/src/store';
 import { OrderStats } from './components/OrderStats';
 import { OrderFilters } from './components/OrderFilters';
 import { OrderCard } from './components/OrderCard';
+import { SubstitutionNotice } from './components/SubstitutionNotice';
 import { Pagination } from './components/Pagination';
 import { RatingModal } from '@/src/features/stores/components/RatingModal';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
@@ -66,6 +67,9 @@ export default function OrdersPage() {
         onStatusChange={setStatus}
         onClear={handleClearFilters}
       />
+
+      {/* Solo cuando hay algo que surtir: sobre el estado vacío sería ruido. */}
+      {orders.length > 0 && <SubstitutionNotice />}
 
       <div className="space-y-6 min-h-[400px] relative">
         {loading ? (
