@@ -53,11 +53,19 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
 
   useEffect(() => {
     if (!isOpen) return;
+
+    /**
+     * Editando no se pide el inventario: el producto no se puede cambiar —el
+     * campo va deshabilitado— y sale de la propia oferta. Traerlo sería pedir
+     * miles de filas para no dejar escoger nada.
+     */
+    if (initialData) return;
+
     const url = storeId ? `/api/store-products?store_id=${storeId}` : '/api/store-products';
     fetch(url)
       .then(res => res.json())
       .then(data => { if (data.data) setStoreProducts(data.data); });
-  }, [isOpen, storeId]);
+  }, [isOpen, storeId, initialData]);
 
   useEffect(() => {
     setValidationError(null);
@@ -88,8 +96,39 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     }
   }, [initialData]);
 
+  /**
+   * El producto de la oferta que se está editando, tomado de la oferta misma.
+   *
+   * `GET /api/offers` ya lo trae entero —nombre, unidad, precio y existencias—,
+   * y hay que usarlo porque la lista de `/api/store-products` no siempre lo
+   * contiene: sin `store_id` esa ruta responde en modo vitrina (solo productos
+   * activos de tiendas activas) y encima se topa con el tope de 1000 filas de
+   * PostgREST. En /admin/offers, que no manda `store_id`, eso dejaba el campo
+   * mostrando "Selecciona un producto..." en vez del producto de la oferta.
+   */
+  const productoDeLaOferta: StoreProduct | null = useMemo(() => {
+    const p = initialData?.store_products;
+    if (!p) return null;
+    return {
+      id: p.id,
+      store_id: p.store_id,
+      price_per_unit: Number(p.price_per_unit),
+      stock: p.stock,
+      catalog_products: p.catalog_products ? { name: p.catalog_products.name } : null,
+      stores: p.stores ?? null,
+      measurement_units: p.measurement_units ?? null,
+    };
+  }, [initialData]);
+
   const productOptions: SelectOption[] = useMemo(() => {
-    return storeProducts.map((p) => {
+    // El de la oferta va primero y solo si no vino ya en el inventario, para no
+    // duplicarlo cuando la lista sí lo trae (el vendedor manda `store_id`).
+    const lista =
+      productoDeLaOferta && !storeProducts.some((p) => p.id === productoDeLaOferta.id)
+        ? [productoDeLaOferta, ...storeProducts]
+        : storeProducts;
+
+    return lista.map((p) => {
       const category = p.catalog_products?.categories;
       const group = category
         ? (category.parent?.name ? `${category.parent.name} > ${category.name}` : category.name)
@@ -102,7 +141,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
       }
       return { value: p.id, label, group };
     });
-  }, [storeProducts, storeId]);
+  }, [storeProducts, storeId, productoDeLaOferta]);
 
   /**
    * El producto escogido manda: de él salen la unidad de medida y el precio.
@@ -110,10 +149,15 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
    * que se muestra de solo lectura. Es la forma de garantizar que la unidad de
    * la oferta coincida siempre con la del inventario.
    */
-  const selectedProduct = useMemo(
-    () => storeProducts.find((p) => p.id === formData.store_product_id) || null,
-    [storeProducts, formData.store_product_id]
-  );
+  const selectedProduct = useMemo(() => {
+    // El de la oferta manda cuando es el mismo: es el único que está garantizado
+    // (ver `productoDeLaOferta`), y de él salen la unidad, el precio base contra
+    // el que se valida el descuento y las existencias del recuadro de abajo.
+    if (productoDeLaOferta && productoDeLaOferta.id === formData.store_product_id) {
+      return productoDeLaOferta;
+    }
+    return storeProducts.find((p) => p.id === formData.store_product_id) || null;
+  }, [productoDeLaOferta, storeProducts, formData.store_product_id]);
 
   const unit = selectedProduct?.measurement_units?.abbreviation || null;
   const basePrice = selectedProduct ? Number(selectedProduct.price_per_unit) : null;
