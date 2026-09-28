@@ -1,7 +1,7 @@
 import {
   CategoryRow, CategoryInsert, CategoryUpdate,
   MeasurementUnitRow, MeasurementUnitInsert, MeasurementUnitUpdate,
-  ModuleRow, ModuleInsert, ModuleUpdate,
+  ModuleRow, ModuleUpdate, RoleOption,
   DocumentTypeRow, DocumentTypeInsert, DocumentTypeUpdate,
   StoreCategoryRow, StoreCategoryInsert, StoreCategoryUpdate,
   OrderMinPriceHistoryRow, OrderMinPriceHistoryInsert,
@@ -63,24 +63,31 @@ export async function deleteMeasurementUnitService(id: string): Promise<void> {
 }
 
 // ── Modules ─────────────────────────────────────────────────────────────────
-export async function getModulesService(): Promise<ModuleRow[]> {
+/** No pasa por `handleResponse`: esa devuelve solo `data`, y aquí también hacen
+ *  falta los roles para las casillas de «Quién lo ve». */
+export async function getModulesService(): Promise<{ modules: ModuleRow[]; roles: RoleOption[] }> {
   const res = await fetch('/api/admin/modules');
-  return handleResponse<ModuleRow[]>(res);
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || 'Error en la petición');
+  return { modules: result.data ?? [], roles: result.roles ?? [] };
 }
 
-export async function saveModuleService(id: string | null, payload: ModuleInsert | ModuleUpdate): Promise<ModuleRow> {
-  const url = id ? `/api/admin/modules/${id}` : '/api/admin/modules';
-  const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, {
-    method,
+export async function updateModuleService(id: string, payload: ModuleUpdate): Promise<ModuleRow> {
+  const res = await fetch(`/api/admin/modules/${id}`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   return handleResponse<ModuleRow>(res);
 }
 
-export async function deleteModuleService(id: string): Promise<void> {
-  const res = await fetch(`/api/admin/modules/${id}`, { method: 'DELETE' });
+/** Lista completa de roles que pueden ver el módulo; el servidor aplica la diferencia. */
+export async function saveModuleReadRolesService(id: string, roleIds: string[]): Promise<void> {
+  const res = await fetch(`/api/admin/modules/${id}/read-roles`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role_ids: roleIds }),
+  });
   await handleResponse(res);
 }
 

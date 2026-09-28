@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, X, LayoutGrid } from 'lucide-react';
+import { Edit2, Search, X, LayoutGrid } from 'lucide-react';
 import { useModules } from '../hooks/use-modules';
 import { ModuleRow } from '../types/settings.types';
+import { ModuleReadRolesField } from './module-read-roles-field';
 import { Table } from '@/components/ui/table/components/Table';
-import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
-import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Badge, Input } from '@/src/components/Shared';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,9 +16,16 @@ const MAX_ROLES_VISIBLES = 3;
 /** Se resaltan porque son los que administran la plataforma entera. */
 const ROLES_DE_PLATAFORMA = ['admin', 'superadmin'];
 
+/** Configuración no puede quedarse sin su superadmin: nadie podría devolvérselo. */
+const MODULO_DE_CONFIGURACION = 'system-settings';
+
+/**
+ * Módulos del sistema. Se crean y se borran por código —cada uno es una página
+ * y `proxy.ts` lo busca por su ruta—, así que aquí solo se edita lo visible y
+ * quién puede verlos.
+ */
 export function ModulesTab() {
-  const { modules, loading, error, saveModule, deleteModule } = useModules();
-  const borrado = useDeleteConfirm<ModuleRow>((item) => deleteModule(item.id));
+  const { modules, roles, loading, error, saveModule } = useModules();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleRow | null>(null);
@@ -36,6 +42,7 @@ export function ModulesTab() {
     sort_order: 0,
     is_active: true,
   });
+  const [readRoleIds, setReadRoleIds] = useState<string[]>([]);
 
   const filteredModules = useMemo(() => {
     return modules.filter((m) =>
@@ -49,22 +56,6 @@ export function ModulesTab() {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
   } = useTable({ initialData: filteredModules });
 
-  const handleOpenAdd = () => {
-    setEditingModule(null);
-    setFormData({
-      key: '',
-      label: '',
-      description: '',
-      icon: '',
-      path: '',
-      parent_id: '',
-      sort_order: 0,
-      is_active: true,
-    });
-    setFormError(null);
-    setIsModalOpen(true);
-  };
-
   const handleOpenEdit = (item: ModuleRow) => {
     setEditingModule(item);
     setFormData({
@@ -77,25 +68,36 @@ export function ModulesTab() {
       sort_order: item.sort_order ?? 0,
       is_active: item.is_active,
     });
+    setReadRoleIds((item.read_roles ?? []).map((r) => r.id));
     setFormError(null);
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingModule) return;
+
+    // Los permisos solo se tocan si cambiaron: guardar la etiqueta no debe
+    // reescribir `role_permissions`.
+    const antes = (editingModule.read_roles ?? []).map((r) => r.id).sort();
+    const ahora = [...readRoleIds].sort();
+    const cambiaronRoles = antes.length !== ahora.length || antes.some((id, i) => id !== ahora[i]);
+
     try {
       setIsSubmitting(true);
       setFormError(null);
-      await saveModule(editingModule ? editingModule.id : null, {
-        key: formData.key,
-        label: formData.label,
-        description: formData.description || null,
-        icon: formData.icon || null,
-        path: formData.path || null,
-        parent_id: formData.parent_id || null,
-        sort_order: Number(formData.sort_order),
-        is_active: formData.is_active,
-      });
+      await saveModule(
+        editingModule.id,
+        {
+          label: formData.label,
+          description: formData.description || null,
+          icon: formData.icon || null,
+          parent_id: formData.parent_id || null,
+          sort_order: Number(formData.sort_order),
+          is_active: formData.is_active,
+        },
+        cambiaronRoles ? readRoleIds : null
+      );
       setIsModalOpen(false);
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : 'Error al guardar');
@@ -230,9 +232,6 @@ export function ModulesTab() {
             className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none text-sm text-mm-g placeholder:text-mm-txw"
           />
         </div>
-        <Button size="sm" onClick={handleOpenAdd}>
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Módulo
-        </Button>
       </div>
 
       <Table
@@ -247,27 +246,13 @@ export function ModulesTab() {
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
         actions={(item: ModuleRow) => (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleOpenEdit(item)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-              title="Editar"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => borrado.ask(item)}
-              disabled={(item.child_count ?? 0) > 0}
-              title={
-                (item.child_count ?? 0) > 0
-                  ? `No se puede eliminar. Tiene ${item.child_count} sub-módulo(s).`
-                  : 'Eliminar'
-              }
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-mm-txw"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={() => handleOpenEdit(item)}
+            className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+            title="Editar"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
         )}
       />
 
@@ -295,7 +280,7 @@ export function ModulesTab() {
               </button>
 
               <h3 className="text-2xl font-fraunces text-mm-g mb-6">
-                {editingModule ? 'Editar Módulo' : 'Nuevo Módulo'}
+                Editar Módulo
               </h3>
 
               {formError && (
@@ -313,12 +298,14 @@ export function ModulesTab() {
                     placeholder="Ej: Tiendas"
                     required
                   />
+                  {/* Clave y ruta se definen en código: `has_permission` busca el
+                      módulo por clave y `proxy.ts` por ruta. */}
                   <Input
                     label="Clave Única (Key)"
                     value={formData.key}
-                    onChange={(e) => setFormData({ ...formData, key: e.target.value })}
-                    placeholder="Ej: stores"
-                    required
+                    disabled
+                    readOnly
+                    title="Se define en código"
                   />
                 </div>
 
@@ -326,8 +313,9 @@ export function ModulesTab() {
                   <Input
                     label="Ruta (Path)"
                     value={formData.path}
-                    onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                    placeholder="Ej: /admin/stores"
+                    disabled
+                    readOnly
+                    title="Se define en código"
                   />
                   <Input
                     label="Ícono (Lucide)"
@@ -386,6 +374,13 @@ export function ModulesTab() {
                   </div>
                 </div>
 
+                <ModuleReadRolesField
+                  roles={roles}
+                  selected={readRoleIds}
+                  onChange={setReadRoleIds}
+                  lockedRoleName={editingModule?.key === MODULO_DE_CONFIGURACION ? 'superadmin' : null}
+                />
+
                 <div className="pt-4 flex gap-3">
                   <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>
                     Cancelar
@@ -399,33 +394,6 @@ export function ModulesTab() {
           </div>
         )}
       </AnimatePresence>
-
-      <ConfirmModal
-        isOpen={!!borrado.target}
-        onClose={borrado.cancel}
-        onConfirm={borrado.confirm}
-        title="Eliminar módulo"
-        message={
-          <>
-            ¿Eliminar <span className="font-bold text-mm-g">{borrado.target?.label}</span>? Dejará de
-            aparecer en el menú y se perderán los permisos que los roles tengan sobre él.
-          </>
-        }
-        variant="danger"
-        confirmText="Eliminar"
-        isLoading={borrado.isDeleting}
-      />
-
-      <ConfirmModal
-        isOpen={!!borrado.error}
-        onClose={borrado.dismissError}
-        onConfirm={borrado.dismissError}
-        title="No se puede eliminar"
-        message={borrado.error || ''}
-        variant="warning"
-        confirmText="Entendido"
-        hideCancel
-      />
     </div>
   );
 }

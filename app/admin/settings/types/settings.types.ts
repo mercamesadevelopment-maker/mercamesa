@@ -31,8 +31,14 @@ export type ModuleRow = Database['public']['Tables']['modules']['Row'] & {
    */
   read_roles?: { id: string; name: string; label: string }[];
 };
-export type ModuleInsert = Omit<Database['public']['Tables']['modules']['Insert'], 'id' | 'created_at'>;
-export type ModuleUpdate = Partial<ModuleInsert>;
+/** Los módulos se crean y se borran por código; desde la pantalla solo se edita
+ *  lo visible. `key` y `path` tampoco: el código depende de ellos. */
+export type ModuleUpdate = Partial<
+  Pick<Database['public']['Tables']['modules']['Insert'], 'label' | 'description' | 'icon' | 'parent_id' | 'sort_order' | 'is_active'>
+>;
+
+/** Un rol, tal como se ofrece en las casillas de «Quién lo ve». */
+export type RoleOption = { id: string; name: string; label: string };
 
 export type DocumentTypeRow = Database['public']['Tables']['document_types']['Row'] & {
   store_document_count?: number;
