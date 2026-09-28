@@ -15,6 +15,19 @@ export type LegalKind = 'terms' | 'privacy';
 
 export const LEGAL_KINDS: LegalKind[] = ['terms', 'privacy'];
 
+/**
+ * Cuánto puede escribirse en la observación del cambio.
+ *
+ * La columna es `text`, o sea ilimitada, y el tope es de aplicación: sin él no
+ * había forma de avisarle a quien escribe cuánto le queda, y una observación
+ * larga —que es el caso normal cuando el cambio es de fondo— se enviaba a ciegas.
+ *
+ * Vive acá para que el formulario y la ruta usen la misma cifra: dos constantes
+ * separadas se desincronizan, y entonces el campo deja escribir algo que el
+ * servidor después rechaza.
+ */
+export const MAX_LEGAL_NOTES = 2000;
+
 export const LEGAL_LABELS: Record<LegalKind, string> = {
   terms: 'Términos y condiciones',
   privacy: 'Política de tratamiento de datos',
