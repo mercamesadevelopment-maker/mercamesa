@@ -3,8 +3,14 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, MapPin, Heart, MessageSquare } from 'lucide-react';
-import { Badge, Button, cn } from '@/src/components/Shared';
-import { usePublicProducts } from '@/app/sections/products/hooks/usePublicProducts';
+import { Badge, Button, cn, normalizeText } from '@/src/components/Shared';
+import {
+  usePublicProducts,
+  useVitrinaCategorias,
+  fetchProductoCompartido,
+  CONSULTA_INICIAL,
+  type StoreProduct,
+} from '@/app/sections/products/hooks/usePublicProducts';
 import { useApp } from '@/src/store';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 import { ProductCard } from '@/src/features/products/components/ProductCard';
@@ -33,9 +39,16 @@ export default function StoreDetailPage() {
   // respuesta terminaba pisando la filtrada: la página mostraba productos de
   // otras tiendas.
   const storeId = store?.id;
-  const { products, loading: loadingProducts } = usePublicProducts(storeId, {
-    enabled: Boolean(storeId),
-  });
+  const {
+    products,
+    total,
+    loading: loadingProducts,
+    fetchProducts,
+  } = usePublicProducts(storeId, { enabled: Boolean(storeId) });
+
+  // Las categorías ya no salen de los productos cargados: con la paginación
+  // contra el servidor solo se verían las de la página actual.
+  const categories = useVitrinaCategorias(storeId, Boolean(storeId));
 
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('Todas');
@@ -97,58 +110,62 @@ export default function StoreDetailPage() {
   };
 
   // Esta página es de UNA tienda: cualquier producto de otra que llegue en la
-  // respuesta se descarta acá. Con el `enabled` del hook ya no debería pasar,
-  // pero mostrar el catálogo de otra tienda —con sus fotos— es justo lo que se
+  // respuesta se descarta acá. El servidor ya filtra por `store_id`, pero
+  // mostrar el catálogo de otra tienda —con sus fotos— es justo lo que se
   // reportó, así que el filtro se deja como red de seguridad.
   const storeProducts = useMemo(
     () => (storeId ? products.filter((p) => p.store_id === storeId) : []),
     [products, storeId]
   );
 
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    storeProducts.forEach(p => {
-      if (p.catalog_products?.categories?.name) {
-        cats.add(p.catalog_products.categories.name);
-      }
-    });
-    return ['Todas', ...Array.from(cats)];
-  }, [storeProducts]);
-
-  const filteredProducts = useMemo(() => {
-    return storeProducts.filter(p => {
-      const matchSearch = p.catalog_products?.name?.toLowerCase().includes(search.toLowerCase()) || false;
-      const matchCat = activeCat === 'Todas' || p.catalog_products?.categories?.name === activeCat;
-      return matchSearch && matchCat;
-    });
-  }, [storeProducts, search, activeCat]);
-
   useEffect(() => {
     setPage(1);
   }, [search, activeCat]);
 
-  // Al llegar por un link compartido: limpiar filtros (si hubiera alguno, no
-  // debería) y saltar a la página donde cae el producto, para que aparezca sin
-  // que la persona tenga que buscarlo. Si el producto ya no existe en esta
-  // tienda (borrado, o un id inválido), no pasa nada más: se ve el catálogo
-  // normal.
   useEffect(() => {
-    if (!highlightProductId || highlightAppliedRef.current || storeProducts.length === 0) return;
+    if (!storeId) return;
 
-    const idx = storeProducts.findIndex((p) => p.id === highlightProductId);
+    const t = setTimeout(
+      () =>
+        fetchProducts({
+          ...CONSULTA_INICIAL,
+          page,
+          pageSize: PRODUCTS_PER_PAGE,
+          // El servidor compara contra `search_text`, que la base guarda en
+          // minúscula y sin tildes; el término tiene que ir igual.
+          search: normalizeText(search),
+          category: activeCat === 'Todas' ? '' : activeCat,
+        }),
+      350
+    );
+    return () => clearTimeout(t);
+  }, [storeId, page, search, activeCat, fetchProducts]);
+
+  /**
+   * El producto de un enlace compartido se pide aparte y se muestra arriba.
+   *
+   * Antes se saltaba a la página donde caía, contando su posición dentro de la
+   * lista completa. Paginando contra el servidor esa lista ya no está en el
+   * navegador, y rehacer la posición exigiría reproducir en SQL un orden de tres
+   * claves. Mostrarlo de primero llega al mismo sitio —que la persona vea el
+   * producto que le compartieron— y además funciona con cualquier filtro puesto.
+   */
+  const [productoCompartido, setProductoCompartido] = useState<StoreProduct | null>(null);
+
+  useEffect(() => {
+    if (!highlightProductId || !storeId || highlightAppliedRef.current) return;
     highlightAppliedRef.current = true;
-    if (idx === -1) return;
 
-    setSearch('');
-    setActiveCat('Todas');
-    setPage(Math.floor(idx / PRODUCTS_PER_PAGE) + 1);
-  }, [highlightProductId, storeProducts]);
+    fetchProductoCompartido(highlightProductId, storeId).then(setProductoCompartido);
+  }, [highlightProductId, storeId]);
 
-  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
-    (page - 1) * PRODUCTS_PER_PAGE,
-    page * PRODUCTS_PER_PAGE
-  );
+  // Si además cayó en la página que se está viendo, no se pinta dos veces.
+  const productosVisibles = useMemo(() => {
+    if (!productoCompartido) return storeProducts;
+    return [productoCompartido, ...storeProducts.filter((p) => p.id !== productoCompartido.id)];
+  }, [productoCompartido, storeProducts]);
+
+  const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
 
   if (loadingStore) return <div className="p-12 text-center text-mm-txs">Cargando tienda...</div>;
   if (error || !store) return <div className="p-12 text-center text-r">{error || 'No encontrada'}</div>;
@@ -287,7 +304,7 @@ export default function StoreDetailPage() {
           </div>
           
           <CategoryScroller
-            categories={categories}
+            categories={['Todas', ...categories]}
             activeCategory={activeCat}
             onSelect={setActiveCat}
           />
@@ -295,10 +312,10 @@ export default function StoreDetailPage() {
 
         {loadingProducts ? (
           <div className="py-12 text-center text-mm-txs">Cargando productos...</div>
-        ) : filteredProducts.length > 0 ? (
+        ) : productosVisibles.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-              {paginatedProducts.map(product => (
+              {productosVisibles.map(product => (
                 <ProductCard
                   key={product.id}
                   product={product}

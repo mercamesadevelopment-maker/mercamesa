@@ -17,6 +17,23 @@ interface SearchableSelectProps {
   required?: boolean;
   className?: string;
   label?: string;
+  /**
+   * Búsqueda contra el servidor.
+   *
+   * Con `onSearchChange` el componente deja de filtrar `options` por su cuenta y
+   * se limita a mostrar lo que le pasen: quien lo usa se encarga de pedir los
+   * resultados. Es para listas que no caben en el navegador —el inventario
+   * completo son 3.746 productos— donde traerlas enteras solo para filtrarlas
+   * acá es justamente lo que hay que evitar.
+   *
+   * Sin estas props el comportamiento es el de siempre.
+   */
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  /** Hay una búsqueda en curso. Solo se usa con `onSearchChange`. */
+  loading?: boolean;
+  /** Qué decir cuando no hay resultados. */
+  emptyMessage?: string;
 }
 
 export function SearchableSelect({
@@ -28,9 +45,18 @@ export function SearchableSelect({
   required = false,
   className = '',
   label,
+  searchValue,
+  onSearchChange,
+  loading = false,
+  emptyMessage = 'No se encontraron resultados.',
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQueryLocal, setSearchQueryLocal] = useState('');
+
+  // Controlado desde afuera cuando hay búsqueda contra el servidor.
+  const busquedaRemota = typeof onSearchChange === 'function';
+  const searchQuery = busquedaRemota ? searchValue ?? '' : searchQueryLocal;
+  const setSearchQuery = busquedaRemota ? onSearchChange! : setSearchQueryLocal;
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,6 +85,10 @@ export function SearchableSelect({
   }, [options, value]);
 
   const filteredOptions = useMemo(() => {
+    // Con búsqueda remota, `options` YA viene filtrado por el servidor: volver a
+    // filtrarlo acá escondería resultados válidos (el servidor busca sin tildes
+    // y esto no).
+    if (busquedaRemota) return options;
     if (!searchQuery) return options;
     const query = searchQuery.toLowerCase();
     return options.filter(
@@ -66,7 +96,7 @@ export function SearchableSelect({
         opt.label.toLowerCase().includes(query) ||
         (opt.group || '').toLowerCase().includes(query)
     );
-  }, [options, searchQuery]);
+  }, [options, searchQuery, busquedaRemota]);
 
   // Group options if any options have groups
   const groupedOptions = useMemo(() => {
@@ -139,9 +169,13 @@ export function SearchableSelect({
 
             {/* Options List */}
             <div className="overflow-y-auto max-h-56 divide-y divide-mm-crd/30">
-              {filteredOptions.length === 0 ? (
+              {loading && filteredOptions.length === 0 ? (
                 <div className="p-4 text-center text-xs text-mm-txw font-medium">
-                  No se encontraron resultados.
+                  Buscando...
+                </div>
+              ) : filteredOptions.length === 0 ? (
+                <div className="p-4 text-center text-xs text-mm-txw font-medium">
+                  {emptyMessage}
                 </div>
               ) : (
                 <>
