@@ -38,8 +38,13 @@ export function Modal({
   const content = (
     <AnimatePresence>
       {isOpen && (
+        // z-[250], igual que `ConfirmModal`: por encima de los paneles laterales
+        // (el carrito es z-[210]) y por debajo de `LegalGate` (z-[300]). Con
+        // z-[200] quedaba detrás del carrito: en móvil, donde el panel ocupa
+        // todo el ancho, el modal de dirección no se veía; en desktop solo
+        // asomaba por el lado.
         <div
-          className="fixed z-[200] flex items-center justify-center p-4 sm:p-6"
+          className="fixed z-[250] flex items-center justify-center p-4 sm:p-6"
           style={{ inset: 0 }}
         >
           {/* Backdrop */}
