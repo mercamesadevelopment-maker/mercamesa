@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Users, Search, Loader2, KeyRound, LogOut, Store as StoreIcon, UserX, Ban, UserCheck, UserPlus, X,
+  FileCheck2, FileClock,
 } from 'lucide-react';
 import { Button, Badge } from '@/src/components/Shared';
 import { Table } from '@/components/ui/table/components/Table';
@@ -11,6 +12,7 @@ import { useAdminUsers, type AdminUser } from './hooks/use-admin-users';
 import { useAdminInvitations } from './hooks/use-admin-invitations';
 import { DeactivateUserModal } from './components/DeactivateUserModal';
 import { InviteAdminModal, type RolInvitable } from './components/InviteAdminModal';
+import { LegalAcceptanceModal } from './components/LegalAcceptanceModal';
 import { timeAgo, fechaCorta, fechaCompleta } from '@/lib/dates/relative-time';
 import type { PeriodoInactivacion } from '@/lib/auth/deactivation';
 
@@ -46,7 +48,7 @@ function FechaAuditoria({
 
 export default function AdminUsersPage() {
   const {
-    users, loading, error, fetchUsers,
+    users, documentosPublicados, loading, error, fetchUsers,
     sendPasswordReset, revokeSessions, anonymizeUser, deactivateUser, reactivateUser,
   } = useAdminUsers();
 
@@ -59,6 +61,8 @@ export default function AdminUsersPage() {
   const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
   const [inactivando, setInactivando] = useState<AdminUser | null>(null);
   const [invitando, setInvitando] = useState(false);
+  const [soloPendientes, setSoloPendientes] = useState(false);
+  const [viendoConstancia, setViendoConstancia] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -78,13 +82,14 @@ export default function AdminUsersPage() {
     const term = search.trim().toLowerCase();
     return users.filter((u) => {
       if (roleFilter && u.role?.id !== roleFilter) return false;
+      if (soloPendientes && u.legal.pendingCount === 0) return false;
       if (!term) return true;
       return (
         (u.fullName || '').toLowerCase().includes(term) ||
         (u.email || '').toLowerCase().includes(term)
       );
     });
-  }, [users, search, roleFilter]);
+  }, [users, search, roleFilter, soloPendientes]);
 
   const handleConfirm = async () => {
     if (!pending) return;
@@ -288,6 +293,59 @@ export default function AdminUsersPage() {
       ),
     },
     {
+      /**
+       * La constancia de términos, como botón: el resumen se lee de un vistazo
+       * y el detalle —qué documento, qué versión, desde qué IP— se abre.
+       */
+      key: 'terminos',
+      label: 'Términos',
+      render: (u: AdminUser) => {
+        // Sin documentos publicados nadie puede haber aceptado nada: decir
+        // "sin constancia" en las 25 filas se leería como un incumplimiento
+        // general cuando lo que falta es publicar el documento.
+        if (documentosPublicados === 0 && !u.legal.signupAcceptedAt) {
+          return (
+            <button
+              type="button"
+              onClick={() => setViendoConstancia(u)}
+              className="text-left text-xs text-mm-txw italic hover:text-mm-g hover:underline"
+            >
+              Sin documentos publicados
+            </button>
+          );
+        }
+
+        const fecha = u.legal.lastAcceptedAt ?? u.legal.signupAcceptedAt;
+        const pendientes = u.legal.pendingCount;
+
+        return (
+          <button
+            type="button"
+            onClick={() => setViendoConstancia(u)}
+            className="flex flex-col items-start gap-0.5 text-left transition-colors hover:underline"
+          >
+            {fecha ? (
+              <span
+                className="flex items-center gap-1.5 text-xs font-bold text-mm-g"
+                title={fechaCompleta(fecha)}
+              >
+                <FileCheck2 className="h-3.5 w-3.5" />
+                Aceptó {timeAgo(fecha).toLowerCase()}
+              </span>
+            ) : (
+              <span className="text-xs italic text-mm-txw">Sin constancia</span>
+            )}
+            {pendientes > 0 && (
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700">
+                <FileClock className="h-3 w-3" />
+                Le {pendientes === 1 ? 'falta 1' : `faltan ${pendientes}`}
+              </span>
+            )}
+          </button>
+        );
+      },
+    },
+    {
       // Las tres fechas de auditoría en una sola columna: por separado la tabla
       // quedaría con siete y en pantallas normales no cabría.
       key: 'actividad',
@@ -349,6 +407,30 @@ export default function AdminUsersPage() {
             <option key={r.id} value={r.id}>{r.label}</option>
           ))}
         </select>
+
+        {/* Sin documentos publicados nadie puede estar pendiente, así que el
+            filtro no tendría a quién dejar. */}
+        <label
+          className={`flex items-center gap-2 rounded-2xl border border-mm-crd bg-white px-4 py-3 text-sm whitespace-nowrap ${
+            documentosPublicados === 0
+              ? 'cursor-not-allowed text-mm-txw'
+              : 'cursor-pointer text-mm-g'
+          }`}
+          title={
+            documentosPublicados === 0
+              ? 'Todavía no hay documentos legales publicados'
+              : undefined
+          }
+        >
+          <input
+            type="checkbox"
+            checked={soloPendientes}
+            disabled={documentosPublicados === 0}
+            onChange={(e) => setSoloPendientes(e.target.checked)}
+            className="h-4 w-4 rounded border-mm-crd text-mm-g focus:ring-mm-g disabled:cursor-not-allowed"
+          />
+          Faltan por aceptar
+        </label>
       </div>
 
       {loading ? (
@@ -485,6 +567,11 @@ export default function AdminUsersPage() {
           });
           await fetchUsers();
         }}
+      />
+
+      <LegalAcceptanceModal
+        user={viendoConstancia}
+        onClose={() => setViendoConstancia(null)}
       />
 
       <InviteAdminModal

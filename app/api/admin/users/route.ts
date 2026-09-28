@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { fetchAuthActivity } from '@/lib/supabase/auth-activity';
+import { getCurrentLegalDocuments } from '@/lib/legal/current-documents';
 
 export async function GET(request: Request) {
   try {
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
         updated_at,
         anonymized_at,
         is_active,
+        terms_accepted_at,
         role_id,
         roles ( id, name, label ),
         store_members!store_members_user_id_fkey ( stores ( id, name ) )
@@ -85,6 +87,33 @@ export async function GET(request: Request) {
       if (!porUsuario.has(d.user_id)) porUsuario.set(d.user_id, d);
     }
 
+    /**
+     * La constancia de haber aceptado los documentos legales.
+     *
+     * Se resuelve para toda la lista de una vez —una consulta de vigentes y una
+     * de aceptaciones— y no con `getPendingLegalDocuments` por usuario, que
+     * serían dos consultas por cada uno.
+     */
+    const vigentes = await getCurrentLegalDocuments(service);
+    const idsVigentes = vigentes.map((d) => d.id);
+    const ids = (data || []).map((p) => p.id);
+
+    const { data: aceptaciones } = ids.length
+      ? await service
+          .from('legal_acceptances')
+          .select('user_id, document_id, accepted_at')
+          .in('user_id', ids)
+      : { data: [] };
+
+    /** Por usuario: cuándo fue la última y qué documentos vigentes ya aceptó. */
+    const legalPorUsuario = new Map<string, { ultima: string | null; vigentesAceptados: Set<string> }>();
+    for (const a of aceptaciones ?? []) {
+      const actual = legalPorUsuario.get(a.user_id) ?? { ultima: null, vigentesAceptados: new Set<string>() };
+      if (!actual.ultima || a.accepted_at > actual.ultima) actual.ultima = a.accepted_at;
+      if (idsVigentes.includes(a.document_id)) actual.vigentesAceptados.add(a.document_id);
+      legalPorUsuario.set(a.user_id, actual);
+    }
+
     const users = (data || []).map((p) => ({
       id: p.id,
       fullName: p.full_name,
@@ -105,13 +134,34 @@ export async function GET(request: Request) {
             actorName: (porUsuario.get(p.id).actor?.full_name as string | null) ?? null,
           }
         : null,
+      legal: {
+        lastAcceptedAt: legalPorUsuario.get(p.id)?.ultima ?? null,
+        /**
+         * El superadmin nunca queda pendiente, con la misma regla y por la
+         * misma razón que `getPendingLegalDocuments`: si un PDF se sube mal,
+         * alguien tiene que poder entrar a arreglarlo.
+         */
+        pendingCount:
+          p.roles?.name === 'superadmin'
+            ? 0
+            : idsVigentes.length - (legalPorUsuario.get(p.id)?.vigentesAceptados.size ?? 0),
+        /**
+         * La aceptación que registra el formulario de registro, anterior al
+         * sistema de documentos. Solo la tienen compradores: tenderos y
+         * administradores entran por invitación y ese flujo nunca la pidió.
+         */
+        signupAcceptedAt: p.terms_accepted_at,
+      },
       role: p.roles ? { id: p.roles.id, name: p.roles.name, label: p.roles.label } : null,
       stores: (p.store_members || [])
         .map((m) => m.stores)
         .filter((s): s is { id: string; name: string } => !!s),
     }));
 
-    return NextResponse.json({ data: users }, { status: 200 });
+    return NextResponse.json(
+      { data: users, publishedLegalDocuments: vigentes.length },
+      { status: 200 }
+    );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ error: message }, { status: 500 });

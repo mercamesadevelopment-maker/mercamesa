@@ -13,6 +13,19 @@ export interface Inactivacion {
   actorName: string | null;
 }
 
+/** La constancia legal resumida, para la columna de la tabla. */
+export interface ConstanciaLegal {
+  /** La aceptación más reciente registrada en `legal_acceptances`. */
+  lastAcceptedAt: string | null;
+  /** Documentos vigentes que todavía no acepta. El superadmin siempre 0. */
+  pendingCount: number;
+  /**
+   * La aceptación del formulario de registro, anterior al sistema de
+   * documentos. No apunta a ningún PDF.
+   */
+  signupAcceptedAt: string | null;
+}
+
 export interface AdminUser {
   id: string;
   fullName: string | null;
@@ -31,6 +44,7 @@ export interface AdminUser {
   deactivation: Inactivacion | null;
   role: { id: string; name: string; label: string } | null;
   stores: { id: string; name: string }[];
+  legal: ConstanciaLegal;
 }
 
 async function handle<T>(res: Response): Promise<T> {
@@ -41,6 +55,14 @@ async function handle<T>(res: Response): Promise<T> {
 
 export function useAdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  /**
+   * Cuántos documentos legales hay publicados.
+   *
+   * Sin ninguno, nadie puede estar pendiente de aceptar: la pantalla tiene que
+   * decir eso y no dejar 25 filas en blanco, que se leería como si todos
+   * estuvieran incumpliendo.
+   */
+  const [documentosPublicados, setDocumentosPublicados] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,10 +74,12 @@ export function useAdminUsers() {
       if (search) params.set('search', search);
       if (roleId) params.set('role_id', roleId);
       const qs = params.toString();
-      const { data } = await handle<{ data: AdminUser[] }>(
-        await fetch(`/api/admin/users${qs ? `?${qs}` : ''}`)
-      );
+      const { data, publishedLegalDocuments } = await handle<{
+        data: AdminUser[];
+        publishedLegalDocuments: number;
+      }>(await fetch(`/api/admin/users${qs ? `?${qs}` : ''}`));
       setUsers(data);
+      setDocumentosPublicados(publishedLegalDocuments ?? 0);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error cargando los usuarios');
     } finally {
@@ -104,6 +128,7 @@ export function useAdminUsers() {
 
   return {
     users,
+    documentosPublicados,
     loading,
     error,
     fetchUsers,
