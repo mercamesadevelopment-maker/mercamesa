@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input } from '@/src/components/Shared';
+import { Button, Input, normalizeText } from '@/src/components/Shared';
 import { SearchableSelect, SelectOption } from '@/components/ui/searchable-select';
 import { parseAmount, validateOffer, formatCop, offerFinalPrice } from '@/lib/offers/validate-offer';
 import type { StoreOffer } from '../types/offer.types';
@@ -31,6 +31,14 @@ interface OfferModalProps {
   allowStatusEdit?: boolean;
 }
 
+/**
+ * Cuántos productos trae el desplegable de una vez.
+ *
+ * No es paginación: es un tope. Quien no vea el suyo entre los primeros escribe
+ * y el servidor busca sobre el inventario completo.
+ */
+const TOPE_PRODUCTOS = 50;
+
 /** El descuento se expresa de una sola forma; no se pueden mezclar. */
 type DiscountMode = 'pct' | 'price';
 
@@ -51,13 +59,61 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     is_featured: false,
   });
 
+  /**
+   * El inventario se busca contra el servidor, no se descarga entero.
+   *
+   * Son 3.746 productos publicados (~4,3 MB) y el desplegable solo necesita uno.
+   * Al abrir se traen los primeros `TOPE_PRODUCTOS`; al escribir, el servidor
+   * busca sobre `search_text`, que es la columna sin tildes, así que "platano"
+   * sigue encontrando "plátano".
+   */
+  const [busqueda, setBusqueda] = useState('');
+  const [buscando, setBuscando] = useState(false);
+  /** Descarta respuestas viejas: al escribir no vuelven en orden. */
+  const peticionRef = useRef(0);
+
   useEffect(() => {
     if (!isOpen) return;
-    const url = storeId ? `/api/store-products?store_id=${storeId}` : '/api/store-products';
-    fetch(url)
-      .then(res => res.json())
-      .then(data => { if (data.data) setStoreProducts(data.data); });
-  }, [isOpen, storeId]);
+
+    /**
+     * Editando no se pide el inventario: el producto no se puede cambiar —el
+     * campo va deshabilitado— y sale de la propia oferta. Traerlo sería pedir
+     * miles de filas para no dejar escoger nada.
+     */
+    if (initialData) return;
+
+    const miTurno = ++peticionRef.current;
+
+    const t = setTimeout(async () => {
+      try {
+        setBuscando(true);
+        const params = new URLSearchParams({ limit: String(TOPE_PRODUCTOS) });
+        if (storeId) params.set('store_id', storeId);
+        // El servidor compara contra `search_text`, guardada en minúscula y sin
+        // tildes; el término tiene que ir igual.
+        const termino = normalizeText(busqueda);
+        if (termino) params.set('search', termino);
+
+        const res = await fetch(`/api/store-products?${params}`);
+        const data = await res.json();
+        if (miTurno !== peticionRef.current) return;
+        if (data.data) setStoreProducts(data.data);
+      } catch (err) {
+        console.error('No se pudo cargar el inventario', err);
+      } finally {
+        if (miTurno === peticionRef.current) setBuscando(false);
+      }
+      // Sin espera al abrir; con espera mientras se escribe.
+    }, busqueda ? 350 : 0);
+
+    return () => clearTimeout(t);
+  }, [isOpen, storeId, initialData, busqueda]);
+
+  // El buscador se vacía al cerrar, para que la próxima apertura no arranque con
+  // la búsqueda de la vez pasada.
+  useEffect(() => {
+    if (!isOpen) setBusqueda('');
+  }, [isOpen]);
 
   useEffect(() => {
     setValidationError(null);
@@ -88,8 +144,57 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     }
   }, [initialData]);
 
+  /**
+   * El producto de la oferta que se está editando, tomado de la oferta misma.
+   *
+   * `GET /api/offers` ya lo trae entero —nombre, unidad, precio y existencias—,
+   * y hay que usarlo porque la lista de `/api/store-products` no siempre lo
+   * contiene: sin `store_id` esa ruta responde en modo vitrina (solo productos
+   * activos de tiendas activas) y encima se topa con el tope de 1000 filas de
+   * PostgREST. En /admin/offers, que no manda `store_id`, eso dejaba el campo
+   * mostrando "Selecciona un producto..." en vez del producto de la oferta.
+   */
+  const productoDeLaOferta: StoreProduct | null = useMemo(() => {
+    const p = initialData?.store_products;
+    if (!p) return null;
+    return {
+      id: p.id,
+      store_id: p.store_id,
+      price_per_unit: Number(p.price_per_unit),
+      stock: p.stock,
+      catalog_products: p.catalog_products ? { name: p.catalog_products.name } : null,
+      stores: p.stores ?? null,
+      measurement_units: p.measurement_units ?? null,
+    };
+  }, [initialData]);
+
+  /**
+   * El producto que se acaba de escoger.
+   *
+   * Con la búsqueda contra el servidor, `storeProducts` se reemplaza en cada
+   * búsqueda: sin recordarlo acá, escribir otra cosa después de elegir dejaba el
+   * campo mostrando "Selecciona un producto..." aunque el valor siguiera puesto.
+   */
+  const [productoElegido, setProductoElegido] = useState<StoreProduct | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) setProductoElegido(null);
+  }, [isOpen]);
+
   const productOptions: SelectOption[] = useMemo(() => {
-    return storeProducts.map((p) => {
+    // El de la oferta y el recién elegido van primero, y solo si no vinieron ya
+    // en el inventario, para no duplicarlos.
+    const fijos = [productoDeLaOferta, productoElegido].filter(
+      (p): p is StoreProduct => !!p && !storeProducts.some((s) => s.id === p.id)
+    );
+    const vistos = new Set<string>();
+    const lista = [...fijos, ...storeProducts].filter((p) => {
+      if (vistos.has(p.id)) return false;
+      vistos.add(p.id);
+      return true;
+    });
+
+    return lista.map((p) => {
       const category = p.catalog_products?.categories;
       const group = category
         ? (category.parent?.name ? `${category.parent.name} > ${category.name}` : category.name)
@@ -102,7 +207,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
       }
       return { value: p.id, label, group };
     });
-  }, [storeProducts, storeId]);
+  }, [storeProducts, storeId, productoDeLaOferta, productoElegido]);
 
   /**
    * El producto escogido manda: de él salen la unidad de medida y el precio.
@@ -110,10 +215,18 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
    * que se muestra de solo lectura. Es la forma de garantizar que la unidad de
    * la oferta coincida siempre con la del inventario.
    */
-  const selectedProduct = useMemo(
-    () => storeProducts.find((p) => p.id === formData.store_product_id) || null,
-    [storeProducts, formData.store_product_id]
-  );
+  const selectedProduct = useMemo(() => {
+    // El de la oferta manda cuando es el mismo: es el único que está garantizado
+    // (ver `productoDeLaOferta`), y de él salen la unidad, el precio base contra
+    // el que se valida el descuento y las existencias del recuadro de abajo.
+    if (productoDeLaOferta && productoDeLaOferta.id === formData.store_product_id) {
+      return productoDeLaOferta;
+    }
+    if (productoElegido && productoElegido.id === formData.store_product_id) {
+      return productoElegido;
+    }
+    return storeProducts.find((p) => p.id === formData.store_product_id) || null;
+  }, [productoDeLaOferta, productoElegido, storeProducts, formData.store_product_id]);
 
   const unit = selectedProduct?.measurement_units?.abbreviation || null;
   const basePrice = selectedProduct ? Number(selectedProduct.price_per_unit) : null;
@@ -216,9 +329,25 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
           required
           disabled={!!initialData}
           value={formData.store_product_id}
-          onChange={(val) => { setValidationError(null); setFormData(prev => ({ ...prev, store_product_id: val })); }}
+          onChange={(val) => {
+            setValidationError(null);
+            setProductoElegido(storeProducts.find((p) => p.id === val) ?? null);
+            setFormData(prev => ({ ...prev, store_product_id: val }));
+          }}
           placeholder="Selecciona un producto..."
           options={productOptions}
+          // Editando no hay nada que buscar: el campo está deshabilitado y el
+          // producto sale de la propia oferta.
+          {...(initialData
+            ? {}
+            : {
+                searchValue: busqueda,
+                onSearchChange: setBusqueda,
+                loading: buscando,
+                emptyMessage: busqueda
+                  ? 'Ningún producto coincide con esa búsqueda.'
+                  : 'Esta tienda todavía no tiene productos publicados.',
+              })}
         />
 
         {/* Unidad y precio del inventario, de solo lectura: la oferta hereda la

@@ -3045,6 +3045,26 @@ export type Database = {
       }
     }
     Views: {
+      vitrina_productos: {
+        Row: {
+          id: string | null
+          store_id: string | null
+          price_per_unit: number | null
+          stock: number | null
+          is_featured: boolean | null
+          featured_at: string | null
+          product_name: string | null
+          product_search_text: string | null
+          product_image_url: string | null
+          category_name: string | null
+          store_name: string | null
+          store_slug: string | null
+          marketplace_id: string | null
+          marketplace_name: string | null
+          unit_abbreviation: string | null
+        }
+        Relationships: []
+      }
       marketplaces_detail: {
         Row: {
           address: string | null
@@ -3123,6 +3143,10 @@ export type Database = {
       anonymize_buyer: { Args: { target: string }; Returns: undefined }
       call_app_cron: { Args: { path: string }; Returns: number }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
+      vitrina_categorias: {
+        Args: { p_store_id?: string | null }
+        Returns: { name: string; total: number }[]
+      }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       has_permission: {
         Args: { action_name: string; module_key: string }
