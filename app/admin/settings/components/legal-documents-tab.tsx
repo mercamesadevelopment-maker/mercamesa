@@ -6,6 +6,7 @@ import { FileText, Upload, ExternalLink, Loader2, Mail, AlertCircle } from 'luci
 import { Button, Input } from '@/src/components/Shared';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { fechaCompleta } from '@/lib/dates/relative-time';
+import { MAX_LEGAL_NOTES } from '@/lib/legal/current-documents';
 import { useLegalDocuments, type LegalKind } from '../hooks/use-legal-documents';
 import type { LegalDocumentRow } from '../services/settings.service';
 
@@ -164,8 +165,12 @@ export function LegalDocumentsTab() {
                     {fechaCompleta(vigente.publishedAt)}
                   </p>
 
+                  {/* `whitespace-pre-line`: una observación de varios párrafos
+                      salía como un bloque corrido. */}
                   {vigente.notes && (
-                    <p className="mt-2 text-xs italic text-mm-txs">«{vigente.notes}»</p>
+                    <p className="mt-2 whitespace-pre-line text-xs italic text-mm-txs">
+                      «{vigente.notes}»
+                    </p>
                   )}
 
                   {vigente.notifiedAt && (
@@ -186,26 +191,33 @@ export function LegalDocumentsTab() {
                     <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-mm-txw">
                       Versiones anteriores
                     </p>
-                    <ul className="space-y-1.5">
+                    <ul className="space-y-3">
                       {anteriores.map((v) => (
-                        <li
-                          key={v.id}
-                          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-mm-txs"
-                        >
-                          <span className="font-semibold text-mm-g">Versión {v.version}</span>
-                          <span className="text-mm-txw">·</span>
-                          <span className="text-mm-txw">{fechaCompleta(v.publishedAt)}</span>
-                          <span className="text-mm-txw">·</span>
-                          <span className="text-mm-txw">{v.publishedBy ?? 'sin registro'}</span>
-                          {v.url && (
-                            <a
-                              href={v.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-bold text-mm-g hover:underline"
-                            >
-                              Abrir PDF
-                            </a>
+                        <li key={v.id} className="text-xs text-mm-txs">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-semibold text-mm-g">Versión {v.version}</span>
+                            <span className="text-mm-txw">·</span>
+                            <span className="text-mm-txw">{fechaCompleta(v.publishedAt)}</span>
+                            <span className="text-mm-txw">·</span>
+                            <span className="text-mm-txw">{v.publishedBy ?? 'sin registro'}</span>
+                            {v.url && (
+                              <a
+                                href={v.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-bold text-mm-g hover:underline"
+                              >
+                                Abrir PDF
+                              </a>
+                            )}
+                          </div>
+                          {/* El formulario promete que la observación "queda en
+                              el historial", pero el historial no la mostraba:
+                              solo se veía la de la versión vigente. */}
+                          {v.notes && (
+                            <p className="mt-1 whitespace-pre-line italic text-mm-txw">
+                              «{v.notes}»
+                            </p>
                           )}
                         </li>
                       ))}
@@ -270,11 +282,23 @@ export function LegalDocumentsTab() {
                   <textarea
                     value={notas}
                     onChange={(e) => setNotas(e.target.value)}
-                    rows={3}
+                    rows={6}
                     required
+                    maxLength={MAX_LEGAL_NOTES}
                     placeholder="Qué cambió y por qué. Queda en el historial."
                     className="rounded-xl border border-mm-crd bg-white px-4 py-2.5 text-sm outline-none transition-all focus:border-mm-g"
                   />
+                  {/* El contador avisa ANTES de llegar al tope. Sin él, quien
+                      escribe varios párrafos se entera de que no cabían cuando
+                      el campo deja de responder. */}
+                  <p
+                    className={`ml-1 text-right text-[11px] ${
+                      notas.length >= MAX_LEGAL_NOTES ? 'font-bold text-amber-700' : 'text-mm-txw'
+                    }`}
+                  >
+                    {notas.length.toLocaleString('es-CO')} / {MAX_LEGAL_NOTES.toLocaleString('es-CO')}
+                    {notas.length >= MAX_LEGAL_NOTES && ' · llegaste al máximo'}
+                  </p>
                 </div>
 
                 {/* Solo tiene sentido si ya hay algo publicado que corregir. */}

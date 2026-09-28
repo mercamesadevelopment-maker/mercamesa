@@ -4,6 +4,7 @@ import { getStoragePublicUrl } from '@/lib/supabase/utils';
 import {
   LEGAL_BUCKET,
   LEGAL_KINDS,
+  MAX_LEGAL_NOTES,
   type LegalKind,
 } from '@/lib/legal/current-documents';
 import { notifyLegalDocumentUpdate } from '@/lib/legal/notify-update';
@@ -119,6 +120,19 @@ export async function POST(request: Request) {
     if (!notes) {
       return NextResponse.json(
         { error: 'La observación del cambio es requerida.' },
+        { status: 400 }
+      );
+    }
+
+    // El tope se comprueba también acá y no solo con el `maxLength` del campo:
+    // ese se salta con una petición hecha a mano.
+    if (notes.length > MAX_LEGAL_NOTES) {
+      return NextResponse.json(
+        {
+          error:
+            `La observación no puede pasar de ${MAX_LEGAL_NOTES} caracteres; ` +
+            `la que enviaste tiene ${notes.length}.`,
+        },
         { status: 400 }
       );
     }
