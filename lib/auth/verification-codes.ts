@@ -169,6 +169,69 @@ export async function issueCode({
   return code;
 }
 
+/** `password_reset_codes` tiene la misma forma, pero su emisión todavía vive en
+ *  `forgot-password` y no en `issueCode`; para cobrar intentos basta la forma. */
+export type AttemptTable = CodeTable | 'password_reset_codes';
+
+/** Cuántas veces se reintenta cobrar cuando otra petición cobró primero. Solo
+ *  acota el trabajo: el tope real lo pone `max_attempts`. */
+const MAX_CHARGE_RETRIES = 10;
+
+/**
+ * Cobra un intento del código. Solo quien lo cobra puede comparar.
+ *
+ * Antes se leía `attempts`, se comparaba el código y, si fallaba, se escribía
+ * `attempts + 1`. Entre la lectura y la escritura, cualquier cantidad de
+ * peticiones simultáneas leía el mismo valor y comparaba su propio código: 30
+ * intentos a la vez contaban como 2 o 3. Con seis dígitos, eso convierte el tope
+ * de 5 en ninguno, y en recuperar contraseña es tomar la cuenta.
+ *
+ * Por eso el intento se cobra ANTES de comparar, y el cobro es condicional:
+ * `UPDATE ... SET attempts = n + 1 WHERE attempts = n`. Si otra petición cobró
+ * primero, el `WHERE` no casa y aquí se relee y se reintenta. Cada comparación
+ * queda precedida de un incremento propio, así que el total de comparaciones no
+ * pasa de `max_attempts` haya la concurrencia que haya. Un código correcto
+ * también gasta su intento; es el precio de no saber, antes de cobrar, si lo es.
+ */
+export async function chargeAttempt({
+  service,
+  table,
+  row,
+}: {
+  service: SupabaseClient<any>;
+  table: AttemptTable;
+  row: { id: string; attempts: number; max_attempts: number };
+}): Promise<boolean> {
+  let attempts = row.attempts;
+
+  for (let i = 0; i < MAX_CHARGE_RETRIES; i++) {
+    if (attempts >= row.max_attempts) return false;
+
+    const { data: cobrado } = await service
+      .from(table)
+      .update({ attempts: attempts + 1 })
+      .eq('id', row.id)
+      .eq('attempts', attempts)
+      .is('consumed_at', null)
+      .select('id')
+      .maybeSingle();
+
+    if (cobrado) return true;
+
+    const { data: actual } = await service
+      .from(table)
+      .select('attempts, consumed_at')
+      .eq('id', row.id)
+      .maybeSingle();
+
+    if (!actual || actual.consumed_at) return false;
+    attempts = actual.attempts;
+  }
+
+  // Se agotaron los reintentos: falla cerrado.
+  return false;
+}
+
 type ConsumeResult =
   | { ok: true; row: { id: string; [k: string]: any } }
   | { ok: false };
@@ -204,18 +267,13 @@ export async function consumeCode({
     .limit(1)
     .maybeSingle();
 
-  if (!row || row.attempts >= row.max_attempts) return { ok: false };
+  if (!row) return { ok: false };
 
-  if (hashCode(code) !== row.code_hash) {
-    // Contar el intento fallido es lo que impide probar el millón de
-    // combinaciones de seis dígitos.
-    await service
-      .from(table)
-      .update({ attempts: row.attempts + 1 })
-      .eq('id', row.id);
+  // El intento se cobra antes de comparar: es lo que impide probar el millón de
+  // combinaciones de seis dígitos, también con peticiones simultáneas.
+  if (!(await chargeAttempt({ service, table, row }))) return { ok: false };
 
-    return { ok: false };
-  }
+  if (hashCode(code) !== row.code_hash) return { ok: false };
 
   return { ok: true, row };
 }
@@ -265,18 +323,13 @@ export async function claimCode({
     .limit(1)
     .maybeSingle();
 
-  if (row && row.attempts < row.max_attempts) {
-    if (hashCode(code) !== row.code_hash) {
-      // Contar el intento fallido es lo que impide probar el millón de
-      // combinaciones de seis dígitos. Ojo: acá NO se reclama nada, o un código
-      // equivocado dejaría inservible al bueno.
-      await service
-        .from(table)
-        .update({ attempts: row.attempts + 1 })
-        .eq('id', row.id);
-
-      return { ok: false };
-    }
+  // Si no se puede cobrar el intento no se compara, pero tampoco se responde
+  // todavía: puede ser la segunda mitad de un doble clic cuyo gemelo ya reclamó
+  // el código, y eso lo resuelve la búsqueda de abajo.
+  if (row && (await chargeAttempt({ service, table, row }))) {
+    // Ojo: con un código equivocado NO se reclama nada, o dejaría inservible al
+    // bueno. El intento ya quedó cobrado.
+    if (hashCode(code) !== row.code_hash) return { ok: false };
 
     const { data: reclamada } = await service
       .from(table)
