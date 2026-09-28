@@ -152,7 +152,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: message }, { status: 400 });
       }
 
-      const { error: perfilError } = await supabase
+      // Con la llave de servicio: desde la sesión del propio usuario solo se
+      // puede crear un perfil de comprador (trigger `profiles_guard_authority`).
+      // El rol sale de la invitación ya validada, no del cuerpo.
+      const { error: perfilError } = await serviceSupabase
         .from('profiles')
         .insert({
           id: user.id,
@@ -232,7 +235,9 @@ export async function POST(request: Request) {
 
     // 4. Create the profile record in profiles
     const roleId = invite.role || '8c87f324-1ed6-4d75-914f-cb66d9f12a45'; // fallback to seller / Tendero
-    const { error: profileError } = await supabase
+    // Con la llave de servicio por la misma razón que el perfil de administrador
+    // de arriba: la sesión del usuario solo puede crear perfiles de comprador.
+    const { error: profileError } = await serviceSupabase
       .from('profiles')
       .insert({
         id: user.id,

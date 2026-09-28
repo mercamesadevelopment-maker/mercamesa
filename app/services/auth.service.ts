@@ -81,10 +81,6 @@ export const authService = {
     return post('/api/auth/request-signup-code', { email }, 'No pudimos enviar el código');
   },
 
-  async register(payload: { email: string; password: string; full_name: string; phone?: string; role_id: string; buyer_type?: string; person_type_id?: string; identification_type_id?: string; document_number?: string }) {
-    return post('/api/auth/register', payload, 'No pudimos crear la cuenta');
-  },
-
   async registerBuyer(payload: {
     email: string;
     password: string;

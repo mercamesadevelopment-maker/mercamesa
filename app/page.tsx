@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Button, cn } from '@/src/components/Shared';
 import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
 import { LoginModal } from './auth/LoginModal';
-import { RegisterModal } from './auth/RegisterModal';
 import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
@@ -31,7 +30,6 @@ export default function Page() {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const { terms, privacy } = useLegalLinks();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isBuyerRegisterOpen, setIsBuyerRegisterOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   // Correo que viaja del registro al inicio de sesión cuando resulta que ya
@@ -231,7 +229,7 @@ export default function Page() {
           <h2 className="text-4xl font-fraunces text-mm-g text-center mb-16">¿Qué puedes hacer hoy?</h2>
           <div className="grid md:grid-cols-4 gap-12 relative">
             {[
-              { icon: <User className="w-10 h-10" />, title: "Registro", desc: "Registrarte como productor, comerciante, transportador, administrador o consumidor", onClick: () => setIsRegisterOpen(true) },
+              { icon: <User className="w-10 h-10" />, title: "Registro", desc: "Crear tu cuenta de comprador. Las tiendas se suman por invitación", onClick: () => setIsBuyerRegisterOpen(true) },
               { icon: <ShoppingBag className="w-10 h-10" />, title: "Exploración", desc: "Explorar productos con trazabilidad y propósito" },
               { icon: <Package className="w-10 h-10" />, title: "Descarga", desc: "Descargar la app y empezar a comprar con conciencia" },
               { icon: <Leaf className="w-10 h-10" />, title: "Conexión", desc: "Conectarte con quienes sostienen el sistema agroalimentario" }
@@ -361,7 +359,6 @@ export default function Page() {
             }}
           />
         )}
-        {isRegisterOpen && <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />}
         {isBuyerRegisterOpen && (
           <BuyerRegisterModal
             isOpen={isBuyerRegisterOpen}
