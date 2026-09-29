@@ -78,13 +78,17 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     /**
-     * Get payment
+     * El intento de pago más reciente del pedido. Puede haber varios (el botón
+     * «Pagar» de «Mis órdenes» abre uno nuevo por cada vez); el comprador vuelve
+     * de la pasarela por el último. Los anteriores los resuelve la sonda.
      */
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('id, str_id_pago, order_id')
       .eq('order_id', orderId)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (paymentError || !payment) {
       throw new Error(`Payment not found for order ${orderId}: ${paymentError?.message || 'No record'}`);
@@ -182,7 +186,7 @@ serve(async (req) => {
         callback_response: result,
         updated_at: new Date().toISOString(),
       })
-      .eq('order_id', orderId);
+      .eq('id', payment.id);
 
     if (updatePaymentError) throw new Error(`Update payment error: ${updatePaymentError.message}`);
 
@@ -198,12 +202,28 @@ serve(async (req) => {
       orderUpdate.status = 'confirmed';
     }
 
-    const { error: updateOrderError } = await supabase
+    // Un pedido ya pagado por otro intento no vuelve atrás.
+    let orderQuery = supabase
       .from('orders')
       .update(orderUpdate)
       .eq('id', orderId);
+    if (paymentStatus !== 'approved') {
+      orderQuery = orderQuery.neq('payment_status', 'approved');
+    }
+    const { error: updateOrderError } = await orderQuery;
 
     if (updateOrderError) throw new Error(`Update order error: ${updateOrderError.message}`);
+
+    // Lo que ve el comprador es el estado del pedido, no el de este intento: si
+    // otro intento ya lo pagó, está pagado.
+    if (paymentStatus !== 'approved') {
+      const { data: order } = await supabase
+        .from('orders')
+        .select('payment_status')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (order?.payment_status === 'approved') paymentStatus = 'approved';
+    }
 
     return new Response(
       JSON.stringify({

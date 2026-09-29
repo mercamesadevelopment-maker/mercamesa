@@ -46,13 +46,33 @@ serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, total')
+      .select('id, total, payable_until')
       .eq('id', compraData.orderId)
       .eq('buyer_id', user.id)
       .single()
 
     if (orderError || !order) {
       throw new Error('Orden no encontrada')
+    }
+
+    // Con el botón «Pagar» de «Mis órdenes» un pedido puede tener varios
+    // intentos. Solo se abre uno nuevo si el pedido sigue pagable (pendiente,
+    // sin pago aprobado y sin vencer, ver `public.payable_until`): si no, un
+    // pedido ya pagado se podría cobrar dos veces.
+    if (!order.payable_until || new Date(order.payable_until) <= new Date()) {
+      throw new Error('Este pedido ya no se puede pagar. Revisa su estado en «Mis órdenes».')
+    }
+
+    // Un intento que ZonaPagos ya reporta en curso (un PSE esperando al banco)
+    // puede terminar aprobado: abrir otro encima arriesga cobrar dos veces.
+    const { count: enCurso } = await supabase
+      .from('payments')
+      .select('id', { count: 'exact', head: true })
+      .eq('order_id', order.id)
+      .eq('status', 'processing')
+
+    if (enCurso) {
+      throw new Error('Hay un pago de este pedido en proceso con tu banco. Espera unos minutos a que se confirme.')
     }
 
     const amountToCharge = Number(order.total)

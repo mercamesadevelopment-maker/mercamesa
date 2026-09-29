@@ -9,6 +9,7 @@ import {
   DeliveryQuoteUnavailableError,
 } from '@/lib/pricing/delivery-quote';
 import { canManageStore } from '@/lib/auth/can-manage-store';
+import { findReusableOrderId } from '@/lib/orders/find-reusable-order';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -299,6 +300,29 @@ export async function POST(request: Request) {
       }
     }
     // --- END MINIMUM ORDER PRICE VALIDATION ---
+
+    // Un reintento con el mismo carrito reutiliza el pedido pendiente en vez de
+    // crear otro. Va antes de cotizar el domicilio: ese pedido ya tiene el suyo.
+    if (!isInStore) {
+      const reusableId = await findReusableOrderId(supabase, {
+        buyerId: user.id,
+        storeId: String(storeOrders[0].store_id),
+        deliveryAddressId: order.delivery_address_id!,
+        items: recalculatedItems,
+      });
+
+      if (reusableId) {
+        const { data: reused } = await supabase
+          .from('orders')
+          .select('*, order_items (*)')
+          .eq('id', reusableId)
+          .single();
+
+        if (reused) {
+          return NextResponse.json({ data: reused, idempotent: true }, { status: 200 });
+        }
+      }
+    }
 
     // --- PRICING: comisiones y domicilio, ambos derivados del servidor ---
     // El `delivery_fee` que mande el navegador se ignora por completo. Antes se

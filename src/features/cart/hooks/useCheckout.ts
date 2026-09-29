@@ -7,9 +7,11 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   generateIdempotencyKey,
   createOrderWithItems,
-  initiateZonapagosPayment,
   payWithSavedCard,
-  getPaymentUrl,
+  obtenerPerfilDePago,
+  iniciarPagoDeOrden,
+  PERFIL_SIN_DOCUMENTO,
+  PERFIL_SIN_EMAIL,
 } from '@/src/features/payment/services/payment.service';
 import { CartItem } from '@/src/types';
 import { fmt } from '@/src/constants';
@@ -278,29 +280,12 @@ export function useCheckout() {
       }
 
       const buyerId = user.id;
+      // Ya no evita duplicados por sí sola: se genera por clic. El que reutiliza
+      // el pedido de un reintento es `POST /api/orders`, comparando el carrito.
       const idempotencyKey = generateIdempotencyKey();
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email, phone, document_number')
-        .eq('id', buyerId)
-        .single();
-
-      if (!profile) {
-        throw new Error('No se encontró el perfil del usuario');
-      }
-
-      if (!profile.document_number) {
-        throw new Error('El usuario no tiene documento registrado');
-      }
-
-      if (!profile.email) {
-        throw new Error('El usuario no tiene email registrado');
-      }
-
-      const nameParts = (profile.full_name || '').trim().split(' ');
-      const firstName = nameParts[0] || 'Cliente';
-      const lastName = nameParts.slice(1).join(' ') || 'MercaMesa';
+      // Antes de crear el pedido: sin documento o correo no hay cómo pagarlo.
+      const perfil = await obtenerPerfilDePago();
 
       // Un carrito es de una sola tienda: `addToCart` lo impide y el modal de
       // conflicto lo anuncia. Si aun así llegaran dos —la recuperación de un
@@ -361,9 +346,6 @@ export function useCheckout() {
       }
 
       const orderId = String(orderResult.data.id);
-      // El monto a cobrar sale de la orden que acaba de crear el servidor, no
-      // de una cuenta hecha acá: son la misma cifra solo si nadie manipuló nada.
-      const groupTotal = Number(orderResult.data.total);
       const storeProductIds = group.items.map((i) => String(i.id));
 
       if (paymentChoice === 'saved' && selectedPaymentMethodId) {
@@ -390,56 +372,31 @@ export function useCheckout() {
         return;
       }
 
-      const zonapagosPayload = {
-        idPago: Date.now().toString(),
-        orderId: orderId,
-        total: groupTotal,
-        iva: 0,
-        descripcion: `Pedido ${orderId} - ${group.store.name}`,
-        email: profile.email,
-        idCliente: String(profile.document_number),
-        tipoIdCliente: '1',
-        nombreCliente: firstName,
-        apellidoCliente: lastName,
-        telefonoCliente: profile.phone || '0000000000',
+      // Sin URL de pago, `iniciarPagoDeOrden` lanza y el carrito queda como
+      // estaba.
+      const paymentUrl = await iniciarPagoDeOrden(orderId, {
+        perfil,
+        storeName: group.store.name,
         guardarTarjeta: CARD_TOKENIZATION_ENABLED && saveCard,
-      };
+      });
 
-      const zonapagosResult = await initiateZonapagosPayment(zonapagosPayload);
-      const paymentUrl = getPaymentUrl(zonapagosResult);
-
-      if (paymentUrl) {
-        try {
-          // La recuperación del carrito ya no depende de una marca en
-          // sessionStorage: al volver, la hidratación consulta los ítems
-          // `pending` del comprador contra el estado de sus órdenes.
-          await checkoutCartDb(buyerId, orderId, storeProductIds);
-        } catch (e) {
-          console.error('Error updating cart status to pending in DB:', e);
-        }
-        dispatch({ type: 'CLEAR_CART' });
-        window.location.href = paymentUrl;
-        return;
+      try {
+        // Los productos quedan del pedido mientras se pueda pagar: si el
+        // comprador vuelve sin pagar, no reaparecen en el carrito, y lo retoma
+        // desde «Mis órdenes». Vuelven solo si el pedido vence o el pago se
+        // rechaza (ver `recoverAbandonedCartDb`).
+        await checkoutCartDb(buyerId, orderId, storeProductIds);
+      } catch (e) {
+        console.error('Error updating cart status to pending in DB:', e);
       }
-
-      const errorMsg =
-        typeof zonapagosResult?.str_descripcion_error === 'string'
-          ? zonapagosResult.str_descripcion_error
-          : typeof zonapagosResult?.error === 'string'
-          ? zonapagosResult.error
-          : typeof zonapagosResult?.mensaje === 'string'
-          ? zonapagosResult.mensaje
-          : 'No se obtuvo URL de pago';
-
-      // Sin URL de pago no hay nada que cobrar. Lo que venía después —vaciar el
-      // carrito y llevar a /orders— era inalcanzable: todas las salidas de arriba
-      // retornan o lanzan.
-      throw new Error(errorMsg);
+      dispatch({ type: 'CLEAR_CART' });
+      window.location.href = paymentUrl;
+      return;
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : 'Hubo un error procesando el pedido.';
 
-      if (message === 'El usuario no tiene documento registrado' || message === 'El usuario no tiene email registrado') {
+      if (message === PERFIL_SIN_DOCUMENTO || message === PERFIL_SIN_EMAIL) {
         dispatch({ type: 'SET_SECTION', section: 'profile_account' });
         router.push('/profile?incomplete=1');
         return;
