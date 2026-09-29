@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldAlert, Clock, Info } from 'lucide-react';
 import { Button, Input, cn } from '@/src/components/Shared';
+import { validateNitCheckDigit } from '@/lib/identification/nit';
 
 /**
- * Dónde le consignan a la tienda.
+ * Dónde le pagan a la tienda: una cuenta bancaria o una llave Bre-B.
  *
- * La cuenta se PROPONE: nace pendiente y no entra a ninguna dispersión hasta que
- * MercaMesa la coteje contra el certificado bancario. Eso se dice en pantalla,
- * porque si no el tendero registra su cuenta, ve que todo quedó bien y no
- * entiende por qué no le llega el pago.
+ * Los datos se PROPONEN: nacen pendientes y no entran a ninguna dispersión hasta
+ * que MercaMesa los coteje contra el certificado bancario. Eso se dice en
+ * pantalla, porque si no el tendero registra su cuenta, ve que todo quedó bien y
+ * no entiende por qué no le llega el pago.
  *
- * Los datos no se editan: registrar otra cuenta reemplaza la anterior y vuelve a
+ * Los datos no se editan: registrar otros reemplaza a los anteriores y vuelve a
  * empezar la verificación. Es a propósito —cambiar el destino del dinero sin que
  * nadie lo mire es justo lo que hay que evitar— y también se dice.
  */
@@ -23,38 +24,53 @@ interface Banco {
   isActive: boolean;
 }
 
+type Metodo = 'account' | 'breb';
+
 interface Cuenta {
   id: string;
-  bankCode: string;
+  paymentMethod: Metodo;
+  brebKey: string | null;
+  bankCode: string | null;
   bankName: string | null;
-  accountKind: 'checking' | 'savings';
-  accountNumber: string;
+  accountKind: 'checking' | 'savings' | null;
+  accountNumber: string | null;
   bbvaOfficeCode: string | null;
   holderDocumentType: string;
   holderDocumentNumber: string;
   holderDocumentDv: string;
   holderName: string;
+  holderAddress: string;
+  holderEmail: string | null;
   status: 'pending' | 'verified' | 'rejected';
   rejectionReason: string | null;
   verifiedAt: string | null;
 }
 
-/** Códigos del archivo del banco. Son los que pide el formato, no los nuestros. */
+/**
+ * Códigos del archivo del banco (formato por líneas). Son los que pide el
+ * formato, no los nuestros: un NIT, sea de persona natural o jurídica, es `03`.
+ */
 const TIPOS_DOCUMENTO = [
   { code: '01', label: 'Cédula de ciudadanía' },
-  { code: '03', label: 'NIT (persona jurídica)' },
-  { code: '09', label: 'NIT persona natural' },
+  { code: '03', label: 'NIT' },
   { code: '02', label: 'Cédula de extranjería' },
+  { code: '04', label: 'Tarjeta de identidad' },
   { code: '05', label: 'Pasaporte' },
 ];
 
 const BBVA = '0013';
+
+/** Lo que cabe en el archivo del banco donde va la llave. */
+const LARGO_MAXIMO_LLAVE = 17;
 
 const ESTADOS: Record<Cuenta['status'], { label: string; icon: React.ElementType; clase: string }> = {
   pending: { label: 'Pendiente de verificación', icon: Clock, clase: 'border-amber-200 bg-amber-50 text-amber-900' },
   verified: { label: 'Verificada', icon: ShieldCheck, clase: 'border-mm-g/25 bg-mm-gbg/50 text-mm-g' },
   rejected: { label: 'Rechazada', icon: ShieldAlert, clase: 'border-r/30 bg-rl text-r' },
 };
+
+const CLASE_SELECT =
+  'w-full rounded-2xl border border-mm-crd bg-white px-4 py-2.5 text-sm text-mm-g outline-none focus:border-mm-g';
 
 export function BankAccountTab({ storeId }: { storeId: string }) {
   const [cuenta, setCuenta] = useState<Cuenta | null>(null);
@@ -65,6 +81,8 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
+    paymentMethod: 'account' as Metodo,
+    brebKey: '',
     bankCode: '',
     accountKind: 'savings' as 'checking' | 'savings',
     accountNumber: '',
@@ -73,6 +91,8 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
     holderDocumentNumber: '',
     holderDocumentDv: '0',
     holderName: '',
+    holderAddress: '',
+    holderEmail: '',
   });
 
   const cargar = useCallback(async () => {
@@ -86,7 +106,7 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
       const { data: listaBancos } = await resBancos.json();
       setCuenta(data ?? null);
       setBancos((listaBancos ?? []).filter((b: Banco) => b.isActive));
-      // Sin cuenta todavía, el formulario se abre solo: es lo único que hay que
+      // Sin datos todavía, el formulario se abre solo: es lo único que hay que
       // hacer en esta pestaña.
       setEditando(!data);
     } catch {
@@ -112,7 +132,7 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
       setCuenta(json.data);
       setEditando(false);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar la cuenta.');
+      setError(e instanceof Error ? e.message : 'No se pudieron guardar los datos.');
     } finally {
       setGuardando(false);
     }
@@ -126,8 +146,15 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
     );
   }
 
+  const esLlave = form.paymentMethod === 'breb';
   const esBbva = form.bankCode === BBVA;
-  const esNit = form.holderDocumentType === '03' || form.holderDocumentType === '09';
+  const esNit = form.holderDocumentType === '03';
+  // Se avisa mientras escribe, y solo cuando ya hay NIT y DV: antes sería
+  // regañar por un campo que todavía no terminó de llenar.
+  const dvNoCorresponde =
+    esNit && form.holderDocumentNumber.length >= 9 && form.holderDocumentDv
+      ? validateNitCheckDigit(form.holderDocumentNumber, form.holderDocumentDv)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -136,14 +163,20 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
           <EstadoCuenta cuenta={cuenta} />
 
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Dato etiqueta="Banco" valor={cuenta.bankName ?? cuenta.bankCode} />
-            <Dato
-              etiqueta="Tipo de cuenta"
-              valor={cuenta.accountKind === 'checking' ? 'Corriente' : 'Ahorros'}
-            />
-            <Dato etiqueta="Número de cuenta" valor={cuenta.accountNumber} />
-            {cuenta.bbvaOfficeCode && (
-              <Dato etiqueta="Código de oficina" valor={cuenta.bbvaOfficeCode} />
+            {cuenta.paymentMethod === 'breb' ? (
+              <Dato etiqueta="Llave Bre-B" valor={cuenta.brebKey ?? ''} />
+            ) : (
+              <>
+                <Dato etiqueta="Banco" valor={cuenta.bankName ?? cuenta.bankCode ?? ''} />
+                <Dato
+                  etiqueta="Tipo de cuenta"
+                  valor={cuenta.accountKind === 'checking' ? 'Corriente' : 'Ahorros'}
+                />
+                <Dato etiqueta="Número de cuenta" valor={cuenta.accountNumber ?? ''} />
+                {cuenta.bbvaOfficeCode && (
+                  <Dato etiqueta="Código de oficina" valor={cuenta.bbvaOfficeCode} />
+                )}
+              </>
             )}
             <Dato etiqueta="Titular" valor={cuenta.holderName} />
             <Dato
@@ -152,19 +185,21 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
                 cuenta.holderDocumentDv !== '0' ? `-${cuenta.holderDocumentDv}` : ''
               }`}
             />
+            <Dato etiqueta="Dirección" valor={cuenta.holderAddress} />
+            {cuenta.holderEmail && <Dato etiqueta="Correo" valor={cuenta.holderEmail} />}
           </dl>
 
           <div className="flex items-start gap-2.5 rounded-2xl border border-mm-crd/40 bg-mm-gbg/30 p-4">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-mm-txw" />
             <p className="text-xs leading-relaxed text-mm-txs">
-              Los datos de una cuenta no se editan. Si cambias de cuenta, registras una
-              nueva y reemplaza a esta —y vuelve a quedar pendiente de verificación, así
-              que puede demorarse un pago.
+              Estos datos no se editan. Si cambias de cuenta o de llave, registras unos nuevos
+              que reemplazan a estos —y vuelven a quedar pendientes de verificación, así que
+              puede demorarse un pago.
             </p>
           </div>
 
           <Button variant="outline" onClick={() => setEditando(true)}>
-            Registrar otra cuenta
+            Cambiar cómo recibo los pagos
           </Button>
         </>
       )}
@@ -175,76 +210,111 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
             <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <p className="text-xs leading-relaxed text-amber-900">
-                Esta cuenta reemplazará a la actual y quedará pendiente de verificación.
+                Estos datos reemplazarán a los actuales y quedarán pendientes de verificación.
                 Mientras tanto, tus pedidos entregados esperan para dispersarse.
               </p>
             </div>
           )}
 
+          <Campo etiqueta="¿Cómo quieres recibir tus pagos?">
+            <div className="flex gap-2">
+              {([['account', 'Cuenta bancaria'], ['breb', 'Llave Bre-B']] as const).map(([k, l]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setForm({ ...form, paymentMethod: k })}
+                  className={cn(
+                    'flex-1 rounded-2xl border px-4 py-2.5 text-sm font-bold transition-all',
+                    form.paymentMethod === k
+                      ? 'border-mm-g bg-mm-gbg text-mm-g'
+                      : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g/40'
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </Campo>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Banco">
-              <select
-                value={form.bankCode}
-                onChange={(e) => setForm({ ...form, bankCode: e.target.value })}
-                className="w-full rounded-2xl border border-mm-crd bg-white px-4 py-2.5 text-sm text-mm-g outline-none focus:border-mm-g"
-              >
-                <option value="">Selecciona...</option>
-                {bancos.map((b) => (
-                  <option key={b.code} value={b.code}>{b.name}</option>
-                ))}
-              </select>
-              {bancos.length <= 1 && (
-                <p className="text-xs text-mm-txw">
-                  ¿No ves tu banco? Pídele a MercaMesa que lo agregue al catálogo.
+            {esLlave ? (
+              <div className="space-y-1 sm:col-span-2">
+                <Input
+                  label="Llave Bre-B"
+                  value={form.brebKey}
+                  maxLength={LARGO_MAXIMO_LLAVE}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, brebKey: e.target.value.replace(/\s/g, '') })
+                  }
+                  placeholder="Tu celular, tu cédula u otra llave de tu banco"
+                />
+                <p className="ml-1 text-xs text-mm-txw">
+                  La que tengas registrada en tu banco, de máximo {LARGO_MAXIMO_LLAVE} caracteres.
+                  Un correo largo no cabe: en ese caso usa tu celular o tu cédula.
                 </p>
-              )}
-            </Campo>
-
-            <Campo etiqueta="Tipo de cuenta">
-              <div className="flex gap-2">
-                {([['savings', 'Ahorros'], ['checking', 'Corriente']] as const).map(([k, l]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => setForm({ ...form, accountKind: k })}
-                    className={cn(
-                      'flex-1 rounded-2xl border px-4 py-2.5 text-sm font-bold transition-all',
-                      form.accountKind === k
-                        ? 'border-mm-g bg-mm-gbg text-mm-g'
-                        : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g/40'
-                    )}
-                  >
-                    {l}
-                  </button>
-                ))}
               </div>
-            </Campo>
+            ) : (
+              <>
+                <Campo etiqueta="Banco">
+                  <select
+                    value={form.bankCode}
+                    onChange={(e) => setForm({ ...form, bankCode: e.target.value })}
+                    className={CLASE_SELECT}
+                  >
+                    <option value="">Selecciona...</option>
+                    {bancos.map((b) => (
+                      <option key={b.code} value={b.code}>{b.name}</option>
+                    ))}
+                  </select>
+                </Campo>
 
-            <Input
-              label="Número de cuenta"
-              value={form.accountNumber}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setForm({ ...form, accountNumber: e.target.value.replace(/\D/g, '') })
-              }
-              placeholder="Solo números"
-            />
+                <Campo etiqueta="Tipo de cuenta">
+                  <div className="flex gap-2">
+                    {([['savings', 'Ahorros'], ['checking', 'Corriente']] as const).map(([k, l]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setForm({ ...form, accountKind: k })}
+                        className={cn(
+                          'flex-1 rounded-2xl border px-4 py-2.5 text-sm font-bold transition-all',
+                          form.accountKind === k
+                            ? 'border-mm-g bg-mm-gbg text-mm-g'
+                            : 'border-mm-crd bg-white text-mm-txs hover:border-mm-g/40'
+                        )}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </Campo>
 
-            {esBbva && (
-              <Input
-                label="Código de oficina BBVA"
-                value={form.bbvaOfficeCode}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setForm({ ...form, bbvaOfficeCode: e.target.value.replace(/\D/g, '').slice(0, 4) })
-                }
-                placeholder="4 dígitos, ej. 0401"
-              />
+                <Input
+                  label="Número de cuenta"
+                  value={form.accountNumber}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, accountNumber: e.target.value.replace(/\D/g, '') })
+                  }
+                  placeholder="Solo números"
+                />
+
+                {esBbva && (
+                  <Input
+                    label="Código de oficina BBVA"
+                    value={form.bbvaOfficeCode}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setForm({ ...form, bbvaOfficeCode: e.target.value.replace(/\D/g, '').slice(0, 4) })
+                    }
+                    placeholder="Ej. 350"
+                  />
+                )}
+              </>
             )}
 
             <Campo etiqueta="Tipo de documento del titular">
               <select
                 value={form.holderDocumentType}
                 onChange={(e) => setForm({ ...form, holderDocumentType: e.target.value })}
-                className="w-full rounded-2xl border border-mm-crd bg-white px-4 py-2.5 text-sm text-mm-g outline-none focus:border-mm-g"
+                className={CLASE_SELECT}
               >
                 {TIPOS_DOCUMENTO.map((t) => (
                   <option key={t.code} value={t.code}>{t.label}</option>
@@ -262,14 +332,19 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
             />
 
             {esNit && (
-              <Input
-                label="Dígito de verificación"
-                value={form.holderDocumentDv}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setForm({ ...form, holderDocumentDv: e.target.value.replace(/\D/g, '').slice(0, 1) })
-                }
-                placeholder="El número después del guion"
-              />
+              <div className="space-y-1">
+                <Input
+                  label="Dígito de verificación"
+                  value={form.holderDocumentDv}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, holderDocumentDv: e.target.value.replace(/\D/g, '').slice(0, 1) })
+                  }
+                  placeholder="El número después del guion"
+                />
+                {dvNoCorresponde && (
+                  <p className="ml-1 text-xs font-medium text-r">{dvNoCorresponde}</p>
+                )}
+              </div>
             )}
 
             <div className="sm:col-span-2">
@@ -282,6 +357,25 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
                 placeholder="Exactamente como figura en el banco"
               />
             </div>
+
+            <Input
+              label="Dirección del titular"
+              value={form.holderAddress}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, holderAddress: e.target.value })
+              }
+              placeholder="Basta con la ciudad, ej. Bogotá"
+            />
+
+            <Input
+              label="Correo (opcional)"
+              type="email"
+              value={form.holderEmail}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm({ ...form, holderEmail: e.target.value })
+              }
+              placeholder="Para el aviso del banco"
+            />
           </div>
 
           <p className="text-xs text-mm-txw">
@@ -294,8 +388,8 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
           )}
 
           <div className="flex gap-3">
-            <Button onClick={guardar} loading={guardando}>
-              {cuenta ? 'Reemplazar cuenta' : 'Registrar cuenta'}
+            <Button onClick={guardar} loading={guardando} disabled={!!dvNoCorresponde}>
+              {cuenta ? 'Reemplazar' : 'Registrar'}
             </Button>
             {cuenta && (
               <Button variant="outline" onClick={() => { setEditando(false); setError(null); }}>
@@ -311,6 +405,7 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
 
 function EstadoCuenta({ cuenta }: { cuenta: Cuenta }) {
   const { label, icon: Icono, clase } = ESTADOS[cuenta.status];
+  const destino = cuenta.paymentMethod === 'breb' ? 'esta llave' : 'esta cuenta';
   return (
     <div className={cn('flex items-start gap-2.5 rounded-2xl border p-4', clase)}>
       <Icono className="mt-0.5 h-4 w-4 shrink-0" />
@@ -318,14 +413,14 @@ function EstadoCuenta({ cuenta }: { cuenta: Cuenta }) {
         <p className="font-bold">{label}</p>
         {cuenta.status === 'pending' && (
           <p>
-            MercaMesa la está cotejando con tu certificado bancario. Tus pedidos entregados
-            esperan a que quede verificada para poder dispersarse.
+            MercaMesa está cotejando tus datos con tu certificado bancario. Tus pedidos
+            entregados esperan a que queden verificados para poder dispersarse.
           </p>
         )}
         {cuenta.status === 'rejected' && cuenta.rejectionReason && (
-          <p>{cuenta.rejectionReason} — corrige y vuelve a registrarla.</p>
+          <p>{cuenta.rejectionReason} — corrige y vuelve a registrarlos.</p>
         )}
-        {cuenta.status === 'verified' && <p>Tus pagos se consignan a esta cuenta.</p>}
+        {cuenta.status === 'verified' && <p>Tus pagos se consignan a {destino}.</p>}
       </div>
     </div>
   );

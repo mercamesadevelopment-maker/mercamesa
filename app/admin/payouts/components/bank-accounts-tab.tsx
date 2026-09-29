@@ -14,12 +14,19 @@ const ESTADO: Record<CuentaBancaria['status'], { label: string; icon: React.Elem
   rejected: { label: 'Rechazada', icon: ShieldX, clase: 'border-r/30 bg-rl/40' },
 };
 
+/** Los tipos que acepta el archivo por líneas del banco. */
 const TIPO_DOC: Record<string, string> = {
-  '00': 'Registro civil', '01': 'Cédula', '02': 'Cédula de extranjería',
-  '03': 'NIT', '04': 'Tarjeta de identidad', '05': 'Pasaporte',
-  '06': 'NIT extranjería', '07': 'Sociedad extranjera', '08': 'Fideicomiso',
-  '09': 'NIT persona natural',
+  '01': 'Cédula', '02': 'Cédula de extranjería', '03': 'NIT',
+  '04': 'Tarjeta de identidad', '05': 'Pasaporte',
 };
+
+/** A dónde se le paga: la llave, o el banco con tipo y número de cuenta. */
+function destino(c: CuentaBancaria): string {
+  if (c.paymentMethod === 'breb') return `Llave Bre-B · ${c.brebKey ?? ''}`;
+  return `${c.bankName} · ${c.accountKind === 'checking' ? 'Corriente' : 'Ahorros'} ${c.accountNumber}${
+    c.bbvaOfficeCode ? ` · oficina ${c.bbvaOfficeCode}` : ''
+  }`;
+}
 
 /**
  * La bandeja de verificación.
@@ -89,11 +96,7 @@ export function BankAccountsTab() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="font-bold text-mm-g">{c.storeName}</p>
-                  <p className="text-xs text-mm-txs">
-                    {c.bankName} · {c.accountKind === 'checking' ? 'Corriente' : 'Ahorros'}{' '}
-                    {c.accountNumber}
-                    {c.bbvaOfficeCode && ` · oficina ${c.bbvaOfficeCode}`}
-                  </p>
+                  <p className="text-xs text-mm-txs">{destino(c)}</p>
                   <p className="text-xs text-mm-txw">
                     {c.holderName} · {TIPO_DOC[c.holderDocumentType] ?? c.holderDocumentType}{' '}
                     {c.holderDocumentNumber}
@@ -167,11 +170,17 @@ export function BankAccountsTab() {
             </div>
 
             <dl className="space-y-2 text-sm">
-              <Fila etiqueta="Banco" valor={`${revisando.bankName} (${revisando.bankCode})`} />
-              <Fila etiqueta="Tipo" valor={revisando.accountKind === 'checking' ? 'Corriente' : 'Ahorros'} />
-              <Fila etiqueta="Cuenta" valor={revisando.accountNumber} />
-              {revisando.bbvaOfficeCode && (
-                <Fila etiqueta="Oficina BBVA" valor={revisando.bbvaOfficeCode} />
+              {revisando.paymentMethod === 'breb' ? (
+                <Fila etiqueta="Llave Bre-B" valor={revisando.brebKey ?? ''} />
+              ) : (
+                <>
+                  <Fila etiqueta="Banco" valor={`${revisando.bankName} (${revisando.bankCode})`} />
+                  <Fila etiqueta="Tipo" valor={revisando.accountKind === 'checking' ? 'Corriente' : 'Ahorros'} />
+                  <Fila etiqueta="Cuenta" valor={revisando.accountNumber ?? ''} />
+                  {revisando.bbvaOfficeCode && (
+                    <Fila etiqueta="Oficina BBVA" valor={revisando.bbvaOfficeCode} />
+                  )}
+                </>
               )}
               <Fila etiqueta="Titular" valor={revisando.holderName} />
               <Fila
@@ -180,6 +189,8 @@ export function BankAccountsTab() {
                   revisando.holderDocumentNumber
                 }${revisando.holderDocumentDv !== '0' ? `-${revisando.holderDocumentDv}` : ''}`}
               />
+              <Fila etiqueta="Dirección" valor={revisando.holderAddress} />
+              {revisando.holderEmail && <Fila etiqueta="Correo" valor={revisando.holderEmail} />}
             </dl>
 
             <div className="space-y-2">

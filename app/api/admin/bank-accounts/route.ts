@@ -25,7 +25,8 @@ export async function GET() {
       service
         .from('store_bank_accounts')
         .select(
-          `id, store_id, bank_code, account_kind, account_number, bbva_office_code,
+          `id, store_id, payment_method, breb_key,
+           bank_code, account_kind, account_number, bbva_office_code,
            holder_document_type, holder_document_number, holder_document_dv,
            holder_name, holder_address, holder_email,
            status, rejection_reason, verified_at, created_at,
@@ -50,6 +51,8 @@ export async function GET() {
             id: c.id,
             storeId: c.store_id,
             storeName: c.stores?.name ?? 'Tienda',
+            paymentMethod: c.payment_method,
+            brebKey: c.breb_key,
             bankCode: c.bank_code,
             bankName: c.banks?.name ?? c.bank_code,
             accountKind: c.account_kind,

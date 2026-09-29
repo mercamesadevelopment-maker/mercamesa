@@ -1510,60 +1510,27 @@ export type Database = {
       }
       payout_settings_history: {
         Row: {
-          bbva_account_number: string
-          bbva_office_code: string
           changed_by: string | null
           created_at: string
-          emitter_key: string
-          file_consecutive_offset: number
           hold_days: number
           id: string
           notes: string | null
-          orderer_address: string
-          orderer_city: string
-          orderer_document_number: string
-          orderer_document_type: string
-          orderer_dv: string
-          orderer_name: string
-          orderer_suffix: string
           payment_concept: string
         }
         Insert: {
-          bbva_account_number: string
-          bbva_office_code: string
           changed_by?: string | null
           created_at?: string
-          emitter_key: string
-          file_consecutive_offset?: number
           hold_days?: number
           id?: string
           notes?: string | null
-          orderer_address: string
-          orderer_city: string
-          orderer_document_number: string
-          orderer_document_type?: string
-          orderer_dv?: string
-          orderer_name: string
-          orderer_suffix?: string
           payment_concept?: string
         }
         Update: {
-          bbva_account_number?: string
-          bbva_office_code?: string
           changed_by?: string | null
           created_at?: string
-          emitter_key?: string
-          file_consecutive_offset?: number
           hold_days?: number
           id?: string
           notes?: string | null
-          orderer_address?: string
-          orderer_city?: string
-          orderer_document_number?: string
-          orderer_document_type?: string
-          orderer_dv?: string
-          orderer_name?: string
-          orderer_suffix?: string
           payment_concept?: string
         }
         Relationships: [
@@ -2199,13 +2166,14 @@ export type Database = {
       }
       store_bank_accounts: {
         Row: {
-          account_kind: string
-          account_number: string
-          bank_code: string
+          account_kind: string | null
+          account_number: string | null
+          bank_code: string | null
           bbva_office_code: string | null
+          breb_key: string | null
           created_at: string
           created_by: string | null
-          holder_address: string | null
+          holder_address: string
           holder_document_dv: string
           holder_document_number: string
           holder_document_type: string
@@ -2213,6 +2181,7 @@ export type Database = {
           holder_name: string
           id: string
           is_current: boolean
+          payment_method: string
           rejection_reason: string | null
           status: string
           store_id: string
@@ -2220,13 +2189,14 @@ export type Database = {
           verified_by: string | null
         }
         Insert: {
-          account_kind: string
-          account_number: string
-          bank_code: string
+          account_kind?: string | null
+          account_number?: string | null
+          bank_code?: string | null
           bbva_office_code?: string | null
+          breb_key?: string | null
           created_at?: string
           created_by?: string | null
-          holder_address?: string | null
+          holder_address: string
           holder_document_dv?: string
           holder_document_number: string
           holder_document_type: string
@@ -2234,6 +2204,7 @@ export type Database = {
           holder_name: string
           id?: string
           is_current?: boolean
+          payment_method?: string
           rejection_reason?: string | null
           status?: string
           store_id: string
@@ -2241,13 +2212,14 @@ export type Database = {
           verified_by?: string | null
         }
         Update: {
-          account_kind?: string
-          account_number?: string
-          bank_code?: string
+          account_kind?: string | null
+          account_number?: string | null
+          bank_code?: string | null
           bbva_office_code?: string | null
+          breb_key?: string | null
           created_at?: string
           created_by?: string | null
-          holder_address?: string | null
+          holder_address?: string
           holder_document_dv?: string
           holder_document_number?: string
           holder_document_type?: string
@@ -2255,6 +2227,7 @@ export type Database = {
           holder_name?: string
           id?: string
           is_current?: boolean
+          payment_method?: string
           rejection_reason?: string | null
           status?: string
           store_id?: string
