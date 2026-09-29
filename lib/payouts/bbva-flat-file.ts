@@ -33,6 +33,8 @@
  *   4. Saltos de línea: CRLF, con uno al final, como el ejemplo de llaves.
  */
 
+import { validateNitCheckDigit } from '@/lib/identification/nit';
+
 /** Hasta el Concepto 1, como el ejemplo de llaves del banco. */
 export const LARGO_LINEA = 281;
 
@@ -191,7 +193,16 @@ function identificacion(b: Beneficiario): string {
       `El documento de "${b.name}" tiene caracteres que no son números, y el archivo solo acepta números.`
     );
   }
-  const dv = b.documentType === TIPO_DOCUMENTO_NIT ? String(b.documentDv ?? '0') : '0';
+  const esNit = b.documentType === TIPO_DOCUMENTO_NIT;
+  const dv = esNit ? String(b.documentDv ?? '0') : '0';
+  // El banco recalcula el DV del NIT y rechaza la línea si no corresponde. La
+  // ruta ya lo comprueba al registrar la cuenta; esto es la última red, por si
+  // alguna fila llegó a la base por otro camino.
+  if (esNit && validateNitCheckDigit(numero, dv)) {
+    throw new FlatFileError(
+      `El dígito de verificación del NIT de "${b.name}" no corresponde a su número; el banco rechazaría el pago.`
+    );
+  }
   return padN(b.documentType, 2) + padN(numero + dv, 16);
 }
 

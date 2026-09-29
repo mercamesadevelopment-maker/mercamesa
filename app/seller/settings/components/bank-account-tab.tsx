@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldAlert, Clock, Info } from 'lucide-react';
 import { Button, Input, cn } from '@/src/components/Shared';
+import { validateNitCheckDigit } from '@/lib/identification/nit';
 
 /**
  * Dónde le pagan a la tienda: una cuenta bancaria o una llave Bre-B.
@@ -148,6 +149,12 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
   const esLlave = form.paymentMethod === 'breb';
   const esBbva = form.bankCode === BBVA;
   const esNit = form.holderDocumentType === '03';
+  // Se avisa mientras escribe, y solo cuando ya hay NIT y DV: antes sería
+  // regañar por un campo que todavía no terminó de llenar.
+  const dvNoCorresponde =
+    esNit && form.holderDocumentNumber.length >= 9 && form.holderDocumentDv
+      ? validateNitCheckDigit(form.holderDocumentNumber, form.holderDocumentDv)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -325,14 +332,19 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
             />
 
             {esNit && (
-              <Input
-                label="Dígito de verificación"
-                value={form.holderDocumentDv}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setForm({ ...form, holderDocumentDv: e.target.value.replace(/\D/g, '').slice(0, 1) })
-                }
-                placeholder="El número después del guion"
-              />
+              <div className="space-y-1">
+                <Input
+                  label="Dígito de verificación"
+                  value={form.holderDocumentDv}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setForm({ ...form, holderDocumentDv: e.target.value.replace(/\D/g, '').slice(0, 1) })
+                  }
+                  placeholder="El número después del guion"
+                />
+                {dvNoCorresponde && (
+                  <p className="ml-1 text-xs font-medium text-r">{dvNoCorresponde}</p>
+                )}
+              </div>
             )}
 
             <div className="sm:col-span-2">
@@ -376,7 +388,7 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
           )}
 
           <div className="flex gap-3">
-            <Button onClick={guardar} loading={guardando}>
+            <Button onClick={guardar} loading={guardando} disabled={!!dvNoCorresponde}>
               {cuenta ? 'Reemplazar' : 'Registrar'}
             </Button>
             {cuenta && (

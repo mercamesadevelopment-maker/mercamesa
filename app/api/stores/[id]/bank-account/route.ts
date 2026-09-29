@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateNitCheckDigit } from '@/lib/identification/nit';
 
 /**
  * A dónde se le paga a una tienda: una cuenta bancaria o una llave Bre-B. La
@@ -150,13 +151,14 @@ export async function POST(
       );
     }
 
-    // El dígito de verificación solo lo tiene el NIT ('03'). El banco lo compara,
-    // así que uno equivocado rechaza el pago de esa tienda.
-    if (!/^\d$/.test(documentDv)) {
-      return NextResponse.json(
-        { error: 'El dígito de verificación es un solo número.' },
-        { status: 400 }
-      );
+    // El dígito de verificación solo lo tiene el NIT ('03'). El banco lo recalcula
+    // y rechaza la línea si no corresponde, así que se comprueba aquí y no el día
+    // de la dispersión.
+    if (documentType === '03') {
+      const dvError = validateNitCheckDigit(documentNumber, documentDv);
+      if (dvError) {
+        return NextResponse.json({ error: dvError }, { status: 400 });
+      }
     }
 
     if (!holderName) {
