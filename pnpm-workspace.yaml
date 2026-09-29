@@ -13,3 +13,16 @@
 # distribuye binarios pre-compilados como dependencias opcionales por plataforma.
 allowBuilds:
   esbuild: true
+# Next 16.3.7 cierra dos vulnerabilidades críticas de la 16.3.0 y todavía no
+# cumple la edad mínima de publicación. Se puede quitar cuando la cumpla.
+minimumReleaseAgeExclude:
+  - '@next/env@16.3.7'
+  - '@next/swc-darwin-arm64@16.3.7'
+  - '@next/swc-darwin-x64@16.3.7'
+  - '@next/swc-linux-arm64-gnu@16.3.7'
+  - '@next/swc-linux-arm64-musl@16.3.7'
+  - '@next/swc-linux-x64-gnu@16.3.7'
+  - '@next/swc-linux-x64-musl@16.3.7'
+  - '@next/swc-win32-arm64-msvc@16.3.7'
+  - '@next/swc-win32-x64-msvc@16.3.7'
+  - next@16.3.7

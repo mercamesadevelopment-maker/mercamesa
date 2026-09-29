@@ -37,11 +37,36 @@ function getPaymentMethodLabel(method: string, entityName?: string | null) {
   }
 }
 
+/**
+ * Si este intento es el último que se abrió para el pedido y el pedido no está
+ * ya pagado por otro intento.
+ */
+async function esElIntentoVigente(supabase: any, orderId: string, paymentId: string) {
+  const { data: order } = await supabase
+    .from('orders')
+    .select('payment_status')
+    .eq('id', orderId)
+    .maybeSingle();
+  if (!order || order.payment_status === 'approved') return false;
+
+  const { data: ultimo } = await supabase
+    .from('payments')
+    .select('id')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return ultimo?.id === paymentId;
+}
+
 serve(async (req) => {
   try {
-    // Protección para el cron
+    // Protección para el cron. La función se despliega sin verificación de JWT
+    // (el cron no tiene sesión); esta clave es su única puerta. La manda
+    // `public.call_edge_cron`, que la lee de Vault.
     const cronSecret = req.headers.get('x-cron-secret');
-    if (cronSecret !== Deno.env.get('CRON_SECRET')) {
+    const expected = Deno.env.get('CRON_SECRET');
+    if (!expected || cronSecret !== expected) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
@@ -132,7 +157,21 @@ serve(async (req) => {
           })
           .eq('id', payment.id);
 
-        // 4. Actualizar la orden asociada
+        // 4. Actualizar la orden asociada.
+        //
+        // Un pedido puede tener varios intentos de pago (el botón «Pagar» de
+        // «Mis órdenes»). Un aprobado siempre gana; lo demás solo lo decide el
+        // intento más reciente. Sin esto, el «rechazado» de un intento viejo
+        // pisaba el pedido que otro intento ya había pagado, y le devolvía al
+        // carrito los productos que ya estaban comprados.
+        const decide = paymentStatus === 'approved'
+          || await esElIntentoVigente(supabase, payment.order_id, payment.id);
+
+        if (!decide) {
+          results.push({ orderId: payment.order_id, status: paymentStatus, superseded: true });
+          continue;
+        }
+
         const orderUpdate: any = {
           payment_status: paymentStatus,
           updated_at: new Date().toISOString(),
@@ -142,10 +181,14 @@ serve(async (req) => {
           orderUpdate.status = 'confirmed';
         }
 
-        await supabase
+        let orderQuery = supabase
           .from('orders')
           .update(orderUpdate)
           .eq('id', payment.order_id);
+        if (paymentStatus !== 'approved') {
+          orderQuery = orderQuery.neq('payment_status', 'approved');
+        }
+        await orderQuery;
 
         // 5. Sincronizar el carrito de base de datos
         if (paymentStatus === 'approved') {

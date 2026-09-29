@@ -347,6 +347,13 @@ export async function revertCartDb(orderId: string): Promise<void> {
  *
  * Se ejecuta al hidratar la sesión.
  *
+ * Mientras el pedido se pueda pagar, sus productos NO vuelven: son de ese
+ * pedido, y el comprador lo retoma con «Pagar» en «Mis órdenes». Antes volvía
+ * todo lo que no estuviera aprobado, y con la sonda caída nada llegaba a
+ * aprobado: el carrito seguía lleno aunque hubiera pedidos pendientes, y cada
+ * «Confirmar y pagar» creaba otro. Vuelven cuando el pedido vence, se cancela o
+ * el último pago se rechaza.
+ *
  * Ojo: esto puede dejar la canasta con productos de DOS tiendas, si el comprador
  * agregó algo de otra tienda mientras los suyos estaban en `pending` (con la
  * canasta vacía en pantalla, `addToCart` no tiene con qué comparar). Se deja
@@ -358,7 +365,7 @@ export async function recoverAbandonedCartDb(buyerId: string): Promise<void> {
 
   const { data: stuck, error } = await supabase
     .from('cart_items')
-    .select('id, order_id, orders ( payment_status )')
+    .select('id, order_id, orders ( payment_status, payable_until )')
     .eq('buyer_id', buyerId)
     .eq('status', 'pending');
 
@@ -375,13 +382,19 @@ export async function recoverAbandonedCartDb(buyerId: string): Promise<void> {
     )
   ) as string[];
 
-  // Todo lo demás —pago rechazado, abandonado o la orden cancelada— vuelve al
-  // carrito. `revertCartDb` ya resuelve la fusión de cantidades cuando el
-  // comprador volvió a agregar el mismo producto.
+  // Pago rechazado, o pedido que ya no se puede pagar (vencido o cancelado):
+  // vuelve al carrito. `revertCartDb` ya resuelve la fusión de cantidades cuando
+  // el comprador volvió a agregar el mismo producto.
+  const ahora = Date.now();
   const abandonedOrderIds = Array.from(
     new Set(
       stuck
-        .filter((i: any) => i.orders?.payment_status !== 'approved')
+        .filter((i: any) => {
+          const o = i.orders;
+          if (!o || o.payment_status === 'approved') return false;
+          if (o.payment_status === 'rejected') return true;
+          return !o.payable_until || new Date(o.payable_until).getTime() <= ahora;
+        })
         .map((i: any) => i.order_id)
         .filter(Boolean)
     )
@@ -406,6 +419,30 @@ export async function recoverAbandonedCartDb(buyerId: string): Promise<void> {
 
     if (orphanError) throw orphanError;
   }
+}
+
+/**
+ * Si el comprador tiene un pedido que todavía puede pagar. Es lo que explica un
+ * carrito vacío después de un pago que no terminó.
+ */
+export async function hasPayableOrder(buyerId: string): Promise<boolean> {
+  const supabase = createSupabaseBrowserClient();
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, payable_until')
+    .eq('buyer_id', buyerId)
+    .eq('status', 'pending')
+    .is('client_id', null)
+    .is('expired_at', null)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (error || !data) return false;
+  const ahora = Date.now();
+  return (data as any[]).some(
+    (o) => o.payable_until && new Date(o.payable_until).getTime() > ahora
+  );
 }
 
 /**

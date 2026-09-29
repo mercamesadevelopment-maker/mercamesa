@@ -18,6 +18,8 @@ import {
 } from "@/lib/copy/security-notice";
 import { useCheckout, mensajeMinimo } from "../hooks/useCheckout";
 import { useCart } from "../hooks/use-cart";
+import { usePayableOrder } from "../hooks/use-payable-order";
+import Link from "next/link";
 import { Button, Badge, cn } from "@/src/components/Shared";
 import { fmt } from "@/src/constants";
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
@@ -79,6 +81,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const [addressReady, setAddressReady] = React.useState(false);
 
   const isEmpty = cartByStore.length === 0;
+  const hasPendingPayment = usePayableOrder(isOpen && isEmpty);
 
   // Al cerrar el panel se vuelve al inicio, para no reabrirlo a mitad del flujo.
   React.useEffect(() => {
@@ -241,9 +244,25 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
           {/* Cuerpo */}
           <div className="flex-grow overflow-y-auto p-6">
             {isEmpty ? (
-              <div className="h-full flex flex-col items-center justify-center text-mm-txw opacity-60">
-                <ShoppingBag className="w-16 h-16 mb-4" />
-                <p className="font-medium text-lg">Tu canasta está vacía</p>
+              <div className="h-full flex flex-col items-center justify-center gap-6">
+                <div className="flex flex-col items-center text-mm-txw opacity-60">
+                  <ShoppingBag className="w-16 h-16 mb-4" />
+                  <p className="font-medium text-lg">Tu canasta está vacía</p>
+                </div>
+                {/* Los productos de un pedido sin pagar no vuelven al carrito
+                    mientras se pueda pagar: se retoma desde «Mis órdenes». */}
+                {hasPendingPayment && (
+                  <div className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm text-amber-900">
+                    <p className="font-medium">Tienes un pedido pendiente de pago.</p>
+                    <Link
+                      href="/orders"
+                      onClick={onClose}
+                      className="mt-2 inline-block font-semibold text-mm-g underline"
+                    >
+                      Ir a Mis órdenes para pagarlo
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <AnimatePresence mode="wait">

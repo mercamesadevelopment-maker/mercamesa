@@ -1205,6 +1205,7 @@ export type Database = {
           delivery_address_snapshot: Json | null
           delivery_fee: number
           discount: number
+          expired_at: string | null
           id: string
           messages_amount: number
           notes: string | null
@@ -1230,6 +1231,7 @@ export type Database = {
           delivery_address_snapshot?: Json | null
           delivery_fee?: number
           discount?: number
+          expired_at?: string | null
           id?: string
           messages_amount?: number
           notes?: string | null
@@ -1255,6 +1257,7 @@ export type Database = {
           delivery_address_snapshot?: Json | null
           delivery_fee?: number
           discount?: number
+          expired_at?: string | null
           id?: string
           messages_amount?: number
           notes?: string | null
@@ -3081,6 +3084,7 @@ export type Database = {
           order_code: string | null
           order_id: string | null
           parent_code: string | null
+          payable_until: string | null
           payment_method: string | null
           payment_method_label: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null

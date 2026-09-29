@@ -25,6 +25,7 @@ import {
 import { Button, cn } from '@/src/components/Shared';
 import { OrderDetailModal } from './OrderDetailModal';
 import { ReorderModal } from './ReorderModal';
+import { usePayOrder, isPayable } from '../hooks/usePayOrder';
 
 interface OrderCardProps {
   order: OrderDetail;
@@ -80,6 +81,8 @@ export function OrderCard({
 
   const [showDetail, setShowDetail] = useState(false);
   const [showReorder, setShowReorder] = useState(false);
+  const { pay, paying, error: payError } = usePayOrder();
+  const payable = isPayable(order.payable_until);
 
   return (
     <motion.div
@@ -233,7 +236,7 @@ export function OrderCard({
       <div className="p-4 sm:p-6 bg-mm-gbg/30 border-t border-mm-crd flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-baseline justify-between sm:flex-col sm:items-start">
           <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
-            Total Pagado
+            {payable ? 'Total a pagar' : 'Total Pagado'}
           </span>
 
           <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
@@ -269,6 +272,19 @@ export function OrderCard({
               </Button>
             )}
 
+          {/* Reintento del pago sobre el mismo pedido, mientras no venza. */}
+          {payable && order.order_id && (
+            <Button
+              size="sm"
+              className={FOOTER_BUTTON_CLASS}
+              disabled={paying}
+              onClick={() => pay(order.order_id!, order.store_name)}
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              {paying ? 'Abriendo pago…' : 'Pagar'}
+            </Button>
+          )}
+
           {order.status === 'pending' && (
             <Button
               variant="danger"
@@ -280,6 +296,12 @@ export function OrderCard({
           )}
         </div>
       </div>
+
+      {payError && (
+        <p className="px-4 sm:px-6 pb-4 text-sm text-r" role="alert">
+          {payError}
+        </p>
+      )}
 
       <OrderDetailModal
         isOpen={showDetail}
