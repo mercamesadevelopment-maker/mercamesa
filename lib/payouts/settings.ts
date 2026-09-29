@@ -1,28 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Los datos del ordenante, vigentes.
+ * Los parámetros de dispersión vigentes.
  *
  * Mismo patrón que `loadPricingSettings`: la tabla es un histórico y la fila más
- * reciente es la que aplica. Lo que cambia es que acá no hay semilla posible —el
- * NIT, la cuenta y la clave del emisor los da el banco— así que la ausencia de
- * configuración es un caso normal el primer día, no una falla.
+ * reciente es la que aplica.
+ *
+ * En el formato por líneas de BBVA el archivo no lleva datos del ordenante, así
+ * que aquí solo queda el concepto de pago (el Concepto 1 de cada línea) y los
+ * días de espera tras la entrega, que son regla de la plataforma. La migración
+ * que cambió de formato sembró una fila, así que la ausencia es un fallo de
+ * datos y no el caso normal del primer día.
  */
 
 export interface PayoutSettings {
   id: string;
-  ordererDocumentType: string;
-  ordererDocumentNumber: string;
-  ordererDv: string;
-  ordererSuffix: string;
-  ordererName: string;
-  ordererAddress: string;
-  ordererCity: string;
-  bbvaOfficeCode: string;
-  bbvaAccountNumber: string;
-  emitterKey: string;
   paymentConcept: string;
-  fileConsecutiveOffset: number;
   holdDays: number;
 }
 
@@ -37,16 +30,20 @@ export class PayoutConfigError extends Error {
   }
 }
 
+export function aParametros(data: { id: string; payment_concept: string; hold_days: number }): PayoutSettings {
+  return {
+    id: data.id,
+    paymentConcept: data.payment_concept,
+    holdDays: data.hold_days,
+  };
+}
+
 export async function loadPayoutSettings(
   supabase: SupabaseClient<any>
 ): Promise<PayoutSettings> {
   const { data, error } = await supabase
     .from('payout_settings_history')
-    .select(
-      `id, orderer_document_type, orderer_document_number, orderer_dv, orderer_suffix,
-       orderer_name, orderer_address, orderer_city, bbva_office_code, bbva_account_number,
-       emitter_key, payment_concept, file_consecutive_offset, hold_days`
-    )
+    .select('id, payment_concept, hold_days')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -57,25 +54,9 @@ export async function loadPayoutSettings(
 
   if (!data) {
     throw new PayoutConfigError(
-      'Todavía no están cargados los datos del ordenante. Regístralos en ' +
-        'Dispersiones → Parámetros: el NIT, la cuenta y la clave del emisor los da el banco.'
+      'No hay parámetros de dispersión. Regístralos en Dispersiones → Parámetros.'
     );
   }
 
-  return {
-    id: data.id,
-    ordererDocumentType: data.orderer_document_type,
-    ordererDocumentNumber: data.orderer_document_number,
-    ordererDv: data.orderer_dv,
-    ordererSuffix: data.orderer_suffix,
-    ordererName: data.orderer_name,
-    ordererAddress: data.orderer_address,
-    ordererCity: data.orderer_city,
-    bbvaOfficeCode: data.bbva_office_code,
-    bbvaAccountNumber: data.bbva_account_number,
-    emitterKey: data.emitter_key,
-    paymentConcept: data.payment_concept,
-    fileConsecutiveOffset: data.file_consecutive_offset,
-    holdDays: data.hold_days,
-  };
+  return aParametros(data);
 }

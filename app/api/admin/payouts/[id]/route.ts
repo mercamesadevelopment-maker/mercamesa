@@ -40,7 +40,7 @@ export async function GET(
           `id, store_id, amount,
            stores!inner ( name ),
            store_orders!inner ( code ),
-           store_bank_accounts!inner ( bank_code, account_kind, account_number, holder_name )`
+           store_bank_accounts!inner ( payment_method, breb_key, bank_code, account_kind, account_number, holder_name )`
         )
         .eq('payout_id', id)
         .range(from, to)
@@ -58,11 +58,14 @@ export async function GET(
           storeId: item.store_id,
           storeName: item.stores?.name ?? 'Tienda',
           holderName: cuenta?.holder_name ?? null,
+          paymentMethod: cuenta?.payment_method ?? 'account',
           bankCode: cuenta?.bank_code ?? null,
           accountKind: cuenta?.account_kind ?? null,
-          // Solo los últimos cuatro: no hace falta el número completo para
-          // revisar, y la pantalla queda menos expuesta.
-          accountLast4: String(cuenta?.account_number ?? '').slice(-4),
+          // Solo los últimos cuatro, de la cuenta o de la llave: no hace falta el
+          // dato completo para revisar, y la pantalla queda menos expuesta.
+          accountLast4: String(
+            (cuenta?.payment_method === 'breb' ? cuenta?.breb_key : cuenta?.account_number) ?? ''
+          ).slice(-4),
           amount: 0,
           orders: [] as { id: string; code: string | null; amount: number }[],
         };

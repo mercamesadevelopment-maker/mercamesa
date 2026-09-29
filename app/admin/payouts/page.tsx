@@ -23,21 +23,21 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     label: 'Cuentas bancarias',
     icon: Landmark,
     description:
-      'Las cuentas que registraron las tiendas. Una cuenta solo entra a la dispersión después de cotejarla contra su certificado bancario.',
+      'La cuenta bancaria o la llave Bre-B que registró cada tienda. Solo entra a la dispersión después de cotejarla contra su certificado bancario.',
   },
   {
     key: 'settings',
     label: 'Parámetros',
     icon: Settings2,
     description:
-      'Los datos del ordenante que exige el archivo: NIT, oficina, cuenta y clave del emisor. Los entrega BBVA al habilitar Global C@sh.',
+      'El concepto de pago que va en cada línea del archivo y los días de espera tras la entrega. El resto de cada línea sale de la cuenta verificada de la tienda.',
   },
   {
     key: 'banks',
     label: 'Bancos',
     icon: Building2,
     description:
-      'Los códigos de banco del archivo de dispersión, del anexo que entrega BBVA.',
+      'Los códigos de banco del archivo de dispersión, del anexo que entrega BBVA. Las llaves Bre-B no necesitan banco: van con el código 9999.',
   },
 ];
 

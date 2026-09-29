@@ -371,7 +371,12 @@ function DetalleModal({ detalle, onClose }: { detalle: PayoutDetalle | null; onC
                     <p className="font-bold text-mm-g">{s.storeName}</p>
                     <p className="text-xs text-mm-txw">
                       {s.holderName} ·{' '}
-                      {s.accountKind === 'checking' ? 'Corriente' : 'Ahorros'} ····{s.accountLast4}
+                      {s.paymentMethod === 'breb'
+                        ? 'Llave Bre-B'
+                        : s.accountKind === 'checking'
+                          ? 'Corriente'
+                          : 'Ahorros'}{' '}
+                      ····{s.accountLast4}
                     </p>
                   </div>
                   <span className="shrink-0 font-bold text-mm-g">{fmt(s.amount)}</span>

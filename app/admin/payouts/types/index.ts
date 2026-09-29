@@ -29,9 +29,11 @@ export interface TiendaEnPayout {
   storeId: string;
   storeName: string;
   holderName: string | null;
+  paymentMethod: 'account' | 'breb';
   bankCode: string | null;
   accountKind: 'checking' | 'savings' | null;
-  /** Solo los últimos cuatro: para revisar no hace falta el número completo. */
+  /** Solo los últimos cuatro de la cuenta o de la llave: para revisar no hace
+   *  falta el dato completo. */
   accountLast4: string;
   amount: number;
   orders: PedidoDeTienda[];
@@ -62,16 +64,19 @@ export interface CuentaBancaria {
   id: string;
   storeId: string;
   storeName: string;
-  bankCode: string;
-  bankName: string;
-  accountKind: 'checking' | 'savings';
-  accountNumber: string;
+  /** Cuenta bancaria o llave Bre-B: la tienda elige una. */
+  paymentMethod: 'account' | 'breb';
+  brebKey: string | null;
+  bankCode: string | null;
+  bankName: string | null;
+  accountKind: 'checking' | 'savings' | null;
+  accountNumber: string | null;
   bbvaOfficeCode: string | null;
   holderDocumentType: string;
   holderDocumentNumber: string;
   holderDocumentDv: string;
   holderName: string;
-  holderAddress: string | null;
+  holderAddress: string;
   holderEmail: string | null;
   status: 'pending' | 'verified' | 'rejected';
   rejectionReason: string | null;
@@ -80,20 +85,11 @@ export interface CuentaBancaria {
   createdAt: string;
 }
 
+/** En el formato por líneas el archivo no lleva datos del ordenante: solo el
+ *  concepto de pago de cada línea y la regla de días de espera. */
 export interface ParametrosDispersion {
   id: string;
-  ordererDocumentType: string;
-  ordererDocumentNumber: string;
-  ordererDv: string;
-  ordererSuffix: string;
-  ordererName: string;
-  ordererAddress: string;
-  ordererCity: string;
-  bbvaOfficeCode: string;
-  bbvaAccountNumber: string;
-  emitterKey: string;
   paymentConcept: string;
-  fileConsecutiveOffset: number;
   holdDays: number;
   notes: string | null;
   createdAt: string;

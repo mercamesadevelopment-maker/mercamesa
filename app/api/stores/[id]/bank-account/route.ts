@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * La cuenta bancaria de una tienda: la propone el tendero.
+ * A dónde se le paga a una tienda: una cuenta bancaria o una llave Bre-B. La
+ * propone el tendero.
  *
  * Todo pasa por RLS y por el disparador `guard_store_bank_account`, no por
  * comprobaciones acá: la política deja escribir a los miembros de la tienda, y
@@ -11,8 +12,22 @@ import { createClient } from '@/lib/supabase/server';
  * escribe contra la base directamente.
  */
 
-/** Códigos de identificación del ARCHIVO del banco, no los de la plataforma. */
-const TIPOS_DOCUMENTO = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09'];
+/**
+ * Códigos de identificación del ARCHIVO del banco (formato por líneas), no los
+ * de la plataforma. Solo estos cinco; un NIT de persona natural es `03`.
+ */
+const TIPOS_DOCUMENTO = ['01', '02', '03', '04', '05'];
+
+/** Lo que cabe en el campo del archivo donde va la llave. */
+const LARGO_MAXIMO_LLAVE = 17;
+
+/** Las columnas que devuelve la API; la misma lista en el GET y en el POST. */
+const COLUMNAS = `id, payment_method, breb_key,
+         bank_code, account_kind, account_number, bbva_office_code,
+         holder_document_type, holder_document_number, holder_document_dv,
+         holder_name, holder_address, holder_email,
+         status, rejection_reason, verified_at, created_at,
+         banks ( name )`;
 
 export async function GET(
   _request: Request,
@@ -29,13 +44,7 @@ export async function GET(
     // filas a las tiendas de las que es miembro.
     const { data, error } = await supabase
       .from('store_bank_accounts')
-      .select(
-        `id, bank_code, account_kind, account_number, bbva_office_code,
-         holder_document_type, holder_document_number, holder_document_dv,
-         holder_name, holder_address, holder_email,
-         status, rejection_reason, verified_at, created_at,
-         banks ( name )`
-      )
+      .select(COLUMNAS)
       .eq('store_id', id)
       .eq('is_current', true)
       .maybeSingle();
@@ -65,38 +74,66 @@ export async function POST(
 
     const body = await request.json().catch(() => ({}));
 
+    const paymentMethod = body.paymentMethod === 'breb' ? 'breb' : 'account';
+    const brebKey = String(body.brebKey ?? '').trim();
     const bankCode = String(body.bankCode ?? '').trim();
     const accountKind = String(body.accountKind ?? '');
     const accountNumber = String(body.accountNumber ?? '').replace(/\D/g, '');
-    const bbvaOfficeCode = String(body.bbvaOfficeCode ?? '').trim();
+    const bbvaOfficeCode = String(body.bbvaOfficeCode ?? '').replace(/\D/g, '');
     const documentType = String(body.holderDocumentType ?? '').trim();
     const documentNumber = String(body.holderDocumentNumber ?? '').replace(/\D/g, '');
     const documentDv = String(body.holderDocumentDv ?? '0').trim();
     const holderName = String(body.holderName ?? '').trim();
+    const holderAddress = String(body.holderAddress ?? '').trim();
+    const holderEmail = String(body.holderEmail ?? '').trim();
 
-    if (!/^\d{4}$/.test(bankCode)) {
-      return NextResponse.json({ error: 'Selecciona el banco.' }, { status: 400 });
-    }
+    if (paymentMethod === 'breb') {
+      // La llave va tal cual en un campo de 17 caracteres del archivo. Una más
+      // larga —un correo, casi siempre— no tendría cómo pagarse, y una con tildes
+      // o espacios no se puede escribir.
+      if (!brebKey) {
+        return NextResponse.json({ error: 'Escribe tu llave Bre-B.' }, { status: 400 });
+      }
+      if (brebKey.length > LARGO_MAXIMO_LLAVE || !/^[!-~]+$/.test(brebKey)) {
+        return NextResponse.json(
+          {
+            error: `La llave Bre-B debe tener máximo ${LARGO_MAXIMO_LLAVE} caracteres, sin espacios ni tildes. Si tu llave es un correo largo, usa tu celular o tu cédula, o registra una cuenta bancaria.`,
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!/^\d{4}$/.test(bankCode)) {
+        return NextResponse.json({ error: 'Selecciona el banco.' }, { status: 400 });
+      }
 
-    if (!['checking', 'savings'].includes(accountKind)) {
-      return NextResponse.json(
-        { error: 'Indica si la cuenta es corriente o de ahorros.' },
-        { status: 400 }
-      );
-    }
+      if (!['checking', 'savings'].includes(accountKind)) {
+        return NextResponse.json(
+          { error: 'Indica si la cuenta es corriente o de ahorros.' },
+          { status: 400 }
+        );
+      }
 
-    if (!accountNumber) {
-      return NextResponse.json({ error: 'Escribe el número de la cuenta.' }, { status: 400 });
-    }
+      if (!accountNumber) {
+        return NextResponse.json({ error: 'Escribe el número de la cuenta.' }, { status: 400 });
+      }
 
-    // Una cuenta BBVA se escribe en el archivo como oficina + tipo + los ocho
-    // dígitos finales. Sin la oficina el registro queda incompleto y no hay de
-    // dónde deducirla.
-    if (bankCode === '0013' && !/^\d{4}$/.test(bbvaOfficeCode)) {
-      return NextResponse.json(
-        { error: 'Para una cuenta BBVA hace falta el código de oficina, de 4 dígitos.' },
-        { status: 400 }
-      );
+      // Una cuenta BBVA se escribe en el archivo como oficina + tipo + los seis
+      // dígitos finales. Sin la oficina la línea queda incompleta y no hay de
+      // dónde deducirla.
+      if (bankCode === '0013' && !/^\d{3,4}$/.test(bbvaOfficeCode)) {
+        return NextResponse.json(
+          { error: 'Para una cuenta BBVA hace falta el código de oficina (3 o 4 dígitos).' },
+          { status: 400 }
+        );
+      }
+
+      if (bankCode === '0013' && accountNumber.length < 6) {
+        return NextResponse.json(
+          { error: 'El número de la cuenta BBVA parece incompleto.' },
+          { status: 400 }
+        );
+      }
     }
 
     if (!TIPOS_DOCUMENTO.includes(documentType)) {
@@ -129,6 +166,14 @@ export async function POST(
       );
     }
 
+    // Obligatoria en cada línea del archivo del banco.
+    if (!holderAddress) {
+      return NextResponse.json(
+        { error: 'Escribe la dirección del titular. Basta con la ciudad.' },
+        { status: 400 }
+      );
+    }
+
     // La anterior se baja primero. Si el insert fallara después, la tienda se
     // quedaría sin cuenta vigente y la siguiente dispersión la dejaría fuera —
     // molesto, pero visible y con arreglo; al revés quedarían dos vigentes y el
@@ -150,24 +195,22 @@ export async function POST(
       .from('store_bank_accounts')
       .insert({
         store_id: id,
-        bank_code: bankCode,
-        account_kind: accountKind,
-        account_number: accountNumber,
-        bbva_office_code: bankCode === '0013' ? bbvaOfficeCode : null,
+        payment_method: paymentMethod,
+        // Lo que no corresponde al método elegido se guarda vacío, para que la
+        // fila no diga dos cosas distintas sobre a dónde va la plata.
+        breb_key: paymentMethod === 'breb' ? brebKey : null,
+        bank_code: paymentMethod === 'account' ? bankCode : null,
+        account_kind: paymentMethod === 'account' ? accountKind : null,
+        account_number: paymentMethod === 'account' ? accountNumber : null,
+        bbva_office_code: paymentMethod === 'account' && bankCode === '0013' ? bbvaOfficeCode : null,
         holder_document_type: documentType,
         holder_document_number: documentNumber,
         holder_document_dv: documentType === '03' ? documentDv : '0',
         holder_name: holderName,
-        holder_address: body.holderAddress ? String(body.holderAddress).trim() : null,
-        holder_email: body.holderEmail ? String(body.holderEmail).trim() : null,
+        holder_address: holderAddress,
+        holder_email: holderEmail || null,
       })
-      .select(
-        `id, bank_code, account_kind, account_number, bbva_office_code,
-         holder_document_type, holder_document_number, holder_document_dv,
-         holder_name, holder_address, holder_email,
-         status, rejection_reason, verified_at, created_at,
-         banks ( name )`
-      )
+      .select(COLUMNAS)
       .single();
 
     if (error) {
@@ -188,6 +231,8 @@ export async function POST(
 function aCamello(row: any) {
   return {
     id: row.id,
+    paymentMethod: row.payment_method,
+    brebKey: row.breb_key,
     bankCode: row.bank_code,
     bankName: row.banks?.name ?? null,
     accountKind: row.account_kind,
