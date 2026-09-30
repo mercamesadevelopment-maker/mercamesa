@@ -4,7 +4,7 @@ import { Database } from '../../../types/database_generated';
 import { uploadVariants } from '../../../lib/images/generate';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
 import { toE164 } from '@/lib/phone/phone';
-import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
+import { parseCategoryIds, setStoreCategories, CategoryLinksError, withFlatCategories } from '@/lib/stores/category-links';
 import { validateStoreFields } from '@/lib/stores/validate-store';
 import { parsePickupAddress } from '@/lib/stores/pickup-address';
 
@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   let selectStr = `
     *,
     marketplaces ( name ),
+    store_category_links ( store_categories ( id, name ) ),
     store_members (
       id,
       role_id,
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
     selectStr = `
       *,
       marketplaces ( name ),
+      store_category_links ( store_categories ( id, name ) ),
       store_members!inner (
         id,
         role_id,
@@ -75,8 +77,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: typesError.message }, { status: 400 });
   }
 
+  // Con sus categorías: el modal del admin se llena con esta respuesta, y sin
+  // ellas guardaba la lista vacía y le borraba las categorías a la tienda.
   const dataWithUrls = data?.map((store: any) => ({
-    ...store,
+    ...withFlatCategories(store),
     logoSignedUrl: store.logo_url ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO) : null,
     coverSignedUrl: store.cover_image_url ? getSupabaseImageUrl('stores', store.cover_image_url, PRESET_COVER_DETAIL) : null,
   }));

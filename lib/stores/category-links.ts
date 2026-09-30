@@ -95,3 +95,29 @@ export async function setStoreCategories(
     }
   }
 }
+
+export interface StoreCategoryRef {
+  id: string;
+  name: string;
+}
+
+type WithCategoryLinks<T> = T & {
+  store_category_links?: { store_categories: StoreCategoryRef | null }[] | null;
+};
+
+/**
+ * Aplana el embed `store_category_links ( store_categories ( id, name ) )` a la
+ * lista `categories`, que es lo que consumen el formulario del tendero, el modal
+ * del admin y la ficha pública. Toda ruta que devuelva tiendas para editarlas
+ * TIENE que traerlas: el modal del admin arranca con lo que llega y, si no llega
+ * nada, al guardar manda la lista vacía y borra las que la tienda tenía.
+ */
+export function withFlatCategories<T extends object>(
+  row: WithCategoryLinks<T>
+): Omit<T, 'store_category_links'> & { categories: StoreCategoryRef[] } {
+  const { store_category_links, ...rest } = row;
+  const categories = (store_category_links ?? [])
+    .map((l) => l.store_categories)
+    .filter((c): c is StoreCategoryRef => Boolean(c));
+  return { ...(rest as Omit<T, 'store_category_links'>), categories };
+}
