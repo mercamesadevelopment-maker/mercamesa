@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Store as StoreIcon, Star, Phone, MapPin, Heart, MessageSquare } from 'lucide-react';
-import { Badge, Button, cn, normalizeText } from '@/src/components/Shared';
+import { ArrowLeft, Search } from 'lucide-react';
+import { normalizeText } from '@/src/components/Shared';
 import {
   usePublicProducts,
   useVitrinaCategorias,
@@ -17,10 +17,9 @@ import { ProductCard } from '@/src/features/products/components/ProductCard';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
 import { RatingModal } from '@/src/features/stores/components/RatingModal';
 import { ReviewsPanel } from '@/src/features/stores/components/ReviewsPanel';
+import { StoreHeader } from '@/src/features/stores/components/StoreHeader';
 import { Pagination } from '@/app/orders/components/Pagination';
-import { WeeklyHoursDisplay } from '@/components/ui/business-hours/business-hours-editor';
 import { CategoryScroller } from '@/components/ui/category-scroller';
-import { Clock } from 'lucide-react';
 
 const PRODUCTS_PER_PAGE = 20;
 
@@ -167,6 +166,13 @@ export default function StoreDetailPage() {
 
   const totalPages = Math.ceil(total / PRODUCTS_PER_PAGE);
 
+  // El promedio sale de las reseñas mismas: `reputation_score || 5.0` mostraba
+  // un 5.0 que nadie había dado.
+  const rating = useMemo(
+    () => (reviews.length ? reviews.reduce((acc, r) => acc + Number(r.stars), 0) / reviews.length : null),
+    [reviews]
+  );
+
   if (loadingStore) return <div className="p-12 text-center text-mm-txs">Cargando tienda...</div>;
   if (error || !store) return <div className="p-12 text-center text-r">{error || 'No encontrada'}</div>;
 
@@ -179,111 +185,17 @@ export default function StoreDetailPage() {
         <ArrowLeft className="w-5 h-5" /> Volver a tiendas
       </button>
 
-      {/* Store Header */}
-      <div className="bg-white p-8 rounded-[32px] border border-mm-crd shadow-sm mb-10 flex flex-col md:flex-row gap-8 items-center overflow-hidden relative">
-        {state.isLoggedIn && (
-          <button
-            onClick={() => toggleFavorite(store.id)}
-            className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-white hover:bg-mm-gbg border border-mm-crd shadow-sm transition-all"
-          >
-            <Heart
-              className={cn(
-                'w-5 h-5 transition-colors',
-                isFavorite(store.id) ? 'fill-r text-r' : 'text-mm-txw'
-              )}
-            />
-          </button>
-        )}
-
-        <div className="w-32 h-32 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden bg-mm-gbg border border-mm-crd/30">
-          {store.logoSignedUrl ? (
-            <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover p-2" />
-          ) : (
-            <StoreIcon className="w-12 h-12 text-mm-txw" />
-          )}
-        </div>
-        
-        <div className="flex-grow text-center md:text-left">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-3 mb-2">
-            <h1 className="text-4xl font-fraunces text-mm-g">{store.name}</h1>
-            <Badge variant={store.is_active ? 'success' : 'error'} className="mt-1">
-              {store.is_active ? 'Abierta' : 'Cerrada'}
-            </Badge>
-            {/* Una insignia por categoría: una tienda puede vender carnes y
-                lácteos, y antes solo se veía una de las dos. */}
-            {(store.categories ?? []).map((c: { id: string; name: string }) => (
-              <Badge key={c.id} variant="oro" className="mt-1">{c.name}</Badge>
-            ))}
-
-            {/* «Mayorista» era una categoría; ahora es un dato de la tienda, y
-                sigue viéndose acá porque al comprador le importa. */}
-            {store.is_wholesale && (
-              <Badge variant="oro" className="mt-1">Mayorista</Badge>
-            )}
-          </div>
-
-          <p className="text-mm-txs mb-2 flex items-center justify-center md:justify-start gap-2">
-            <MapPin className="w-4 h-4" /> {store.marketplaces?.name || 'Plaza Central'}
-          </p>
-
-          {store.description && (
-            <p className="text-sm text-mm-txs max-w-2xl mb-4">{store.description}</p>
-          )}
-
-          {store.contact_phone && (
-             <p className="text-sm text-mm-txs flex items-center justify-center md:justify-start gap-2 mb-2">
-               <Phone className="w-4 h-4" /> {store.contact_phone}
-             </p>
-          )}
-
-          {Array.isArray(store.business_hours) && store.business_hours.length === 7 && (
-            <div className="mt-4 max-w-sm mx-auto md:mx-0">
-              <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2 flex items-center justify-center md:justify-start gap-2">
-                <Clock className="w-3.5 h-3.5" /> Horario de atención
-              </p>
-              <WeeklyHoursDisplay hours={store.business_hours} />
-            </div>
-          )}
-        </div>
-        
-        <div className="text-center md:text-right shrink-0">
-          <div className="text-3xl font-bold text-mm-oro flex items-center justify-center md:justify-end gap-2 mb-1">
-            <Star className="w-8 h-8 fill-mm-oro" /> {(store.reputation_score || 5.0).toFixed(1)}
-          </div>
-          <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-3">
-            Calificación ({reviews.length} {reviews.length === 1 ? 'reseña' : 'reseñas'})
-          </p>
-          {state.isLoggedIn && (
-            <Button size="sm" variant="outline" onClick={() => setIsRatingModalOpen(true)}>
-              {myReview ? 'Editar mi reseña' : 'Calificar esta tienda'}
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      {/* Reviews summary */}
-      <div className="mb-8 bg-white p-6 rounded-3xl border border-mm-crd shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-mm-gbg rounded-2xl flex items-center justify-center text-mm-g shrink-0">
-            <MessageSquare className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="font-bold text-mm-g">
-              {reviews.length === 0
-                ? 'Todavía no hay reseñas'
-                : `${reviews.length} ${reviews.length === 1 ? 'reseña' : 'reseñas'} de compradores`}
-            </p>
-            <p className="text-xs text-mm-txw">Lo que dicen quienes ya compraron aquí.</p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setIsReviewsPanelOpen(true)}>
-          Ver todas las reseñas
-        </Button>
-      </div>
-
-
-
-      
+      <StoreHeader
+        store={store}
+        rating={rating}
+        reviewCount={reviews.length}
+        hasMyReview={Boolean(myReview)}
+        isLoggedIn={state.isLoggedIn}
+        isFavorite={isFavorite(store.id)}
+        onToggleFavorite={() => toggleFavorite(store.id)}
+        onRate={() => setIsRatingModalOpen(true)}
+        onOpenReviews={() => setIsReviewsPanelOpen(true)}
+      />
 
       {/* Store Products */}
       <div className="mb-8">
@@ -340,6 +252,12 @@ export default function StoreDetailPage() {
         initialComment={myReview?.comment ?? ''}
         onClose={() => setIsRatingModalOpen(false)}
         onSave={handleSaveReview}
+      />
+
+      <ReviewsPanel
+        isOpen={isReviewsPanelOpen}
+        onClose={() => setIsReviewsPanelOpen(false)}
+        reviews={reviews}
       />
     </div>
   );

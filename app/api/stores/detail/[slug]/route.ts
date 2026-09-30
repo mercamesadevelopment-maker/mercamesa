@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../../lib/supabase/supabase-image';
+import { withFlatCategories } from '@/lib/stores/category-links';
 
 export async function GET(
   request: Request,
@@ -34,20 +35,9 @@ export async function GET(
       ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
       : null;
 
-    // Se aplana el embed anidado (vínculo → categoría) a la lista de categorías,
-    // igual que en `/api/stores/[id]`.
-    const { store_category_links, ...rest } = store as typeof store & {
-      store_category_links?: { store_categories: { id: string; name: string } | null }[] | null;
-    };
-
-    const categories = (store_category_links ?? [])
-      .map((l) => l.store_categories)
-      .filter((c): c is { id: string; name: string } => Boolean(c));
-
     return NextResponse.json({
       data: {
-        ...rest,
-        categories,
+        ...withFlatCategories(store),
         coverSignedUrl,
         logoSignedUrl
       }

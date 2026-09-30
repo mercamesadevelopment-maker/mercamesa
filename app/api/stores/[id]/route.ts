@@ -5,7 +5,7 @@ import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../
 import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { toE164 } from '@/lib/phone/phone';
-import { parseCategoryIds, setStoreCategories, CategoryLinksError } from '@/lib/stores/category-links';
+import { parseCategoryIds, setStoreCategories, CategoryLinksError, withFlatCategories } from '@/lib/stores/category-links';
 import { validateStoreFields } from '@/lib/stores/validate-store';
 import { parsePickupAddress } from '@/lib/stores/pickup-address';
 
@@ -90,19 +90,8 @@ export async function GET(
     ? getSupabaseImageUrl('stores', data.logo_url, PRESET_LOGO)
     : null;
 
-  // El embed anidado (vínculo → categoría) no le sirve a nadie tal cual: se
-  // aplana a la lista de categorías, que es lo que consumen el formulario del
-  // tendero, el modal del admin y la ficha pública.
-  const { store_category_links, ...store } = data as typeof data & {
-    store_category_links?: { store_categories: { id: string; name: string } | null }[] | null;
-  };
-
-  const categories = (store_category_links ?? [])
-    .map((l) => l.store_categories)
-    .filter((c): c is { id: string; name: string } => Boolean(c));
-
   return NextResponse.json(
-    { data: { ...store, categories, coverSignedUrl, logoSignedUrl } },
+    { data: { ...withFlatCategories(data), coverSignedUrl, logoSignedUrl } },
     { status: 200 }
   );
 }

@@ -1,10 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,700&family=DM+Sans:wght@300;400;500;700&display=swap');
 @import "tailwindcss";
 
+/* Las fuentes las carga `next/font` en `app/layout.tsx`; acá solo se nombran. */
+@theme inline {
+  --font-fraunces: var(--font-fraunces-src), serif;
+  --font-dm-sans: var(--font-dm-sans-src), sans-serif;
+}
+
 @theme {
-  --font-fraunces: "Fraunces", serif;
-  --font-dm-sans: "DM Sans", sans-serif;
-  
   --color-mm-g: #1A3308;
   --color-mm-gm: #2A4E12;
   --color-mm-gl: #4A7023;
