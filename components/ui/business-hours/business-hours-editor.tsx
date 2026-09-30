@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/src/components/Shared';
+import { DAY_LABELS } from './summarize-hours';
 
 export interface BusinessHourEntry {
   day: number; // ISO weekday: 1 = Lunes ... 7 = Domingo
@@ -10,16 +11,6 @@ export interface BusinessHourEntry {
 
 export type BusinessHours = BusinessHourEntry[];
 
-const DAY_LABELS: Record<number, string> = {
-  1: 'Lunes',
-  2: 'Martes',
-  3: 'Miércoles',
-  4: 'Jueves',
-  5: 'Viernes',
-  6: 'Sábado',
-  7: 'Domingo',
-};
-
 export function createDefaultBusinessHours(): BusinessHours {
   return [1, 2, 3, 4, 5, 6, 7].map((day) => ({
     day,
@@ -27,27 +18,6 @@ export function createDefaultBusinessHours(): BusinessHours {
     open_time: day === 7 ? null : '08:00',
     close_time: day === 7 ? null : '18:00',
   }));
-}
-
-export function WeeklyHoursDisplay({ hours }: { hours: BusinessHours }) {
-  return (
-    <div className="rounded-2xl border border-mm-crd overflow-hidden divide-y divide-mm-crd">
-      {hours.map((entry) => (
-        <div
-          key={entry.day}
-          className={cn(
-            'flex items-center justify-between gap-3 px-4 py-2.5 bg-white text-sm',
-            entry.is_closed && 'bg-mm-gbg/40'
-          )}
-        >
-          <span className="font-bold text-mm-g">{DAY_LABELS[entry.day]}</span>
-          <span className={cn('text-mm-txs', entry.is_closed && 'text-mm-txw italic')}>
-            {entry.is_closed ? 'Cerrado' : `${entry.open_time} - ${entry.close_time}`}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export function WeeklyHoursEditor({
