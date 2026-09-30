@@ -163,7 +163,10 @@ export function BuyerRegisterModal({
 
     enviando.current = true;
     try {
-      await requestSignupCode(email);
+      // El documento y el celular viajan para que el servidor diga, ANTES del
+      // código, si ya son de otra cuenta. Antes solo se miraba el correo, y al
+      // corregirlos en el formulario se seguía sin revisar nada.
+      await requestSignupCode(email, { document_number: documentNumber, phone });
       setCodigo('');
       setPaso(1);
     } catch (err) {
@@ -208,7 +211,7 @@ export function BuyerRegisterModal({
   const handleReenviar = async () => {
     if (cooldownSeconds > 0 || loading) return;
     try {
-      await requestSignupCode(datos.email);
+      await requestSignupCode(datos.email, { document_number: datos.document_number, phone: datos.phone });
     } catch (err) {
       console.error(err);
     }

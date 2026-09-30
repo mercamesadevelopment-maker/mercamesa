@@ -3,9 +3,11 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import {
   checkCodeRateLimit,
   issueCode,
+  recordRequestWithoutCode,
   getClientIp,
   RESEND_COOLDOWN_SECONDS,
 } from '@/lib/auth/verification-codes'
+import { findSignupConflict } from '@/lib/auth/signup-conflicts'
 import {
   sendEmail,
   signupCodeEmail,
@@ -47,6 +49,28 @@ export async function POST(request: Request) {
     }
 
     /**
+     * Documento o celular de otra cuenta: se dice acá, antes del código.
+     *
+     * Antes solo se miraba el correo, y el documento repetido aparecía después de
+     * confirmar el correo (el celular, en ningún lado). Cambiar esos datos en el
+     * formulario dejaba seguir sin revisar nada.
+     *
+     * Van después del límite y dejando constancia del intento: esta respuesta sí
+     * dice si un documento está registrado, y sin contarla se podrían probar
+     * documentos sin tope. Son opcionales porque «Reenviar código» manda solo el
+     * correo; la comprobación que decide es la de `register-buyer`.
+     */
+    const conflicto = await findSignupConflict(service, {
+      documentNumber: body.document_number as string | undefined,
+      phone: body.phone as string | undefined,
+    })
+
+    if (conflicto) {
+      await recordRequestWithoutCode({ service, table: 'signup_email_codes', key, ip })
+      return NextResponse.json({ error: conflicto.message, code: conflicto.code }, { status: 409 })
+    }
+
+    /**
      * Si el correo ya tiene cuenta, la respuesta es la misma que si estuviera
      * libre: decir «ese correo ya existe» acá convertiría el registro en una
      * forma de averiguar quién está registrado.
@@ -65,6 +89,10 @@ export async function POST(request: Request) {
     const yaExiste = perfil ? true : await existeEnAuth(service, email)
 
     if (yaExiste) {
+      // Sin esto el aviso de abajo no contaba en ningún límite: se podía pedir
+      // una y otra vez, y a cada pedido le llegaba un correo real al dueño.
+      await recordRequestWithoutCode({ service, table: 'signup_email_codes', key, ip })
+
       /**
        * El aviso que rompe el callejón sin salida.
        *

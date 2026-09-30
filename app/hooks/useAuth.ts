@@ -98,11 +98,14 @@ export function useAuthHooks() {
     }
   };
 
-  const requestSignupCode = async (email: string) => {
+  const requestSignupCode = async (
+    email: string,
+    datos?: { document_number?: string; phone?: string }
+  ) => {
     try {
       setLoading(true);
       clear();
-      const data = await authService.requestSignupCode(email);
+      const data = await authService.requestSignupCode(email, datos);
       startCooldown(data.cooldownSeconds ?? 0);
       return data;
     } catch (err: unknown) {

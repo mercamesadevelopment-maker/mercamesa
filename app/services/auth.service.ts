@@ -77,8 +77,12 @@ export const authService = {
     return post('/api/auth/verify-login-code', { email, code }, 'No pudimos verificar el código');
   },
 
-  async requestSignupCode(email: string) {
-    return post('/api/auth/request-signup-code', { email }, 'No pudimos enviar el código');
+  /**
+   * `datos` son el documento y el celular: el servidor avisa si ya pertenecen a
+   * otra cuenta antes de mandar el código, no después de confirmar el correo.
+   */
+  async requestSignupCode(email: string, datos?: { document_number?: string; phone?: string }) {
+    return post('/api/auth/request-signup-code', { email, ...datos }, 'No pudimos enviar el código');
   },
 
   async registerBuyer(payload: {
