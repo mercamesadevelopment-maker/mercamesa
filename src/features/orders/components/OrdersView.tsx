@@ -12,6 +12,7 @@ import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { StatusNoteModal } from './StatusNoteModal';
 import { RevertStatusModal } from './RevertStatusModal';
+import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
 
 interface StoreOption {
   id: string;
@@ -56,6 +57,9 @@ export function OrdersView({
   // Pedido cuyo estado se va a corregir hacia atrás (casos extremos).
   const [revertOrderId, setRevertOrderId] = React.useState<string | null>(null);
   const revertOrder = filteredOrders.find(o => o.id === revertOrderId) || null;
+  // Pedido sobre el que el tendero radica una PQRS. El admin no radica: resuelve.
+  const [reportOrder, setReportOrder] = React.useState<Order | null>(null);
+  const [reportedCode, setReportedCode] = React.useState<string | null>(null);
 
   const ordersPerPage = 6;
   const storeFilterThreshold = variant === 'admin' ? 0 : 1;
@@ -362,7 +366,41 @@ export function OrdersView({
           actionLabel
         })}
         onStartRevert={setRevertOrderId}
+        onReportProblem={
+          variant === 'seller'
+            ? (order) => {
+                setSelectedOrderForDetail(null);
+                setReportedCode(null);
+                setReportOrder(order);
+              }
+            : undefined
+        }
       />
+
+      {variant === 'seller' && (
+        <PqrsFormModal
+          isOpen={!!reportOrder}
+          onClose={() => setReportOrder(null)}
+          as="seller"
+          storeOrderId={reportOrder?.storeOrderId ?? null}
+          onCreated={(created) => {
+            setReportOrder(null);
+            setReportedCode(created.code);
+          }}
+        />
+      )}
+
+      {reportedCode && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[260] max-w-[calc(100vw-2rem)] rounded-full bg-mm-g text-white text-sm font-medium px-5 py-3 shadow-xl flex items-center gap-3"
+        >
+          <span>Caso {reportedCode} radicado. Lo encuentras en «PQRS».</span>
+          <button type="button" onClick={() => setReportedCode(null)} className="font-bold underline underline-offset-2">
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* Corrección a un estado anterior */}
       <RevertStatusModal

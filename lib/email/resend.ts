@@ -272,3 +272,22 @@ export function adminInvitationEmail(
     `,
   });
 }
+
+
+/**
+ * Novedad en una PQRS: se radicó, respondió la tienda, se resolvió.
+ *
+ * Sin enlace a propósito: el caso se abre desde la plataforma con sesión
+ * iniciada, y un enlace directo en un correo es justo lo que imita el phishing.
+ */
+export function pqrsUpdateEmail(code: string, heading: string, message: string) {
+  return plantilla({
+    title: heading,
+    heading,
+    body: `
+      <p class="text">Caso <span class="highlight">${code}</span></p>
+      <p class="text">${message}</p>
+      <p class="text">Para ver el detalle y responder, entra a MercaMesa y abre la sección «PQRS».</p>
+    `,
+  });
+}

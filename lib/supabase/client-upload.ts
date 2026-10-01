@@ -38,3 +38,23 @@ export async function removeImageDirect(bucket: string, path: string): Promise<v
  * logo de tienda, la portada y el avatar.
  */
 export const uploadFileDirect = uploadImageDirect;
+
+/**
+ * Sube a una ruta para la que el servidor ya entregó un permiso de subida.
+ *
+ * Es como se escribe en un bucket privado sin política de `insert`: el servidor
+ * decide la ruta y firma el permiso, y el navegador solo lo usa. Así el archivo
+ * no pasa por una ruta de la aplicación, que en Vercel tiene tope de 4,5 MB.
+ */
+export async function uploadToSignedUrl(
+  bucket: string,
+  path: string,
+  token: string,
+  file: File
+): Promise<void> {
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(path, token, file, {
+    contentType: file.type || undefined,
+  });
+  if (error) throw error;
+}

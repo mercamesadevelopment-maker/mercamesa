@@ -9,7 +9,7 @@ import { OrderStatusTimeline } from './OrderStatusTimeline';
 import {
   User, Phone, Mail, FileText, MapPin,
   CreditCard, Calendar, Clock, ShoppingBag,
-  MessageSquare, ChevronRight, Undo2
+  MessageSquare, ChevronRight, Undo2, LifeBuoy
 } from 'lucide-react';
 
 interface OrderDetailModalProps {
@@ -19,6 +19,8 @@ interface OrderDetailModalProps {
   onStartStatusChange: (orderId: string, status: OrderStatus, nextStatusLabel: string, actionLabel: string) => void;
   /** Abre la corrección a un estado anterior. Sin esta prop no se ofrece la opción. */
   onStartRevert?: (orderId: string) => void;
+  /** Abre el formulario de PQRS del tendero sobre este pedido. Sin esta prop no se ofrece. */
+  onReportProblem?: (order: Order) => void;
 }
 
 export function OrderDetailModal({
@@ -27,6 +29,7 @@ export function OrderDetailModal({
   order,
   onStartStatusChange,
   onStartRevert,
+  onReportProblem,
 }: OrderDetailModalProps) {
   if (!order) return null;
 
@@ -360,6 +363,21 @@ export function OrderDetailModal({
             >
               <Undo2 className="w-4 h-4 mr-1" />
               Regresar estado
+            </Button>
+          )}
+
+          {onReportProblem && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => onReportProblem(order)}
+              className={cn(
+                'w-full sm:w-auto rounded-2xl h-12 text-sm border-mm-crd text-mm-txs hover:bg-mm-gbg hover:text-mm-g transition-colors font-bold',
+                !canRevert && 'sm:mr-auto'
+              )}
+            >
+              <LifeBuoy className="w-4 h-4 mr-1" />
+              Reportar un problema
             </Button>
           )}
 
