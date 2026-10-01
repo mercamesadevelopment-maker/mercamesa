@@ -110,6 +110,8 @@ export interface PqrsRefund {
     delivery: number;
     liable: 'store' | 'logistics' | 'platform';
     moneyReference: string | null;
+    /** La nota crédito de Siigo. `null` si todavía no hay registro en la cola. */
+    creditNote: { status: 'pending' | 'sent' | 'failed' | 'skipped'; number: string | null; error: string | null } | null;
   } | null;
   can: { toMoney: boolean; markPaid: boolean; voidStoreCharge: boolean };
 }

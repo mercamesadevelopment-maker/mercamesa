@@ -24,6 +24,13 @@ const ESTADO: Record<NonNullable<PqrsRefund['status']>, string> = {
   money_paid: 'Reembolso en dinero realizado',
 };
 
+const NOTA: Record<'pending' | 'sent' | 'failed' | 'skipped', string> = {
+  pending: 'en cola',
+  sent: 'emitida',
+  failed: 'falló',
+  skipped: 'no aplica',
+};
+
 function Fila({ etiqueta, valor }: { etiqueta: string; valor: number }) {
   if (!valor) return null;
   return (
@@ -110,6 +117,15 @@ export function PqrsRefundPanel({ viewer, refund, preview, working, onAction }: 
             {refund.breakdown.moneyReference && ` Referencia del reembolso: ${refund.breakdown.moneyReference}.`}
             {refund.moneyPaidAt && ` Pagado el ${fechaCompleta(refund.moneyPaidAt)}.`}
           </p>
+          {refund.breakdown.creditNote && (
+            <p className="text-xs text-mm-txw">
+              Nota crédito en Siigo: {NOTA[refund.breakdown.creditNote.status]}
+              {refund.breakdown.creditNote.number && ` (n.º ${refund.breakdown.creditNote.number})`}
+              {refund.breakdown.creditNote.status !== 'sent' &&
+                refund.breakdown.creditNote.error &&
+                `. ${refund.breakdown.creditNote.error}`}
+            </p>
+          )}
         </dl>
       )}
 

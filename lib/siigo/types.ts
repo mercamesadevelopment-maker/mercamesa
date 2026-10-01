@@ -134,6 +134,39 @@ export interface SiigoInvoiceResponse {
   public_url?: string;
 }
 
+// ── Notas crédito ───────────────────────────────────────────────────────────
+
+export interface SiigoCreditNoteItem {
+  code: string;
+  description?: string;
+  quantity: number;
+  /** Precio unitario. Sin impuestos, igual que en la factura. */
+  price: number;
+}
+
+export interface SiigoCreditNotePayload {
+  document: { id: number };
+  date: string;
+  /** Id en Siigo de la factura que se corrige. */
+  invoice: string;
+  cost_center?: number;
+  /** Motivo de devolución DIAN. */
+  reason: string;
+  observations?: string;
+  stamp?: { send: boolean };
+  mail?: { send: boolean };
+  items: SiigoCreditNoteItem[];
+  payments: SiigoInvoicePayment[];
+}
+
+export interface SiigoCreditNoteResponse {
+  id: string;
+  number?: number;
+  name?: string;
+  total?: number;
+  stamp?: { status?: string; cude?: string; errors?: unknown };
+}
+
 // ── Terceros ────────────────────────────────────────────────────────────────
 
 export interface SiigoCustomerPayload {

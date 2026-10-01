@@ -108,3 +108,26 @@ export function toSiigoPaymentTypeId(paymentMethod: string | null): number {
       return SIIGO_PAYMENT_TYPE_DEFAULT;
   }
 }
+
+/**
+ * Notas crédito (devoluciones).
+ *
+ * `SIIGO_NC_DOCUMENT_ID` es el tipo de comprobante de la cuenta para notas
+ * crédito (GET /v1/document-types?type=NC). No tiene valor por defecto a
+ * propósito: sin él no se envía ninguna nota, y las devoluciones quedan en cola
+ * hasta que se configure. Es preferible a adivinar un comprobante contable.
+ */
+export const SIIGO_NC_DOCUMENT_ID = envInt('SIIGO_NC_DOCUMENT_ID', 0);
+
+/**
+ * Motivo DIAN de la nota: «1» devolución parcial de bienes, «2» anulación de la
+ * factura. Se usa «2» cuando se devuelve el pedido completo.
+ */
+export const SIIGO_NC_REASON_PARTIAL = process.env.SIIGO_NC_REASON_PARTIAL || '1';
+export const SIIGO_NC_REASON_FULL = process.env.SIIGO_NC_REASON_FULL || '2';
+
+/**
+ * Con qué forma de pago se registra lo devuelto. Como el comprador recibe saldo
+ * a favor y no dinero, por defecto es la misma del saldo.
+ */
+export const SIIGO_NC_PAYMENT_TYPE = envInt('SIIGO_NC_PAYMENT_TYPE', SIIGO_PAYMENT_TYPE_CREDIT);
