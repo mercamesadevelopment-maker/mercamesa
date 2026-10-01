@@ -45,10 +45,95 @@ Notas importantes:
 - `proxy.ts` (equivalente al middleware) refresca la sesión con cookies y protege rutas
   por prefijo (`/admin`, `/seller`, `/delivery`) contra `role_family`. Las rutas de
   `app/api/**` no redirigen ahí — cada `route.ts` maneja su propio 401.
-- Tipos de la base de datos: `types/database_generated.ts`, generado con
-  `pnpm gen:types` (**no editar a mano**; regenerar tras cada migración).
-- Migraciones y funciones SQL viven en `supabase/migrations` y `supabase/functions`;
-  la documentación de esquema/flujos vive en `docs/supabase` y `docs/migrations.MD`.
+- Tipos de la base de datos: `types/database_generated.ts` (**no editar a mano**). Tras
+  cada migración se regeneran desde la base local con `pnpm gen:types:local`;
+  `pnpm gen:types` los saca de producción.
+- Migraciones y funciones SQL viven en `supabase/migrations` y `supabase/functions`.
+  `supabase/migrations_legacy` es solo historia y no se ejecuta (ver "Entornos y base de
+  datos local").
+
+---
+
+## Entornos y base de datos local
+
+Hay tres entornos, y **se desarrolla contra el local**:
+
+| Entorno | Base de datos | Cómo la usa la app |
+|---|---|---|
+| Local | Supabase en Docker (`supabase start`) | `.env.local`, que Next.js lee por encima de `.env` |
+| Staging | Proyecto de Supabase aparte (pendiente de crear) | Variables del despliegue de staging |
+| Producción | Proyecto `zaqvcpehhmkiyjdbcufj` | `.env` y las variables de Vercel |
+
+Para trabajar contra producción desde la máquina local hay que renombrar `.env.local`. No
+es el modo normal: una migración o un dato de prueba ahí lo ve el sitio publicado.
+
+### Levantar la base local
+
+```
+pnpm db:start          # levanta Supabase en Docker
+pnpm db:reset          # borra la base local y la reconstruye: migraciones + datos
+pnpm db:sync-storage   # copia las imágenes públicas de producción al Storage local
+pnpm db:stop
+```
+
+Puertos (los 54xxx, 55xxx y 56xxx son de otros proyectos): API `57321`, Postgres `57322`,
+Studio `57323`, correo de pruebas `57324`. Configuración en `supabase/config.toml`.
+
+`pnpm db:reset` carga, en orden, los archivos de `supabase/seed/`:
+
+1. `pre.sql`: quita validaciones que los datos viejos de producción no cumplen.
+2. `prod_data.sql`: copia de los datos de producción. **No está en git** (datos
+   personales y contraseñas cifradas). Se trae o se actualiza con `pnpm db:pull-data`;
+   las cuentas entran con las mismas contraseñas que en producción.
+3. `local.sql`: secretos de Vault de mentira, vuelve a poner las validaciones y apaga
+   las tareas programadas que llaman hacia afuera.
+
+Un `db:reset` también vacía el Storage local; `pnpm db:sync-storage` lo vuelve a llenar
+desde `supabase/.storage-cache` sin bajar nada de nuevo.
+
+### Migraciones
+
+El ciclo de un cambio de esquema:
+
+1. `supabase migration new <nombre>`: crea el archivo en `supabase/migrations`.
+2. `pnpm db:reset`: lo prueba sobre una base limpia con datos reales.
+3. `pnpm gen:types:local`: regenera `types/database_generated.ts`.
+4. PR con la migración, los tipos y el código que la usa.
+5. `supabase db push` a staging y después a producción.
+
+Reglas:
+
+- **Ninguna migración llega a staging o producción sin haber pasado por `pnpm db:reset`
+  en local.**
+- El esquema no se cambia desde el panel de Supabase ni con SQL suelto: todo cambio es
+  un archivo en `supabase/migrations`.
+- `20261001190000_base.sql` es el esquema completo de producción a esa fecha y
+  reemplaza a todas las migraciones anteriores. No se edita: lo nuevo va en archivos
+  nuevos.
+- Los secretos (Vault, llaves) nunca van en una migración. Cada entorno crea los suyos.
+- Los módulos nuevos se crean con `is_active = false` y se activan desde
+  Parametrización cuando el código ya está desplegado.
+
+### Qué está simulado en local
+
+Local no debe tocar servicios reales. `.env.local` lo deja así:
+
+| Servicio | En local | Cómo |
+|---|---|---|
+| Pibox | La cotización es real; la reserva se simula y no sale ningún mensajero | `PIBOX_DRY_RUN=true`. Las reservas simuladas tienen id `SIMULADO-…` |
+| Correo | No sale: queda en la consola del servidor, incluido el código de ingreso de un administrador | `EMAIL_DRY_RUN=true` |
+| Siigo | No se envía nada; las colas de facturas y notas crédito se llenan y esperan | Sin credenciales |
+| ZonaPagos | No hay pasarela: un pedido se paga con saldo a favor o con `pnpm local:pay <código del pedido>` | `scripts/local-pay.ts`, que se niega a correr contra otra base que no sea la local |
+| Tareas programadas | Solo corren las que son SQL puro (vencer pedidos, escalar PQRS). Las demás se llaman a mano con `CRON_SECRET` | `supabase/seed/local.sql` |
+
+`PIBOX_DRY_RUN` y `EMAIL_DRY_RUN` nunca se encienden en producción.
+
+Los scripts `pnpm siigo`, `pnpm pibox:hooks` y `pnpm backfill:images` leen `.env`: operan
+sobre **producción**, no sobre local.
+
+### No va a git
+
+`.env.local`, `supabase/seed/prod_data.sql` y `supabase/.storage-cache`.
 
 ---
 

@@ -9,6 +9,20 @@ export async function sendEmail({
   subject: string;
   html: string;
 }) {
+  // Simulacro para la base local: el correo no sale, se escribe en la consola
+  // del servidor. Ahí queda a la vista el código de ingreso de un administrador
+  // sin depender de la bandeja de nadie, y ninguna prueba le escribe a un
+  // usuario real copiado de producción.
+  if (process.env.EMAIL_DRY_RUN === 'true') {
+    const texto = html
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    console.info(`[correo simulado] Para: ${to} | Asunto: ${subject}\n${texto}`);
+    return { id: 'simulado' };
+  }
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {

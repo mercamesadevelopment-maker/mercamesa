@@ -5,6 +5,21 @@ export function isPiboxEnabled(): boolean {
   return process.env.PIBOX_ENABLED === 'true';
 }
 
+/**
+ * Simulacro: se cotiza de verdad, pero no se despacha a nadie.
+ *
+ * Es para la base local y para staging. Cotizar no cuesta ni contacta a nadie,
+ * así que sigue yendo a Pibox y el carrito muestra tarifas reales; crear la
+ * reserva sí manda un mensajero a una tienda, y eso desde un entorno de pruebas
+ * no puede pasar. Nunca se enciende en producción.
+ */
+export function isPiboxDryRun(): boolean {
+  return process.env.PIBOX_DRY_RUN === 'true';
+}
+
+/** Prefijo de las reservas simuladas: así ninguna llega a consultarse en Pibox. */
+export const PIBOX_SIMULATED_PREFIX = 'SIMULADO-';
+
 export function getPiboxServiceTypeId(): string {
   // Mensajería en moto por defecto (ver "Servicios de carga" en docs/picap.MD)
   return process.env.PIBOX_SERVICE_TYPE_ID || '5c71b03a58b9ba10fa6393cf';
