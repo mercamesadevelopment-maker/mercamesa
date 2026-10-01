@@ -227,6 +227,10 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         unit_price: unitPrice,
         total_price: totalPrice,
+        // El precio antes de la oferta. Se guarda porque las ofertas cambian y
+        // se acaban: es lo único que permite decirle al comprador, después de
+        // pagar, cuánto se ahorró.
+        list_unit_price: precio.listPrice,
         catalog_name: dbProd.catalog_products?.name || item.catalog_name,
         unit_name: dbProd.measurement_units?.abbreviation || item.unit_name,
         notes: item.notes || null,

@@ -9,6 +9,8 @@ export interface OrderProduct {
   quantity: number;
   unit_price: number;
   total_price: number;
+  /** Precio por unidad antes de la oferta. Nulo en pedidos viejos o sin descuento guardado. */
+  list_unit_price?: number | null;
   image_url?: string;
 }
 
