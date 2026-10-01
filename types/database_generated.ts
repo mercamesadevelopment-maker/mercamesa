@@ -2718,6 +2718,59 @@ export type Database = {
         }
         Relationships: []
       }
+      siigo_credit_notes: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          refund_id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          siigo_credit_note_id: string | null
+          siigo_number: string | null
+          stamped: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          refund_id: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          siigo_credit_note_id?: string | null
+          siigo_number?: string | null
+          stamped?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          refund_id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          siigo_credit_note_id?: string | null
+          siigo_number?: string | null
+          stamped?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siigo_credit_notes_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: true
+            referencedRelation: "order_refunds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siigo_invoices: {
         Row: {
           attempts: number
