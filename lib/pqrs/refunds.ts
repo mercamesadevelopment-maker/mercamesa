@@ -190,7 +190,8 @@ export async function getRefundOfPqrs(
       `id, scope, products_amount, service_commission_amount, platform_commission_amount,
        messages_amount, delivery_amount, total_amount, liable, method, status,
        money_reference, money_paid_at, created_at,
-       store_charges ( id, amount, voided_at, payout_items ( id ) )`
+       store_charges ( id, amount, voided_at, payout_items ( id ) ),
+       siigo_credit_notes ( status, siigo_number, last_error )`
     )
     .eq('pqrs_id', pqrsId)
     .maybeSingle();
@@ -201,6 +202,8 @@ export async function getRefundOfPqrs(
   const cargo = Array.isArray(r.store_charges) ? r.store_charges[0] : r.store_charges;
   const cargoVigente = cargo && !cargo.voided_at ? Number(cargo.amount) : 0;
   const cargoLiquidado = Boolean(cargo && (cargo.payout_items ?? []).length > 0);
+
+  const nota = Array.isArray(r.siigo_credit_notes) ? r.siigo_credit_notes[0] : r.siigo_credit_notes;
 
   const esAdmin = viewer === 'admin';
   const esTienda = viewer === 'seller';
@@ -223,6 +226,9 @@ export async function getRefundOfPqrs(
           delivery: Number(r.delivery_amount),
           liable: r.liable,
           moneyReference: r.money_reference,
+          creditNote: nota
+            ? { status: nota.status, number: nota.siigo_number, error: nota.last_error }
+            : null,
         }
       : null,
     can: {
