@@ -3,6 +3,7 @@
 import React from 'react';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { PqrsView } from '@/src/features/pqrs/components/PqrsView';
+import { StoreBlocksPanel } from '@/src/features/pqrs/components/StoreBlocksPanel';
 
 /** Las PQRS de la tienda activa del tendero. */
 export function SellerPqrsView() {
@@ -34,6 +35,8 @@ export function SellerPqrsView() {
           </div>
         )
       }
-    />
+    >
+      <StoreBlocksPanel storeId={storeId} />
+    </PqrsView>
   );
 }

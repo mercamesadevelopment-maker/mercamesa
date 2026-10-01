@@ -9,6 +9,15 @@ import type {
   PqrsViewer,
 } from '@/lib/pqrs/types';
 
+/** Un comprador bloqueado, como lo ve el equipo de la tienda. */
+export interface StoreBlock {
+  id: string;
+  buyerName: string | null;
+  reason: string;
+  createdAt: string;
+  pqrsCode: string | null;
+}
+
 async function handle<T>(res: Response): Promise<T> {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? 'No pudimos completar la operación.');
@@ -81,6 +90,14 @@ export const pqrsService = {
     input: { outcome: string; liable: string | null; notes: string }
   ): Promise<PqrsDetail> {
     return post(`/api/pqrs/${id}/resolve`, input);
+  },
+
+  liftBlock(id: string, input: { notes: string }): Promise<PqrsDetail> {
+    return post(`/api/pqrs/${id}/lift-block`, input);
+  },
+
+  async storeBlocks(storeId: string): Promise<StoreBlock[]> {
+    return handle<StoreBlock[]>(await fetch(`/api/stores/${storeId}/buyer-blocks`));
   },
 
   /**

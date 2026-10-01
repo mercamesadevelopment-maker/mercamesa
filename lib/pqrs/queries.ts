@@ -3,6 +3,7 @@ import { getPqrsReason, STORE_VISIBLE_BUYER_REASONS } from './reasons';
 import { signPaths } from './storage';
 import { viewerOf, type PqrsActor } from './actor';
 import { PqrsInputError } from './errors';
+import { getBlockOfPqrs, loadBuyerStoreHistory } from '@/lib/stores/buyer-blocks';
 import type { PqrsAttachment, PqrsDetail, PqrsStatus, PqrsSummary, PqrsViewer } from './types';
 
 /**
@@ -43,6 +44,9 @@ function aResumen(row: any): PqrsSummary {
 }
 
 export const PQRS_PAGE_SIZE = 20;
+
+/** El motivo cuya aprobación crea un bloqueo. */
+export const BLOCK_REASON = 'bloquear_comprador';
 
 const SIN_PERMISO = 'No tienes permisos para ver estas PQRS.';
 
@@ -117,7 +121,7 @@ export async function getPqrsDetail(
     .from('pqrs')
     .select(
       `${SELECT_RESUMEN}, description, liable, store_response, store_responded_at,
-       resolved_at, resolution_notes`
+       resolved_at, resolution_notes, buyer_id`
     )
     .eq('id', id)
     .maybeSingle();
@@ -163,6 +167,15 @@ export async function getPqrsDetail(
 
   const abierta = row.status !== 'resolved';
 
+  // Los casos del tendero contra un comprador traen el historial de ese
+  // comprador en la tienda: es con lo que se decide. `viewerOf` ya garantiza que
+  // el comprador nunca ve un caso abierto por la tienda.
+  const contraComprador = row.opened_as === 'seller' && row.buyer_id && row.store_id;
+  const [block, buyerHistory] = await Promise.all([
+    row.reason === BLOCK_REASON ? getBlockOfPqrs(service, id) : Promise.resolve(null),
+    contraComprador ? loadBuyerStoreHistory(service, row.store_id, row.buyer_id) : Promise.resolve(null),
+  ]);
+
   return {
     ...aResumen(row),
     description: row.description,
@@ -190,6 +203,10 @@ export async function getPqrsDetail(
       createdAt: m.created_at,
       attachments: conUrl.filter((a) => a.messageId === m.id),
     })),
+    block: block
+      ? { id: block.id, createdAt: block.createdAt, liftedAt: block.liftedAt, liftNotes: block.liftNotes }
+      : null,
+    buyerHistory,
     viewer,
     can: {
       // Resuelta, la conversación se cierra; el admin puede dejar constancia.
@@ -199,6 +216,7 @@ export async function getPqrsDetail(
         viewer === 'seller' &&
         row.opened_as === 'buyer',
       resolve: abierta && viewer === 'admin',
+      liftBlock: viewer === 'admin' && Boolean(block && !block.liftedAt),
     },
   };
 }

@@ -12,6 +12,7 @@ import { PqrsPhotos } from './PqrsPhotos';
 import { PqrsThread } from './PqrsThread';
 import { PqrsStoreResponse } from './PqrsStoreResponse';
 import { PqrsResolveForm } from './PqrsResolveForm';
+import { PqrsBlockPanel } from './PqrsBlockPanel';
 
 interface PqrsDetailModalProps {
   /** `null` cierra el modal. */
@@ -35,7 +36,7 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
  * cambia es qué trae el servidor (`viewer` y `can`), no la pantalla.
  */
 export function PqrsDetailModal({ pqrsId, onClose, onChanged }: PqrsDetailModalProps) {
-  const { detail, loading, error, working, actionError, sendMessage, respondAsStore, resolve } =
+  const { detail, loading, error, working, actionError, sendMessage, respondAsStore, resolve, liftBlock } =
     usePqrsDetail(pqrsId, onChanged);
 
   return (
@@ -98,6 +99,14 @@ export function PqrsDetailModal({ pqrsId, onClose, onChanged }: PqrsDetailModalP
               <PqrsPhotos attachments={detail.attachments} />
             </div>
           )}
+
+          <PqrsBlockPanel
+            history={detail.buyerHistory}
+            block={detail.block}
+            canLift={detail.can.liftBlock}
+            working={working}
+            onLift={liftBlock}
+          />
 
           {detail.status === 'resolved' && (
             <div className="rounded-2xl bg-mm-gbg/50 border border-mm-crd p-4">
