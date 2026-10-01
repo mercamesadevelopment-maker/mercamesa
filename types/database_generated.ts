@@ -2623,6 +2623,81 @@ export type Database = {
           },
         ]
       }
+      store_buyer_blocks: {
+        Row: {
+          blocked_by: string | null
+          buyer_id: string
+          created_at: string
+          id: string
+          lift_notes: string | null
+          lifted_at: string | null
+          lifted_by: string | null
+          pqrs_id: string | null
+          reason: string
+          store_id: string
+        }
+        Insert: {
+          blocked_by?: string | null
+          buyer_id: string
+          created_at?: string
+          id?: string
+          lift_notes?: string | null
+          lifted_at?: string | null
+          lifted_by?: string | null
+          pqrs_id?: string | null
+          reason: string
+          store_id: string
+        }
+        Update: {
+          blocked_by?: string | null
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          lift_notes?: string | null
+          lifted_at?: string | null
+          lifted_by?: string | null
+          pqrs_id?: string | null
+          reason?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_buyer_blocks_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_buyer_blocks_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_buyer_blocks_lifted_by_fkey"
+            columns: ["lifted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_buyer_blocks_pqrs_id_fkey"
+            columns: ["pqrs_id"]
+            isOneToOne: false
+            referencedRelation: "pqrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_buyer_blocks_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_categories: {
         Row: {
           created_at: string
