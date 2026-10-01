@@ -1,7 +1,8 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { Search, MapPin } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
+import { normalizeText } from '@/src/components/Shared';
+import { CategoryScroller } from '@/components/ui/category-scroller';
 import { usePublicStores } from './hooks/usePublicStores';
 import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';
 import { useApp } from '@/src/store';
@@ -25,16 +26,34 @@ export default function StoresSectionPage() {
 
   const loading = loadingStores || loadingPlazas;
 
-  // Derive categories from active stores
-  const allCategories = ['Todas', ...Array.from(new Set(stores.map(s => s.description || 'General'))).slice(0, 10)]; // Using description as category for now, or you could use a dedicated category field if it exists.
+  /**
+   * Las categorías reales de las tiendas listadas.
+   *
+   * Antes los filtros salían de la DESCRIPCIÓN de cada tienda, y por eso había
+   * botones como «Local 24, sector 1». Las categorías viven en
+   * `store_category_links` y ya llegan con cada tienda.
+   */
+  const allCategories = useMemo(() => {
+    const nombres = new Set(stores.flatMap((s) => (s.categories ?? []).map((c) => c.name)));
+    return ['Todas', ...Array.from(nombres).sort((a, b) => a.localeCompare(b, 'es'))];
+  }, [stores]);
 
-  const filteredStores = stores.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
-                          (s.description || '').toLowerCase().includes(search.toLowerCase());
-    const matchesPlaza = plazaId === 'all' || s.marketplace_id === plazaId;
-    const matchesCat = activeCat === 'Todas' || s.description === activeCat;
-    return matchesSearch && matchesPlaza && matchesCat;
-  });
+  const filteredStores = useMemo(() => {
+    // Sin tildes ni mayúsculas: «lacteos» encuentra «Lácteos».
+    const term = normalizeText(search.trim());
+
+    return stores.filter((s) => {
+      const categorias = (s.categories ?? []).map((c) => c.name);
+
+      const matchesSearch =
+        !term ||
+        [s.name, s.description ?? '', ...categorias].some((texto) => normalizeText(texto).includes(term));
+      const matchesPlaza = plazaId === 'all' || s.marketplace_id === plazaId;
+      const matchesCat = activeCat === 'Todas' || categorias.includes(activeCat);
+
+      return matchesSearch && matchesPlaza && matchesCat;
+    });
+  }, [stores, search, plazaId, activeCat]);
 
   if (loading) return <div className="p-12 text-center text-mm-txs">Cargando tiendas...</div>;
   if (error) return <div className="p-12 text-center text-r">Error: {error}</div>;
@@ -71,21 +90,7 @@ export default function StoresSectionPage() {
             ))}
           </select>
         </div>
-        {/* En móvil los chips llegan al borde de la pantalla en vez de cortarse en el padding. */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          {allCategories.map(c => (
-            <button
-              key={c}
-              onClick={() => setActiveCat(c)}
-              className={cn(
-                "shrink-0 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap",
-                activeCat === c ? "bg-mm-g text-white shadow-md" : "bg-white border border-mm-crd text-mm-txs hover:border-mm-g"
-              )}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        <CategoryScroller categories={allCategories} activeCategory={activeCat} onSelect={setActiveCat} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">

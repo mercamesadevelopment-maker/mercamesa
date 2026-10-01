@@ -4,6 +4,10 @@ import { Database } from '@/types/database_generated';
 export type PublicStore = Database['public']['Tables']['stores']['Row'] & {
   logoSignedUrl?: string | null;
   marketplaces?: { name: string } | null;
+  categories?: { id: string; name: string }[];
+  reviewCount?: number;
+  /** Promedio de estrellas, o `null` si nadie ha calificado la tienda. */
+  rating?: number | null;
 };
 type Store = PublicStore;
 

@@ -7,6 +7,8 @@ import { Store as StoreIcon, Star, Heart, Share2, Check } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { getStoreShareUrl } from '@/src/features/products/utils/share-link';
 import { useShareLink } from '@/src/features/products/hooks/use-share-link';
+import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
+import { openStatus } from '@/components/ui/business-hours/summarize-hours';
 import type { PublicStore } from '../hooks/usePublicStores';
 
 interface StoreCardProps {
@@ -15,6 +17,11 @@ interface StoreCardProps {
   isFavorite: boolean;
   onToggleFavorite: () => void;
 }
+
+/** Cuántas categorías caben en la tarjeta antes de resumir el resto en «+N». */
+const MAX_CATEGORIES = 3;
+
+const ACTION_BUTTON_CLASS = 'p-2 rounded-full hover:bg-mm-gbg transition-colors';
 
 export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: StoreCardProps) {
   const router = useRouter();
@@ -25,75 +32,95 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
     share(getStoreShareUrl(store.slug), store.name);
   };
 
+  const categories = store.categories ?? [];
+  const extraCategories = categories.length - MAX_CATEGORIES;
+
+  // «Abierta» según el horario, en hora de Colombia. Antes era un texto fijo.
+  const hours = store.business_hours as unknown as BusinessHours | null;
+  const status = Array.isArray(hours) && hours.length === 7 ? openStatus(hours) : null;
+
+  const reviewCount = store.reviewCount ?? 0;
+
   return (
     <motion.div
       whileHover={{ y: -8 }}
       onClick={() => router.push(`/stores/${store.slug}`)}
-      className="relative bg-white rounded-3xl sm:rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-4 sm:p-6 flex flex-col group"
+      className="bg-white rounded-3xl sm:rounded-[32px] border border-mm-crd shadow-sm hover:shadow-xl transition-all cursor-pointer p-4 sm:p-6 flex flex-col group"
     >
-      {/* El corazón depende de sesión (favoritos es solo para compradores
-          logueados, y esta página ya exige sesión de todos modos); compartir no,
-          para que el link funcione tal como se ve acá. */}
-      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 flex items-center gap-2">
-        <button
-          onClick={handleShare}
-          aria-label="Compartir esta tienda"
-          title="Compartir esta tienda"
-          className="p-2.5 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all"
-        >
-          {copied ? <Check className="w-4.5 h-4.5 text-mm-g" /> : <Share2 className="w-4.5 h-4.5 text-mm-txw" />}
-        </button>
-
-        {isLoggedIn && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            aria-label={isFavorite ? 'Quitar de favoritas' : 'Agregar a favoritas'}
-            className="p-2.5 rounded-full bg-white/90 hover:bg-white shadow-sm transition-all"
-          >
-            <Heart
-              className={cn(
-                'w-4.5 h-4.5 transition-colors',
-                isFavorite ? 'fill-r text-r' : 'text-mm-txw'
-              )}
-            />
-          </button>
-        )}
-      </div>
-
-      {/* Se reserva espacio a la derecha para que estos botones no tapen el
-          nombre. La cuenta, en el caso más apretado (móvil, con sesión): cada
-          botón mide 38px (`p-2.5` + icono de 18px), más `gap-2` son 84px, más
-          los 12px de `right-3` = 96px. Con `pr-20` (80px) dentro de `p-4`
-          (16px) daba exactamente 96: cero holgura, y como el botón es
-          `bg-white/90` el badge dorado se transparentaba por debajo y se veía
-          superpuesto. Si algún día se agrega un tercer botón, este número sube
-          con él. */}
-      <div className={cn('flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4', isLoggedIn ? 'pr-24' : 'pr-12')}>
+      {/* Logo y acciones en una fila; el nombre va debajo, a todo el ancho.
+          Antes compartían la fila y, con el espacio reservado para los botones,
+          al nombre le quedaban unos 56 px: «TIEND A DE…». */}
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div className="w-14 h-14 sm:w-16 sm:h-16 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 border border-mm-crd/30 overflow-hidden group-hover:scale-105 transition-transform">
           {store.logoSignedUrl ? (
-            <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover" />
+            <img src={store.logoSignedUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <StoreIcon className="w-6 h-6 text-mm-txw" />
           )}
         </div>
-        <div className="flex-grow min-w-0">
-          <Badge variant="oro" className="mb-1 text-[10px] uppercase font-bold tracking-widest block truncate">
-            {store.marketplaces?.name || 'Plaza'}
-          </Badge>
-          <h3 className="font-bold text-mm-g leading-tight line-clamp-2 break-words">{store.name}</h3>
+
+        {/* El corazón depende de sesión (favoritos es solo para compradores
+            logueados); compartir no, para que el link funcione sin entrar. */}
+        <div className="flex items-center gap-1 -mr-2 -mt-1">
+          <button
+            onClick={handleShare}
+            aria-label="Compartir esta tienda"
+            title="Compartir esta tienda"
+            className={ACTION_BUTTON_CLASS}
+          >
+            {copied ? <Check className="w-4.5 h-4.5 text-mm-g" /> : <Share2 className="w-4.5 h-4.5 text-mm-txw" />}
+          </button>
+
+          {isLoggedIn && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+              aria-label={isFavorite ? 'Quitar de favoritas' : 'Agregar a favoritas'}
+              className={ACTION_BUTTON_CLASS}
+            >
+              <Heart className={cn('w-4.5 h-4.5 transition-colors', isFavorite ? 'fill-r text-r' : 'text-mm-txw')} />
+            </button>
+          )}
         </div>
       </div>
 
-      <p className="text-xs text-mm-txs line-clamp-2 mb-3 sm:mb-4 flex-grow">{store.description}</p>
+      <p className="text-[10px] uppercase font-bold tracking-widest text-mm-oro truncate mb-1">
+        {store.marketplaces?.name || 'Plaza'}
+      </p>
+      <h3 title={store.name} className="font-bold text-mm-g leading-tight line-clamp-2 break-words mb-2">
+        {store.name}
+      </h3>
 
-      <div className="pt-3 sm:pt-4 border-t border-mm-gbg flex items-center justify-between">
-        <div className="flex items-center gap-1 text-mm-oro text-xs font-bold">
-          <Star className="w-4 h-4 fill-mm-oro" /> {(store.reputation_score || 5.0).toFixed(1)}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {categories.slice(0, MAX_CATEGORIES).map((c) => (
+            <Badge key={c.id}>{c.name}</Badge>
+          ))}
+          {extraCategories > 0 && <Badge>+{extraCategories}</Badge>}
         </div>
-        <Badge variant="success">Abierta</Badge>
+      )}
+
+      <p className="text-xs text-mm-txs line-clamp-1 mb-3 sm:mb-4 flex-grow">{store.description}</p>
+
+      <div className="pt-3 sm:pt-4 border-t border-mm-gbg flex items-center justify-between gap-2">
+        {/* Solo con reseñas: `reputation_score` nace en 5.00 y todas las tiendas
+            mostraban un 5.0 que nadie había dado. */}
+        {reviewCount > 0 && store.rating != null ? (
+          <div className="flex items-center gap-1 text-mm-oro text-xs font-bold">
+            <Star className="w-4 h-4 fill-mm-oro" /> {store.rating.toFixed(1)}
+            <span className="font-medium text-mm-txw">({reviewCount})</span>
+          </div>
+        ) : (
+          <span className="text-xs text-mm-txw">Sin calificaciones</span>
+        )}
+
+        {status && (
+          <span title={status.label}>
+            <Badge variant={status.isOpen ? 'success' : 'default'}>{status.isOpen ? 'Abierta' : 'Cerrada'}</Badge>
+          </span>
+        )}
       </div>
     </motion.div>
   );
