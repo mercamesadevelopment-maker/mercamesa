@@ -5,6 +5,8 @@ import { areOwnUploads, attachUploads, FOTO_NO_VALIDA } from './storage';
 import { notifyPqrs } from './notify';
 import { PqrsInputError } from './errors';
 import { MAX_DESCRIPTION, MAX_PHOTOS } from './rules';
+import { BLOCK_REASON } from './queries';
+import { blockBuyer, getBlockOfPqrs, liftBlock } from '@/lib/stores/buyer-blocks';
 import type { PqrsOutcome, PqrsViewer } from './types';
 
 /**
@@ -20,6 +22,8 @@ interface PqrsRow {
   opened_by: string;
   opened_as: string;
   store_id: string | null;
+  buyer_id: string | null;
+  description: string;
 }
 
 async function loadForAction(
@@ -29,7 +33,7 @@ async function loadForAction(
 ): Promise<{ pqrs: PqrsRow; viewer: PqrsViewer }> {
   const { data: pqrs } = await service
     .from('pqrs')
-    .select('id, code, reason, status, opened_by, opened_as, store_id')
+    .select('id, code, reason, status, opened_by, opened_as, store_id, buyer_id, description')
     .eq('id', id)
     .maybeSingle();
 
@@ -216,6 +220,24 @@ export async function resolvePqrs(
   const liable = input.liable ? (input.liable as PqrsLiable) : null;
   if (liable && !LIABLES.includes(liable)) throw new PqrsInputError('El responsable no es válido.');
 
+  if (pqrs.status === 'resolved') throw new PqrsInputError('Este caso ya estaba resuelto.', 409);
+
+  // Aprobar una solicitud de bloqueo ES bloquear. Va antes de cerrar el caso:
+  // si el bloqueo no se pudiera registrar, el caso no debe quedar «aprobado»
+  // con el comprador comprando igual.
+  if (pqrs.reason === BLOCK_REASON && outcome === 'approved') {
+    if (!pqrs.store_id || !pqrs.buyer_id) {
+      throw new PqrsInputError('La solicitud no tiene tienda o comprador: no se puede bloquear.');
+    }
+    await blockBuyer(service, {
+      storeId: pqrs.store_id,
+      buyerId: pqrs.buyer_id,
+      pqrsId: pqrs.id,
+      reason: pqrs.description,
+      blockedBy: actor.userId,
+    });
+  }
+
   const { data: actualizado, error } = await service
     .from('pqrs')
     .update({
@@ -246,5 +268,45 @@ export async function resolvePqrs(
     actorId: actor.userId,
     title: TITULO_RESULTADO[outcome],
     message: 'MercaMesa resolvió el caso. Entra a verlo para leer la respuesta.',
+  });
+}
+
+/**
+ * El admin levanta el bloqueo que salió de una solicitud.
+ *
+ * El caso sigue resuelto y aprobado —lo fue—; lo que cambia es que el bloqueo ya
+ * no está vigente, y queda escrito por qué.
+ */
+export async function liftPqrsBlock(
+  service: SupabaseClient<any>,
+  actor: PqrsActor,
+  id: string,
+  input: { notes?: unknown }
+): Promise<void> {
+  const { pqrs, viewer } = await loadForAction(service, actor, id);
+  if (viewer !== 'admin') throw new PqrsInputError('Solo un administrador puede levantar un bloqueo.', 403);
+
+  const notes = String(input.notes ?? '').trim();
+  if (notes.length < 10) throw new PqrsInputError('Explica por qué se levanta el bloqueo.');
+
+  const block = await getBlockOfPqrs(service, id);
+  if (!block || block.liftedAt) throw new PqrsInputError('Este caso no tiene un bloqueo vigente.', 409);
+
+  const levantado = await liftBlock(service, { blockId: block.id, liftedBy: actor.userId, notes });
+  if (!levantado) throw new PqrsInputError('Este caso no tiene un bloqueo vigente.', 409);
+
+  await service.from('pqrs_messages').insert({
+    pqrs_id: id,
+    author_id: actor.userId,
+    author_as: 'admin',
+    body: `Se levantó el bloqueo: ${notes}`,
+  });
+
+  await notifyPqrs(service, {
+    pqrs,
+    audiences: ['opener'],
+    actorId: actor.userId,
+    title: 'Se levantó un bloqueo',
+    message: 'MercaMesa levantó el bloqueo de un comprador en tu tienda. Entra al caso para ver el motivo.',
   });
 }

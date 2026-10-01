@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { BUYER_BLOCKED_MESSAGE, isBuyerBlocked } from '@/lib/stores/buyer-blocks';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
 import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
@@ -44,6 +47,13 @@ export async function POST(request: Request) {
     }
     if (items.length === 0) {
       return NextResponse.json({ error: 'El pedido debe contener al menos un producto' }, { status: 400 });
+    }
+
+    // Se avisa acá, al cotizar, para que el comprador lo sepa en el carrito y no
+    // después de llenar el pago. `POST /api/orders` lo vuelve a comprobar.
+    const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
+    if (await isBuyerBlocked(service, storeId, user.id)) {
+      return NextResponse.json({ error: BUYER_BLOCKED_MESSAGE, code: 'buyer_blocked' }, { status: 403 });
     }
 
     // Tipo de comprador desde la base, nunca desde el navegador: define si aplica

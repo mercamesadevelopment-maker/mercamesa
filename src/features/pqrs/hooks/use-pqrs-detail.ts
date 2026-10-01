@@ -76,5 +76,10 @@ export function usePqrsDetail(id: string | null, onChanged?: () => void) {
     [id, run]
   );
 
-  return { detail, loading, error, working, actionError, sendMessage, respondAsStore, resolve };
+  const liftBlock = useCallback(
+    (notes: string) => run(() => pqrsService.liftBlock(id!, { notes })),
+    [id, run]
+  );
+
+  return { detail, loading, error, working, actionError, sendMessage, respondAsStore, resolve, liftBlock };
 }

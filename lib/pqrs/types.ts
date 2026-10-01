@@ -70,6 +70,23 @@ export interface PqrsMessage {
   attachments: PqrsAttachment[];
 }
 
+/** El bloqueo que salió de una solicitud «bloquear comprador». */
+export interface PqrsBlock {
+  id: string;
+  createdAt: string;
+  liftedAt: string | null;
+  liftNotes: string | null;
+}
+
+/** Cómo le ha ido al comprador del caso en la tienda del caso. */
+export interface PqrsBuyerHistory {
+  total: number;
+  delivered: number;
+  cancelled: number;
+  expiredUnpaid: number;
+  paymentRejected: number;
+}
+
 export interface PqrsDetail extends PqrsSummary {
   description: string;
   liable: PqrsLiable | null;
@@ -80,6 +97,10 @@ export interface PqrsDetail extends PqrsSummary {
   items: PqrsItem[];
   attachments: PqrsAttachment[];
   messages: PqrsMessage[];
+  /** Solo en solicitudes de bloqueo ya aprobadas. Nunca le llega al comprador. */
+  block: PqrsBlock | null;
+  /** Solo en los casos del tendero contra un comprador. */
+  buyerHistory: PqrsBuyerHistory | null;
   /** Desde qué puesto la está viendo quien pregunta. */
   viewer: PqrsViewer;
   /** Lo que ese puesto puede hacer ahora mismo. */
@@ -87,6 +108,7 @@ export interface PqrsDetail extends PqrsSummary {
     message: boolean;
     respondAsStore: boolean;
     resolve: boolean;
+    liftBlock: boolean;
   };
 }
 

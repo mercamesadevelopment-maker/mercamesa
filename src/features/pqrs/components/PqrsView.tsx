@@ -20,6 +20,8 @@ interface PqrsViewProps {
   storeId?: string | null;
   /** Lo que va junto al título: el selector de tienda del tendero. */
   headerExtra?: React.ReactNode;
+  /** Lo que va entre el encabezado y el listado. */
+  children?: React.ReactNode;
 }
 
 const FILTERS: { value: PqrsStatus | null; label: string }[] = [
@@ -42,7 +44,7 @@ function partes(item: PqrsSummary, scope: PqrsViewer): string {
  * El listado de PQRS. Es uno solo para los tres puestos: `scope` decide qué
  * casos trae el servidor y si se puede radicar desde acá (el admin no radica).
  */
-export function PqrsView({ scope, title, subtitle, storeId, headerExtra }: PqrsViewProps) {
+export function PqrsView({ scope, title, subtitle, storeId, headerExtra, children }: PqrsViewProps) {
   const esperaTienda = scope === 'seller' && !storeId;
   const { data, status, setStatus, page, setPage, loading, error, refresh } = usePqrsList(
     scope,
@@ -70,6 +72,8 @@ export function PqrsView({ scope, title, subtitle, storeId, headerExtra }: PqrsV
           </Button>
         )}
       </div>
+
+      {children}
 
       <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
         {FILTERS.map((f) => (

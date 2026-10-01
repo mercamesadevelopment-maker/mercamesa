@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../../lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { BUYER_BLOCKED_MESSAGE, isBuyerBlocked } from '@/lib/stores/buyer-blocks';
 import { CreateOrderPayload } from '@/src/features/payment/types/payment.types';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
 import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
@@ -164,6 +167,16 @@ export async function POST(request: Request) {
         { error: 'No tienes permisos para registrar ventas en esta tienda.' },
         { status: 403 }
       );
+    }
+
+    // Un comprador bloqueado en esta tienda no puede crearle pedidos. Va antes
+    // de mirar productos y precios: no hay nada que calcular. En mostrador no
+    // aplica, porque ahí quien registra la venta es la tienda.
+    if (!isInStore) {
+      const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
+      if (await isBuyerBlocked(service, String(storeOrders[0].store_id), user.id)) {
+        return NextResponse.json({ error: BUYER_BLOCKED_MESSAGE, code: 'buyer_blocked' }, { status: 403 });
+      }
     }
 
     const { data: dbProducts, error: dbProductsError } = await supabase
