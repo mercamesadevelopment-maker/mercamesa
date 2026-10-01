@@ -15,3 +15,9 @@ export const DISCOUNT_NOTICE_BODY =
   'exactamente cuánto vas a pagar.';
 
 export const DISCOUNT_NOTICE_TOTAL_LABEL = 'Ahorro total';
+
+/**
+ * Lo mismo, dicho después de comprar: en «Mis Órdenes» y en el detalle del
+ * pedido. Recibe el valor ya con formato de moneda.
+ */
+export const ORDER_SAVINGS_LABEL = (amount: string) => `Ahorraste ${amount} en este pedido`;

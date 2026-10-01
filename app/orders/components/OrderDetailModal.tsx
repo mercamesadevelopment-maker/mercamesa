@@ -27,6 +27,7 @@ import {
 
 import { ORDER_STATUS_CONFIG, PAYMENT_STATUS_CONFIG } from './OrderCard';
 import { useOrderHistory } from '../hooks/useOrderHistory';
+import { OrderSavings } from './OrderSavings';
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -115,10 +116,22 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
                     {item.quantity}x {item.catalog_name}
                   </span>
                 </div>
-                <span className="font-bold text-mm-g">{formatCurrency(item.total_price)}</span>
+                <span className="shrink-0 whitespace-nowrap text-right">
+                  {Number(item.list_unit_price) > Number(item.unit_price) && (
+                    <span className="mr-1.5 text-xs text-mm-txw line-through decoration-r">
+                      {formatCurrency(Number(item.list_unit_price) * Number(item.quantity))}
+                    </span>
+                  )}
+                  <span className="font-bold text-mm-g">{formatCurrency(item.total_price)}</span>
+                </span>
               </div>
             ))}
           </div>
+
+          <OrderSavings
+            amount={Number(order.discount_total ?? 0)}
+            className="mt-4 border-t border-mm-crd/65 pt-4"
+          />
         </div>
 
         {/* Delivery + payment */}

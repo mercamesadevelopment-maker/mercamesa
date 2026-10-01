@@ -27,6 +27,7 @@ import {
 
 import { Button, cn } from '@/src/components/Shared';
 import { OrderDetailModal } from './OrderDetailModal';
+import { OrderSavings } from './OrderSavings';
 import { ReorderModal } from './ReorderModal';
 import { usePayOrder, isPayable } from '../hooks/usePayOrder';
 import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
@@ -166,10 +167,18 @@ export function OrderCard({
                     </span>
                   </div>
 
-                  <span className="font-bold text-mm-g shrink-0 whitespace-nowrap">
-                    {formatCurrency(
-                      item.total_price
+                  <span className="shrink-0 whitespace-nowrap text-right">
+                    {/* El precio de lista, tachado, cuando la oferta lo rebajó. */}
+                    {Number(item.list_unit_price) > Number(item.unit_price) && (
+                      <span className="mr-1.5 text-xs text-mm-txw line-through decoration-r">
+                        {formatCurrency(Number(item.list_unit_price) * Number(item.quantity))}
+                      </span>
                     )}
+                    <span className="font-bold text-mm-g">
+                      {formatCurrency(
+                        item.total_price
+                      )}
+                    </span>
                   </span>
                 </div>
               )
@@ -237,14 +246,18 @@ export function OrderCard({
       {/* FOOTER */}
       {/* En móvil el total va arriba y los botones debajo: los tres juntos no caben en una fila de ~330px. */}
       <div className="p-4 sm:p-6 bg-mm-gbg/30 border-t border-mm-crd flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-baseline justify-between sm:flex-col sm:items-start">
-          <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
-            {payable ? 'Total a pagar' : 'Total Pagado'}
-          </span>
+        <div>
+          <div className="flex items-baseline justify-between sm:flex-col sm:items-start">
+            <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
+              {payable ? 'Total a pagar' : 'Total Pagado'}
+            </span>
 
-          <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
-            {formatCurrency(order.total || 0)}
-          </span>
+            <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
+              {formatCurrency(order.total || 0)}
+            </span>
+          </div>
+
+          <OrderSavings amount={Number(order.discount_total ?? 0)} className="mt-1" />
         </div>
 
         <div className="flex flex-wrap gap-2 sm:gap-3">
