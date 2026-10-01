@@ -1,0 +1,14 @@
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+# Copia de producción para la base local: datos personales y contraseñas cifradas.
+seed/prod_data.sql
+
+# Archivos de Storage bajados de producción para la base local.
+.storage-cache
