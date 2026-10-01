@@ -3,10 +3,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { Store as StoreIcon, Star, Heart, Share2, Check } from 'lucide-react';
+import { Store as StoreIcon, Star, Heart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { getStoreShareUrl } from '@/src/features/products/utils/share-link';
-import { useShareLink } from '@/src/features/products/hooks/use-share-link';
+import { ShareLinkButton } from '@/src/features/products/components/ShareLinkButton';
 import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
 import { openStatus } from '@/components/ui/business-hours/summarize-hours';
 import type { PublicStore } from '../hooks/usePublicStores';
@@ -25,12 +25,6 @@ const ACTION_BUTTON_CLASS = 'p-2 rounded-full hover:bg-mm-gbg transition-colors'
 
 export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: StoreCardProps) {
   const router = useRouter();
-  const { copied, share } = useShareLink();
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    share(getStoreShareUrl(store.slug), store.name);
-  };
 
   const categories = store.categories ?? [];
   const extraCategories = categories.length - MAX_CATEGORIES;
@@ -62,14 +56,13 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
         {/* El corazón depende de sesión (favoritos es solo para compradores
             logueados); compartir no, para que el link funcione sin entrar. */}
         <div className="flex items-center gap-1 -mr-2 -mt-1">
-          <button
-            onClick={handleShare}
-            aria-label="Compartir esta tienda"
-            title="Compartir esta tienda"
-            className={ACTION_BUTTON_CLASS}
-          >
-            {copied ? <Check className="w-4.5 h-4.5 text-mm-g" /> : <Share2 className="w-4.5 h-4.5 text-mm-txw" />}
-          </button>
+          <ShareLinkButton
+            url={getStoreShareUrl(store.slug)}
+            title={store.name}
+            label="Compartir esta tienda"
+            className={cn(ACTION_BUTTON_CLASS, 'text-mm-txw')}
+            iconClassName="w-4.5 h-4.5"
+          />
 
           {isLoggedIn && (
             <button

@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, cn } from '@/src/components/Shared';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { fechaCompleta } from '@/lib/dates/relative-time';
 import { OrderStatusTimeline } from '@/src/features/orders/components/OrderStatusTimeline';
 import {
   MapPin,
@@ -70,7 +71,7 @@ export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalPro
               Pedido {formatOrderCode(order.order_code, order.order_id)}
             </span>
             <p className="text-xs text-mm-txw mt-1">
-              {order.created_at ? new Date(order.created_at).toLocaleDateString() : ''} • {order.store_name}
+              {order.created_at ? fechaCompleta(order.created_at) : ''} • {order.store_name}
             </p>
           </div>
           <div
