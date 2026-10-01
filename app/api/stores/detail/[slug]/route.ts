@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../../lib/supabase/supabase-image';
 import { withFlatCategories } from '@/lib/stores/category-links';
+import { toPublicStore } from '@/lib/stores/public-store';
 
 export async function GET(
   request: Request,
@@ -36,11 +37,9 @@ export async function GET(
       : null;
 
     return NextResponse.json({
-      data: {
-        ...withFlatCategories(store),
-        coverSignedUrl,
-        logoSignedUrl
-      }
+      // Es la ficha pública: nunca lleva el correo de contacto ni la dirección
+      // de recogida, sea quien sea el que la pide.
+      data: toPublicStore({ ...withFlatCategories(store), coverSignedUrl, logoSignedUrl })
     }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';

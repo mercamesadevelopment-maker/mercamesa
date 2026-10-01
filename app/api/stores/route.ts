@@ -7,6 +7,7 @@ import { toE164 } from '@/lib/phone/phone';
 import { parseCategoryIds, setStoreCategories, CategoryLinksError, withFlatCategories } from '@/lib/stores/category-links';
 import { validateStoreFields } from '@/lib/stores/validate-store';
 import { parsePickupAddress } from '@/lib/stores/pickup-address';
+import { toPublicStore } from '@/lib/stores/public-store';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 
@@ -89,6 +90,38 @@ export async function GET(request: Request) {
     logoSignedUrl: store.logo_url ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO) : null,
     coverSignedUrl: store.cover_image_url ? getSupabaseImageUrl('stores', store.cover_image_url, PRESET_COVER_DETAIL) : null,
   }));
+
+  /**
+   * Quién recibe la fila completa.
+   *
+   * Esta ruta la consumen el panel del admin, el del tendero y también páginas
+   * públicas (la lista de tiendas, las promociones, el filtro de pedidos), y a
+   * todos les devolvía lo mismo: cualquiera, sin sesión, recibía el correo de
+   * contacto y la dirección de recogida de cada tienda.
+   *
+   * La fila completa es para quien gestiona: el permiso `stores` (el mismo que
+   * protege /admin/stores) o las tiendas propias (`member_only`, que ya viene
+   * filtrado a las del usuario). El resto recibe la vista pública.
+   */
+  let gestiona = false;
+  if (user) {
+    if (memberOnly) {
+      gestiona = true;
+    } else {
+      const { data: puedeVerTiendas } = await supabase.rpc('has_permission', {
+        module_key: 'stores',
+        action_name: 'read',
+      });
+      gestiona = puedeVerTiendas === true;
+    }
+  }
+
+  if (!gestiona) {
+    return NextResponse.json(
+      { data: (dataWithUrls ?? []).map(toPublicStore), requiredDocumentTypes: [] },
+      { status: 200 }
+    );
+  }
 
   return NextResponse.json({ data: dataWithUrls, requiredDocumentTypes }, { status: 200 });
 }

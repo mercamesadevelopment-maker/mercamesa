@@ -8,6 +8,7 @@ import { toE164 } from '@/lib/phone/phone';
 import { parseCategoryIds, setStoreCategories, CategoryLinksError, withFlatCategories } from '@/lib/stores/category-links';
 import { validateStoreFields } from '@/lib/stores/validate-store';
 import { parsePickupAddress } from '@/lib/stores/pickup-address';
+import { toPublicStore } from '@/lib/stores/public-store';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
@@ -90,10 +91,17 @@ export async function GET(
     ? getSupabaseImageUrl('stores', data.logo_url, PRESET_LOGO)
     : null;
 
-  return NextResponse.json(
-    { data: { ...withFlatCategories(data), coverSignedUrl, logoSignedUrl } },
-    { status: 200 }
-  );
+  const store = { ...withFlatCategories(data), coverSignedUrl, logoSignedUrl };
+
+  // La fila completa —correo de contacto, dirección de recogida— es para quien
+  // gestiona la tienda. Antes la recibía cualquiera que supiera el id, y los
+  // ids salen en la lista pública.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const gestiona = !!user && (await canManageStore(supabase, id, user.id));
+
+  return NextResponse.json({ data: gestiona ? store : toPublicStore(store) }, { status: 200 });
 }
 
 export async function PUT(
