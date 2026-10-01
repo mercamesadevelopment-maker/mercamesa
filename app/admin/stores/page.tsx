@@ -11,6 +11,7 @@ import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button, Badge } from '@/src/components/Shared';
 import { AnimatePresence } from 'motion/react';
 import { Database } from '../../../types/database_generated';
+import { SALES_TYPE_OPTIONS, matchesSalesType, salesTypeLabel, type SalesTypeFilter } from '@/lib/stores/sales-type';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
@@ -26,6 +27,7 @@ export default function StoresAdmin() {
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMarketplace, setSelectedMarketplace] = useState('');
+  const [salesType, setSalesType] = useState<SalesTypeFilter>('all');
 
   useEffect(() => {
     fetchStores();
@@ -41,9 +43,9 @@ export default function StoresAdmin() {
     return stores.filter(store => {
       const matchesName = store.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesMarketplace = !selectedMarketplace || store.marketplace_id === selectedMarketplace;
-      return matchesName && matchesMarketplace;
+      return matchesName && matchesMarketplace && matchesSalesType(store, salesType);
     });
-  }, [stores, searchTerm, selectedMarketplace]);
+  }, [stores, searchTerm, selectedMarketplace, salesType]);
 
   const {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
@@ -51,7 +53,7 @@ export default function StoresAdmin() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedMarketplace, setPage]);
+  }, [searchTerm, selectedMarketplace, salesType, setPage]);
 
   const isStoreVerified = (store: Store) => {
     const requiredIds = requiredDocumentTypes.map((t) => t.id);
@@ -91,6 +93,12 @@ export default function StoresAdmin() {
       label: 'Plaza',
       sortable: true,
       render: (item: Store) => <span className="text-sm text-mm-txs">{item.marketplaces?.name || 'N/A'}</span>
+    },
+    {
+      key: 'sales_type',
+      label: 'Venta',
+      sortable: false,
+      render: (item: Store) => <span className="text-sm text-mm-txs">{salesTypeLabel(item) || 'Sin definir'}</span>
     },
     {
       key: 'owner',
@@ -141,8 +149,8 @@ export default function StoresAdmin() {
         </Button>
       </div>
 
-      {/* Filtros de Búsqueda y Plaza */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm">
+      {/* Filtros de búsqueda, plaza y tipo de venta */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm">
         {/* Buscador por Nombre */}
         <div className="relative flex items-center">
           <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
@@ -166,6 +174,22 @@ export default function StoresAdmin() {
             {marketplaces.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Minorista / mayorista */}
+        <div>
+          <select
+            value={salesType}
+            onChange={(e) => setSalesType(e.target.value as SalesTypeFilter)}
+            aria-label="Tipo de venta"
+            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+          >
+            {SALES_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.value === 'all' ? 'Minoristas y mayoristas' : option.label}
               </option>
             ))}
           </select>

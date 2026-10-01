@@ -9,6 +9,7 @@ import { getStoreShareUrl } from '@/src/features/products/utils/share-link';
 import { ShareLinkButton } from '@/src/features/products/components/ShareLinkButton';
 import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
 import { openStatus } from '@/components/ui/business-hours/summarize-hours';
+import { salesTypeLabel } from '@/lib/stores/sales-type';
 import type { PublicStore } from '../hooks/usePublicStores';
 
 interface StoreCardProps {
@@ -34,6 +35,7 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
   const status = Array.isArray(hours) && hours.length === 7 ? openStatus(hours) : null;
 
   const reviewCount = store.reviewCount ?? 0;
+  const salesType = salesTypeLabel(store);
 
   return (
     <motion.div
@@ -86,8 +88,15 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
         {store.name}
       </h3>
 
-      {categories.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
+      {(salesType || categories.length > 0) && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+          {/* Mismo estilo que en la página de la tienda: el tipo de venta no es
+              una categoría más. */}
+          {salesType && (
+            <span className="px-2.5 py-0.5 rounded-full border border-mm-gl text-mm-gl text-xs font-semibold">
+              {salesType}
+            </span>
+          )}
           {categories.slice(0, MAX_CATEGORIES).map((c) => (
             <Badge key={c.id}>{c.name}</Badge>
           ))}

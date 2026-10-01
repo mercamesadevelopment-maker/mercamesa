@@ -6,6 +6,7 @@ import { Badge, Button, cn } from '@/src/components/Shared';
 import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
 import { WeeklyHoursSummary } from '@/components/ui/business-hours/weekly-hours-summary';
 import { openStatus } from '@/components/ui/business-hours/summarize-hours';
+import { salesTypeLabel } from '@/lib/stores/sales-type';
 
 /** Lo que el encabezado usa de `/api/stores/detail/[slug]`. */
 export interface StoreHeaderData {
@@ -36,17 +37,6 @@ interface StoreHeaderProps {
   onOpenReviews: () => void;
 }
 
-/**
- * A quién le vende la tienda. Es un dato distinto de sus categorías: antes las
- * dos salían como la misma insignia dorada y «Minorista» nunca se mostraba.
- */
-function salesTypeLabel(isWholesale?: boolean, isRetail?: boolean): string | null {
-  if (isWholesale && isRetail) return 'Mayorista y minorista';
-  if (isWholesale) return 'Mayorista';
-  if (isRetail) return 'Minorista';
-  return null;
-}
-
 export function StoreHeader({
   store,
   rating,
@@ -61,7 +51,9 @@ export function StoreHeader({
   const hours =
     Array.isArray(store.business_hours) && store.business_hours.length === 7 ? store.business_hours : null;
   const status = store.is_active === false ? null : hours ? openStatus(hours) : null;
-  const salesType = salesTypeLabel(store.is_wholesale, store.is_retail);
+  // A quién le vende la tienda. Es un dato distinto de sus categorías: antes las
+  // dos salían como la misma insignia dorada y «Minorista» nunca se mostraba.
+  const salesType = salesTypeLabel(store);
   const categories = store.categories ?? [];
   const location = [store.marketplaces?.name, store.local_address?.trim()].filter(Boolean).join(' · ');
 
