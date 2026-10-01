@@ -3,7 +3,7 @@ import { getPqrsReason } from './reasons';
 import { validateNewPqrs } from './rules';
 import { loadOrderContext } from './order-context';
 import { loadPqrsSettings } from './settings';
-import { attachUploads } from './storage';
+import { areOwnUploads, attachUploads, FOTO_NO_VALIDA } from './storage';
 import { notifyPqrs } from './notify';
 import type { PqrsActor } from './actor';
 import { PqrsInputError } from './errors';
@@ -59,6 +59,7 @@ export async function createPqrs(
     claimWindowHours: settings.claimWindowHours,
   });
   if (problema) throw new PqrsInputError(problema);
+  if (!areOwnUploads(actor.userId, attachments)) throw new PqrsInputError(FOTO_NO_VALIDA);
 
   const esperaTienda = reason.routesToStore && Boolean(storeId);
 

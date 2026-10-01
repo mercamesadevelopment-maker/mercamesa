@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getPqrsReason, type PqrsLiable } from './reasons';
 import { viewerOf, type PqrsActor } from './actor';
-import { attachUploads } from './storage';
+import { areOwnUploads, attachUploads, FOTO_NO_VALIDA } from './storage';
 import { notifyPqrs } from './notify';
 import { PqrsInputError } from './errors';
 import { MAX_DESCRIPTION, MAX_PHOTOS } from './rules';
@@ -72,6 +72,7 @@ export async function addPqrsMessage(
     throw new PqrsInputError(`El mensaje no puede pasar de ${MAX_DESCRIPTION} caracteres.`);
   }
   if (attachments.length > MAX_PHOTOS) throw new PqrsInputError(`Puedes adjuntar hasta ${MAX_PHOTOS} fotos.`);
+  if (!areOwnUploads(actor.userId, attachments)) throw new PqrsInputError(FOTO_NO_VALIDA);
 
   // Solo un admin deja notas internas; de cualquier otro, la marca se ignora.
   const isInternal = viewer === 'admin' && input.isInternal === true;

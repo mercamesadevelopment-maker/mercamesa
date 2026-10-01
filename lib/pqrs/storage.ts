@@ -25,6 +25,8 @@ export const PQRS_PHOTO_MAX_BYTES = 8 * 1024 * 1024;
 /** Una hora: lo que dura abierta una pantalla de detalle sin recargar. */
 const VIDA_URL_LECTURA = 60 * 60;
 
+export const FOTO_NO_VALIDA = 'Una de las fotos no es válida. Vuelve a adjuntarla.';
+
 function carpetaTemporal(userId: string): string {
   return `tmp/${userId}/`;
 }
@@ -51,11 +53,18 @@ export async function createUploadTicket(
 }
 
 /**
- * Pasa las fotos temporales a la carpeta del caso y las registra.
+ * ¿Todas las rutas son de la carpeta temporal de quien pregunta?
  *
- * Solo acepta rutas de la carpeta temporal de quien pregunta: sin eso, bastaría
- * con mandar la ruta de la foto de otro caso para apropiársela.
+ * Sin esta comprobación bastaría con mandar la ruta de la foto de otro caso para
+ * apropiársela. Se expone para comprobarlo ANTES de crear el caso o el mensaje:
+ * así un intento con rutas ajenas no gasta un consecutivo ni deja nada escrito.
  */
+export function areOwnUploads(userId: string, paths: string[]): boolean {
+  const prefijo = carpetaTemporal(userId);
+  return paths.every((p) => typeof p === 'string' && p.startsWith(prefijo) && !p.includes('..'));
+}
+
+/** Pasa las fotos temporales a la carpeta del caso y las registra. */
 export async function attachUploads(
   service: SupabaseClient<any>,
   params: { pqrsId: string; messageId?: string | null; userId: string; paths: string[] }
@@ -63,11 +72,11 @@ export async function attachUploads(
   const { pqrsId, userId } = params;
   const prefijo = carpetaTemporal(userId);
 
-  for (const origen of params.paths) {
-    if (!origen.startsWith(prefijo) || origen.includes('..')) {
-      throw new Error('Una de las fotos no es válida. Vuelve a adjuntarla.');
-    }
+  if (!areOwnUploads(userId, params.paths)) {
+    throw new Error(FOTO_NO_VALIDA);
+  }
 
+  for (const origen of params.paths) {
     const destino = `${pqrsId}/${origen.slice(prefijo.length)}`;
     const { error: moveError } = await service.storage.from(PQRS_BUCKET).move(origen, destino);
     if (moveError) {
