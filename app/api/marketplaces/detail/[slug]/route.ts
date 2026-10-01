@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getMarketplaceDetail } from '@/app/services/marketplaces/marketplaces.service';
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '@/lib/supabase/supabase-image';
+import { toPublicStore } from '@/lib/stores/public-store';
 
 type Store = {
   id: string;
@@ -47,11 +48,13 @@ export async function GET(
       const storeLogo = store.logo_url
         ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
         : null;
-      return {
+      // La vista `marketplaces_detail` trae `contact_email` de cada tienda; la
+      // página de la plaza no lo usa y no debe salir.
+      return toPublicStore({
         ...store,
         logoUrl: storeLogo,
         logoSignedUrl: storeLogo,
-      };
+      });
     });
 
     return NextResponse.json(
