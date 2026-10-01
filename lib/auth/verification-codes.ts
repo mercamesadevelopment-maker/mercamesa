@@ -169,6 +169,45 @@ export async function issueCode({
   return code;
 }
 
+/**
+ * Deja constancia de una solicitud que NO emitió código, para que cuente en los
+ * límites igual que una que sí.
+ *
+ * Los límites de `checkCodeRateLimit` cuentan filas de la tabla, y hasta ahora
+ * solo se escribía una al emitir. Un camino que respondía sin emitir —el correo
+ * que ya tiene cuenta, el documento que ya está registrado— quedaba por fuera de
+ * la espera, del tope por persona y del tope por IP: se podía repetir sin fin,
+ * mandándole correos al dueño o probando documentos uno tras otro.
+ *
+ * La fila nace consumida y vencida, con el hash de algo que no es un código de
+ * seis dígitos: `claimCode` no la puede tomar ni confundir con un doble clic, y
+ * no invalida el código que la persona pueda tener pendiente.
+ */
+export async function recordRequestWithoutCode({
+  service,
+  table,
+  key,
+  ip,
+}: {
+  service: SupabaseClient<any>;
+  table: CodeTable;
+  key: CodeKey;
+  ip: string | null;
+}): Promise<void> {
+  const ahora = new Date().toISOString();
+  const { error } = await service.from(table).insert({
+    [key.column]: key.value,
+    code_hash: hashCode(crypto.randomBytes(32).toString('hex')),
+    consumed_at: ahora,
+    expires_at: ahora,
+    request_ip: ip,
+  });
+
+  // No cambia la respuesta: si esta rama fallara distinto que la que emite, el
+  // estado de la respuesta delataría qué pasó.
+  if (error) console.error(`[auth] ${table}: no se registró la solicitud sin código`, error);
+}
+
 /** `password_reset_codes` tiene la misma forma, pero su emisión todavía vive en
  *  `forgot-password` y no en `issueCode`; para cobrar intentos basta la forma. */
 export type AttemptTable = CodeTable | 'password_reset_codes';

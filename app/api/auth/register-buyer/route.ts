@@ -20,6 +20,7 @@ import {
   GENERIC_CODE_ERROR,
 } from '@/lib/auth/verification-codes'
 import { getCurrentLegalDocuments } from '@/lib/legal/current-documents'
+import { findSignupConflict } from '@/lib/auth/signup-conflicts'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
@@ -172,20 +173,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: documentoError }, { status: 400 })
     }
 
-    const { data: documentoEnUso } = await createSupabaseServiceClient()
-      .from('profiles')
-      .select('id')
-      .eq('document_number', documentoLimpio)
-      .maybeSingle()
+    // Documento Y celular. Antes solo el documento, y con `maybeSingle()`, que
+    // con dos perfiles ya repetidos fallaba y dejaba pasar el tercero.
+    const conflicto = await findSignupConflict(createSupabaseServiceClient(), {
+      documentNumber: documentoLimpio,
+      phone: phoneE164,
+    })
 
-    if (documentoEnUso) {
-      return NextResponse.json(
-        {
-          error:
-            'Ya hay una cuenta registrada con ese número de identificación. Si es tuya, inicia sesión o recupera tu contraseña.',
-        },
-        { status: 400 }
-      )
+    if (conflicto) {
+      return NextResponse.json({ error: conflicto.message, code: conflicto.code }, { status: 400 })
     }
 
     // El código se comprueba ANTES de crear nada. Verificarlo después dejaría
