@@ -3933,6 +3933,10 @@ export type Database = {
         Args: { p_by: string; p_refund: string }
         Returns: undefined
       }
+      reserve_order_credit: {
+        Args: { p_buyer: string; p_order: string }
+        Returns: number
+      }
       revert_store_order_status: {
         Args: {
           p_notes: string
