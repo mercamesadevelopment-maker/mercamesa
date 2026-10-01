@@ -33,6 +33,16 @@ export const SIIGO_PAYMENT_TYPE_CARD = envInt('SIIGO_PAYMENT_TYPE_CARD', 6535);
 export const SIIGO_PAYMENT_TYPE_DEFAULT = envInt('SIIGO_PAYMENT_TYPE_DEFAULT', 6542);
 
 /**
+ * La parte de una compra que se pagó con saldo a favor.
+ *
+ * Por esa parte no entra dinero: el comprador la pagó con una devolución
+ * anterior. Con qué forma de pago se registra en Siigo (un anticipo, un saldo a
+ * favor de cliente) es decisión del contador; mientras no la defina, cae en la
+ * genérica para no frenar la facturación.
+ */
+export const SIIGO_PAYMENT_TYPE_CREDIT = envInt('SIIGO_PAYMENT_TYPE_CREDIT', SIIGO_PAYMENT_TYPE_DEFAULT);
+
+/**
  * Enviar la factura a la DIAN.
  *
  * Arranca APAGADO a propósito. El único tipo FV de la cuenta es electrónico, así
@@ -90,6 +100,9 @@ export function toSiigoPaymentTypeId(paymentMethod: string | null): number {
       return SIIGO_PAYMENT_TYPE_CARD;
     case 'cash':
       return SIIGO_PAYMENT_TYPE_CASH;
+    // Pedido cubierto del todo con saldo a favor (pago con proveedor 'saldo').
+    case 'credit':
+      return SIIGO_PAYMENT_TYPE_CREDIT;
     // 'pse' y 'unknown' caen acá: la cuenta no tiene un tipo de pago para PSE.
     default:
       return SIIGO_PAYMENT_TYPE_DEFAULT;

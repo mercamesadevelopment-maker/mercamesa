@@ -46,7 +46,7 @@ serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, total, payable_until')
+      .select('id, total, credit_applied, payable_until')
       .eq('id', compraData.orderId)
       .eq('buyer_id', user.id)
       .single()
@@ -75,7 +75,14 @@ serve(async (req) => {
       throw new Error('Hay un pago de este pedido en proceso con tu banco. Espera unos minutos a que se confirme.')
     }
 
-    const amountToCharge = Number(order.total)
+    // Lo que se cobra es el total menos el saldo a favor que el pedido tiene
+    // apartado. Ese saldo es fijo desde que se creó el pedido, así que un
+    // reintento cobra exactamente lo mismo que el primer intento.
+    const amountToCharge = Number(order.total) - Number(order.credit_applied ?? 0)
+
+    if (!(amountToCharge > 0)) {
+      throw new Error('Este pedido ya quedó pagado con tu saldo a favor.')
+    }
 
     // 3. Armar el JSON EXACTO con la estructura que exige Zonapagos
     const zonapagosPayload = {

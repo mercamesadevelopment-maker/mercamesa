@@ -49,13 +49,21 @@ serve(async (req) => {
     // Confirmar que la orden pertenece al comprador autenticado
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, buyer_id, total')
+      .select('id, buyer_id, total, credit_applied')
       .eq('id', orderId)
       .eq('buyer_id', user.id)
       .single()
 
     if (orderError || !order) {
       throw new Error('Orden no encontrada')
+    }
+
+    // Igual que en `zonapagos-inicio`: se cobra el total menos el saldo a favor
+    // apartado para el pedido.
+    const amountToCharge = Number(order.total) - Number(order.credit_applied ?? 0)
+
+    if (!(amountToCharge > 0)) {
+      throw new Error('Este pedido ya quedó pagado con tu saldo a favor.')
     }
 
     const idComercio = parseInt(Deno.env.get('ZONAPAGOS_ID_COMERCIO') || '0')
@@ -72,7 +80,7 @@ serve(async (req) => {
       str_tipo_identificador: '1',
       str_identificador: paymentMethod.zonapagos_token,
       str_id_pago: strIdPago,
-      str_total_con_iva: String(order.total),
+      str_total_con_iva: String(amountToCharge),
       str_valor_iva: '0',
       int_no_cuotas: 1,
       str_descripcion_pago: `Pedido ${orderId}`,
@@ -97,7 +105,7 @@ serve(async (req) => {
       provider: 'zonapagos',
       str_id_pago: strIdPago,
       status: paymentStatus,
-      amount: order.total,
+      amount: amountToCharge,
       payment_url: null,
       callback_response: result,
     })
