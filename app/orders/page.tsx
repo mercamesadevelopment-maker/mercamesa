@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ClipboardList, LifeBuoy } from 'lucide-react';
 import { useOrders } from './hooks/useOrders';
 import { useApp } from '@/src/store';
 import { OrderStats } from './components/OrderStats';
@@ -11,9 +12,11 @@ import { Pagination } from './components/Pagination';
 import { RatingModal } from '@/src/features/stores/components/RatingModal';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
 import { OrderStatus } from './types/order.types';
+import { Button } from '@/src/components/Shared';
 
 export default function OrdersPage() {
   const { state, dispatch } = useApp();
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [status, setStatus] = useState<OrderStatus | null>(null);
@@ -55,6 +58,12 @@ export default function OrdersPage() {
           <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">Mis Órdenes</h1>
           <p className="text-sm sm:text-base text-mm-txs">Sigue el estado de tus compras en tiempo real.</p>
         </div>
+
+        {/* Para reportar un problema con un pedido puntual, el botón está en la
+            tarjeta de ese pedido; este lleva a los casos ya radicados. */}
+        <Button variant="outline" size="md" className="shrink-0 self-start md:self-auto" onClick={() => router.push('/pqrs')}>
+          <LifeBuoy className="w-4 h-4" /> Mis PQRS
+        </Button>
       </div>
 
       <OrderStats stats={stats} />

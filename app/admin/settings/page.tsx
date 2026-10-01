@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard, Percent, Gavel } from 'lucide-react';
+import { FolderTree, Scale, LayoutGrid, FileCheck, Settings2, Store, Wallet, Users, IdCard, Percent, Gavel, LifeBuoy } from 'lucide-react';
 import { CategoriesTab } from './components/categories-tab';
 import { MeasurementUnitsTab } from './components/measurement-units-tab';
 import { ModulesTab } from './components/modules-tab';
@@ -12,6 +12,7 @@ import { StoreGroupsTab } from './components/store-groups-tab';
 import { IdentificationTab } from './components/identification-tab';
 import { PricingTab } from './components/pricing-tab';
 import { LegalDocumentsTab } from './components/legal-documents-tab';
+import { PqrsSettingsTab } from './components/pqrs-settings-tab';
 
 type TabKey =
   | 'categories'
@@ -23,7 +24,8 @@ type TabKey =
   | 'identification'
   | 'pricing'
   | 'order_min_price'
-  | 'legal';
+  | 'legal'
+  | 'pqrs';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
   {
@@ -89,6 +91,13 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     icon: Gavel,
     description:
       'Los PDF de los términos y condiciones y de la política de tratamiento de datos. Al publicar una versión nueva se le avisa a todos los usuarios activos y se les vuelve a pedir que la acepten.',
+  },
+  {
+    key: 'pqrs',
+    label: 'PQRS',
+    icon: LifeBuoy,
+    description:
+      'Cuánto tiempo tiene el comprador para reclamar por un producto y cuánto la tienda para responder antes de que el caso pase a MercaMesa.',
   },
 ];
 
@@ -157,6 +166,7 @@ export default function AdminSettingsPage() {
         {activeTab === 'pricing' && <PricingTab />}
         {activeTab === 'order_min_price' && <OrderMinPriceTab />}
         {activeTab === 'legal' && <LegalDocumentsTab />}
+        {activeTab === 'pqrs' && <PqrsSettingsTab />}
       </div>
     </div>
   );

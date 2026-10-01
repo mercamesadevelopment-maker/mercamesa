@@ -13,7 +13,9 @@ import {
   Wallet,
   Image as ImageIcon,
   RotateCcw,
+  LifeBuoy,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import {
   OrderDetail,
@@ -27,6 +29,7 @@ import { Button, cn } from '@/src/components/Shared';
 import { OrderDetailModal } from './OrderDetailModal';
 import { ReorderModal } from './ReorderModal';
 import { usePayOrder, isPayable } from '../hooks/usePayOrder';
+import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
 
 interface OrderCardProps {
   order: OrderDetail;
@@ -82,6 +85,9 @@ export function OrderCard({
 
   const [showDetail, setShowDetail] = useState(false);
   const [showReorder, setShowReorder] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  /** Código del caso recién radicado, para confirmarlo en la tarjeta. */
+  const [reportedCode, setReportedCode] = useState<string | null>(null);
   const { pay, paying, error: payError } = usePayOrder();
   const payable = isPayable(order.payable_until);
 
@@ -255,6 +261,15 @@ export function OrderCard({
             </Button>
           )}
 
+          {/* En cualquier estado: el formulario ofrece solo los motivos que
+              aplican a este pedido (no llegó, mal estado, cobro, etc.). */}
+          {order.order_id && (
+            <Button variant="outline" size="sm" className={FOOTER_BUTTON_CLASS} onClick={() => setShowReport(true)}>
+              <LifeBuoy className="w-3.5 h-3.5" />
+              Reportar un problema
+            </Button>
+          )}
+
           {order.status === 'delivered' &&
             onRate && (
               <Button
@@ -300,11 +315,37 @@ export function OrderCard({
         </p>
       )}
 
+      {reportedCode && (
+        <p className="px-4 sm:px-6 pb-4 text-sm text-mm-txs" role="status">
+          Radicamos tu caso <span className="font-bold text-mm-g">{reportedCode}</span>.{' '}
+          <Link href="/pqrs" className="font-bold text-mm-g underline underline-offset-2">
+            Ver mis PQRS
+          </Link>
+        </p>
+      )}
+
       <OrderDetailModal
         isOpen={showDetail}
         onClose={() => setShowDetail(false)}
         order={order}
+        onReport={() => {
+          setShowDetail(false);
+          setShowReport(true);
+        }}
       />
+
+      {order.order_id && (
+        <PqrsFormModal
+          isOpen={showReport}
+          onClose={() => setShowReport(false)}
+          as="buyer"
+          orderId={order.order_id}
+          onCreated={(created) => {
+            setShowReport(false);
+            setReportedCode(created.code);
+          }}
+        />
+      )}
 
       {order.order_id && (
         <ReorderModal

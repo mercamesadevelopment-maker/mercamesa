@@ -260,6 +260,13 @@ export type Database = {
             referencedRelation: "store_products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cart_items_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "vitrina_productos"
+            referencedColumns: ["id"]
+          },
         ]
       }
       catalog_products: {
@@ -301,7 +308,7 @@ export type Database = {
           is_non_food?: boolean
           name: string
           owner_group_id?: string | null
-          search_text?: never
+          search_text?: string | null
           siigo_id: string
           siigo_synced_at?: string | null
           slug: string
@@ -323,7 +330,7 @@ export type Database = {
           is_non_food?: boolean
           name?: string
           owner_group_id?: string | null
-          search_text?: never
+          search_text?: string | null
           siigo_id?: string
           siigo_synced_at?: string | null
           slug?: string
@@ -1157,6 +1164,13 @@ export type Database = {
             referencedRelation: "store_products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "vitrina_productos"
+            referencedColumns: ["id"]
+          },
         ]
       }
       order_min_price_history: {
@@ -1781,6 +1795,340 @@ export type Database = {
           },
         ]
       }
+      pqrs: {
+        Row: {
+          buyer_id: string | null
+          code: string | null
+          consecutive: number
+          created_at: string
+          description: string
+          id: string
+          kind: string
+          liable: string | null
+          opened_as: string
+          opened_by: string
+          order_id: string | null
+          outcome: string | null
+          reason: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          settings_id: string | null
+          status: string
+          store_id: string | null
+          store_order_id: string | null
+          store_responded_at: string | null
+          store_responded_by: string | null
+          store_response: string | null
+          store_response_due_at: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          code?: string | null
+          consecutive?: number
+          created_at?: string
+          description: string
+          id?: string
+          kind: string
+          liable?: string | null
+          opened_as: string
+          opened_by: string
+          order_id?: string | null
+          outcome?: string | null
+          reason: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          settings_id?: string | null
+          status: string
+          store_id?: string | null
+          store_order_id?: string | null
+          store_responded_at?: string | null
+          store_responded_by?: string | null
+          store_response?: string | null
+          store_response_due_at?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string | null
+          code?: string | null
+          consecutive?: number
+          created_at?: string
+          description?: string
+          id?: string
+          kind?: string
+          liable?: string | null
+          opened_as?: string
+          opened_by?: string
+          order_id?: string | null
+          outcome?: string | null
+          reason?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          settings_id?: string | null
+          status?: string
+          store_id?: string | null
+          store_order_id?: string | null
+          store_responded_at?: string | null
+          store_responded_by?: string | null
+          store_response?: string | null
+          store_response_due_at?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pqrs_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "pqrs_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "pqrs_settings_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_store_responded_by_fkey"
+            columns: ["store_responded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pqrs_attachments: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string | null
+          mime_type: string | null
+          path: string
+          pqrs_id: string
+          size_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          mime_type?: string | null
+          path: string
+          pqrs_id: string
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          mime_type?: string | null
+          path?: string
+          pqrs_id?: string
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pqrs_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "pqrs_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_attachments_pqrs_id_fkey"
+            columns: ["pqrs_id"]
+            isOneToOne: false
+            referencedRelation: "pqrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pqrs_items: {
+        Row: {
+          catalog_name: string
+          created_at: string
+          id: string
+          order_item_id: string
+          pqrs_id: string
+          quantity: number
+          unit_name: string | null
+          unit_price: number
+        }
+        Insert: {
+          catalog_name: string
+          created_at?: string
+          id?: string
+          order_item_id: string
+          pqrs_id: string
+          quantity: number
+          unit_name?: string | null
+          unit_price: number
+        }
+        Update: {
+          catalog_name?: string
+          created_at?: string
+          id?: string
+          order_item_id?: string
+          pqrs_id?: string
+          quantity?: number
+          unit_name?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pqrs_items_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_items_pqrs_id_fkey"
+            columns: ["pqrs_id"]
+            isOneToOne: false
+            referencedRelation: "pqrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pqrs_messages: {
+        Row: {
+          author_as: string
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          pqrs_id: string
+        }
+        Insert: {
+          author_as: string
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          pqrs_id: string
+        }
+        Update: {
+          author_as?: string
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          pqrs_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pqrs_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_messages_pqrs_id_fkey"
+            columns: ["pqrs_id"]
+            isOneToOne: false
+            referencedRelation: "pqrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pqrs_settings_history: {
+        Row: {
+          changed_by: string | null
+          claim_window_hours: number
+          created_at: string
+          id: string
+          notes: string | null
+          store_response_hours: number
+        }
+        Insert: {
+          changed_by?: string | null
+          claim_window_hours?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          store_response_hours?: number
+        }
+        Update: {
+          changed_by?: string | null
+          claim_window_hours?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          store_response_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pqrs_settings_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_settings_history: {
         Row: {
           changed_by: string | null
@@ -1885,6 +2233,13 @@ export type Database = {
             columns: ["store_product_id"]
             isOneToOne: false
             referencedRelation: "store_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_movements_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "vitrina_productos"
             referencedColumns: ["id"]
           },
         ]
@@ -2604,6 +2959,13 @@ export type Database = {
             referencedRelation: "store_products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "store_offers_store_product_id_fkey"
+            columns: ["store_product_id"]
+            isOneToOne: false
+            referencedRelation: "vitrina_productos"
+            referencedColumns: ["id"]
+          },
         ]
       }
       store_order_status_history: {
@@ -3021,26 +3383,6 @@ export type Database = {
       }
     }
     Views: {
-      vitrina_productos: {
-        Row: {
-          id: string | null
-          store_id: string | null
-          price_per_unit: number | null
-          stock: number | null
-          is_featured: boolean | null
-          featured_at: string | null
-          product_name: string | null
-          product_search_text: string | null
-          product_image_url: string | null
-          category_name: string | null
-          store_name: string | null
-          store_slug: string | null
-          marketplace_id: string | null
-          marketplace_name: string | null
-          unit_abbreviation: string | null
-        }
-        Relationships: []
-      }
       marketplaces_detail: {
         Row: {
           address: string | null
@@ -3111,6 +3453,48 @@ export type Database = {
           },
         ]
       }
+      vitrina_productos: {
+        Row: {
+          category_name: string | null
+          featured_at: string | null
+          id: string | null
+          is_featured: boolean | null
+          marketplace_id: string | null
+          marketplace_name: string | null
+          price_per_unit: number | null
+          product_image_url: string | null
+          product_name: string | null
+          product_search_text: string | null
+          stock: number | null
+          store_id: string | null
+          store_name: string | null
+          store_slug: string | null
+          unit_abbreviation: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_revoke_user_sessions: {
@@ -3119,18 +3503,22 @@ export type Database = {
       }
       anonymize_buyer: { Args: { target: string }; Returns: undefined }
       call_app_cron: { Args: { path: string }; Returns: number }
+      call_edge_cron: { Args: { fn: string }; Returns: number }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
-      vitrina_categorias: {
-        Args: { p_store_id?: string | null }
-        Returns: { name: string; total: number }[]
-      }
+      escalate_overdue_pqrs: { Args: never; Returns: number }
+      expire_unpaid_orders: { Args: never; Returns: number }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       has_permission: {
         Args: { action_name: string; module_key: string }
         Returns: boolean
       }
+      immutable_unaccent: { Args: { texto: string }; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      payable_until: {
+        Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
+        Returns: string
+      }
       revert_store_order_status: {
         Args: {
           p_notes: string
@@ -3138,6 +3526,14 @@ export type Database = {
           p_target_status: Database["public"]["Enums"]["order_status"]
         }
         Returns: undefined
+      }
+      unaccent: { Args: { "": string }; Returns: string }
+      vitrina_categorias: {
+        Args: { p_store_id?: string }
+        Returns: {
+          name: string
+          total: number
+        }[]
       }
     }
     Enums: {

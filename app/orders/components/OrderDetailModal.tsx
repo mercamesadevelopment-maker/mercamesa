@@ -32,9 +32,11 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: OrderDetail | null;
+  /** Abre el formulario de PQRS para este pedido. */
+  onReport?: () => void;
 }
 
-export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalProps) {
+export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDetailModalProps) {
   const { history } = useOrderHistory(
     isOpen ? order?.order_id || null : null,
     isOpen ? order?.store_id || null : null
@@ -197,7 +199,14 @@ export function OrderDetailModal({ isOpen, onClose, order }: OrderDetailModalPro
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end pt-2">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-2">
+          {onReport ? (
+            <Button variant="ghost" size="md" onClick={onReport}>
+              Reportar un problema
+            </Button>
+          ) : (
+            <span />
+          )}
           <Button variant="outline" size="md" onClick={onClose}>
             Cerrar
           </Button>
