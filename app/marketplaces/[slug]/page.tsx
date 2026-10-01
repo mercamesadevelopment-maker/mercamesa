@@ -7,7 +7,8 @@ import { ArrowLeft, MapPin, Clock, Phone, Mail, Compass, Globe, Star, Zap, Store
 import { Badge } from '@/src/components/Shared';
 import { Database } from '@/types/database_generated';
 import { SalesTypeFilter } from '@/src/features/stores/components/SalesTypeFilter';
-import { matchesSalesType, salesTypeLabel, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
+import { SalesTypeLine } from '@/src/features/stores/components/SalesTypeLine';
+import { matchesSalesType, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
 
 type MarketplaceDetail = Database['public']['Views']['marketplaces_detail']['Row'] & {
   coverSignedUrl?: string | null;
@@ -152,13 +153,7 @@ export default function PlazaDetailPage() {
                   <p className="text-xs text-mm-txs line-clamp-2 mb-4">{store.description}</p>
                 )}
 
-                {salesTypeLabel(store) && (
-                  <p className="mb-4">
-                    <span className="px-2.5 py-0.5 rounded-full border border-mm-gl text-mm-gl text-xs font-semibold">
-                      {salesTypeLabel(store)}
-                    </span>
-                  </p>
-                )}
+                <SalesTypeLine store={store} className="mb-4" />
                 
                 <div className="pt-4 border-t border-mm-gbg flex items-center justify-between">
                   <div className="flex items-center gap-1 text-mm-oro text-xs font-bold">
