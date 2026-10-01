@@ -39,7 +39,8 @@ export async function GET(
         .select(
           `id, store_id, amount,
            stores!inner ( name ),
-           store_orders!inner ( code ),
+           store_orders ( code ),
+           store_charges ( store_orders ( code ) ),
            store_bank_accounts!inner ( payment_method, breb_key, bank_code, account_kind, account_number, holder_name )`
         )
         .eq('payout_id', id)
@@ -67,15 +68,19 @@ export async function GET(
             (cuenta?.payment_method === 'breb' ? cuenta?.breb_key : cuenta?.account_number) ?? ''
           ).slice(-4),
           amount: 0,
-          orders: [] as { id: string; code: string | null; amount: number }[],
+          orders: [] as { id: string; code: string | null; amount: number; isCharge: boolean }[],
         };
         porTienda.set(item.store_id, tienda);
       }
       tienda.amount += Number(item.amount);
+      // Una línea sin pedido es un descuento por una devolución; se rotula con
+      // el pedido del que salió.
+      const esDescuento = !item.store_orders;
       tienda.orders.push({
         id: item.id,
-        code: item.store_orders?.code ?? null,
+        code: esDescuento ? item.store_charges?.store_orders?.code ?? null : item.store_orders.code,
         amount: Number(item.amount),
+        isCharge: esDescuento,
       });
     }
 

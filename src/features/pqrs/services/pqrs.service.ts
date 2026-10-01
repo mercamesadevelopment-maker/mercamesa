@@ -9,6 +9,14 @@ import type {
   PqrsViewer,
 } from '@/lib/pqrs/types';
 
+export interface PqrsResolveInput {
+  outcome: string;
+  liable: string | null;
+  notes: string;
+  /** Qué se devuelve. Sin él, lo que diga el motivo. */
+  refund?: 'items' | 'order' | 'none';
+}
+
 /** Un comprador bloqueado, como lo ve el equipo de la tienda. */
 export interface StoreBlock {
   id: string;
@@ -85,11 +93,15 @@ export const pqrsService = {
     return post(`/api/pqrs/${id}/store-response`, input);
   },
 
-  resolve(
-    id: string,
-    input: { outcome: string; liable: string | null; notes: string }
-  ): Promise<PqrsDetail> {
+  resolve(id: string, input: PqrsResolveInput): Promise<PqrsDetail> {
     return post(`/api/pqrs/${id}/resolve`, input);
+  },
+
+  refundAction(
+    id: string,
+    input: { action: 'to_money' | 'mark_paid' | 'void_store_charge'; notes?: string }
+  ): Promise<PqrsDetail> {
+    return post(`/api/pqrs/${id}/refund`, input);
   },
 
   liftBlock(id: string, input: { notes: string }): Promise<PqrsDetail> {

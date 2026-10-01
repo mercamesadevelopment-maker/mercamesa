@@ -4,6 +4,8 @@ import { signPaths } from './storage';
 import { viewerOf, type PqrsActor } from './actor';
 import { PqrsInputError } from './errors';
 import { getBlockOfPqrs, loadBuyerStoreHistory } from '@/lib/stores/buyer-blocks';
+import { getRefundOfPqrs, quoteRefund } from './refunds';
+import type { PqrsRefundPreview } from './types';
 import type { PqrsAttachment, PqrsDetail, PqrsStatus, PqrsSummary, PqrsViewer } from './types';
 
 /**
@@ -121,7 +123,7 @@ export async function getPqrsDetail(
     .from('pqrs')
     .select(
       `${SELECT_RESUMEN}, description, liable, store_response, store_responded_at,
-       resolved_at, resolution_notes, buyer_id`
+       resolved_at, resolution_notes, buyer_id, order_id, store_order_id`
     )
     .eq('id', id)
     .maybeSingle();
@@ -176,6 +178,9 @@ export async function getPqrsDetail(
     contraComprador ? loadBuyerStoreHistory(service, row.store_id, row.buyer_id) : Promise.resolve(null),
   ]);
 
+  const refund = row.outcome === 'approved' ? await getRefundOfPqrs(service, id, viewer) : null;
+  const refundPreview = abierta ? await previewRefund(service, row, viewer) : null;
+
   return {
     ...aResumen(row),
     description: row.description,
@@ -207,6 +212,8 @@ export async function getPqrsDetail(
       ? { id: block.id, createdAt: block.createdAt, liftedAt: block.liftedAt, liftNotes: block.liftNotes }
       : null,
     buyerHistory,
+    refund,
+    refundPreview,
     viewer,
     can: {
       // Resuelta, la conversación se cierra; el admin puede dejar constancia.
@@ -218,5 +225,35 @@ export async function getPqrsDetail(
       resolve: abierta && viewer === 'admin',
       liftBlock: viewer === 'admin' && Boolean(block && !block.liftedAt),
     },
+  };
+}
+
+/**
+ * Cuánto se devolvería si el caso se aprueba.
+ *
+ * Es la misma cuenta que después se guarda (`quoteRefund`), así que lo que ven
+ * la tienda antes de aceptar y el admin antes de resolver es lo que pasa.
+ */
+async function previewRefund(
+  service: SupabaseClient<any>,
+  row: any,
+  viewer: PqrsViewer
+): Promise<PqrsRefundPreview | null> {
+  const reason = getPqrsReason(row.reason);
+  if (!reason || reason.refund === 'none' || !row.order_id) return null;
+
+  // Una cantidad que ya no cuadra con el pedido no debe tumbar el detalle.
+  const [items, order] = await Promise.all([
+    quoteRefund(service, row, 'items').catch(() => null),
+    viewer === 'admin' ? quoteRefund(service, row, 'order').catch(() => null) : Promise.resolve(null),
+  ]);
+
+  if (!items && !order) return null;
+
+  return {
+    // La tienda ve lo que le toca a ella, no lo que recibe el comprador.
+    itemsTotal: viewer === 'seller' ? null : items?.total ?? null,
+    itemsStoreCharge: viewer === 'buyer' ? null : items?.products ?? null,
+    orderTotal: order?.total ?? null,
   };
 }

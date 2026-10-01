@@ -40,6 +40,11 @@ export interface PqrsReason {
   storeSees: boolean;
   /** A quién se le carga el costo si se aprueba. El admin puede cambiarlo. */
   defaultLiable: PqrsLiable | null;
+  /**
+   * Qué se le devuelve al comprador cuando se aprueba: los productos marcados,
+   * el pedido completo (con domicilio) o nada. El admin puede cambiarlo.
+   */
+  refund: 'items' | 'order' | 'none';
 }
 
 /** Un reclamo por el estado de lo que llegó: mismo molde para todos. */
@@ -58,6 +63,7 @@ function reclamoDeProducto(
     routesToStore: true,
     storeSees: true,
     defaultLiable: 'store',
+    refund: 'items',
     ...parcial,
   };
 }
@@ -120,6 +126,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: 'logistics',
+    refund: 'order',
   },
   {
     key: 'cobro_incorrecto',
@@ -135,6 +142,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: false,
     defaultLiable: 'platform',
+    refund: 'none',
   },
   {
     key: 'mala_atencion',
@@ -150,6 +158,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: false,
     defaultLiable: null,
+    refund: 'none',
   },
   {
     key: 'peticion',
@@ -165,6 +174,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: false,
     defaultLiable: null,
+    refund: 'none',
   },
   {
     key: 'sugerencia',
@@ -180,6 +190,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: false,
     defaultLiable: null,
+    refund: 'none',
   },
 
   // --- Tendero -----------------------------------------------------------
@@ -197,6 +208,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: null,
+    refund: 'none',
   },
   {
     key: 'comprador_ausente',
@@ -212,6 +224,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: 'buyer',
+    refund: 'none',
   },
   {
     key: 'desacuerdo_con_devolucion',
@@ -227,6 +240,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: null,
+    refund: 'none',
   },
   {
     key: 'problema_con_dispersion',
@@ -242,6 +256,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: null,
+    refund: 'none',
   },
   {
     key: 'problema_con_domiciliario',
@@ -257,6 +272,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: 'logistics',
+    refund: 'none',
   },
   {
     key: 'resena_injusta',
@@ -272,6 +288,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: null,
+    refund: 'none',
   },
   {
     key: 'peticion_de_tienda',
@@ -287,6 +304,7 @@ export const PQRS_REASONS: PqrsReason[] = [
     routesToStore: false,
     storeSees: true,
     defaultLiable: null,
+    refund: 'none',
   },
 ];
 

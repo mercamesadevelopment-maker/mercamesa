@@ -7,6 +7,13 @@ import { PqrsInputError } from './errors';
 import { MAX_DESCRIPTION, MAX_PHOTOS } from './rules';
 import { BLOCK_REASON } from './queries';
 import { blockBuyer, getBlockOfPqrs, liftBlock } from '@/lib/stores/buyer-blocks';
+import {
+  convertRefundToMoney,
+  createRefundForPqrs,
+  markRefundPaid,
+  voidStoreCharge,
+  type RefundLiable,
+} from './refunds';
 import type { PqrsOutcome, PqrsViewer } from './types';
 
 /**
@@ -24,6 +31,8 @@ interface PqrsRow {
   store_id: string | null;
   buyer_id: string | null;
   description: string;
+  order_id: string | null;
+  store_order_id: string | null;
 }
 
 async function loadForAction(
@@ -33,7 +42,7 @@ async function loadForAction(
 ): Promise<{ pqrs: PqrsRow; viewer: PqrsViewer }> {
   const { data: pqrs } = await service
     .from('pqrs')
-    .select('id, code, reason, status, opened_by, opened_as, store_id, buyer_id, description')
+    .select('id, code, reason, status, opened_by, opened_as, store_id, buyer_id, description, order_id, store_order_id')
     .eq('id', id)
     .maybeSingle();
 
@@ -143,12 +152,30 @@ export async function respondAsStore(
     throw new PqrsInputError('Explica por qué no aceptas el reclamo: lo leerán el comprador y MercaMesa.');
   }
 
+  if (pqrs.status !== 'awaiting_store') {
+    throw new PqrsInputError('Este caso ya no está esperando a la tienda.', 409);
+  }
+
+  // Aceptar es aceptar la devolución: el comprador recibe su saldo y a la
+  // tienda se le descuenta el valor de esos productos. Va antes de cerrar el
+  // caso y es idempotente, así que un reintento no acredita dos veces.
+  const reason = getPqrsReason(pqrs.reason);
+  if (acepta && reason && reason.refund !== 'none') {
+    await createRefundForPqrs(service, {
+      pqrs,
+      scope: reason.refund,
+      liable: 'store',
+      actorId: actor.userId,
+    });
+  }
+
   const ahora = new Date().toISOString();
   const cambio = acepta
     ? {
         status: 'resolved',
         outcome: 'approved',
-        liable: getPqrsReason(pqrs.reason)?.defaultLiable ?? 'store',
+        // Quien acepta asume: la respuesta de la tienda es justamente eso.
+        liable: 'store',
         store_response: 'accepted',
         resolved_by: actor.userId,
         resolved_at: ahora,
@@ -190,6 +217,10 @@ export async function respondAsStore(
   });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 const OUTCOMES: PqrsOutcome[] = ['approved', 'rejected', 'answered'];
 const LIABLES: PqrsLiable[] = ['store', 'logistics', 'platform', 'buyer'];
 
@@ -204,7 +235,7 @@ export async function resolvePqrs(
   service: SupabaseClient<any>,
   actor: PqrsActor,
   id: string,
-  input: { outcome?: unknown; liable?: unknown; notes?: unknown }
+  input: { outcome?: unknown; liable?: unknown; notes?: unknown; refund?: unknown; quantities?: unknown }
 ): Promise<void> {
   const { pqrs, viewer } = await loadForAction(service, actor, id);
   if (viewer !== 'admin') throw new PqrsInputError('Solo un administrador puede resolver el caso.', 403);
@@ -225,6 +256,30 @@ export async function resolvePqrs(
   // Aprobar una solicitud de bloqueo ES bloquear. Va antes de cerrar el caso:
   // si el bloqueo no se pudiera registrar, el caso no debe quedar «aprobado»
   // con el comprador comprando igual.
+  // Qué se devuelve. Por defecto, lo que dice el motivo; el admin puede
+  // cambiarlo (devolver el pedido entero, o aprobar sin devolución).
+  const porDefecto = getPqrsReason(pqrs.reason)?.refund ?? 'none';
+  const refund = input.refund === undefined || input.refund === null ? porDefecto : input.refund;
+  if (refund !== 'items' && refund !== 'order' && refund !== 'none') {
+    throw new PqrsInputError('El tipo de devolución no es válido.');
+  }
+
+  if (outcome === 'approved' && refund !== 'none') {
+    if (porDefecto === 'none') {
+      throw new PqrsInputError('Este motivo no lleva devolución.');
+    }
+    if (liable !== 'store' && liable !== 'logistics' && liable !== 'platform') {
+      throw new PqrsInputError('Indica quién asume la devolución: la tienda o MercaMesa.');
+    }
+    await createRefundForPqrs(service, {
+      pqrs,
+      scope: refund,
+      liable: liable as RefundLiable,
+      quantities: isRecord(input.quantities) ? (input.quantities as Record<string, number>) : undefined,
+      actorId: actor.userId,
+    });
+  }
+
   if (pqrs.reason === BLOCK_REASON && outcome === 'approved') {
     if (!pqrs.store_id || !pqrs.buyer_id) {
       throw new PqrsInputError('La solicitud no tiene tienda o comprador: no se puede bloquear.');
@@ -308,5 +363,66 @@ export async function liftPqrsBlock(
     actorId: actor.userId,
     title: 'Se levantó un bloqueo',
     message: 'MercaMesa levantó el bloqueo de un comprador en tu tienda. Entra al caso para ver el motivo.',
+  });
+}
+
+/**
+ * Lo que el administrador puede hacer con una devolución ya creada:
+ *
+ * - `to_money`: el comprador exigió su dinero. Se le quita el saldo y queda un
+ *   reembolso pendiente, que se paga por fuera de la plataforma.
+ * - `mark_paid`: ese reembolso ya se pagó; se guarda la referencia.
+ * - `void_store_charge`: la tienda no debía asumirlo; lo asume MercaMesa.
+ *
+ * Cada una deja constancia en la conversación del caso.
+ */
+export async function runRefundAction(
+  service: SupabaseClient<any>,
+  actor: PqrsActor,
+  id: string,
+  input: { action?: unknown; notes?: unknown }
+): Promise<void> {
+  const { pqrs, viewer } = await loadForAction(service, actor, id);
+  if (viewer !== 'admin') {
+    throw new PqrsInputError('Solo un administrador puede modificar una devolución.', 403);
+  }
+
+  const notes = String(input.notes ?? '').trim();
+  let constancia: string;
+  let avisar: ('opener' | 'store')[];
+
+  if (input.action === 'to_money') {
+    await convertRefundToMoney(service, id, actor.userId);
+    constancia = 'La devolución se hará en dinero en lugar de saldo a favor. MercaMesa te contactará para el reembolso.';
+    avisar = ['opener'];
+  } else if (input.action === 'mark_paid') {
+    if (notes.length < 4) throw new PqrsInputError('Escribe la referencia del reembolso (número de transferencia o de reversión).');
+    await markRefundPaid(service, id, actor.userId, notes);
+    constancia = `El reembolso en dinero ya se realizó. Referencia: ${notes}`;
+    avisar = ['opener'];
+  } else if (input.action === 'void_store_charge') {
+    if (notes.length < 10) throw new PqrsInputError('Explica por qué se le quita el descuento a la tienda.');
+    await voidStoreCharge(service, id, actor.userId, notes);
+    constancia = `Se quitó el descuento a la tienda; la devolución la asume MercaMesa. Motivo: ${notes}`;
+    avisar = ['store'];
+  } else {
+    throw new PqrsInputError('La acción no es válida.');
+  }
+
+  await service.from('pqrs_messages').insert({
+    pqrs_id: id,
+    author_id: actor.userId,
+    author_as: 'admin',
+    body: constancia,
+    // Lo del descuento es entre MercaMesa y la tienda: el comprador no lo lee.
+    is_internal: input.action === 'void_store_charge',
+  });
+
+  await notifyPqrs(service, {
+    pqrs,
+    audiences: avisar,
+    actorId: actor.userId,
+    title: 'Novedad en una devolución',
+    message: 'Hay una novedad en la devolución de un caso. Entra a verlo.',
   });
 }

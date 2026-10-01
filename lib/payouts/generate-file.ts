@@ -90,9 +90,16 @@ export async function generarArchivo(
 
   // Se ordena por nombre de tienda para que dos generaciones del mismo borrador
   // den el mismo archivo.
-  const tiendas = Array.from(porTienda.values()).sort((a, b) =>
-    a.nombre.localeCompare(b.nombre, 'es')
-  );
+  // Las líneas negativas son descuentos por devoluciones y ya vienen sumadas.
+  // Una tienda cuyo neto quedó en cero no va al archivo: el banco no acepta un
+  // pago de $0, y sus pedidos igual quedan liquidados.
+  const tiendas = Array.from(porTienda.values())
+    .filter((t) => t.monto > 0)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+  if (tiendas.length === 0) {
+    throw new Error('La liquidación no tiene nada que pagar: los descuentos compensan los pedidos.');
+  }
 
   const beneficiarios: Beneficiario[] = tiendas.map((t) => ({
     paymentMethod: t.cuenta.payment_method,

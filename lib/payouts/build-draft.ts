@@ -29,12 +29,14 @@ export type RazonDescarte =
   | 'sin_cuenta_verificada'
   | 'en_espera'
   | 'sin_factura'
+  | 'pqrs_abierta'
   | 'sin_monto';
 
 export const EXPLICACION_DESCARTE: Record<RazonDescarte, string> = {
   sin_cuenta_verificada: 'La tienda no tiene una cuenta bancaria verificada',
   en_espera: 'Entregado hace muy poco; sigue en el periodo de espera',
   sin_factura: 'La factura electrónica todavía no se ha emitido',
+  pqrs_abierta: 'Tiene una PQRS sin resolver',
   sin_monto: 'El pedido no tiene valor que pagar',
 };
 
@@ -46,10 +48,27 @@ export interface PedidoDescartado {
   reason: RazonDescarte;
 }
 
+/**
+ * Un descuento a una tienda por una devolución que asume, que cabe en lo que se
+ * le va a pagar ahora. Entra a la liquidación como una línea negativa.
+ */
+export interface CargoAplicado {
+  chargeId: string;
+  storeId: string;
+  storeName: string;
+  amount: number;
+  /** El pedido del que salió la devolución. */
+  storeOrderCode: string | null;
+  bankAccountId: string;
+}
+
 export interface Elegibilidad {
   settings: PayoutSettings;
   elegibles: PedidoElegible[];
   descartados: PedidoDescartado[];
+  /** Descuentos que se aplican en esta liquidación. */
+  cargos: CargoAplicado[];
+  /** Lo que de verdad se paga: pedidos menos descuentos. */
   total: number;
 }
 
@@ -68,6 +87,13 @@ export interface Elegibilidad {
  *      una devolución, porque el sistema no tiene flujo de devoluciones y un
  *      pedido entregado sí se puede pasar a `returned` a mano.
  *   5. La factura electrónica ya salió, y la tienda tiene cuenta verificada.
+ *   6. No tiene una PQRS abierta. Pagar un pedido que está en reclamo obligaría
+ *      a cobrárselo de vuelta a la tienda si el reclamo se aprueba.
+ *
+ * Y a lo elegible se le restan los descuentos pendientes de cada tienda: las
+ * devoluciones que asumió. Un descuento solo entra si cabe en lo que se le paga
+ * ahora; si no, espera a la siguiente liquidación. Una tienda nunca queda con
+ * saldo negativo en el archivo.
  *
  * El "no está ya en otra liquidación" no se comprueba acá por gusto sino porque
  * es barato: la garantía de verdad es el índice único sobre
@@ -95,7 +121,7 @@ export async function calcularElegibilidad(
   );
 
   if (entregados.length === 0) {
-    return { settings, elegibles: [], descartados: [], total: 0 };
+    return { settings, elegibles: [], descartados: [], cargos: [], total: 0 };
   }
 
   const storeOrderIds = entregados.map((so) => so.id);
@@ -149,6 +175,19 @@ export async function calcularElegibilidad(
   );
   const cuentaDe = new Map<string, string>(cuentas.map((c) => [c.store_id, c.id]));
 
+  const enReclamo = new Set(
+    (
+      await fetchAllRows<any>((from, to) =>
+        service
+          .from('pqrs')
+          .select('store_order_id')
+          .neq('status', 'resolved')
+          .in('store_order_id', storeOrderIds)
+          .range(from, to)
+      )
+    ).map((p) => p.store_order_id)
+  );
+
   const limite = Date.now() - settings.holdDays * 24 * 60 * 60 * 1000;
 
   const elegibles: PedidoElegible[] = [];
@@ -179,6 +218,11 @@ export async function calcularElegibilidad(
       continue;
     }
 
+    if (enReclamo.has(so.id)) {
+      descartados.push({ ...base, reason: 'pqrs_abierta' });
+      continue;
+    }
+
     const deliveredAt = entregadoEn.get(so.id) ?? null;
     // Sin registro del cambio de estado no se puede saber cuándo se entregó, y
     // adivinar acortaría el colchón. Se deja esperando.
@@ -195,12 +239,71 @@ export async function calcularElegibilidad(
     });
   }
 
+  const cargos = await cargosQueCaben(service, elegibles);
+
   return {
     settings,
     elegibles,
     descartados,
-    total: elegibles.reduce((suma, e) => suma + e.amount, 0),
+    cargos,
+    total:
+      elegibles.reduce((suma, e) => suma + e.amount, 0) - cargos.reduce((suma, c) => suma + c.amount, 0),
   };
+}
+
+/**
+ * Los descuentos pendientes de las tiendas a las que se les va a pagar, hasta
+ * donde quepan.
+ *
+ * «Pendiente» es: no anulado y sin línea en ninguna liquidación. Cancelar un
+ * borrador borra sus líneas, así que sus descuentos vuelven a estar pendientes
+ * sin que nadie tenga que acordarse de liberarlos.
+ */
+async function cargosQueCaben(
+  service: SupabaseClient<any>,
+  elegibles: PedidoElegible[]
+): Promise<CargoAplicado[]> {
+  if (elegibles.length === 0) return [];
+
+  const disponible = new Map<string, number>();
+  const tienda = new Map<string, PedidoElegible>();
+  for (const e of elegibles) {
+    disponible.set(e.storeId, (disponible.get(e.storeId) ?? 0) + e.amount);
+    tienda.set(e.storeId, e);
+  }
+
+  const pendientes = (
+    await fetchAllRows<any>((from, to) =>
+      service
+        .from('store_charges')
+        .select('id, store_id, amount, created_at, store_orders ( code ), payout_items ( id )')
+        .is('voided_at', null)
+        .in('store_id', Array.from(disponible.keys()))
+        .order('created_at', { ascending: true })
+        .range(from, to)
+    )
+  ).filter((c) => (c.payout_items ?? []).length === 0);
+
+  const cargos: CargoAplicado[] = [];
+  for (const c of pendientes) {
+    const amount = Number(c.amount);
+    const queda = disponible.get(c.store_id) ?? 0;
+    // El que no cabe espera; uno más pequeño y posterior sí puede entrar.
+    if (amount > queda) continue;
+
+    disponible.set(c.store_id, queda - amount);
+    const ref = tienda.get(c.store_id)!;
+    cargos.push({
+      chargeId: c.id,
+      storeId: c.store_id,
+      storeName: ref.storeName,
+      amount,
+      storeOrderCode: c.store_orders?.code ?? null,
+      bankAccountId: ref.bankAccountId,
+    });
+  }
+
+  return cargos;
 }
 
 export class SinPedidosError extends Error {
@@ -228,11 +331,19 @@ export async function construirBorrador(
   service: SupabaseClient<any>,
   opciones: { scheduledFor?: string; generatedBy?: string | null } = {}
 ): Promise<BorradorCreado> {
-  const { settings, elegibles, descartados, total } = await calcularElegibilidad(service);
+  const { settings, elegibles, descartados, cargos, total } = await calcularElegibilidad(service);
 
   if (elegibles.length === 0) {
     throw new SinPedidosError(
       'No hay pedidos por dispersar en este momento.'
+    );
+  }
+
+  // Todo lo que habría por pagar se compensa con devoluciones: no hay archivo
+  // que subir al banco. Los pedidos quedan para la siguiente liquidación.
+  if (total <= 0) {
+    throw new SinPedidosError(
+      'Lo que hay por dispersar se compensa con descuentos por devoluciones: no queda nada que pagar todavía.'
     );
   }
 
@@ -254,15 +365,26 @@ export async function construirBorrador(
     throw new Error(`No se pudo crear la liquidación: ${payoutError?.message}`);
   }
 
-  const { error: itemsError } = await service.from('payout_items').insert(
-    elegibles.map((e) => ({
+  const { error: itemsError } = await service.from('payout_items').insert([
+    ...elegibles.map((e) => ({
       payout_id: payout.id,
       store_order_id: e.storeOrderId,
+      store_charge_id: null,
       store_id: e.storeId,
       bank_account_id: e.bankAccountId,
       amount: e.amount,
-    }))
-  );
+    })),
+    // Cada descuento es una línea negativa de la misma tienda: el pedido se ve
+    // pagado completo y el descuento aparte, con su propio rastro.
+    ...cargos.map((c) => ({
+      payout_id: payout.id,
+      store_order_id: null,
+      store_charge_id: c.chargeId,
+      store_id: c.storeId,
+      bank_account_id: c.bankAccountId,
+      amount: -c.amount,
+    })),
+  ]);
 
   // Si los ítems fallan —típicamente porque otro proceso tomó los mismos
   // pedidos y el índice único lo frenó— la liquidación se borra entera. Una
@@ -271,7 +393,8 @@ export async function construirBorrador(
   if (itemsError) {
     await service.from('payouts').delete().eq('id', payout.id);
     throw new Error(
-      itemsError.message.includes('payout_items_store_order_unico')
+      itemsError.message.includes('payout_items_store_order_unico') ||
+        itemsError.message.includes('payout_items_store_charge_unico')
         ? 'Otra liquidación tomó estos pedidos mientras se armaba esta. Vuelve a intentarlo.'
         : `No se pudieron registrar los pedidos: ${itemsError.message}`
     );

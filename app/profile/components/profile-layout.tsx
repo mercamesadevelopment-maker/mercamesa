@@ -12,6 +12,7 @@ import {
   Heart,
   Settings,
   User,
+  Wallet,
 } from 'lucide-react';
 
 import { DashboardTab } from './dashboard-tab';
@@ -21,20 +22,22 @@ import { RatingsTab } from './ratings-tab';
 import { FavoritesTab } from './favorites-tab';
 import { PreferencesTab } from './preferences-tab';
 import { AccountTab } from './account-tab';
+import { CreditTab } from './credit-tab';
 
-type TabId = 'dashboard' | 'addresses' | 'payments' | 'ratings' | 'favorites' | 'prefs' | 'account';
+type TabId = 'dashboard' | 'addresses' | 'payments' | 'credit' | 'ratings' | 'favorites' | 'prefs' | 'account';
 
 const TABS: { id: TabId; icon: React.ElementType; label: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Inicio' },
   { id: 'addresses', icon: MapPin, label: 'Direcciones' },
   { id: 'payments', icon: CreditCard, label: 'Pagos' },
+  { id: 'credit', icon: Wallet, label: 'Saldo a favor' },
   { id: 'ratings', icon: Star, label: 'Calificar' },
   { id: 'favorites', icon: Heart, label: 'Favoritos' },
   { id: 'prefs', icon: Settings, label: 'Preferencias' },
   { id: 'account', icon: User, label: 'Mi cuenta' },
 ];
 
-const BUYER_ONLY_TABS: TabId[] = ['addresses', 'payments', 'ratings', 'favorites'];
+const BUYER_ONLY_TABS: TabId[] = ['addresses', 'payments', 'credit', 'ratings', 'favorites'];
 
 export function ProfileLayout() {
   const { state } = useApp();
@@ -91,6 +94,7 @@ export function ProfileLayout() {
             {activeTab === 'dashboard' && <DashboardTab key="dashboard" />}
             {activeTab === 'addresses' && <AddressesTab key="addresses" />}
             {activeTab === 'payments' && <PaymentsTab key="payments" />}
+            {activeTab === 'credit' && <CreditTab key="credit" />}
             {activeTab === 'ratings' && <RatingsTab key="ratings" />}
             {activeTab === 'favorites' && <FavoritesTab key="favorites" />}
             {activeTab === 'prefs' && <PreferencesTab key="prefs" />}

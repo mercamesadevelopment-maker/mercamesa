@@ -300,7 +300,8 @@ function VistaPrevia({
                   <div key={s.storeId} className="flex items-center justify-between px-4 py-2.5 text-sm">
                     <span className="text-mm-g">{s.storeName}</span>
                     <span className="text-mm-txw">
-                      {s.orders} {s.orders === 1 ? 'pedido' : 'pedidos'} ·{' '}
+                      {s.orders} {s.orders === 1 ? 'pedido' : 'pedidos'}
+                      {s.charges > 0 && ` · −${fmt(s.charges)} por devoluciones`} ·{' '}
                       <span className="font-bold text-mm-g">{fmt(s.amount)}</span>
                     </span>
                   </div>
@@ -383,7 +384,8 @@ function DetalleModal({ detalle, onClose }: { detalle: PayoutDetalle | null; onC
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {s.orders.map((o) => (
-                    <Badge key={o.id} className="text-[10px]">
+                    <Badge key={o.id} variant={o.isCharge ? 'error' : 'default'} className="text-[10px]">
+                      {o.isCharge ? 'Devolución ' : ''}
                       {o.code} · {fmt(o.amount)}
                     </Badge>
                   ))}

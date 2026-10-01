@@ -20,11 +20,14 @@ export async function GET() {
     if (denied) return denied;
 
     const service = createSupabaseServiceClient();
-    const { elegibles, descartados, total, settings } = await calcularElegibilidad(service);
+    const { elegibles, descartados, cargos, total, settings } = await calcularElegibilidad(service);
 
     // Agrupado por tienda: es como se va a ver en el archivo y como lo lee quien
     // revisa, que piensa en "a quién le pago", no en "qué pedidos".
-    const porTienda = new Map<string, { storeId: string; storeName: string; orders: number; amount: number }>();
+    const porTienda = new Map<
+      string,
+      { storeId: string; storeName: string; orders: number; amount: number; charges: number }
+    >();
     for (const e of elegibles) {
       const actual = porTienda.get(e.storeId);
       if (actual) {
@@ -36,8 +39,18 @@ export async function GET() {
           storeName: e.storeName,
           orders: 1,
           amount: e.amount,
+          charges: 0,
         });
       }
+    }
+
+    // Lo que se muestra por tienda es el neto: lo que le va a llegar. Los
+    // descuentos son devoluciones que la tienda asumió.
+    for (const c of cargos) {
+      const tienda = porTienda.get(c.storeId);
+      if (!tienda) continue;
+      tienda.amount -= c.amount;
+      tienda.charges += c.amount;
     }
 
     return NextResponse.json(

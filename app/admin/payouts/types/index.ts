@@ -23,6 +23,8 @@ export interface PedidoDeTienda {
   id: string;
   code: string | null;
   amount: number;
+  /** Línea negativa: un descuento por una devolución, rotulado con su pedido. */
+  isCharge?: boolean;
 }
 
 export interface TiendaEnPayout {
@@ -55,7 +57,8 @@ export interface Descartado {
 export interface Elegibles {
   total: number;
   ordersCount: number;
-  stores: { storeId: string; storeName: string; orders: number; amount: number }[];
+  /** `amount` es el neto; `charges`, lo descontado por devoluciones que la tienda asumió. */
+  stores: { storeId: string; storeName: string; orders: number; amount: number; charges: number }[];
   discarded: Descartado[];
   holdDays: number;
 }

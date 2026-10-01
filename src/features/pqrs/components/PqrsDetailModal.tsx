@@ -13,6 +13,7 @@ import { PqrsThread } from './PqrsThread';
 import { PqrsStoreResponse } from './PqrsStoreResponse';
 import { PqrsResolveForm } from './PqrsResolveForm';
 import { PqrsBlockPanel } from './PqrsBlockPanel';
+import { PqrsRefundPanel } from './PqrsRefundPanel';
 
 interface PqrsDetailModalProps {
   /** `null` cierra el modal. */
@@ -36,8 +37,18 @@ function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactN
  * cambia es qué trae el servidor (`viewer` y `can`), no la pantalla.
  */
 export function PqrsDetailModal({ pqrsId, onClose, onChanged }: PqrsDetailModalProps) {
-  const { detail, loading, error, working, actionError, sendMessage, respondAsStore, resolve, liftBlock } =
-    usePqrsDetail(pqrsId, onChanged);
+  const {
+    detail,
+    loading,
+    error,
+    working,
+    actionError,
+    sendMessage,
+    respondAsStore,
+    resolve,
+    liftBlock,
+    refundAction,
+  } = usePqrsDetail(pqrsId, onChanged);
 
   return (
     <Modal isOpen={Boolean(pqrsId)} onClose={onClose} title={detail?.code ?? 'PQRS'} maxWidth="max-w-2xl">
@@ -120,12 +131,25 @@ export function PqrsDetailModal({ pqrsId, onClose, onChanged }: PqrsDetailModalP
             </div>
           )}
 
+          <PqrsRefundPanel
+            viewer={detail.viewer}
+            refund={detail.refund}
+            preview={detail.refundPreview}
+            working={working}
+            onAction={refundAction}
+          />
+
           {detail.can.respondAsStore && (
             <PqrsStoreResponse dueAt={detail.storeResponseDueAt} working={working} onRespond={respondAsStore} />
           )}
 
           {detail.can.resolve && (
-            <PqrsResolveForm reasonKey={detail.reason} working={working} onResolve={resolve} />
+            <PqrsResolveForm
+              reasonKey={detail.reason}
+              canRefund={Boolean(detail.refundPreview)}
+              working={working}
+              onResolve={resolve}
+            />
           )}
 
           {actionError && (
