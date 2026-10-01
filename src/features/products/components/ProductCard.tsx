@@ -6,6 +6,7 @@ import { ShoppingCart, Share2, Check } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { useApp } from '@/src/store';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/src/features/products/utils/share-link';
@@ -21,6 +22,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, highlighted }: ProductCardProps) {
   const { cart, addToCart, updateCartQty } = useCart();
+  const { state } = useApp();
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
   const { copied, share } = useShareLink();
@@ -43,6 +45,22 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   const qty = cartItem?.qty ?? 0;
   const stock = Number(product.stock ?? 0);
 
+  /**
+   * El precio con la oferta vigente, que el servidor ya resolvió.
+   *
+   * Antes la tarjeta pintaba y agregaba `price_per_unit` sin mirar ofertas: el
+   * comprador veía el valor completo acá y en el carrito, aunque al cotizar y al
+   * cobrar sí se le hacía el descuento.
+   *
+   * Al comprador mayorista no se le aplica: se le cobra el precio mayorista, que
+   * es la misma regla de `resolveOfferPrices` y del carrito.
+   */
+  const listPrice = Number(product.price_per_unit || 0);
+  const offer = state.userRole === 'wholesale' ? null : product.offer ?? null;
+  const price = offer && offer.finalPrice < listPrice ? offer.finalPrice : listPrice;
+  const hasDiscount = price < listPrice;
+  const discountPct = hasDiscount ? Math.round((1 - price / listPrice) * 100) : 0;
+
   // Red de seguridad: si el derivado WebP aún no existe (imagen subida antes
   // del backfill, o formato que sharp no pudo procesar), cae al original.
   const handleImageError = () => {
@@ -57,20 +75,28 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart({
-      id: product.id,
-      name: product.catalog_products?.name || 'Producto',
-      cat: product.catalog_products?.categories?.name || 'Sin Categoría',
-      retailPrice: product.price_per_unit || 0,
-      wsPrice: product.price_per_unit || 0,
-      stock: product.stock ?? 0,
-      unit: product.measurement_units?.abbreviation || 'und',
-      emoji: '📦',
-      image: product.imageSignedUrl || null,
-      plazaId: 1,
-      storeId: product.store_id,
-      storeName: product.stores?.name || 'Tienda',
-    } as any);
+    addToCart(
+      {
+        id: product.id,
+        name: product.catalog_products?.name || 'Producto',
+        cat: product.catalog_products?.categories?.name || 'Sin Categoría',
+        retailPrice: price,
+        wsPrice: listPrice,
+        // Con descuento, el carrito tacha el de lista y suma el ahorro.
+        listPrice: hasDiscount ? listPrice : undefined,
+        offerId: hasDiscount ? offer?.id ?? null : null,
+        stock: product.stock ?? 0,
+        unit: product.measurement_units?.abbreviation || 'und',
+        emoji: '📦',
+        image: product.imageSignedUrl || null,
+        plazaId: 1,
+        storeId: product.store_id,
+        storeName: product.stores?.name || 'Tienda',
+      } as any,
+      1,
+      // Queda guardada en `cart_items`, igual que al agregar desde una oferta.
+      hasDiscount ? offer?.id ?? null : null
+    );
   };
 
   return (
@@ -83,11 +109,14 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
       )}
     >
       <div className="h-40 bg-mm-gbg flex items-center justify-center text-5xl relative overflow-hidden">
-        {(product as any).is_featured && (
-          <Badge variant="oro" className="absolute top-2 left-2 z-10">
-            Destacado
-          </Badge>
-        )}
+        <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1">
+          {(product as any).is_featured && <Badge variant="oro">Destacado</Badge>}
+          {hasDiscount && (
+            <Badge variant="error" className="font-bold">
+              -{discountPct}%
+            </Badge>
+          )}
+        </div>
         {product.stores?.slug && (
           <button
             onClick={handleShare}
@@ -135,8 +164,16 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
 
         <div className="flex items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
           <div className="flex flex-col">
-            <p className="font-bold text-mm-g text-lg sm:text-xl tracking-tight leading-none">
-              {fmt(product.price_per_unit || 0)}
+            {hasDiscount && (
+              <p className="text-[11px] text-mm-txw line-through leading-none mb-1">{fmt(listPrice)}</p>
+            )}
+            <p
+              className={cn(
+                'font-bold text-lg sm:text-xl tracking-tight leading-none',
+                hasDiscount ? 'text-r' : 'text-mm-g'
+              )}
+            >
+              {fmt(price)}
             </p>
             <p className="text-[9px] text-mm-txs font-bold uppercase tracking-wider mt-0.5">
               / {product.measurement_units?.abbreviation}
