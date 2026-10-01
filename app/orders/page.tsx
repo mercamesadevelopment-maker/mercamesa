@@ -93,7 +93,9 @@ export default function OrdersPage() {
         ) : (
           orders.map(order => (
             <OrderCard
-              key={order.order_id}
+              // Un pedido de varias tiendas trae una fila por tienda: el id del
+              // pedido se repite, el de la parte no.
+              key={order.store_order_id ?? order.order_id}
               order={order}
               onRate={handleOpenRating}
             />

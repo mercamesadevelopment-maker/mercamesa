@@ -91,6 +91,17 @@ export function OrderCard({
   const { pay, paying, error: payError } = usePayOrder();
   const payable = isPayable(order.payable_until);
 
+  /**
+   * Un pedido de varias tiendas se ve como una tarjeta por tienda —cada una
+   * tiene su estado y se le reclama por separado—, pero se paga una sola vez.
+   * El botón de pagar va solo en la primera, y el total a pagar es el del
+   * pedido completo.
+   */
+  const compartido = (order.store_count ?? 1) > 1;
+  const muestraPago = payable && (!compartido || order.split_index === 1);
+  const totalDelPedido = Number(order.order_total ?? order.total ?? 0);
+  const aPagar = totalDelPedido - Number(order.credit_applied ?? 0);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -117,6 +128,11 @@ export function OrderCard({
               Pedido {formatOrderCode(order.order_code, order.order_id)} •{' '}
               {order.created_at ? fechaCompleta(order.created_at) : ''}
             </p>
+            {compartido && (
+              <p className="text-xs text-mm-txs mt-0.5">
+                Parte de la compra {order.parent_code} con {order.store_count} tiendas · llega en una sola entrega
+              </p>
+            )}
           </div>
         </div>
 
@@ -239,11 +255,20 @@ export function OrderCard({
       <div className="p-4 sm:p-6 bg-mm-gbg/30 border-t border-mm-crd flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-baseline justify-between sm:flex-col sm:items-start">
           <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
-            {payable ? 'Total a pagar' : 'Total Pagado'}
+            {muestraPago
+              ? compartido
+                ? 'Total a pagar (todas las tiendas)'
+                : 'Total a pagar'
+              : compartido
+                ? 'Productos de esta tienda'
+                : 'Total del pedido'}
           </span>
 
+          {/* Con varias tiendas, cada tarjeta muestra lo suyo y solo la que
+              cobra muestra el total: sumar las tarjetas no daría lo cobrado,
+              porque el domicilio y las comisiones son del pedido. */}
           <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
-            {formatCurrency(order.total || 0)}
+            {formatCurrency(muestraPago ? aPagar : compartido ? Number(order.total || 0) : totalDelPedido)}
           </span>
         </div>
 
@@ -285,12 +310,12 @@ export function OrderCard({
             )}
 
           {/* Reintento del pago sobre el mismo pedido, mientras no venza. */}
-          {payable && order.order_id && (
+          {muestraPago && order.order_id && (
             <Button
               size="sm"
               className={FOOTER_BUTTON_CLASS}
               disabled={paying}
-              onClick={() => pay(order.order_id!, order.store_name)}
+              onClick={() => pay(order.order_id!, compartido ? `${order.store_count} tiendas` : order.store_name)}
             >
               <CreditCard className="w-3.5 h-3.5" />
               {paying ? 'Abriendo pago…' : 'Pagar'}
@@ -340,6 +365,9 @@ export function OrderCard({
           onClose={() => setShowReport(false)}
           as="buyer"
           orderId={order.order_id}
+          // El reclamo es contra la tienda de esta tarjeta, no contra la
+          // primera del pedido.
+          storeOrderId={order.store_order_id ?? null}
           onCreated={(created) => {
             setShowReport(false);
             setReportedCode(created.code);

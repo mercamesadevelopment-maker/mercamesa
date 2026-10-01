@@ -3,6 +3,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
 import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
+import { cancelStorePart } from '@/src/features/orders/services/cancel-store-part.service';
 import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
 
 export function useOrders() {
@@ -254,6 +255,16 @@ export function useOrders() {
     await fetchStoreOrders();
   };
 
+  // La tienda no puede cumplir su parte de un pedido de varias tiendas. El error
+  // se propaga: el modal muestra por qué no se pudo.
+  const cancelPart = async (orderId: string, reason: string) => {
+    const order = myOrders.find(o => o.id === orderId);
+    if (!order?.storeOrderId) throw new Error('No se encontró el pedido.');
+
+    await cancelStorePart(order.storeOrderId, reason);
+    await fetchStoreOrders();
+  };
+
   return {
     filteredOrders,
     filterStatus,
@@ -261,6 +272,7 @@ export function useOrders() {
     stats,
     updateOrderStatus,
     revertOrderStatus,
+    cancelPart,
     deliveryError,
     dismissDeliveryError: () => setDeliveryError(null),
     loading,

@@ -38,7 +38,7 @@ export async function loadFormContext(
     throw new PqrsInputError('Solo el equipo de una tienda puede radicar estos casos.', 403);
   }
 
-  // Cada pedido es de una sola tienda, así que el de la compra identifica al de
+  // Un caso es contra una tienda, así que la parte de esa tienda identifica al de
   // la tienda.
   let storeOrderId = params.storeOrderId ?? null;
   if (!storeOrderId && params.orderId) {

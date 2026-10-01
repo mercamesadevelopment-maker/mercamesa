@@ -10,6 +10,7 @@ export function OrdersView() {
     stats,
     updateOrderStatus,
     revertOrderStatus,
+    cancelPart,
     stores,
     selectedStoreId,
     setSelectedStoreId,
@@ -28,6 +29,7 @@ export function OrdersView() {
         stats={stats}
         updateOrderStatus={updateOrderStatus}
         revertOrderStatus={revertOrderStatus}
+        cancelPart={cancelPart}
         stores={stores}
         selectedStoreId={selectedStoreId}
         setSelectedStoreId={setSelectedStoreId}

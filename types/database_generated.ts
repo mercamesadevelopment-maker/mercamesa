@@ -1374,8 +1374,9 @@ export type Database = {
           money_paid_by: string | null
           money_reference: string | null
           order_id: string
+          origin: string
           platform_commission_amount: number
-          pqrs_id: string
+          pqrs_id: string | null
           products_amount: number
           scope: string
           service_commission_amount: number
@@ -1397,8 +1398,9 @@ export type Database = {
           money_paid_by?: string | null
           money_reference?: string | null
           order_id: string
+          origin?: string
           platform_commission_amount?: number
-          pqrs_id: string
+          pqrs_id?: string | null
           products_amount: number
           scope: string
           service_commission_amount?: number
@@ -1420,8 +1422,9 @@ export type Database = {
           money_paid_by?: string | null
           money_reference?: string | null
           order_id?: string
+          origin?: string
           platform_commission_amount?: number
-          pqrs_id?: string
+          pqrs_id?: string | null
           products_amount?: number
           scope?: string
           service_commission_amount?: number
@@ -1479,6 +1482,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
           },
           {
             foreignKeyName: "order_refunds_store_order_id_fkey"
@@ -1829,6 +1839,13 @@ export type Database = {
             foreignKeyName: "payout_items_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "payout_items_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -2116,6 +2133,13 @@ export type Database = {
             foreignKeyName: "pibox_bookings_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "pibox_bookings_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -2255,6 +2279,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
           },
           {
             foreignKeyName: "pqrs_store_order_id_fkey"
@@ -3196,6 +3227,13 @@ export type Database = {
             foreignKeyName: "store_charges_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -3522,6 +3560,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_order_status_history_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
           },
           {
             foreignKeyName: "store_order_status_history_store_order_id_fkey"
@@ -3946,6 +3991,7 @@ export type Database = {
           address_line: string | null
           buyer_id: string | null
           created_at: string | null
+          credit_applied: number | null
           delivery_address_id: string | null
           delivery_instructions: string | null
           department: string | null
@@ -3953,15 +3999,19 @@ export type Database = {
           neighborhood: string | null
           order_code: string | null
           order_id: string | null
+          order_total: number | null
           parent_code: string | null
           payable_until: string | null
           payment_method: string | null
           payment_method_label: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           products: Json | null
+          split_index: number | null
           status: Database["public"]["Enums"]["order_status"] | null
+          store_count: number | null
           store_id: string | null
           store_name: string | null
+          store_order_id: string | null
           total: number | null
         }
         Relationships: [

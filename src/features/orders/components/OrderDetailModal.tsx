@@ -21,7 +21,12 @@ interface OrderDetailModalProps {
   onStartRevert?: (orderId: string) => void;
   /** Abre el formulario de PQRS del tendero sobre este pedido. Sin esta prop no se ofrece. */
   onReportProblem?: (order: Order) => void;
+  /** La tienda no puede cumplir su parte de un pedido de varias tiendas. */
+  onStartCancelPart?: (orderId: string) => void;
 }
+
+/** Estados desde los que la tienda todavía puede decir que no cumple su parte. */
+const PARTE_CANCELABLE: OrderStatus[] = ['confirmed', 'paid', 'packing', 'at_collection'];
 
 export function OrderDetailModal({
   isOpen,
@@ -30,6 +35,7 @@ export function OrderDetailModal({
   onStartStatusChange,
   onStartRevert,
   onReportProblem,
+  onStartCancelPart,
 }: OrderDetailModalProps) {
   if (!order) return null;
 
@@ -48,6 +54,11 @@ export function OrderDetailModal({
   // En un pedido de varias tiendas, después de «Listo Recogida» la tienda ya
   // no tiene nada que hacer: lo recoge el patinador y lo despacha el mensajero.
   const esperaAlPatinador = order.fulfillment === 'runner' && order.status === 'at_collection';
+
+  // Solo en pedidos compartidos: ahí cancelar una parte no tumba lo de las
+  // demás tiendas. En un pedido de una sola tienda sería anular la venta.
+  const puedeCancelarParte =
+    !!onStartCancelPart && order.fulfillment === 'runner' && PARTE_CANCELABLE.includes(order.status);
 
   const handleAction = () => {
     if (statusConfig.next && !esperaAlPatinador) {
@@ -393,6 +404,17 @@ export function OrderDetailModal({
             >
               <LifeBuoy className="w-4 h-4 mr-1" />
               Reportar un problema
+            </Button>
+          )}
+
+          {puedeCancelarParte && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => onStartCancelPart?.(order.id)}
+              className="w-full sm:w-auto rounded-2xl h-12 text-sm border-red-200 text-red-700 hover:bg-red-50 transition-colors font-bold"
+            >
+              No puedo cumplir mi parte
             </Button>
           )}
 
