@@ -16,37 +16,26 @@ import {
 import { CartItem } from '@/src/types';
 import { fmt } from '@/src/constants';
 import { checkoutCartDb, clearCartDb, fetchOrderMinPrice } from '../services/cart.service';
-import { quoteCheckout, sumQuotes, type CheckoutQuote } from '../services/checkout-quote.service';
+import { quoteCheckout, type CheckoutQuote } from '../services/checkout-quote.service';
 import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
 import type { Database } from '@/types/database_generated';
 
 type SavedPaymentMethod = Database['public']['Tables']['buyer_payment_methods']['Row'];
 
-/**
- * Un carrito con productos de dos tiendas no se puede pagar de una sola vez:
- * cada tienda despacha por separado y genera su propia orden, y ZonaPagos cobra
- * una orden por redirección. El texto lo usan el hook (como corte final) y el
- * panel (como aviso), para que digan lo mismo.
- */
-export const MENSAJE_CARRITO_MEZCLADO =
-  'Tu canasta tiene productos de más de una tienda. Elige con cuál quieres seguir para poder pagar.';
-
-/** Una tienda de la canasta que todavía no llega al valor mínimo de compra. */
-export interface TiendaBajoMinimo {
-  storeName: string;
+/** Cuánto le falta a la canasta para llegar al valor mínimo de compra. */
+export interface FaltanteDelMinimo {
   subtotal: number;
-  /** Cuánto falta para llegar al mínimo. Siempre positivo. */
+  /** Siempre positivo. */
   shortfall: number;
 }
 
 /**
- * El mínimo dicho de la única forma que le sirve al comprador: cuánto falta y
- * en qué tienda. El mensaje anterior —"El pedido no alcanza el valor mínimo de
- * $12.000"— salía al pagar, no decía de qué tienda hablaba, y con dos tiendas en
- * la canasta contradecía el subtotal que mostraba el propio carrito.
+ * El mínimo dicho de la única forma que le sirve al comprador: cuánto falta.
+ * Se mide sobre el pedido completo —el domicilio es uno por pedido—, así que
+ * con varias tiendas en la canasta basta con que entre todas lleguen.
  */
-export function mensajeMinimo(tienda: TiendaBajoMinimo, minPrice: number): string {
-  return `Te faltan ${fmt(tienda.shortfall)} para el mínimo de ${fmt(minPrice)} en ${tienda.storeName}.`;
+export function mensajeMinimo(faltante: FaltanteDelMinimo, minPrice: number): string {
+  return `Te faltan ${fmt(faltante.shortfall)} para el mínimo de compra de ${fmt(minPrice)}.`;
 }
 
 export function useCheckout() {
@@ -126,14 +115,6 @@ export function useCheckout() {
   );
 
   /**
-   * Carrito con productos de dos tiendas. No debería poder armarse —`addToCart`
-   * lo bloquea— pero la recuperación de un pago abandonado sí lo mezcla: los
-   * ítems que quedaron en `pending` vuelven a `active` junto a lo que el
-   * comprador haya agregado mientras tanto de otra tienda.
-   */
-  const hasMixedStores = cartByStore.length > 1;
-
-  /**
    * El valor mínimo de compra. Se consulta acá y no en la cotización porque el
    * mínimo no depende del domicilio: así el paso 1 puede avisar antes de pedir
    * la dirección, en vez de dejar que el comprador se entere al pagar.
@@ -157,21 +138,13 @@ export function useCheckout() {
   }, []);
 
   /**
-   * Las tiendas que no llegan al mínimo, con cuánto les falta. El mínimo se
-   * aplica por orden y cada tienda es una orden, así que se mide por grupo y no
-   * sobre el subtotal sumado: con $10.000 en una tienda y $5.000 en otra el pie
-   * mostraba $15.000 y el servidor rechazaba igual, sin decir por qué.
+   * Cuánto falta para el mínimo, o `null` si ya se alcanzó. Se mide sobre toda
+   * la canasta, igual que lo hace el servidor (`assertMinimumPurchase`).
    */
-  const storesBelowMinimum =
-    minPrice === null
-      ? []
-      : cartByStore
-          .map((group) => ({
-            storeName: group.store.name,
-            subtotal: group.items.reduce((acc, i) => acc + getPrice(i) * i.qty, 0),
-          }))
-          .filter((g) => g.subtotal < minPrice)
-          .map((g) => ({ ...g, shortfall: minPrice - g.subtotal }));
+  const belowMinimum: FaltanteDelMinimo | null =
+    minPrice !== null && state.cart.length > 0 && subtotal < minPrice
+      ? { subtotal, shortfall: minPrice - subtotal }
+      : null;
 
   // El precio ya no se calcula en el navegador: el servidor cotiza el domicilio
   // con el operador logístico y aplica las comisiones parametrizadas. Acá solo se
@@ -198,20 +171,15 @@ export function useCheckout() {
     setIsQuoting(true);
     setQuoteError(null);
 
-    // Una cotización por tienda: cada grupo se despacha por separado y tiene su
-    // propio domicilio.
-    const groups = storesInCart.map((storeId) => ({
-      store_id: String(storeId),
+    // Una sola cotización para toda la canasta: aunque lleve varias tiendas, el
+    // pedido sale en una entrega y paga un domicilio.
+    quoteCheckout({
       delivery_address_id: selectedAddressId,
-      items: state.cart
-        .filter((i) => i.storeId === storeId)
-        .map((i) => ({ store_product_id: String(i.id), quantity: i.qty })),
-    }));
-
-    Promise.all(groups.map(quoteCheckout))
-      .then((quotes) => {
+      items: state.cart.map((i) => ({ store_product_id: String(i.id), quantity: i.qty })),
+    })
+      .then((cotizacion) => {
         if (cancelled) return;
-        setQuote(sumQuotes(quotes));
+        setQuote(cotizacion);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -255,16 +223,9 @@ export function useCheckout() {
 
   const creditToApply = useCredit ? Math.min(creditBalance, total) : 0;
   const totalToPay = total - creditToApply;
-  // Sin cotización no se puede pagar: no hay un total que cobrar. Y tampoco con
-  // dos tiendas en la canasta o por debajo del mínimo, que son las dos formas
-  // que tenía este flujo de llegar hasta el final para fallar (o, peor, de
-  // cobrar menos de lo mostrado).
-  const canPlaceOrder =
-    !!quote &&
-    !isQuoting &&
-    !quoteError &&
-    !hasMixedStores &&
-    storesBelowMinimum.length === 0;
+  // Sin cotización no se puede pagar: no hay un total que cobrar. Tampoco por
+  // debajo del mínimo: el servidor lo rechazaría al final.
+  const canPlaceOrder = !!quote && !isQuoting && !quoteError && belowMinimum === null;
 
   const handlePlaceOrder = async (onClose: () => void) => {
     if (isPlacingOrder) return;
@@ -276,13 +237,8 @@ export function useCheckout() {
       return;
     }
 
-    if (hasMixedStores) {
-      setErrorMessage(MENSAJE_CARRITO_MEZCLADO);
-      return;
-    }
-
-    if (minPrice !== null && storesBelowMinimum.length > 0) {
-      setErrorMessage(mensajeMinimo(storesBelowMinimum[0], minPrice));
+    if (minPrice !== null && belowMinimum) {
+      setErrorMessage(mensajeMinimo(belowMinimum, minPrice));
       return;
     }
 
@@ -312,24 +268,13 @@ export function useCheckout() {
       // Antes de crear el pedido: sin documento o correo no hay cómo pagarlo.
       const perfil = await obtenerPerfilDePago();
 
-      // Un carrito es de una sola tienda: `addToCart` lo impide y el modal de
-      // conflicto lo anuncia. Si aun así llegaran dos —la recuperación de un
-      // pago abandonado puede mezclarlas—, se corta ACÁ, antes de crear nada.
-      //
-      // Antes esto era un `for` sobre `cartByStore` cuyo cuerpo terminaba en
-      // `window.location.href = paymentUrl`: se creaba y se cobraba la orden de
-      // la PRIMERA tienda y las demás se abandonaban en silencio, mientras la
-      // pantalla mostraba el total sumado de todas (`sumQuotes`). El comprador
-      // veía $106.185 y se le cobraban $69.047.
-      if (cartByStore.length !== 1) {
-        throw new Error(MENSAJE_CARRITO_MEZCLADO);
+      // Un solo pedido para toda la canasta. Antes esto era un `for` por tienda
+      // cuyo cuerpo terminaba en `window.location.href = paymentUrl`: se cobraba
+      // la primera tienda y las demás se abandonaban en silencio. Ahora todas
+      // las tiendas van en el mismo pedido y se pagan juntas.
+      if (cartByStore.length === 0) {
+        throw new Error('Tu canasta está vacía.');
       }
-
-      const group = cartByStore[0];
-      const groupSubtotal = group.items.reduce(
-        (acc, i) => acc + getPrice(i) * i.qty,
-        0
-      );
 
       // Los precios no viajan en el payload: el servidor los recalcula desde la
       // base y cotiza el domicilio. Mandarlos solo daría la falsa impresión de
@@ -342,10 +287,10 @@ export function useCheckout() {
           payment_status: 'pending' as const,
           notes: 'Pedido desde la web',
           delivery_address_id: selectedAddressId,
-          client_idempotency_key: `${idempotencyKey}-${group.store.id}`,
+          client_idempotency_key: idempotencyKey,
           use_credit: useCredit && creditBalance > 0,
         },
-        items: group.items.map((i) => ({
+        items: state.cart.map((i) => ({
           store_product_id: String(i.id),
           quantity: i.qty,
           unit_price: getPrice(i),
@@ -354,15 +299,15 @@ export function useCheckout() {
           unit_name: i.unit || 'und',
           notes: i.notes || null,
         })),
-        storeOrders: [
-          {
-            store_id: String(group.store.id),
-            order_id: '',
-            subtotal: groupSubtotal,
-            has_refrigerated: false,
-            notes: '',
-          },
-        ],
+        // Informativo: el servidor arma las partes de cada tienda a partir de
+        // los productos y recalcula los subtotales.
+        storeOrders: cartByStore.map((group) => ({
+          store_id: String(group.store.id),
+          order_id: '',
+          subtotal: group.items.reduce((acc, i) => acc + getPrice(i) * i.qty, 0),
+          has_refrigerated: false,
+          notes: '',
+        })),
       };
 
       const orderResult = await createOrderWithItems(orderPayload);
@@ -372,7 +317,7 @@ export function useCheckout() {
       }
 
       const orderId = String(orderResult.data.id);
-      const storeProductIds = group.items.map((i) => String(i.id));
+      const storeProductIds = state.cart.map((i) => String(i.id));
 
       // El saldo a favor cubrió todo: el pedido ya quedó pagado y no hay nada
       // que cobrar en la pasarela.
@@ -416,7 +361,8 @@ export function useCheckout() {
       // estaba.
       const paymentUrl = await iniciarPagoDeOrden(orderId, {
         perfil,
-        storeName: group.store.name,
+        storeName:
+          cartByStore.length === 1 ? cartByStore[0].store.name : `${cartByStore.length} tiendas`,
         guardarTarjeta: CARD_TOKENIZATION_ENABLED && saveCard,
       });
 
@@ -466,9 +412,8 @@ export function useCheckout() {
     isQuoting,
     quoteError,
     canPlaceOrder,
-    hasMixedStores,
     minPrice,
-    storesBelowMinimum,
+    belowMinimum,
     getPrice,
     handlePlaceOrder,
     saveCard,

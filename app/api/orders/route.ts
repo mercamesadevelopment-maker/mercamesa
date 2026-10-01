@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../../lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { BUYER_BLOCKED_MESSAGE, isBuyerBlocked } from '@/lib/stores/buyer-blocks';
 import { CreateOrderPayload } from '@/src/features/payment/types/payment.types';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
-import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
 import {
   quoteDeliveryFee,
@@ -13,6 +11,7 @@ import {
 } from '@/lib/pricing/delivery-quote';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { findReusableOrderId } from '@/lib/orders/find-reusable-order';
+import { assertMinimumPurchase, buildOrderDraft, OrderDraftError } from '@/lib/orders/build-order-draft';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -134,191 +133,77 @@ export async function POST(request: Request) {
       // --- END DELIVERY ADDRESS VALIDATION ---
     }
 
-    // --- SECURE PRICE VALIDATION & RE-CALCULATION ON SERVER SIDE ---
-    // 1. Check buyer type (retail vs wholesale) securely from the database
-    let isWS = false;
-    const buyerIdToCheck = order.buyer_id || user.id;
-    if (buyerIdToCheck) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('buyer_type')
-        .eq('id', buyerIdToCheck)
-        .single();
-      isWS = profile?.buyer_type === 'wholesale';
-    }
-
-    // 2. Query actual prices for all items in the request
-    const productIds = items.map(item => item.store_product_id);
-    if (productIds.length === 0) {
-      return NextResponse.json({ error: 'El pedido debe contener al menos un producto' }, { status: 400 });
-    }
-
-    // El domicilio se cotiza contra la tienda que despacha, así que sin ella no
-    // hay pedido posible.
-    if (!storeOrders?.length || !storeOrders[0].store_id) {
-      return NextResponse.json({ error: 'El pedido debe indicar la tienda que lo despacha' }, { status: 400 });
-    }
+    // --- EL PEDIDO, DERIVADO EN EL SERVIDOR ---
+    // Precios, ofertas y el reparto entre tiendas salen de la base. Del
+    // navegador solo se toma qué productos y cuántos: `storeOrders` ya no decide
+    // qué tiendas lleva el pedido, eso lo dicen los productos.
+    const declaredStoreId = storeOrders?.[0]?.store_id ? String(storeOrders[0].store_id) : null;
 
     // Una venta de mostrador la registra la tienda, no un comprador cualquiera:
     // sin esto, cualquier usuario podría crear ventas ya "entregadas" y pagadas
     // en una tienda ajena, descontándole el inventario.
-    if (isInStore && !(await canManageStore(supabase, String(storeOrders[0].store_id), user.id))) {
+    if (isInStore) {
+      if (!declaredStoreId) {
+        return NextResponse.json({ error: 'La venta debe indicar la tienda que la registra' }, { status: 400 });
+      }
+      if (!(await canManageStore(supabase, declaredStoreId, user.id))) {
+        return NextResponse.json(
+          { error: 'No tienes permisos para registrar ventas en esta tienda.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
+
+    const draft = await buildOrderDraft(supabase, service, items, {
+      buyerProfileId: isInStore ? order.buyer_id || user.id : user.id,
+      // En mostrador no aplica el bloqueo: ahí quien registra la venta es la tienda.
+      blockedBuyerId: isInStore ? undefined : user.id,
+      // No se validaba en ningún punto: se podían pedir 999 de un producto con 2,
+      // y el trigger que descuenta tampoco impide dejar el stock en negativo.
+      checkStock: true,
+    });
+
+    // En mostrador se vende lo de esa tienda y nada más. Antes no se
+    // comprobaba: bastaba declarar una tienda propia para vender, y descontar,
+    // productos de otra.
+    if (isInStore && (draft.storeParts.length !== 1 || draft.storeParts[0].storeId !== declaredStoreId)) {
       return NextResponse.json(
-        { error: 'No tienes permisos para registrar ventas en esta tienda.' },
-        { status: 403 }
+        { error: 'Los productos de la venta no son de la tienda que la registra.' },
+        { status: 400 }
       );
     }
 
-    // Un comprador bloqueado en esta tienda no puede crearle pedidos. Va antes
-    // de mirar productos y precios: no hay nada que calcular. En mostrador no
-    // aplica, porque ahí quien registra la venta es la tienda.
-    if (!isInStore) {
-      const servicio = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
-      if (await isBuyerBlocked(servicio, String(storeOrders[0].store_id), user.id)) {
-        return NextResponse.json({ error: BUYER_BLOCKED_MESSAGE, code: 'buyer_blocked' }, { status: 403 });
-      }
-    }
+    const isWS = draft.isWholesale;
+    const recalculatedItems = draft.items;
+    const recalculatedSubtotal = draft.productsSubtotal;
+    const recalculatedListSubtotal = draft.productsListSubtotal;
 
-    const { data: dbProducts, error: dbProductsError } = await supabase
-      .from('store_products')
-      .select(`
-        id,
-        price_per_unit,
-        wholesale_price,
-        store_id,
-        stock,
-        catalog_products ( name ),
-        measurement_units ( abbreviation ),
-        stores ( name )
-      `)
-      .in('id', productIds);
-
-    if (dbProductsError || !dbProducts) {
-      return NextResponse.json({ error: dbProductsError?.message || 'Error al verificar los productos' }, { status: 400 });
-    }
-
-    if (dbProducts.length !== productIds.length) {
-      return NextResponse.json({ error: 'Uno o más productos del pedido no son válidos' }, { status: 400 });
-    }
-
-    // 3. Recalculate subtotal and reconstruct items securely using database prices
-    //
-    // La oferta vigente la resuelve el servidor, igual que el precio. Antes no
-    // se consultaba `store_offers` acá: el carrito mostraba el descuento y esta
-    // ruta guardaba el precio de lista, o sea que se cobraba de más.
-    const precios = await resolveOfferPrices(supabase, dbProducts as any[], isWS);
-
-    let recalculatedSubtotal = 0;
-    let recalculatedListSubtotal = 0;
-    const recalculatedItems = items.map(item => {
-      const dbProd = (dbProducts as any[]).find(p => p.id === item.store_product_id);
-      const precio = precios.get(item.store_product_id);
-      if (!dbProd || !precio) {
-        throw new Error('Producto no encontrado en base de datos');
-      }
-
-      const unitPrice = precio.finalPrice;
-      const totalPrice = unitPrice * item.quantity;
-      recalculatedSubtotal += totalPrice;
-      recalculatedListSubtotal += precio.listPrice * item.quantity;
-
+    // Una parte por tienda. De lo que mandó el navegador solo se conservan las
+    // notas y la marca de refrigerado de esa tienda.
+    const recalculatedStoreOrders = draft.storeParts.map((parte) => {
+      const declarado = (storeOrders ?? []).find((so) => String(so.store_id) === parte.storeId);
       return {
-        store_product_id: item.store_product_id,
-        quantity: item.quantity,
-        unit_price: unitPrice,
-        total_price: totalPrice,
-        catalog_name: dbProd.catalog_products?.name || item.catalog_name,
-        unit_name: dbProd.measurement_units?.abbreviation || item.unit_name,
-        notes: item.notes || null,
+        store_id: parte.storeId,
+        subtotal: parte.subtotal,
+        has_refrigerated: declarado?.has_refrigerated ?? false,
+        notes: declarado?.notes ?? '',
       };
     });
 
-    // 4. Recalculate subtotal for each store order
-    const recalculatedStoreOrders = storeOrders.map(so => {
-      // Find items belonging to this store
-      const storeItems = recalculatedItems.filter(item => {
-        const dbProd = (dbProducts as any[]).find(p => p.id === item.store_product_id);
-        return dbProd && String(dbProd.store_id || '') === String(so.store_id);
-      });
-
-      const storeSubtotal = storeItems.reduce((sum, item) => sum + item.total_price, 0);
-
-      return {
-        ...so,
-        subtotal: storeSubtotal,
-      };
-    });
-
-    // --- STOCK VALIDATION ---
-    // No se validaba en ningún punto: ni al agregar al carrito ni acá, donde el
-    // select ni siquiera pedía la columna. Se podían pedir 999 de un producto con
-    // 2, y el trigger que descuenta tampoco impide dejar el stock en negativo.
-    const outOfStock = recalculatedItems
-      .map((item) => {
-        const dbProd = (dbProducts as any[]).find((p) => p.id === item.store_product_id);
-        const available = Number(dbProd?.stock ?? 0);
-        return { name: item.catalog_name, unit: item.unit_name, requested: item.quantity, available };
-      })
-      .filter((l) => l.requested > l.available);
-
-    if (outOfStock.length > 0) {
-      const detalle = outOfStock
-        .map((l) =>
-          l.available <= 0
-            ? `${l.name} (sin existencias)`
-            : `${l.name} (quedan ${l.available} ${l.unit || ''})`.trim()
-        )
-        .join(', ');
-
-      return NextResponse.json(
-        {
-          error: `No hay existencias suficientes de: ${detalle}. Ajusta las cantidades e intenta de nuevo.`,
-          outOfStock,
-        },
-        { status: 409 }
-      );
-    }
-    // --- END STOCK VALIDATION ---
-
-    // --- MINIMUM ORDER PRICE VALIDATION ---
-    // Se compara contra el valor de los productos, no contra el total: el mínimo
-    // significa "cuánto compró", y sumarle comisiones y domicilio dejaría pasar
-    // pedidos mucho más pequeños de los que el cliente autorizó.
-    //
-    // No aplica en mostrador: el mínimo existe para que valga la pena despachar
-    // un domicilio, y acá el comprador se lleva la compra en la mano.
+    // El mínimo se compara contra el valor de los productos de TODO el pedido,
+    // no contra el total ni tienda por tienda: existe para que valga la pena
+    // despachar un domicilio, y el domicilio es uno por pedido. En mostrador no
+    // aplica: el comprador se lleva la compra en la mano.
     if (!isInStore) {
-      const { data: minPriceRow } = await supabase
-        .from('order_min_price_history')
-        .select('min_price')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (minPriceRow && recalculatedSubtotal < minPriceRow.min_price) {
-        // El mensaje dice cuánto falta y de qué tienda. El anterior —"El pedido
-        // no alcanza el valor mínimo de $12.000"— no decía ninguna de las dos
-        // cosas, y como el mínimo es POR ORDEN y cada tienda es una orden,
-        // contradecía el subtotal sumado que mostraba el carrito.
-        const faltante = Number(minPriceRow.min_price) - recalculatedSubtotal;
-        const nombreTienda =
-          (dbProducts as any[]).find((p) => String(p.store_id) === String(storeOrders[0].store_id))
-            ?.stores?.name ?? 'esta tienda';
-
-        return NextResponse.json({
-          error:
-            `Te faltan $${faltante.toLocaleString('es-CO')} para el mínimo de ` +
-            `$${Number(minPriceRow.min_price).toLocaleString('es-CO')} en ${nombreTienda}.`,
-        }, { status: 400 });
-      }
+      await assertMinimumPurchase(supabase, draft);
     }
-    // --- END MINIMUM ORDER PRICE VALIDATION ---
 
     // Un reintento con el mismo carrito reutiliza el pedido pendiente en vez de
     // crear otro. Va antes de cotizar el domicilio: ese pedido ya tiene el suyo.
     // ¿Quiere pagar con su saldo a favor, y tiene? Lo que mande el navegador es
     // solo la intención; cuánto se aparta lo decide el servidor más abajo.
-    const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
     let wantsCredit = false;
     if (!isInStore && (order as any).use_credit === true) {
       const { data: saldo } = await service.rpc('buyer_credit_balance', { p_buyer: user.id });
@@ -328,7 +213,7 @@ export async function POST(request: Request) {
     if (!isInStore) {
       const reusableId = await findReusableOrderId(supabase, {
         buyerId: user.id,
-        storeId: String(storeOrders[0].store_id),
+        storeIds: draft.storeParts.map((p) => p.storeId),
         deliveryAddressId: order.delivery_address_id!,
         items: recalculatedItems,
       });
@@ -381,10 +266,11 @@ export async function POST(request: Request) {
       const pricingSettings = await loadPricingSettings(supabase);
       pricingSettingsId = pricingSettings.id;
 
-      // Cada orden es de una sola tienda (el carrito crea una por grupo), así que
-      // hay exactamente una cotización de domicilio por orden.
+      // Todas las tiendas del pedido comparten punto de recogida (lo garantiza
+      // `buildOrderDraft`), así que hay una sola cotización de domicilio y se
+      // puede pedir desde cualquiera de ellas.
       const deliveryFee = await quoteDeliveryFee(supabase, {
-        storeId: String(storeOrders[0].store_id),
+        storeId: draft.storeParts[0].storeId,
         deliveryAddressId: order.delivery_address_id!,
         buyerId: user.id,
         subtotal: recalculatedSubtotal,
@@ -400,7 +286,10 @@ export async function POST(request: Request) {
     // --- END SECURE RE-CALCULATION ---
 
     const orderInsertData: any = {
-      buyer_id: order.buyer_id || null,
+      // Un pedido del marketplace es de quien tiene la sesión. Antes se tomaba
+      // del cuerpo: se podía crear un pedido a nombre de otro, o sin comprador.
+      // En mostrador sí lo dice la tienda (o va vacío, con `client_id`).
+      buyer_id: isInStore ? order.buyer_id || null : user.id,
       client_id: (order as any).client_id || null,
       buyer_type: isWS ? 'wholesale' : 'retail',
       status: order.status,
@@ -414,8 +303,11 @@ export async function POST(request: Request) {
       // Sigue en cero aunque ahora haya ofertas: `subtotal` ya guarda el valor
       // CON el descuento aplicado, así que apuntarlo también acá lo contaría
       // dos veces. Además `discount` es de la orden y el detalle lo muestra
-      // contra el subtotal de una sola tienda, que no es el mismo número.
+      // contra el subtotal de su tienda, que no es el mismo número.
       discount: 0,
+      // Con varias tiendas nadie puede pedir el mensajero por su cuenta: lo
+      // junta un patinador en la bahía.
+      fulfillment: draft.storeParts.length > 1 ? 'runner' : 'store',
       total: finalPricing.total,
       notes: order.notes,
       delivery_address_id: isInStore ? null : order.delivery_address_id,
@@ -498,6 +390,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: fullOrder, idempotent: false }, { status: 201 });
   } catch (error: unknown) {
+    if (error instanceof OrderDraftError) {
+      return NextResponse.json(
+        { error: error.message, ...(error.code ? { code: error.code } : {}), ...error.extra },
+        { status: error.status }
+      );
+    }
     // Sin costo de domicilio confiable el pedido no se completa, y se corta
     // ANTES de insertar nada: crear la orden y dejarla sin envío calculado sería
     // peor que rechazarla.

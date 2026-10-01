@@ -20,7 +20,7 @@ import { useCheckout, mensajeMinimo } from "../hooks/useCheckout";
 import { useCart } from "../hooks/use-cart";
 import { usePayableOrder } from "../hooks/use-payable-order";
 import Link from "next/link";
-import { Button, Badge, cn } from "@/src/components/Shared";
+import { Button, cn } from "@/src/components/Shared";
 import { fmt } from "@/src/constants";
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
 import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
@@ -42,7 +42,7 @@ const STEPS: { id: CheckoutStep; label: string }[] = [
 ];
 
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
-  const { updateCartQty, updateCartItemNotes, removeFromCart } = useCart();
+  const { updateCartQty, updateCartItemNotes } = useCart();
   const {
     state,
     isPlacingOrder,
@@ -58,9 +58,8 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     isQuoting,
     quoteError,
     canPlaceOrder,
-    hasMixedStores,
     minPrice,
-    storesBelowMinimum,
+    belowMinimum,
     getPrice,
     handlePlaceOrder,
     saveCard,
@@ -98,29 +97,6 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   React.useEffect(() => {
     if (isEmpty) setStep(1);
   }, [isEmpty]);
-
-  // Con dos tiendas en la canasta no hay nada que cobrar en el paso 2: el total
-  // que se mostraría suma las dos y solo se puede pagar una. Se devuelve al paso
-  // 1, que es donde se resuelve.
-  React.useEffect(() => {
-    if (hasMixedStores) setStep(1);
-  }, [hasMixedStores]);
-
-  /**
-   * Deja en la canasta solo los productos de una tienda.
-   *
-   * La mezcla la elige el comprador, no la resolvemos por él: quitarle productos
-   * sin avisar es justo lo que hace que un carrito "se vacíe solo". `removeFromCart`
-   * ya borra también en la base.
-   */
-  const quedarseConTienda = async (storeId: string) => {
-    const aQuitar = state.cart.filter(
-      (i) => String(i.storeId) !== String(storeId),
-    );
-    for (const item of aQuitar) {
-      await removeFromCart(item.id);
-    }
-  };
 
   /**
    * Mismo desglose que la factura: tres conceptos. Lo que el comprador ve antes
@@ -297,56 +273,23 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-6"
                   >
-                    {/* Dos tiendas en la canasta. No debería poder armarse
-                        —`addToCart` lo bloquea—, pero la recuperación de un pago
-                        abandonado sí las mezcla. Antes esto pasaba desapercibido
-                        y al pagar se cobraba solo la primera tienda. */}
-                    {hasMixedStores && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
-                        <div className="flex items-start gap-2.5">
-                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
-                          <div className="text-xs text-amber-900 leading-relaxed">
-                            <p className="font-bold mb-1">
-                              Tu canasta tiene productos de {cartByStore.length}{" "}
-                              tiendas
-                            </p>
-                            <p>
-                              Cada tienda despacha por separado, así que solo
-                              puedes pagar una a la vez. Elige con cuál sigues:
-                              los productos de las demás se quitarán de la
-                              canasta.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {cartByStore.map((group) => {
-                            const groupSubtotal = group.items.reduce(
-                              (acc, i) => acc + getPrice(i) * i.qty,
-                              0,
-                            );
-                            return (
-                              <button
-                                key={`keep-${group.store.id}`}
-                                type="button"
-                                onClick={() =>
-                                  quedarseConTienda(String(group.store.id))
-                                }
-                                className="flex items-center justify-between gap-3 w-full text-left px-3 py-2 rounded-xl bg-white border border-amber-200 hover:border-mm-g transition-colors"
-                              >
-                                <span className="text-xs font-bold text-mm-g min-w-0 truncate">
-                                  Quedarme con {group.store.name}
-                                </span>
-                                <span className="text-xs font-bold text-mm-txs whitespace-nowrap">
-                                  {fmt(groupSubtotal)}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                    {/* Varias tiendas de la misma plaza: un solo pedido. Se
+                        dice acá porque es lo primero que se pregunta quien
+                        mezcla tiendas: si paga un domicilio o varios. */}
+                    {cartByStore.length > 1 && (
+                      <div className="flex items-start gap-2.5 bg-mm-gbg/40 border border-mm-crd/40 rounded-2xl p-4">
+                        <ShoppingBag className="w-4 h-4 shrink-0 mt-0.5 text-mm-g" />
+                        <p className="text-xs text-mm-txs leading-relaxed">
+                          <span className="font-bold text-mm-g">
+                            Tu pedido tiene productos de {cartByStore.length} tiendas.
+                          </span>{" "}
+                          Se arma en la plaza y te llega en una sola entrega: pagas
+                          un solo domicilio.
+                        </p>
                       </div>
                     )}
 
-                    {/* Agrupado por tienda (siempre una sola tienda por carrito) */}
+                    {/* Agrupado por tienda */}
                     {cartByStore.map((group, groupIdx) => (
                       <div
                         key={group.store.id || groupIdx}
@@ -362,12 +305,16 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                               {group.store.name}
                             </h3>
                           </div>
-                          {/* El envío ya no es un valor fijo: se cotiza con el
-                              operador logístico según la dirección, así que solo
-                              se anuncia que cada tienda despacha por separado. */}
-                          <Badge variant="oro" className="text-[10px]">
-                            Envío propio
-                          </Badge>
+                          {/* Lo que suma esta tienda: con varias en la canasta
+                              el subtotal del pie ya no dice cuánto es de cada una. */}
+                          <span className="text-sm font-bold text-mm-txs whitespace-nowrap">
+                            {fmt(
+                              group.items.reduce(
+                                (acc, i) => acc + getPrice(i) * i.qty,
+                                0,
+                              ),
+                            )}
+                          </span>
                         </div>
 
                         {/* Store Products */}
@@ -616,16 +563,14 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     // El mínimo se avisa acá y no al pagar: no depende del
                     // domicilio, así que no hay razón para pedir la dirección
                     // primero y rechazar el pedido al final.
-                    disabled={hasMixedStores || storesBelowMinimum.length > 0}
+                    disabled={belowMinimum !== null}
                     className="w-full py-4 text-lg"
                   >
                     Continuar
                   </Button>
-                  {minPrice !== null && storesBelowMinimum.length > 0 && (
+                  {minPrice !== null && belowMinimum && (
                     <p className="text-[11px] text-amber-800 text-center mt-2">
-                      {storesBelowMinimum
-                        .map((t) => mensajeMinimo(t, minPrice))
-                        .join(" ")}
+                      {mensajeMinimo(belowMinimum, minPrice)}
                     </p>
                   )}
                 </>

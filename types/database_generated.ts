@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       actions: {
@@ -1462,6 +1457,7 @@ export type Database = {
           delivery_fee: number
           discount: number
           expired_at: string | null
+          fulfillment: string
           id: string
           messages_amount: number
           notes: string | null
@@ -1490,6 +1486,7 @@ export type Database = {
           delivery_fee?: number
           discount?: number
           expired_at?: string | null
+          fulfillment?: string
           id?: string
           messages_amount?: number
           notes?: string | null
@@ -1518,6 +1515,7 @@ export type Database = {
           delivery_fee?: number
           discount?: number
           expired_at?: string | null
+          fulfillment?: string
           id?: string
           messages_amount?: number
           notes?: string | null
@@ -3677,6 +3675,7 @@ export type Database = {
           marketplace_id: string
           name: string
           phone: string | null
+          pickup_group: string | null
           reputation_score: number | null
           slug: string
           store_group_id: string | null
@@ -3706,6 +3705,7 @@ export type Database = {
           marketplace_id: string
           name: string
           phone?: string | null
+          pickup_group?: string | null
           reputation_score?: number | null
           slug: string
           store_group_id?: string | null
@@ -3735,6 +3735,7 @@ export type Database = {
           marketplace_id?: string
           name?: string
           phone?: string | null
+          pickup_group?: string | null
           reputation_score?: number | null
           slug?: string
           store_group_id?: string | null
@@ -4212,3 +4213,4 @@ export const Constants = {
     },
   },
 } as const
+

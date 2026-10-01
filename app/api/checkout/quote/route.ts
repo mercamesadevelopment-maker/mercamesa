@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { BUYER_BLOCKED_MESSAGE, isBuyerBlocked } from '@/lib/stores/buyer-blocks';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
-import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
 import {
   quoteDeliveryFee,
   DeliveryQuoteUnavailableError,
 } from '@/lib/pricing/delivery-quote';
+import { buildOrderDraft, OrderDraftError } from '@/lib/orders/build-order-draft';
 
 /**
  * Desglose del precio de un pedido ANTES de crearlo, para que el carrito muestre
@@ -17,8 +16,11 @@ import {
  *
  * Los precios y el domicilio se derivan del servidor: lo que mande el navegador
  * son solo qué productos y cuántos. `POST /api/orders` vuelve a hacer este mismo
- * cálculo por su cuenta, así que esta ruta no es una fuente de verdad, es una
- * vista previa.
+ * cálculo por su cuenta (`buildOrderDraft`), así que esta ruta no es una fuente
+ * de verdad, es una vista previa.
+ *
+ * Se cotiza la canasta entera: un pedido puede llevar productos de varias
+ * tiendas de la misma plaza y paga un solo domicilio.
  */
 export async function POST(request: Request) {
   try {
@@ -32,100 +34,51 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const storeId: string | undefined = body.store_id;
     const deliveryAddressId: string | undefined = body.delivery_address_id;
     const items: { store_product_id: string; quantity: number }[] = body.items ?? [];
 
-    if (!storeId) {
-      return NextResponse.json({ error: 'store_id es requerido' }, { status: 400 });
-    }
     if (!deliveryAddressId) {
       return NextResponse.json(
         { error: 'Debes seleccionar una dirección de entrega para cotizar el envío.' },
         { status: 400 }
       );
     }
-    if (items.length === 0) {
-      return NextResponse.json({ error: 'El pedido debe contener al menos un producto' }, { status: 400 });
-    }
 
-    // Se avisa acá, al cotizar, para que el comprador lo sepa en el carrito y no
-    // después de llenar el pago. `POST /api/orders` lo vuelve a comprobar.
+    // Se avisa acá, al cotizar, de lo que impediría el pedido (tiendas que no
+    // despachan juntas, comprador bloqueado), para que el comprador lo sepa en
+    // el carrito y no después de llenar el pago.
     const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
-    if (await isBuyerBlocked(service, storeId, user.id)) {
-      return NextResponse.json({ error: BUYER_BLOCKED_MESSAGE, code: 'buyer_blocked' }, { status: 403 });
-    }
-
-    // Tipo de comprador desde la base, nunca desde el navegador: define si aplica
-    // el precio mayorista.
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('buyer_type')
-      .eq('id', user.id)
-      .single();
-    const isWS = profile?.buyer_type === 'wholesale';
-
-    const { data: dbProducts, error: productsError } = await supabase
-      .from('store_products')
-      .select('id, price_per_unit, wholesale_price, store_id')
-      .in(
-        'id',
-        items.map((i) => i.store_product_id)
-      );
-
-    if (productsError || !dbProducts) {
-      return NextResponse.json(
-        { error: productsError?.message || 'Error al verificar los productos' },
-        { status: 400 }
-      );
-    }
-
-    // Los productos tienen que ser de la tienda que se dice. Antes no se
-    // comprobaba: con `store_id` de una tienda y productos de otra, el domicilio
-    // se cotizaba desde una dirección de recogida que no despacha ese pedido. Es
-    // el error que se cuela justo cuando la canasta quedó mezclada.
-    const deOtraTienda = dbProducts.filter((p) => String(p.store_id) !== String(storeId));
-    if (deOtraTienda.length > 0) {
-      return NextResponse.json(
-        { error: 'Los productos del pedido no son de la tienda indicada' },
-        { status: 400 }
-      );
-    }
-
-    // Las ofertas vigentes las resuelve el servidor. Antes no las miraba, así
-    // que cotizaba a precio de lista mientras el carrito ya mostraba el
-    // descuento: el comprador veía una rebaja que no se le hacía.
-    const precios = await resolveOfferPrices(supabase, dbProducts, isWS);
-
-    let productsSubtotal = 0;
-    let productsListSubtotal = 0;
-    for (const item of items) {
-      const precio = precios.get(item.store_product_id);
-      if (!precio) {
-        return NextResponse.json({ error: 'Uno o más productos del pedido no son válidos' }, { status: 400 });
-      }
-      productsSubtotal += precio.finalPrice * Number(item.quantity);
-      productsListSubtotal += precio.listPrice * Number(item.quantity);
-    }
+    const draft = await buildOrderDraft(supabase, service, items, {
+      buyerProfileId: user.id,
+      blockedBuyerId: user.id,
+    });
 
     const settings = await loadPricingSettings(supabase);
 
+    // Todas las tiendas del pedido comparten punto de recogida, así que el
+    // domicilio se cotiza una vez, desde cualquiera de ellas.
     const deliveryFee = await quoteDeliveryFee(supabase, {
-      storeId,
+      storeId: draft.storeParts[0].storeId,
       deliveryAddressId,
       buyerId: user.id,
-      subtotal: productsSubtotal,
+      subtotal: draft.productsSubtotal,
     });
 
     const pricing = computeOrderPricing(
-      productsSubtotal,
+      draft.productsSubtotal,
       deliveryFee,
       settings,
-      productsListSubtotal
+      draft.productsListSubtotal
     );
 
     return NextResponse.json({ data: pricing }, { status: 200 });
   } catch (error: unknown) {
+    if (error instanceof OrderDraftError) {
+      return NextResponse.json(
+        { error: error.message, ...(error.code ? { code: error.code } : {}), ...error.extra },
+        { status: error.status }
+      );
+    }
     // Sin domicilio no hay compra: 503 (falla temporal del proveedor), con el
     // mensaje que el comprador debe leer tal cual.
     if (error instanceof DeliveryQuoteUnavailableError) {
