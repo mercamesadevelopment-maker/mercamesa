@@ -12,6 +12,7 @@ import { canManageStore } from '@/lib/auth/can-manage-store';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { embeddedCount } from '@/lib/db/embedded-count';
 import { EXCLUSIVE_PRODUCT_MESSAGE, findExclusivityViolations } from '@/lib/catalog/visibility';
+import { resolveOfferPrices, type PrecioResuelto } from '@/lib/offers/resolve-offer-prices';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
@@ -170,12 +171,33 @@ async function responderVitrina(
     }
   }
 
+  /**
+   * La oferta vigente de cada producto, con la MISMA función que usan la
+   * cotización y la creación del pedido.
+   *
+   * La vitrina no las traía: la tarjeta mostraba el precio de lista y agregaba
+   * el producto a ese precio, mientras el servidor cobraba con descuento. El
+   * comprador veía el valor completo hasta recargar la página, que es cuando
+   * `fetchCart` busca la oferta.
+   */
+  let precios: Map<string, PrecioResuelto>;
+  try {
+    precios = await preciosDeVitrina(supabase, filas);
+  } catch (error: unknown) {
+    // Sin ofertas la vitrina sigue sirviendo: se muestra el precio de lista, y
+    // el descuento igual se aplica al cotizar y al cobrar.
+    console.error('store-products: no se pudieron resolver las ofertas', error);
+    precios = new Map();
+  }
+
   // Se devuelve con la misma forma anidada que ya consumen las páginas, para que
   // aplanar la consulta no obligue a tocar `ProductCard` ni los dos listados.
   const data = filas.map((p) => ({
     id: p.id,
     store_id: p.store_id,
+    // Sigue siendo el precio de lista: el filtro y el orden van contra él.
     price_per_unit: p.price_per_unit,
+    offer: ofertaDe(precios.get(p.id)),
     stock: p.stock,
     is_featured: p.is_featured,
     featured_at: p.featured_at,
@@ -196,6 +218,33 @@ async function responderVitrina(
   }));
 
   return NextResponse.json(paginado ? { data, count } : { data }, { status: 200 });
+}
+
+/** Cuántos ids caben en un `.in(...)` sin que la URL de PostgREST se desborde. */
+const TANDA_DE_OFERTAS = 200;
+
+/**
+ * Los precios resueltos de las filas de la vitrina. Paginada son a lo sumo 200;
+ * sin paginar pueden ser miles, y por eso se resuelven por tandas.
+ */
+async function preciosDeVitrina(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  filas: { id: string; price_per_unit: number | null }[]
+): Promise<Map<string, PrecioResuelto>> {
+  const precios = new Map<string, PrecioResuelto>();
+
+  for (let i = 0; i < filas.length; i += TANDA_DE_OFERTAS) {
+    const tanda = await resolveOfferPrices(supabase, filas.slice(i, i + TANDA_DE_OFERTAS), false);
+    tanda.forEach((precio, id) => precios.set(id, precio));
+  }
+
+  return precios;
+}
+
+/** Lo que la tarjeta necesita de la oferta, o `null` si el producto no tiene. */
+function ofertaDe(precio: PrecioResuelto | undefined) {
+  if (!precio?.offerId) return null;
+  return { id: precio.offerId, finalPrice: precio.finalPrice, label: precio.label };
 }
 
 /**

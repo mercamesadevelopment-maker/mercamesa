@@ -6,6 +6,11 @@ export type StoreProduct = Database['public']['Tables']['store_products']['Row']
   stores?: { name: string; slug: string; marketplaces?: { name: string } | null } | null;
   measurement_units?: { abbreviation: string } | null;
   imageSignedUrl?: string | null;
+  /**
+   * La oferta vigente, ya resuelta por el servidor con la misma regla con la que
+   * cobra. `price_per_unit` sigue siendo el precio de lista.
+   */
+  offer?: { id: string; finalPrice: number; label: string | null } | null;
 };
 
 /** Qué página de la vitrina se le pide al servidor. */
