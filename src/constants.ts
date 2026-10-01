@@ -19,6 +19,7 @@ export const ROLE_ROUTES: Record<RoleKey, string> = {
   wholesale: '/marketplaces',
   provider: '/seller/dashboard',
   delivery: '/delivery',
+  runner: '/runner',
   admin: '/admin/marketplaces',
 };
 

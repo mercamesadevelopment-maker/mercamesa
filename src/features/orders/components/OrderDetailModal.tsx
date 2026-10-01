@@ -45,8 +45,12 @@ export function OrderDetailModal({
     minute: '2-digit',
   });
 
+  // En un pedido de varias tiendas, después de «Listo Recogida» la tienda ya
+  // no tiene nada que hacer: lo recoge el patinador y lo despacha el mensajero.
+  const esperaAlPatinador = order.fulfillment === 'runner' && order.status === 'at_collection';
+
   const handleAction = () => {
-    if (statusConfig.next) {
+    if (statusConfig.next && !esperaAlPatinador) {
       onStartStatusChange(
         order.id,
         statusConfig.next,
@@ -97,6 +101,17 @@ export function OrderDetailModal({
             </span>
           </div>
         </div>
+
+        {order.fulfillment === 'runner' && (
+          <div className="flex items-start gap-2.5 bg-mm-gbg/40 border border-mm-crd/60 rounded-2xl p-4">
+            <ShoppingBag className="w-4 h-4 shrink-0 mt-0.5 text-mm-g" />
+            <p className="text-xs text-mm-txs leading-relaxed">
+              <span className="font-bold text-mm-g">Pedido compartido con otras tiendas de la plaza.</span>{' '}
+              Alista tu parte y márcala como «Listo Recogida»: el patinador pasa por tu local, la junta con las
+              demás en la bahía y de ahí sale un solo mensajero. No tienes que pedir el domicilio.
+            </p>
+          </div>
+        )}
 
         {/* Two Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -390,7 +405,7 @@ export function OrderDetailModal({
             Cerrar Detalle
           </Button>
 
-          {statusConfig.next && (
+          {statusConfig.next && !esperaAlPatinador && (
             <Button
               variant="primary"
               size="md"

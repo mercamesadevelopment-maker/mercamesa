@@ -165,6 +165,7 @@ export function useOrders() {
           storeOrderId: so.id, // Store Order specific DB ID
           code: so.code,
           parentCode: parentOrder?.code,
+          fulfillment: parentOrder?.fulfillment === 'runner' ? 'runner' : 'store',
           date: so.created_at || new Date().toISOString(),
           storeId: so.store_id,
           storeName: so.stores?.name || 'Mi Tienda',

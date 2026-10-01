@@ -295,7 +295,7 @@ export function OrdersView({
                       >
                         Ver Detalle
                       </Button>
-                      {config.next && (
+                      {config.next && !(order.fulfillment === 'runner' && order.status === 'at_collection') && (
                         <Button
                           size="sm"
                           className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10"

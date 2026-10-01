@@ -6,18 +6,35 @@ import type { OrderStatus } from '../status-map';
 import type { PiboxBookingResponse } from '../types';
 
 /**
+ * De quién es una reserva de Pibox.
+ *
+ * Lo normal es que sea de la parte de una tienda (`storeOrderId`): la tienda
+ * marca «Listo Recogida» y se pide su mensajero. En un pedido de varias tiendas
+ * la reserva es del pedido entero (`orderId`): la pide el patinador cuando todo
+ * está en la bahía, y lo que le pase al mensajero les pasa a todas las partes.
+ */
+export type BookingOwner = { storeOrderId: string } | { orderId: string };
+
+/** Las columnas de `pibox_bookings` que dicen de quién es la reserva. */
+function ownerColumns(owner: BookingOwner): { store_order_id: string | null; order_id: string | null } {
+  return 'orderId' in owner
+    ? { store_order_id: null, order_id: owner.orderId }
+    : { store_order_id: owner.storeOrderId, order_id: null };
+}
+
+/**
  * Guarda/actualiza el snapshot de un booking de Pibox.
  * Se llama al crear el domicilio, al recibir un webhook y desde el cron.
  */
 export async function persistBookingSnapshot(
-  storeOrderId: string,
+  owner: BookingOwner,
   booking: PiboxBookingResponse
 ): Promise<void> {
   const db = createSupabaseServiceClient();
   const pkg = extractFirstPackage(booking);
 
   const snapshot = {
-    store_order_id: storeOrderId,
+    ...ownerColumns(owner),
     booking_id: booking._id,
     package_id: pkg?._id ?? null,
     status_cd: booking.status_cd ?? null,
@@ -105,29 +122,67 @@ export async function applyOrderStatusFromPibox(
   return true;
 }
 
-/** Resuelve a qué store_order pertenece un booking o paquete de Pibox. */
-export async function findStoreOrderIdByBooking(
-  bookingId: string
-): Promise<string | null> {
+function toOwner(row: { store_order_id: string | null; order_id: string | null } | null): BookingOwner | null {
+  if (!row) return null;
+  if (row.order_id) return { orderId: row.order_id };
+  if (row.store_order_id) return { storeOrderId: row.store_order_id };
+  return null;
+}
+
+/** De quién es un booking o paquete de Pibox, o `null` si no lo conocemos. */
+export async function findBookingOwner(bookingId: string): Promise<BookingOwner | null> {
   const db = createSupabaseServiceClient();
   const { data } = await db
     .from('pibox_bookings')
-    .select('store_order_id')
+    .select('store_order_id, order_id')
     .eq('booking_id', bookingId)
     .maybeSingle();
 
-  return data?.store_order_id ?? null;
+  return toOwner(data);
 }
 
-export async function findStoreOrderIdByPackage(
-  packageId: string
-): Promise<string | null> {
+export async function findBookingOwnerByPackage(packageId: string): Promise<BookingOwner | null> {
   const db = createSupabaseServiceClient();
   const { data } = await db
     .from('pibox_bookings')
-    .select('store_order_id')
+    .select('store_order_id, order_id')
     .eq('package_id', packageId)
     .maybeSingle();
 
-  return data?.store_order_id ?? null;
+  return toOwner(data);
+}
+
+/** Estados en los que una parte ya no viaja con el pedido. */
+const FUERA_DEL_DESPACHO: OrderStatus[] = ['cancelled', 'returned'];
+
+/**
+ * Las partes de tienda a las que les aplica lo que pase con la reserva.
+ *
+ * En una reserva de pedido son todas las que siguen en él: una tienda que
+ * canceló su parte no viaja, así que el mensajero no puede «entregarla».
+ */
+export async function storeOrderIdsOf(owner: BookingOwner): Promise<string[]> {
+  if ('storeOrderId' in owner) return [owner.storeOrderId];
+
+  const db = createSupabaseServiceClient();
+  const { data } = await db.from('store_orders').select('id, status').eq('order_id', owner.orderId);
+
+  return (data ?? []).filter((so) => !FUERA_DEL_DESPACHO.includes(so.status)).map((so) => so.id);
+}
+
+/**
+ * Aplica un estado de Pibox a todo lo que cubre la reserva.
+ *
+ * @returns true si cambió el estado de al menos una parte
+ */
+export async function applyStatusToOwner(
+  owner: BookingOwner,
+  nextStatus: OrderStatus | null,
+  note: string
+): Promise<boolean> {
+  let changed = false;
+  for (const storeOrderId of await storeOrderIdsOf(owner)) {
+    if (await applyOrderStatusFromPibox(storeOrderId, nextStatus, note)) changed = true;
+  }
+  return changed;
 }

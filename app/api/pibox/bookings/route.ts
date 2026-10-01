@@ -10,6 +10,7 @@ import {
 import { canManageStoreOrder } from '@/lib/pibox/authz';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { persistBookingSnapshot } from '@/lib/pibox/services/sync.service';
+import { notifyRunnersOfOrder } from '@/lib/runner/notify';
 
 /**
  * Solicita el domicilio a Pibox para un pedido de tienda.
@@ -39,9 +40,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const db = createSupabaseServiceClient();
+
+    // En un pedido de varias tiendas ninguna pide el mensajero: lo junta el
+    // patinador y se pide uno solo cuando todo está en la bahía. Acá solo se le
+    // avisa que esta parte ya está lista para recoger.
+    const { data: parte } = await db
+      .from('store_orders')
+      .select('order_id, code, stores ( name ), orders ( fulfillment )')
+      .eq('id', storeOrderId)
+      .maybeSingle();
+
+    if ((parte as any)?.orders?.fulfillment === 'runner') {
+      await notifyRunnersOfOrder(
+        (parte as any).order_id,
+        'Pedido listo para recoger',
+        `${(parte as any).stores?.name ?? 'Una tienda'} ya tiene lista su parte del pedido ${(parte as any).code}.`
+      );
+      return NextResponse.json({ data: null, runner: true }, { status: 200 });
+    }
+
     // Idempotencia: si ya hay un domicilio vigente para este pedido, se devuelve
     // ese en vez de despachar un segundo mensajero.
-    const db = createSupabaseServiceClient();
     const { data: existing } = await db
       .from('pibox_bookings')
       .select('*')
@@ -57,7 +77,7 @@ export async function POST(request: Request) {
     const payload = buildBookingPayload(context);
 
     const booking = await createBooking(payload);
-    await persistBookingSnapshot(storeOrderId, booking);
+    await persistBookingSnapshot({ storeOrderId }, booking);
 
     const { data: saved } = await db
       .from('pibox_bookings')

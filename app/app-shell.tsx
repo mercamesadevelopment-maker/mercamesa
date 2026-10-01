@@ -39,7 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [state._hydrated, state.isLoggedIn, isNoLayoutPage, router]);
 
   useEffect(() => {
-    if (state._hydrated && (state.userRole === 'admin' || state.userRole === 'provider')) {
+    if (state._hydrated && ['admin', 'provider', 'runner'].includes(state.userRole)) {
       fetchNotifications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

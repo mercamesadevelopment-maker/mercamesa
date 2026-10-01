@@ -10,7 +10,9 @@ import {
 } from '@/lib/pibox';
 import {
   persistBookingSnapshot,
-  applyOrderStatusFromPibox,
+  applyStatusToOwner,
+  storeOrderIdsOf,
+  type BookingOwner,
 } from '@/lib/pibox/services/sync.service';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
 
     const { data: activeBookings, error } = await supabase
       .from('pibox_bookings')
-      .select('booking_id, store_order_id')
+      .select('booking_id, store_order_id, order_id')
       .eq('is_active', true);
 
     if (error) {
@@ -56,18 +58,23 @@ export async function POST(request: Request) {
     let updated = 0;
 
     for (const row of activeBookings || []) {
-      // Se saltan los pedidos que ya llegaron a un estado final
-      const { data: storeOrder } = await supabase
-        .from('store_orders')
-        .select('status')
-        .eq('id', row.store_order_id)
-        .single();
+      const owner: BookingOwner | null = row.order_id
+        ? { orderId: row.order_id }
+        : row.store_order_id
+        ? { storeOrderId: row.store_order_id }
+        : null;
+      if (!owner) continue;
 
-      if (!storeOrder || TERMINAL_STATUSES.includes(storeOrder.status)) continue;
+      // Se saltan las reservas cuyas partes ya llegaron todas a un estado final.
+      const storeOrderIds = await storeOrderIdsOf(owner);
+      if (storeOrderIds.length === 0) continue;
+
+      const { data: partes } = await supabase.from('store_orders').select('status').in('id', storeOrderIds);
+      if (!partes || partes.every((so) => TERMINAL_STATUSES.includes(so.status))) continue;
 
       try {
         const booking = await getBooking(row.booking_id);
-        await persistBookingSnapshot(row.store_order_id, booking);
+        await persistBookingSnapshot(owner, booking);
         checked++;
 
         // El estado del paquete es más específico que el del pedido, así que
@@ -75,19 +82,17 @@ export async function POST(request: Request) {
         const pkg = extractFirstPackage(booking);
 
         const changed = pkg
-          ? await applyOrderStatusFromPibox(
-              row.store_order_id,
+          ? await applyStatusToOwner(
+              owner,
               piboxPackageStatusToOrderStatus(pkg.status_cd) ??
                 piboxBookingStatusToOrderStatus(booking.status_cd),
-              pkg
-                ? buildPackageStatusNote(pkg.status_cd, {
-                    notReceivedReasonCd: pkg.not_received_reason_cd,
-                    canceledPickupReasonCd: pkg.canceled_pickup_reason_cd,
-                  })
-                : buildBookingStatusNote(booking.status_cd)
+              buildPackageStatusNote(pkg.status_cd, {
+                notReceivedReasonCd: pkg.not_received_reason_cd,
+                canceledPickupReasonCd: pkg.canceled_pickup_reason_cd,
+              })
             )
-          : await applyOrderStatusFromPibox(
-              row.store_order_id,
+          : await applyStatusToOwner(
+              owner,
               piboxBookingStatusToOrderStatus(booking.status_cd),
               buildBookingStatusNote(booking.status_cd, {
                 driverName: booking.driver?.name,

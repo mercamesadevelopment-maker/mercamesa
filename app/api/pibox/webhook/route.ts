@@ -9,10 +9,13 @@ import {
   PIBOX_BOOKING_STATUS_LABEL,
 } from '@/lib/pibox';
 import {
-  applyOrderStatusFromPibox,
-  findStoreOrderIdByBooking,
-  findStoreOrderIdByPackage,
+  applyStatusToOwner,
+  findBookingOwner,
+  findBookingOwnerByPackage,
+  storeOrderIdsOf,
+  type BookingOwner,
 } from '@/lib/pibox/services/sync.service';
+import { notifyRunnersOfOrder } from '@/lib/runner/notify';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { createNotification } from '@/lib/notifications/create-notification';
 import type {
@@ -69,8 +72,8 @@ export async function POST(request: Request) {
 }
 
 async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
-  const storeOrderId = await findStoreOrderIdByBooking(payload.booking_id);
-  if (!storeOrderId) {
+  const owner = await findBookingOwner(payload.booking_id);
+  if (!owner) {
     console.warn(`Evento de Pibox para un booking desconocido: ${payload.booking_id}`);
     return;
   }
@@ -98,7 +101,8 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
 
     await db.from('pibox_bookings').upsert(
       {
-        store_order_id: storeOrderId,
+        store_order_id: 'storeOrderId' in owner ? owner.storeOrderId : null,
+        order_id: 'orderId' in owner ? owner.orderId : null,
         booking_id: payload.relaunched_to_id,
         package_id: null,
         status_cd: null,
@@ -120,8 +124,8 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
     );
   }
 
-  await applyOrderStatusFromPibox(
-    storeOrderId,
+  await applyStatusToOwner(
+    owner,
     piboxBookingStatusToOrderStatus(payload.status_cd),
     buildBookingStatusNote(payload.status_cd, {
       driverName: payload.driver?.name,
@@ -130,8 +134,8 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
   );
 
   if (piboxBookingStatusNeedsAttention(payload.status_cd)) {
-    await notifyStoreMembers(
-      storeOrderId,
+    await notifyWhoRequested(
+      owner,
       'Problema con el domicilio',
       `${PIBOX_BOOKING_STATUS_LABEL[payload.status_cd] || 'Estado inesperado'}. Revisa el pedido.`
     );
@@ -139,8 +143,8 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
 }
 
 async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
-  const storeOrderId = await findStoreOrderIdByPackage(payload.package_id);
-  if (!storeOrderId) {
+  const owner = await findBookingOwnerByPackage(payload.package_id);
+  if (!owner) {
     console.warn(`Evento de Pibox para un paquete desconocido: ${payload.package_id}`);
     return;
   }
@@ -151,11 +155,27 @@ async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
     .update({ package_status_cd: payload.status_cd })
     .eq('package_id', payload.package_id);
 
-  await applyOrderStatusFromPibox(
-    storeOrderId,
+  await applyStatusToOwner(
+    owner,
     piboxPackageStatusToOrderStatus(payload.status_cd),
     buildPackageStatusNote(payload.status_cd)
   );
+}
+
+/**
+ * Avisa a quien pidió el mensajero cuando el domicilio necesita intervención:
+ * el equipo de la tienda, o los patinadores de la plaza si la reserva es de un
+ * pedido de varias tiendas (las tiendas ya entregaron lo suyo y no pueden hacer
+ * nada).
+ */
+async function notifyWhoRequested(owner: BookingOwner, title: string, message: string) {
+  if ('orderId' in owner) {
+    await notifyRunnersOfOrder(owner.orderId, title, message);
+    return;
+  }
+  for (const storeOrderId of await storeOrderIdsOf(owner)) {
+    await notifyStoreMembers(storeOrderId, title, message);
+  }
 }
 
 /** Avisa a los miembros de la tienda cuando el domicilio necesita intervención. */

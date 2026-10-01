@@ -956,6 +956,55 @@ export type Database = {
           },
         ]
       }
+      marketplace_runners: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          marketplace_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          marketplace_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          marketplace_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_runners_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_runners_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_runners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplaces: {
         Row: {
           address: string | null
@@ -1443,6 +1492,8 @@ export type Database = {
       orders: {
         Row: {
           address_change_fee: number
+          bay_ready_at: string | null
+          bay_ready_by: string | null
           buyer_id: string | null
           buyer_type: Database["public"]["Enums"]["buyer_type"]
           client_id: string | null
@@ -1472,6 +1523,8 @@ export type Database = {
         }
         Insert: {
           address_change_fee?: number
+          bay_ready_at?: string | null
+          bay_ready_by?: string | null
           buyer_id?: string | null
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
           client_id?: string | null
@@ -1501,6 +1554,8 @@ export type Database = {
         }
         Update: {
           address_change_fee?: number
+          bay_ready_at?: string | null
+          bay_ready_by?: string | null
           buyer_id?: string | null
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
           client_id?: string | null
@@ -1979,13 +2034,14 @@ export type Database = {
           id: string
           is_active: boolean
           not_received_reason_cd: number | null
+          order_id: string | null
           package_id: string | null
           package_status_cd: number | null
           pickup_validation_code: string | null
           raw: Json | null
           relaunched_to_booking_id: string | null
           status_cd: number | null
-          store_order_id: string
+          store_order_id: string | null
           tracking_link: string | null
           updated_at: string
           validation_code: string | null
@@ -2003,13 +2059,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           not_received_reason_cd?: number | null
+          order_id?: string | null
           package_id?: string | null
           package_status_cd?: number | null
           pickup_validation_code?: string | null
           raw?: Json | null
           relaunched_to_booking_id?: string | null
           status_cd?: number | null
-          store_order_id: string
+          store_order_id?: string | null
           tracking_link?: string | null
           updated_at?: string
           validation_code?: string | null
@@ -2027,19 +2084,34 @@ export type Database = {
           id?: string
           is_active?: boolean
           not_received_reason_cd?: number | null
+          order_id?: string | null
           package_id?: string | null
           package_status_cd?: number | null
           pickup_validation_code?: string | null
           raw?: Json | null
           relaunched_to_booking_id?: string | null
           status_cd?: number | null
-          store_order_id?: string
+          store_order_id?: string | null
           tracking_link?: string | null
           updated_at?: string
           validation_code?: string | null
           vehicle_plates?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pibox_bookings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pibox_bookings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
           {
             foreignKeyName: "pibox_bookings_store_order_id_fkey"
             columns: ["store_order_id"]
@@ -3463,6 +3535,8 @@ export type Database = {
       store_orders: {
         Row: {
           code: string
+          collected_at: string | null
+          collected_by: string | null
           created_at: string
           has_refrigerated: boolean
           id: string
@@ -3476,6 +3550,8 @@ export type Database = {
         }
         Insert: {
           code?: string
+          collected_at?: string | null
+          collected_by?: string | null
           created_at?: string
           has_refrigerated?: boolean
           id?: string
@@ -3489,6 +3565,8 @@ export type Database = {
         }
         Update: {
           code?: string
+          collected_at?: string | null
+          collected_by?: string | null
           created_at?: string
           has_refrigerated?: boolean
           id?: string

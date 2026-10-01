@@ -13,6 +13,8 @@ const ROLE_FAMILY_BY_PREFIX: Record<string, string[]> = {
   '/admin': ['admin', 'superadmin'],
   '/seller': ['seller', 'store_owner'],
   '/delivery': ['delivery'],
+  // Los administradores entran por el permiso del módulo (bloque 2), no por familia.
+  '/runner': ['runner'],
 }
 
 const normalize = (p: string) => (p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p)

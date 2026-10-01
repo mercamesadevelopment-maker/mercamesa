@@ -78,9 +78,11 @@ async function requestPiboxDelivery(
       body: JSON.stringify({ store_order_id: storeOrderId }),
     });
 
-    if (response.ok) return { requested: true };
-
     const result = await response.json().catch(() => ({}));
+
+    // Pedido de varias tiendas: no se pide mensajero acá, lo recoge el
+    // patinador. No es un fallo ni hay nada que avisar.
+    if (response.ok) return { requested: !result?.runner };
 
     // 503 es el kill-switch (PIBOX_ENABLED=false): la integración está apagada a
     // propósito, no es una falla que el vendedor deba reportar.

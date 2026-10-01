@@ -81,6 +81,7 @@ const roleNameToKey: Record<string, RoleKey> = {
   store_owner: 'provider',
   provider: 'provider',
   delivery: 'delivery',
+  runner: 'runner',
   wholesale: 'wholesale',
   retail: 'retail',
 };

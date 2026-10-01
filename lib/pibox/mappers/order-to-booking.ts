@@ -200,6 +200,94 @@ export async function loadBookingContext(
 }
 
 /**
+ * El contexto de un pedido ENTERO, para los que arma un patinador.
+ *
+ * Con varias tiendas en el pedido la reserva no es de ninguna: el mensajero
+ * recoge un solo paquete en la bahía de la plaza, ya armado. Por eso el origen
+ * es el de la plaza (todas las tiendas del pedido comparten punto de recogida),
+ * la referencia es el código del pedido y el valor declarado es la suma de lo
+ * que sí viaja: una tienda que canceló su parte no cuenta.
+ *
+ * Espera el cliente de servicio: quien pide el mensajero es el patinador, que
+ * no es miembro de ninguna de las tiendas.
+ */
+export async function loadOrderBookingContext(
+  service: SupabaseClient<any>,
+  orderId: string,
+  /** A quién llama el mensajero al llegar a la plaza: quien armó el pedido. */
+  contactPhone: string | null = null
+): Promise<BookingContext> {
+  const { data, error } = await service
+    .from('orders')
+    .select(
+      `
+      id,
+      code,
+      total,
+      payment_status,
+      delivery_addresses ( address_line, neighborhood, municipality, delivery_instructions, latitude, longitude ),
+      profiles ( full_name, email, phone ),
+      store_orders (
+        status, subtotal, split_index,
+        stores ( name, local_address, address, latitude, longitude, city, marketplaces ( name, address, latitude, longitude, city ) )
+      )
+    `
+    )
+    .eq('id', orderId)
+    .single();
+
+  if (error || !data) {
+    throw new PiboxDataError(error?.message || 'No se encontró el pedido');
+  }
+
+  const order = data as any;
+  const address = order.delivery_addresses;
+  const buyer = order.profiles;
+  const partes = [...(order.store_orders ?? [])]
+    .filter((so: any) => !['cancelled', 'returned'].includes(so.status))
+    .sort((a: any, b: any) => a.split_index - b.split_index);
+
+  if (partes.length === 0) throw new PiboxDataError('El pedido no tiene nada que despachar');
+  if (!address?.address_line) {
+    throw new PiboxDataError('La orden no tiene dirección de entrega registrada');
+  }
+
+  const primera = partes[0].stores;
+  const plaza = primera?.marketplaces;
+  const tiendas = partes.map((so: any) => so.stores?.name).filter(Boolean);
+
+  return {
+    storeOrderId: '',
+    code: order.code,
+    subtotal: partes.reduce((sum: number, so: any) => sum + Number(so.subtotal || 0), 0),
+    orderTotal: Number(order.total || 0),
+    paymentStatus: order.payment_status,
+    notes: `Pedido Mercamesa de ${tiendas.length} tiendas: ${tiendas.join(', ')}`,
+    store: {
+      // Lo que lee el mensajero para saber a dónde ir dentro de la plaza.
+      name: 'Bahía de despacho',
+      // El de ninguna tienda: ya entregaron lo suyo y no sabrían del pedido.
+      phone: contactPhone,
+      localAddress: plaza?.name ?? null,
+    },
+    origin: resolverOrigen(primera, plaza),
+    destination: {
+      addressLine: address.address_line,
+      neighborhood: address.neighborhood ?? null,
+      municipality: address.municipality,
+      deliveryInstructions: address.delivery_instructions ?? null,
+      latitude: address.latitude ?? null,
+      longitude: address.longitude ?? null,
+    },
+    customer: {
+      fullName: buyer?.full_name || 'Cliente',
+      email: buyer?.email ?? null,
+      phone: buyer?.phone ?? null,
+    },
+  };
+}
+
+/**
  * Carga el mismo contexto pero SIN pedido: para cotizar en el carrito, cuando
  * todavía no existe ni la orden ni el `store_order`.
  *

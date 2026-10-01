@@ -1,4 +1,4 @@
-export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'admin';
+export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'runner' | 'admin';
 
 export interface Role {
   k: RoleKey;
@@ -173,6 +173,11 @@ export interface Order {
   code?: string;
   /** Código de la compra completa, comun a todas las tiendas del carrito: MM-2026-001017 */
   parentCode?: string;
+  /**
+   * Quién lleva el pedido hasta el mensajero. `runner`: es un pedido de varias
+   * tiendas y lo junta un patinador; la tienda no pide el domicilio.
+   */
+  fulfillment?: 'store' | 'runner';
   date: string;
   storeId: number | string;
   storeName: string;
