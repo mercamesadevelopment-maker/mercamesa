@@ -230,6 +230,31 @@ export function useCheckout() {
 
   const totalDeliveryFee = quote?.deliveryFee ?? 0;
   const total = quote?.total ?? 0;
+
+  /**
+   * Saldo a favor. Lo que se muestra acá es una vista previa: cuánto se usa de
+   * verdad lo decide el servidor al crear el pedido, con el saldo de ese
+   * momento.
+   */
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [useCredit, setUseCredit] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/profile/credit')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.data) setCreditBalance(Math.max(0, Number(json.data.balance) || 0));
+      })
+      // Sin saldo a la vista se compra igual, pagando el total.
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const creditToApply = useCredit ? Math.min(creditBalance, total) : 0;
+  const totalToPay = total - creditToApply;
   // Sin cotización no se puede pagar: no hay un total que cobrar. Y tampoco con
   // dos tiendas en la canasta o por debajo del mínimo, que son las dos formas
   // que tenía este flujo de llegar hasta el final para fallar (o, peor, de
@@ -318,6 +343,7 @@ export function useCheckout() {
           notes: 'Pedido desde la web',
           delivery_address_id: selectedAddressId,
           client_idempotency_key: `${idempotencyKey}-${group.store.id}`,
+          use_credit: useCredit && creditBalance > 0,
         },
         items: group.items.map((i) => ({
           store_product_id: String(i.id),
@@ -347,6 +373,20 @@ export function useCheckout() {
 
       const orderId = String(orderResult.data.id);
       const storeProductIds = group.items.map((i) => String(i.id));
+
+      // El saldo a favor cubrió todo: el pedido ya quedó pagado y no hay nada
+      // que cobrar en la pasarela.
+      if (orderResult.data.payment_status === 'approved') {
+        dispatch({ type: 'CLEAR_CART' });
+        try {
+          await clearCartDb(buyerId);
+        } catch (e) {
+          console.error('Error clearing cart in DB:', e);
+        }
+        router.push('/orders');
+        onClose();
+        return;
+      }
 
       if (paymentChoice === 'saved' && selectedPaymentMethodId) {
         try {
@@ -417,6 +457,11 @@ export function useCheckout() {
     subtotal,
     totalDeliveryFee,
     total,
+    creditBalance,
+    useCredit,
+    setUseCredit,
+    creditToApply,
+    totalToPay,
     quote,
     isQuoting,
     quoteError,

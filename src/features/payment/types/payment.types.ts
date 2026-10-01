@@ -58,6 +58,8 @@ export interface CreateOrderPayload {
     notes?: string
     delivery_address_id?: string | null
     client_idempotency_key: string
+    /** El comprador quiere usar su saldo a favor. Cuánto se usa lo decide el servidor. */
+    use_credit?: boolean
   }
   items: OrderItemInput[]
   storeOrders: StoreOrderInput[]
@@ -70,6 +72,8 @@ export interface CreateOrderResponse {
     buyer_type: string
     status: string
     payment_status: string
+    /** Saldo a favor apartado para este pedido. */
+    credit_applied?: number
     subtotal: number
     delivery_fee: number
     discount: number

@@ -49,6 +49,11 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     errorMessage,
     cartByStore,
     subtotal,
+    creditBalance,
+    useCredit,
+    setUseCredit,
+    creditToApply,
+    totalToPay,
     quote,
     isQuoting,
     quoteError,
@@ -150,10 +155,28 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
         <span>Servicio MercaMesa</span>
         <span className="font-bold">{fmt(quote.platformCommission)}</span>
       </div>
+      {/* Solo para quien tiene saldo: al resto no le aporta nada verlo. */}
+      {creditBalance > 0 && (
+        <label className="flex items-center justify-between gap-3 text-sm text-mm-txs cursor-pointer">
+          <span className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={useCredit}
+              onChange={(e) => setUseCredit(e.target.checked)}
+              className="w-4 h-4 accent-mm-g"
+            />
+            Usar mi saldo a favor ({fmt(creditBalance)})
+          </span>
+          {useCredit && <span className="font-bold text-ok">−{fmt(creditToApply)}</span>}
+        </label>
+      )}
       <div className="pt-3 border-t border-mm-crd/50 flex justify-between items-center">
         <span className="font-bold text-mm-g">Total a pagar</span>
-        <span className="text-2xl font-bold text-mm-g">{fmt(quote.total)}</span>
+        <span className="text-2xl font-bold text-mm-g">{fmt(totalToPay)}</span>
       </div>
+      {creditToApply > 0 && totalToPay === 0 && (
+        <p className="text-xs text-mm-txw">Tu saldo cubre todo el pedido: no tendrás que pagar nada más.</p>
+      )}
     </div>
   );
 
@@ -624,7 +647,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     disabled={!selectedAddressId || !addressReady || !canPlaceOrder}
                     className="flex-grow py-4 text-lg"
                   >
-                    Confirmar y pagar
+                    {creditToApply > 0 && totalToPay === 0 ? 'Confirmar pedido' : 'Confirmar y pagar'}
                   </Button>
                 </div>
               )}

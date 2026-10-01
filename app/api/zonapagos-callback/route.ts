@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('total')
+        .select('total, credit_applied')
         .eq('id', orderId)
         .single();
 
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
           provider: 'zonapagos',
           str_id_pago: idPago,
           status: paymentStatus,
-          amount: order.total,
+          amount: Number(order.total) - Number(order.credit_applied ?? 0),
           payment_url: null,
           provider_payment_id: body.str_autorizacion || body.str_referencia || null,
           callback_response: body,

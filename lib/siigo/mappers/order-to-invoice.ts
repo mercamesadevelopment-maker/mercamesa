@@ -4,6 +4,7 @@ import {
   SIIGO_DELIVERY_PRODUCT_CODE,
   SIIGO_FV_DOCUMENT_ID,
   SIIGO_MAIL_SEND,
+  SIIGO_PAYMENT_TYPE_CREDIT,
   SIIGO_PLATFORM_PRODUCT_CODE,
   SIIGO_SELLER_ID,
   SIIGO_STAMP_SEND,
@@ -40,6 +41,8 @@ export interface OrderInvoiceContext {
   /** Comisión de plataforma (15% del neto). Va como línea propia en la factura. */
   platformCommission: number;
   paymentMethod: string | null;
+  /** Lo que el comprador pagó con saldo a favor. El resto entró por la pasarela. */
+  creditApplied: number;
   /** Centro de costo de la plaza donde se vendió. Siigo lo exige para la FV. */
   costCenterId: number;
   /** Códigos de Siigo con los que se facturan el domicilio y el servicio. */
@@ -78,7 +81,7 @@ export async function loadOrderInvoiceContext(
   const { data: order, error } = await supabase
     .from('orders')
     .select(
-      `id, code, total, subtotal, delivery_fee, discount,
+      `id, code, total, subtotal, delivery_fee, discount, credit_applied,
        service_commission_amount, messages_amount, platform_commission_amount,
        profiles (
          document_number, full_name, business_name, contact_name, email, phone,
@@ -128,10 +131,12 @@ export async function loadOrderInvoiceContext(
     throw new SiigoDataError('El pedido no tiene ítems.');
   }
 
-  // Se toma el pago aprobado: es el que define con qué medio se pagó.
-  const approvedPayment = ((order as any).payments ?? []).find(
-    (p: any) => p.status === 'approved'
-  );
+  // Se toma el pago aprobado: es el que define con qué medio se pagó. Si hay
+  // uno de la pasarela se prefiere sobre el de saldo: en un pago mixto, el saldo
+  // va aparte, por `creditApplied`.
+  const aprobados = ((order as any).payments ?? []).filter((p: any) => p.status === 'approved');
+  const approvedPayment =
+    aprobados.find((p: any) => p.payment_method !== 'credit') ?? aprobados[0];
 
   // Un pedido puede abarcar varias tiendas; se toma la plaza de la primera con
   // centro de costo mapeado. Con factura por pedido solo cabe uno.
@@ -165,6 +170,7 @@ export async function loadOrderInvoiceContext(
     platformProductCode:
       pricingRow?.siigo_platform_product_code || SIIGO_PLATFORM_PRODUCT_CODE,
     paymentMethod: approvedPayment?.payment_method ?? null,
+    creditApplied: Number((order as any).credit_applied ?? 0),
     costCenterId,
     buyer: {
       identification,
@@ -331,9 +337,14 @@ export function buildInvoicePayload(ctx: OrderInvoiceContext): SiigoInvoicePaylo
     cost_center: ctx.costCenterId,
     items,
     payments: [
+      // La parte pagada con saldo a favor va con su propia forma de pago; así
+      // los pagos de la factura siguen sumando el total.
+      ...(ctx.creditApplied > 0 && ctx.creditApplied < ctx.total
+        ? [{ id: SIIGO_PAYMENT_TYPE_CREDIT, value: money(ctx.creditApplied), due_date: invoiceDate }]
+        : []),
       {
         id: toSiigoPaymentTypeId(ctx.paymentMethod),
-        value: money(ctx.total),
+        value: money(ctx.creditApplied < ctx.total ? ctx.total - ctx.creditApplied : ctx.total),
         /**
          * Obligatorio para los tipos de pago a crédito.
          *

@@ -1455,6 +1455,8 @@ export type Database = {
           code: string
           consecutive: number
           created_at: string
+          credit_applied: number
+          credit_released_at: string | null
           delivery_address_id: string | null
           delivery_address_snapshot: Json | null
           delivery_fee: number
@@ -1481,6 +1483,8 @@ export type Database = {
           code?: string
           consecutive?: number
           created_at?: string
+          credit_applied?: number
+          credit_released_at?: string | null
           delivery_address_id?: string | null
           delivery_address_snapshot?: Json | null
           delivery_fee?: number
@@ -1507,6 +1511,8 @@ export type Database = {
           code?: string
           consecutive?: number
           created_at?: string
+          credit_applied?: number
+          credit_released_at?: string | null
           delivery_address_id?: string | null
           delivery_address_snapshot?: Json | null
           delivery_fee?: number

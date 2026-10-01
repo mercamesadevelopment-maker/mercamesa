@@ -173,8 +173,8 @@ export async function POST(request: Request) {
     // de mirar productos y precios: no hay nada que calcular. En mostrador no
     // aplica, porque ahí quien registra la venta es la tienda.
     if (!isInStore) {
-      const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
-      if (await isBuyerBlocked(service, String(storeOrders[0].store_id), user.id)) {
+      const servicio = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
+      if (await isBuyerBlocked(servicio, String(storeOrders[0].store_id), user.id)) {
         return NextResponse.json({ error: BUYER_BLOCKED_MESSAGE, code: 'buyer_blocked' }, { status: 403 });
       }
     }
@@ -316,6 +316,15 @@ export async function POST(request: Request) {
 
     // Un reintento con el mismo carrito reutiliza el pedido pendiente en vez de
     // crear otro. Va antes de cotizar el domicilio: ese pedido ya tiene el suyo.
+    // ¿Quiere pagar con su saldo a favor, y tiene? Lo que mande el navegador es
+    // solo la intención; cuánto se aparta lo decide el servidor más abajo.
+    const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
+    let wantsCredit = false;
+    if (!isInStore && (order as any).use_credit === true) {
+      const { data: saldo } = await service.rpc('buyer_credit_balance', { p_buyer: user.id });
+      wantsCredit = Number(saldo ?? 0) > 0;
+    }
+
     if (!isInStore) {
       const reusableId = await findReusableOrderId(supabase, {
         buyerId: user.id,
@@ -331,7 +340,12 @@ export async function POST(request: Request) {
           .eq('id', reusableId)
           .single();
 
-        if (reused) {
+        // El saldo apartado de un pedido es fijo: no se cambia en un reintento.
+        // Si el comprador ahora eligió distinto (antes sin saldo y ahora con, o
+        // al revés), ese pedido no sirve y se crea uno nuevo; el anterior vence
+        // solo y devuelve lo que tuviera apartado.
+        const usaSaldo = Number((reused as any)?.credit_applied ?? 0) > 0;
+        if (reused && usaSaldo === wantsCredit) {
           return NextResponse.json({ data: reused, idempotent: true }, { status: 200 });
         }
       }
@@ -448,6 +462,27 @@ export async function POST(request: Request) {
       if (storeOrdersError) {
         await supabase.from('orders').delete().eq('id', newOrder.id);
         return NextResponse.json({ error: storeOrdersError.message }, { status: 400 });
+      }
+    }
+
+    // El saldo se aparta al final, con el pedido ya completo: si el saldo cubre
+    // todo, la base lo deja pagado y confirmado, y para eso la tienda y los
+    // productos ya tienen que estar.
+    if (wantsCredit) {
+      const { error: creditError } = await service.rpc('reserve_order_credit', {
+        p_order: newOrder.id,
+        p_buyer: user.id,
+      });
+
+      if (creditError) {
+        // Un pedido que el comprador creyó pagar con saldo y quedó por el total
+        // es peor que ninguno: se deshace y reintenta.
+        console.error('orders: no se pudo apartar el saldo a favor', creditError);
+        await supabase.from('orders').delete().eq('id', newOrder.id);
+        return NextResponse.json(
+          { error: 'No pudimos usar tu saldo a favor en este momento. Intenta de nuevo.' },
+          { status: 503 }
+        );
       }
     }
 
