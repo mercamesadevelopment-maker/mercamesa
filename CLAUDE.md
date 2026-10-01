@@ -84,9 +84,10 @@ Studio `57323`, correo de pruebas `57324`. Configuración en `supabase/config.to
 1. `pre.sql`: quita validaciones que los datos viejos de producción no cumplen.
 2. `prod_data.sql`: copia de los datos de producción. **No está en git** (datos
    personales y contraseñas cifradas). Se trae o se actualiza con `pnpm db:pull-data`;
-   las cuentas entran con las mismas contraseñas que en producción.
-3. `local.sql`: secretos de Vault de mentira, vuelve a poner las validaciones y apaga
-   las tareas programadas que llaman hacia afuera.
+   las cuentas entran con las mismas contraseñas que en producción. No trae roles,
+   módulos ni permisos: esos salen de las migraciones.
+3. `local.sql`: secretos de Vault de mentira, vuelve a poner las validaciones, apaga
+   las tareas programadas que llaman hacia afuera y activa todos los módulos.
 
 Un `db:reset` también vacía el Storage local; `pnpm db:sync-storage` lo vuelve a llenar
 desde `supabase/.storage-cache` sin bajar nada de nuevo.
@@ -108,8 +109,13 @@ Reglas:
 - El esquema no se cambia desde el panel de Supabase ni con SQL suelto: todo cambio es
   un archivo en `supabase/migrations`.
 - `20261001190000_base.sql` es el esquema completo de producción a esa fecha y
-  reemplaza a todas las migraciones anteriores. No se edita: lo nuevo va en archivos
-  nuevos.
+  reemplaza a todas las migraciones anteriores; `20261001190001_datos_de_referencia.sql`
+  trae los roles, acciones, módulos y permisos de ese momento. No se editan: lo nuevo va
+  en archivos nuevos.
+- **Las migraciones corren antes de cargar los datos.** En una base recién creada solo
+  existen los roles, acciones, módulos y permisos; el resto de tablas está vacío. Una
+  migración puede apoyarse en esos cuatro (repartir permisos a un rol, por ejemplo), pero
+  no en que haya tiendas, usuarios o parámetros.
 - Los secretos (Vault, llaves) nunca van en una migración. Cada entorno crea los suyos.
 - Los módulos nuevos se crean con `is_active = false` y se activan desde
   Parametrización cuando el código ya está desplegado.

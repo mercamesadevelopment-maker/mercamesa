@@ -35,3 +35,8 @@ alter table public.store_offers
 
 comment on constraint store_offers_discount_xor_price on public.store_offers is
   'Una oferta descuenta por porcentaje o fija un precio, nunca ambos ni ninguno.';
+
+-- Los módulos nuevos nacen inactivos para que en producción no aparezcan en el
+-- menú antes de que su código esté desplegado. En local el código siempre está:
+-- se activan todos, o las pantallas nuevas no se verían mientras se desarrollan.
+update public.modules set is_active = true where not is_active;
