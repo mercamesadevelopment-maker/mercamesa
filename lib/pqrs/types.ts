@@ -87,6 +87,43 @@ export interface PqrsBuyerHistory {
   paymentRejected: number;
 }
 
+/**
+ * La devolución de un caso aprobado. Cada puesto recibe solo lo suyo: lo que no
+ * le corresponde llega en `null`.
+ */
+export interface PqrsRefund {
+  createdAt: string;
+  /** Lo acreditado al comprador. La tienda no lo recibe. */
+  total: number | null;
+  method: 'credit' | 'money' | null;
+  status: 'credited' | 'money_pending' | 'money_paid' | null;
+  moneyPaidAt: string | null;
+  /** Lo que se le descuenta a la tienda. El comprador no lo recibe. */
+  storeCharge: number | null;
+  /** Solo para el administrador. */
+  breakdown: {
+    scope: 'items' | 'order';
+    products: number;
+    serviceCommission: number;
+    platformCommission: number;
+    messages: number;
+    delivery: number;
+    liable: 'store' | 'logistics' | 'platform';
+    moneyReference: string | null;
+  } | null;
+  can: { toMoney: boolean; markPaid: boolean; voidStoreCharge: boolean };
+}
+
+/** Lo que pasaría si el caso se aprueba, para decidir con el número a la vista. */
+export interface PqrsRefundPreview {
+  /** Lo que recibiría el comprador devolviendo los productos marcados. */
+  itemsTotal: number | null;
+  /** Lo que asumiría la tienda en ese caso: el valor de sus productos. */
+  itemsStoreCharge: number | null;
+  /** Lo que recibiría devolviendo el pedido completo. Solo para el admin. */
+  orderTotal: number | null;
+}
+
 export interface PqrsDetail extends PqrsSummary {
   description: string;
   liable: PqrsLiable | null;
@@ -101,6 +138,10 @@ export interface PqrsDetail extends PqrsSummary {
   block: PqrsBlock | null;
   /** Solo en los casos del tendero contra un comprador. */
   buyerHistory: PqrsBuyerHistory | null;
+  /** La devolución, si el caso se aprobó con una. */
+  refund: PqrsRefund | null;
+  /** Mientras el caso está abierto y su motivo devuelve algo. */
+  refundPreview: PqrsRefundPreview | null;
   /** Desde qué puesto la está viendo quien pregunta. */
   viewer: PqrsViewer;
   /** Lo que ese puesto puede hacer ahora mismo. */

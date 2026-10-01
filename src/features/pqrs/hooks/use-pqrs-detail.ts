@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { pqrsService } from '../services/pqrs.service';
+import { pqrsService, type PqrsResolveInput } from '../services/pqrs.service';
 import type { PqrsDetail } from '@/lib/pqrs/types';
 
 /**
@@ -71,8 +71,7 @@ export function usePqrsDetail(id: string | null, onChanged?: () => void) {
   );
 
   const resolve = useCallback(
-    (input: { outcome: string; liable: string | null; notes: string }) =>
-      run(() => pqrsService.resolve(id!, input)),
+    (input: PqrsResolveInput) => run(() => pqrsService.resolve(id!, input)),
     [id, run]
   );
 
@@ -81,5 +80,22 @@ export function usePqrsDetail(id: string | null, onChanged?: () => void) {
     [id, run]
   );
 
-  return { detail, loading, error, working, actionError, sendMessage, respondAsStore, resolve, liftBlock };
+  const refundAction = useCallback(
+    (action: 'to_money' | 'mark_paid' | 'void_store_charge', notes?: string) =>
+      run(() => pqrsService.refundAction(id!, { action, notes })),
+    [id, run]
+  );
+
+  return {
+    detail,
+    loading,
+    error,
+    working,
+    actionError,
+    sendMessage,
+    respondAsStore,
+    resolve,
+    liftBlock,
+    refundAction,
+  };
 }

@@ -134,6 +134,78 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_credit_movements: {
+        Row: {
+          amount: number
+          buyer_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          notes: string | null
+          order_id: string | null
+          refund_id: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          notes?: string | null
+          order_id?: string | null
+          refund_id?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          order_id?: string | null
+          refund_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_credit_movements_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_credit_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_credit_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buyer_credit_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "buyer_credit_movements_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "order_refunds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buyer_payment_methods: {
         Row: {
           brand: string | null
@@ -1205,6 +1277,174 @@ export type Database = {
           },
         ]
       }
+      order_refund_items: {
+        Row: {
+          amount: number
+          id: string
+          order_item_id: string
+          quantity: number
+          refund_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          order_item_id: string
+          quantity: number
+          refund_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          order_item_id?: string
+          quantity?: number
+          refund_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_refund_items_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refund_items_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "order_refunds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_refunds: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          created_by: string | null
+          delivery_amount: number
+          id: string
+          liable: string
+          messages_amount: number
+          method: string
+          money_paid_at: string | null
+          money_paid_by: string | null
+          money_reference: string | null
+          order_id: string
+          platform_commission_amount: number
+          pqrs_id: string
+          products_amount: number
+          scope: string
+          service_commission_amount: number
+          status: string
+          store_id: string
+          store_order_id: string | null
+          total_amount: number
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          created_by?: string | null
+          delivery_amount?: number
+          id?: string
+          liable: string
+          messages_amount?: number
+          method?: string
+          money_paid_at?: string | null
+          money_paid_by?: string | null
+          money_reference?: string | null
+          order_id: string
+          platform_commission_amount?: number
+          pqrs_id: string
+          products_amount: number
+          scope: string
+          service_commission_amount?: number
+          status?: string
+          store_id: string
+          store_order_id?: string | null
+          total_amount: number
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_amount?: number
+          id?: string
+          liable?: string
+          messages_amount?: number
+          method?: string
+          money_paid_at?: string | null
+          money_paid_by?: string | null
+          money_reference?: string | null
+          order_id?: string
+          platform_commission_amount?: number
+          pqrs_id?: string
+          products_amount?: number
+          scope?: string
+          service_commission_amount?: number
+          status?: string
+          store_id?: string
+          store_order_id?: string | null
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_refunds_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_money_paid_by_fkey"
+            columns: ["money_paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "order_refunds_pqrs_id_fkey"
+            columns: ["pqrs_id"]
+            isOneToOne: true
+            referencedRelation: "pqrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_refunds_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address_change_fee: number
@@ -1473,8 +1713,9 @@ export type Database = {
           created_at: string
           id: string
           payout_id: string
+          store_charge_id: string | null
           store_id: string
-          store_order_id: string
+          store_order_id: string | null
         }
         Insert: {
           amount: number
@@ -1482,8 +1723,9 @@ export type Database = {
           created_at?: string
           id?: string
           payout_id: string
+          store_charge_id?: string | null
           store_id: string
-          store_order_id: string
+          store_order_id?: string | null
         }
         Update: {
           amount?: number
@@ -1491,8 +1733,9 @@ export type Database = {
           created_at?: string
           id?: string
           payout_id?: string
+          store_charge_id?: string | null
           store_id?: string
-          store_order_id?: string
+          store_order_id?: string | null
         }
         Relationships: [
           {
@@ -1507,6 +1750,13 @@ export type Database = {
             columns: ["payout_id"]
             isOneToOne: false
             referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_items_store_charge_id_fkey"
+            columns: ["store_charge_id"]
+            isOneToOne: false
+            referencedRelation: "store_charges"
             referencedColumns: ["id"]
           },
           {
@@ -2764,6 +3014,71 @@ export type Database = {
           },
         ]
       }
+      store_charges: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          refund_id: string
+          store_id: string
+          store_order_id: string | null
+          void_notes: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          refund_id: string
+          store_id: string
+          store_order_id?: string | null
+          void_notes?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          refund_id?: string
+          store_id?: string
+          store_order_id?: string | null
+          void_notes?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_charges_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: true
+            referencedRelation: "order_refunds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_charges_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_document_events: {
         Row: {
           actor_id: string | null
@@ -3577,8 +3892,22 @@ export type Database = {
         Returns: number
       }
       anonymize_buyer: { Args: { target: string }; Returns: undefined }
+      apply_buyer_credit: {
+        Args: {
+          p_amount: number
+          p_buyer: string
+          p_by?: string
+          p_kind: string
+          p_notes?: string
+          p_order?: string
+          p_refund?: string
+        }
+        Returns: number
+      }
+      buyer_credit_balance: { Args: { p_buyer: string }; Returns: number }
       call_app_cron: { Args: { path: string }; Returns: number }
       call_edge_cron: { Args: { fn: string }; Returns: number }
+      create_order_refund: { Args: { p: Json }; Returns: string }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
       escalate_overdue_pqrs: { Args: never; Returns: number }
       expire_unpaid_orders: { Args: never; Returns: number }
@@ -3593,6 +3922,10 @@ export type Database = {
       payable_until: {
         Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
         Returns: string
+      }
+      refund_to_money: {
+        Args: { p_by: string; p_refund: string }
+        Returns: undefined
       }
       revert_store_order_status: {
         Args: {
@@ -3609,6 +3942,10 @@ export type Database = {
           name: string
           total: number
         }[]
+      }
+      void_store_charge: {
+        Args: { p_by: string; p_notes: string; p_refund: string }
+        Returns: undefined
       }
     }
     Enums: {
