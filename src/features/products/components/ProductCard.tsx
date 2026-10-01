@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { ShoppingCart, Share2, Check } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
@@ -10,7 +10,7 @@ import { useApp } from '@/src/store';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/src/features/products/utils/share-link';
-import { useShareLink } from '@/src/features/products/hooks/use-share-link';
+import { ShareLinkButton } from '@/src/features/products/components/ShareLinkButton';
 import type { StoreProduct } from '@/app/sections/products/hooks/usePublicProducts';
 
 interface ProductCardProps {
@@ -25,19 +25,11 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   const { state } = useApp();
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
-  const { copied, share } = useShareLink();
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (highlighted) cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlighted]);
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const storeSlug = product.stores?.slug;
-    if (!storeSlug) return;
-    share(getProductShareUrl(storeSlug, product.id), product.catalog_products?.name);
-  };
 
   // La cantidad se lee del carrito, no de un estado local: así el contador de la
   // tarjeta y el del panel del carrito no se pueden desincronizar.
@@ -118,14 +110,14 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           )}
         </div>
         {product.stores?.slug && (
-          <button
-            onClick={handleShare}
-            aria-label="Compartir este producto"
-            title="Compartir este producto"
-            className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-mm-g transition-colors"
-          >
-            {copied ? <Check className="w-4 h-4 text-mm-g" /> : <Share2 className="w-3.5 h-3.5" />}
-          </button>
+          <ShareLinkButton
+            url={getProductShareUrl(product.stores.slug, product.id)}
+            title={product.catalog_products?.name}
+            label="Compartir este producto"
+            wrapperClassName="absolute top-2 right-2 z-10"
+            className="w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-mm-g transition-colors"
+            iconClassName="w-3.5 h-3.5"
+          />
         )}
         {imgSrc ? (
           <img

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { fechaCompleta } from '@/lib/dates/relative-time';
 import {
   Package,
   Truck,
@@ -108,11 +109,7 @@ export function OrderCard({
 
             <p className="text-xs text-mm-txw">
               Pedido {formatOrderCode(order.order_code, order.order_id)} •{' '}
-              {order.created_at
-                ? new Date(
-                    order.created_at
-                  ).toLocaleDateString()
-                : ''}
+              {order.created_at ? fechaCompleta(order.created_at) : ''}
             </p>
           </div>
         </div>
