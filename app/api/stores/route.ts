@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     *,
     marketplaces ( name ),
     store_category_links ( store_categories ( id, name ) ),
+    store_reviews ( stars ),
     store_members (
       id,
       role_id,
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
       *,
       marketplaces ( name ),
       store_category_links ( store_categories ( id, name ) ),
+      store_reviews ( stars ),
       store_members!inner (
         id,
         role_id,
@@ -79,13 +81,25 @@ export async function GET(request: Request) {
 
   // Con sus categorías: el modal del admin se llena con esta respuesta, y sin
   // ellas guardaba la lista vacía y le borraba las categorías a la tienda.
-  const dataWithUrls = data?.map((store: any) => ({
+  const dataWithUrls = data?.map(({ store_reviews, ...store }: any) => ({
     ...withFlatCategories(store),
+    // La calificación sale de las reseñas, no de `reputation_score`: esa columna
+    // nace en 5.00, y el listado mostraba 5.0 en tiendas que nadie ha calificado.
+    ...resumenDeResenas(store_reviews),
     logoSignedUrl: store.logo_url ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO) : null,
     coverSignedUrl: store.cover_image_url ? getSupabaseImageUrl('stores', store.cover_image_url, PRESET_COVER_DETAIL) : null,
   }));
 
   return NextResponse.json({ data: dataWithUrls, requiredDocumentTypes }, { status: 200 });
+}
+
+/** Cuántas reseñas tiene una tienda y su promedio; `null` si no tiene ninguna. */
+function resumenDeResenas(reviews: { stars: number }[] | null | undefined) {
+  const lista = reviews ?? [];
+  if (lista.length === 0) return { reviewCount: 0, rating: null };
+
+  const suma = lista.reduce((acc, r) => acc + Number(r.stars), 0);
+  return { reviewCount: lista.length, rating: suma / lista.length };
 }
 
 export async function POST(request: Request) {
