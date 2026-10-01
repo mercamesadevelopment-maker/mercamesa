@@ -120,6 +120,17 @@ Reglas:
 - Los módulos nuevos se crean con `is_active = false` y se activan desde
   Parametrización cuando el código ya está desplegado.
 
+### Integración continua y despliegue de migraciones
+
+- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main`: levanta una base vacía,
+  aplica todas las migraciones, regenera los tipos y falla si
+  `types/database_generated.ts` no coincide o si `tsc` no compila. Si falla por los tipos:
+  `pnpm db:reset`, `pnpm gen:types:local` y subir el archivo.
+- **Supabase está conectado al repositorio** (directorio de trabajo `.`, ramas de vista
+  previa apagadas). Con «Deploy to production» encendido, al fusionar a `main` Supabase
+  aplica en producción las migraciones de `supabase/migrations` que no estén en su
+  registro. Por eso una migración solo se fusiona cuando ya pasó por local y por el CI.
+
 ### Qué está simulado en local
 
 Local no debe tocar servicios reales. `.env.local` lo deja así:

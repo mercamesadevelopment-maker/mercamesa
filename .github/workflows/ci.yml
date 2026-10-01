@@ -1,0 +1,65 @@
+name: CI
+
+# Corre en cada PR hacia main. Comprueba tres cosas que hasta ahora dependían de
+# acordarse:
+#
+#   1. Que las migraciones aplican sobre una base vacía.
+#   2. Que `types/database_generated.ts` corresponde a esas migraciones.
+#   3. Que el código compila contra esos tipos.
+#
+# No toca producción ni necesita secretos: levanta una base de Supabase dentro
+# del propio runner.
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tipos:
+    name: Migraciones y tipos
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # La versión de pnpm sale de `packageManager` en package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # La misma versión de la CLI que se usa en local: otra podría generar los
+      # tipos con diferencias de formato y hacer fallar la comparación sin que
+      # haya cambiado nada.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      # Aplica todas las migraciones sobre una base vacía. Si alguna falla, o
+      # depende de datos que una base nueva no tiene, se ve acá. La copia de
+      # producción (`supabase/seed/prod_data.sql`) no está en git: sin ella la
+      # base queda solo con los datos de referencia de las migraciones.
+      - name: Levantar la base y aplicar las migraciones
+        run: supabase db start
+
+      - name: Regenerar los tipos
+        run: pnpm gen:types:local
+
+      - name: Los tipos del repositorio coinciden con las migraciones
+        run: |
+          if ! git diff --exit-code -- types/database_generated.ts; then
+            echo "::error file=types/database_generated.ts::Los tipos no corresponden a las migraciones. Corre 'pnpm db:reset' y 'pnpm gen:types:local' en local y sube el archivo."
+            exit 1
+          fi
+
+      - name: El código compila
+        run: pnpm exec tsc --noEmit
