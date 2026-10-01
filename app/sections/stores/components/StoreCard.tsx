@@ -9,6 +9,7 @@ import { getStoreShareUrl } from '@/src/features/products/utils/share-link';
 import { ShareLinkButton } from '@/src/features/products/components/ShareLinkButton';
 import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
 import { openStatus } from '@/components/ui/business-hours/summarize-hours';
+import { SalesTypeLine } from '@/src/features/stores/components/SalesTypeLine';
 import type { PublicStore } from '../hooks/usePublicStores';
 
 interface StoreCardProps {
@@ -82,9 +83,11 @@ export function StoreCard({ store, isLoggedIn, isFavorite, onToggleFavorite }: S
       <p className="text-[10px] uppercase font-bold tracking-widest text-mm-oro truncate mb-1">
         {store.marketplaces?.name || 'Plaza'}
       </p>
-      <h3 title={store.name} className="font-bold text-mm-g leading-tight line-clamp-2 break-words mb-2">
+      <h3 title={store.name} className="font-bold text-mm-g leading-tight line-clamp-2 break-words mb-1.5">
         {store.name}
       </h3>
+
+      <SalesTypeLine store={store} className="mb-2.5" />
 
       {categories.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">

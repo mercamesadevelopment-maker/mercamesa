@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMarketplaceDetail } from '@/app/services/marketplaces/marketplaces.service';
+import { getMarketplaceDetail, getStoreSalesTypes } from '@/app/services/marketplaces/marketplaces.service';
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '@/lib/supabase/supabase-image';
 import { toPublicStore } from '@/lib/stores/public-store';
@@ -44,6 +44,10 @@ export async function GET(
       ? data.stores
       : [];
 
+    // La vista `marketplaces_detail` no trae a quién le vende cada tienda, y la
+    // página de la plaza filtra por eso.
+    const salesTypes = await getStoreSalesTypes(supabase, data.id);
+
     const storesWithPublicUrls = stores.map((store: Store) => {
       const storeLogo = store.logo_url
         ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO)
@@ -52,6 +56,7 @@ export async function GET(
       // página de la plaza no lo usa y no debe salir.
       return toPublicStore({
         ...store,
+        ...salesTypes.get(store.id),
         logoUrl: storeLogo,
         logoSignedUrl: storeLogo,
       });

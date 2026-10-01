@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { ArrowLeft, MapPin, Clock, Phone, Mail, Compass, Globe, Star, Zap, Store as StoreIcon, ChevronRight } from 'lucide-react';
 import { Badge } from '@/src/components/Shared';
 import { Database } from '@/types/database_generated';
+import { SalesTypeFilter } from '@/src/features/stores/components/SalesTypeFilter';
+import { SalesTypeLine } from '@/src/features/stores/components/SalesTypeLine';
+import { matchesSalesType, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
 
 type MarketplaceDetail = Database['public']['Views']['marketplaces_detail']['Row'] & {
   coverSignedUrl?: string | null;
@@ -19,6 +22,7 @@ export default function PlazaDetailPage() {
   const [plaza, setPlaza] = useState<MarketplaceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [salesType, setSalesType] = useState<SalesTypeFilterValue>('all');
 
   useEffect(() => {
     if (!slug) return;
@@ -41,6 +45,12 @@ export default function PlazaDetailPage() {
     
     fetchDetail();
   }, [slug]);
+
+  const allStores = plaza?.stores;
+  const filteredStores = useMemo(
+    () => (allStores ?? []).filter((store: any) => matchesSalesType(store, salesType)),
+    [allStores, salesType]
+  );
 
   if (loading) return <div className="p-12 text-center text-mm-txs">Cargando plaza...</div>;
   if (error || !plaza) return <div className="p-12 text-center text-r">{error || 'No encontrada'}</div>;
@@ -109,10 +119,17 @@ export default function PlazaDetailPage() {
 
       {/* Stores List */}
       <div className="mb-10">
-        <h2 className="text-2xl font-fraunces text-mm-g mb-6">Tiendas ({plaza.stores_count || 0})</h2>
-        {plaza.stores && plaza.stores.length > 0 ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <h2 className="text-2xl font-fraunces text-mm-g">
+            Tiendas ({salesType === 'all' ? plaza.stores_count || 0 : filteredStores.length})
+          </h2>
+          {plaza.stores && plaza.stores.length > 0 && (
+            <SalesTypeFilter value={salesType} onChange={setSalesType} className="w-full sm:w-auto" />
+          )}
+        </div>
+        {filteredStores.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {plaza.stores.map((store: any) => (
+            {filteredStores.map((store: any) => (
               <motion.div
                 key={store.id}
                 whileHover={{ y: -4 }}
@@ -135,6 +152,8 @@ export default function PlazaDetailPage() {
                 {store.description && (
                   <p className="text-xs text-mm-txs line-clamp-2 mb-4">{store.description}</p>
                 )}
+
+                <SalesTypeLine store={store} className="mb-4" />
                 
                 <div className="pt-4 border-t border-mm-gbg flex items-center justify-between">
                   <div className="flex items-center gap-1 text-mm-oro text-xs font-bold">
@@ -152,7 +171,9 @@ export default function PlazaDetailPage() {
           </div>
         ) : (
           <div className="py-12 bg-mm-gbg/30 rounded-3xl border border-mm-crd text-center text-mm-txw">
-            Aún no hay tiendas registradas en esta plaza.
+            {plaza.stores && plaza.stores.length > 0
+              ? 'No hay tiendas de ese tipo en esta plaza.'
+              : 'Aún no hay tiendas registradas en esta plaza.'}
           </div>
         )}
       </div>
