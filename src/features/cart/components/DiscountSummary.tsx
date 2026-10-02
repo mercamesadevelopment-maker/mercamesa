@@ -6,13 +6,13 @@ import {
   DISCOUNT_NOTICE_TITLE,
   DISCOUNT_NOTICE_BODY,
   DISCOUNT_NOTICE_TOTAL_LABEL,
+  LINE_SAVINGS_LABEL,
 } from "@/lib/copy/discount-notice";
-import { CartItem } from "@/src/types";
+import type { CartLineSavings } from "../utils/cart-savings";
 
 interface DiscountSummaryProps {
-  items: CartItem[];
-  /** El precio que se está cobrando por unidad, ya con la oferta aplicada. */
-  getPrice: (item: CartItem) => number;
+  /** Las líneas de la canasta que traen descuento (`cartSavings`). */
+  lines: CartLineSavings[];
   /**
    * El ahorro según el servidor. Es el que manda: `null` mientras se cotiza, y
    * lo que se muestra como total. Las líneas de abajo son el desglose.
@@ -31,16 +31,8 @@ interface DiscountSummaryProps {
  * discrepar de lo que el comprador termina pagando. Que es justamente lo que
  * promete el texto.
  */
-export function DiscountSummary({ items, getPrice, discountTotal }: DiscountSummaryProps) {
-  const conDescuento = items
-    .map((item) => {
-      const precio = getPrice(item);
-      const lista = item.listPrice ?? 0;
-      return { item, precio, lista, ahorro: (lista - precio) * item.qty };
-    })
-    .filter((l) => l.ahorro > 0);
-
-  if (discountTotal <= 0 || conDescuento.length === 0) return null;
+export function DiscountSummary({ lines, discountTotal }: DiscountSummaryProps) {
+  if (discountTotal <= 0 || lines.length === 0) return null;
 
   return (
     <div className="rounded-2xl border border-mm-g/25 bg-mm-gbg/50 p-4">
@@ -53,17 +45,17 @@ export function DiscountSummary({ items, getPrice, discountTotal }: DiscountSumm
       </div>
 
       <ul className="mt-4 space-y-2.5">
-        {conDescuento.map(({ item, precio, lista, ahorro }) => (
+        {lines.map(({ item, price, listPrice, savings }) => (
           <li key={item.id} className="flex items-start justify-between gap-3 text-xs">
             <div className="min-w-0">
               <p className="truncate font-bold text-mm-g">{item.name}</p>
               <p className="text-mm-txw">
-                <span className="font-bold line-through decoration-r">{fmt(lista)}</span>{" "}
-                <span className="font-bold text-mm-g">{fmt(precio)}</span>
+                <span className="font-bold line-through decoration-r">{fmt(listPrice)}</span>{" "}
+                <span className="font-bold text-mm-g">{fmt(price)}</span>
                 {item.qty > 1 && <span> × {item.qty}</span>}
               </p>
             </div>
-            <span className="shrink-0 font-bold text-mm-g">Ahorras {fmt(ahorro)}</span>
+            <span className="shrink-0 font-bold text-mm-g">{LINE_SAVINGS_LABEL(fmt(savings))}</span>
           </li>
         ))}
       </ul>

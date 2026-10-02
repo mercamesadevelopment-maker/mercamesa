@@ -17,10 +17,16 @@ interface ReorderLine {
   availableQty: number;
   status: ReorderStatus;
   price: number | null;
+  /** El precio antes de la oferta. Igual a `price` cuando no hay descuento. */
+  listPrice: number | null;
+  offerId: string | null;
   image: string | null;
   storeId: string | null;
   storeName: string | null;
 }
+
+const hasDiscount = (line: ReorderLine) =>
+  line.price !== null && line.listPrice !== null && line.listPrice > line.price;
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
@@ -93,6 +99,9 @@ export function ReorderModal({
             cat: '',
             retailPrice: line.price ?? 0,
             wsPrice: line.price ?? 0,
+            // Con oferta, la canasta tacha el de lista y suma el ahorro.
+            listPrice: hasDiscount(line) ? line.listPrice : undefined,
+            offerId: line.offerId,
             stock: line.availableQty,
             unit: line.unit || 'und',
             emoji: '📦',
@@ -101,7 +110,8 @@ export function ReorderModal({
             storeId: line.storeId!,
             storeName: line.storeName || 'Tienda',
           } as any,
-          line.availableQty
+          line.availableQty,
+          line.offerId
         );
       }
       onClose();
@@ -137,8 +147,15 @@ export function ReorderModal({
       </div>
 
       {(line.status === 'available' || line.status === 'partial') && line.price !== null && (
-        <span className="shrink-0 text-sm font-bold text-mm-g">
-          {fmt(line.price * line.availableQty)}
+        <span className="shrink-0 whitespace-nowrap text-right">
+          {hasDiscount(line) && (
+            <span className="mr-1.5 text-xs text-mm-txw line-through decoration-r">
+              {fmt(Number(line.listPrice) * line.availableQty)}
+            </span>
+          )}
+          <span className="text-sm font-bold text-mm-g">
+            {fmt(line.price * line.availableQty)}
+          </span>
         </span>
       )}
     </div>
