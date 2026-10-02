@@ -186,7 +186,7 @@ export function ProductModal({
             required
           />
           <Input 
-            label="Stock Inicial" 
+            label={editingProduct ? 'Inventario Disponible' : 'Inventario Inicial'}
             type="number"
             value={newProduct.stock || ''} 
             onChange={e => setNewOfferProduct(prev => ({ ...prev, stock: Number(e.target.value) }))}
@@ -211,7 +211,7 @@ export function ProductModal({
             placeholder="Ej: 10"
           />
           <Input 
-            label="Pedido Mínimo (Retail)" 
+            label="Pedido Mínimo (Minorista)"
             type="number"
             value={newProduct.minOrderQty || ''} 
             onChange={e => setNewOfferProduct(prev => ({ ...prev, minOrderQty: Number(e.target.value) }))}
