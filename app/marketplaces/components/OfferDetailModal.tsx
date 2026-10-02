@@ -48,6 +48,10 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
       cat: 'Ofertas',
       retailPrice: discountedPrice,
       wsPrice: discountedPrice,
+      // Sin el precio de lista la canasta no tiene cómo tachar el original ni
+      // decir cuánto se ahorra hasta que se recarga la página.
+      listPrice: discountedPrice < Number(originalPrice) ? Number(originalPrice) : undefined,
+      offerId: offer.id,
       stock: offer.store_products?.stock ?? 0,
       unit: offer.store_products?.measurement_units?.abbreviation || 'und',
       emoji: '🎁',

@@ -6,6 +6,7 @@ import { ShoppingCart } from 'lucide-react';
 import { Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { discountPct } from '@/src/features/cart/utils/cart-savings';
 import { useApp } from '@/src/store';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
@@ -51,7 +52,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   const offer = state.userRole === 'wholesale' ? null : product.offer ?? null;
   const price = offer && offer.finalPrice < listPrice ? offer.finalPrice : listPrice;
   const hasDiscount = price < listPrice;
-  const discountPct = hasDiscount ? Math.round((1 - price / listPrice) * 100) : 0;
+  const pct = discountPct(listPrice, price);
 
   // Red de seguridad: si el derivado WebP aún no existe (imagen subida antes
   // del backfill, o formato que sharp no pudo procesar), cae al original.
@@ -105,7 +106,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           {(product as any).is_featured && <Badge variant="oro">Destacado</Badge>}
           {hasDiscount && (
             <Badge variant="error" className="font-bold">
-              -{discountPct}%
+              -{pct}%
             </Badge>
           )}
         </div>

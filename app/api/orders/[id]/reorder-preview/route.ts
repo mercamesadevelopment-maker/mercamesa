@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '@/lib/supabase/supabase-image';
+import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 
 /**
  * Qué se puede volver a pedir de una orden anterior.
@@ -61,7 +62,7 @@ export async function GET(
     const { data: products } = await supabase
       .from('store_products')
       .select(`
-        id, store_id, price_per_unit, stock, is_active,
+        id, store_id, price_per_unit, wholesale_price, stock, is_active,
         catalog_products ( name, image_url ),
         stores ( name, is_active ),
         measurement_units ( abbreviation )
@@ -69,6 +70,21 @@ export async function GET(
       .in('id', productIds);
 
     const byId = new Map((products || []).map((p) => [p.id, p]));
+
+    // El precio de hoy es el que se va a cobrar: con la oferta vigente, y el
+    // mayorista para el comprador mayorista. Es la misma función de la
+    // cotización y de la creación del pedido; antes acá se mostraba el precio de
+    // inventario y el producto entraba a la canasta sin su descuento.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('buyer_type')
+      .eq('id', user.id)
+      .single();
+    const precios = await resolveOfferPrices(
+      supabase,
+      products || [],
+      profile?.buyer_type === 'wholesale'
+    );
 
     let storeId: string | null = null;
     let storeName: string | null = null;
@@ -86,6 +102,8 @@ export async function GET(
           availableQty: 0,
           status: 'unavailable' as ReorderStatus,
           price: null,
+          listPrice: null,
+          offerId: null,
           image: null,
           storeId: null,
           storeName: null,
@@ -104,6 +122,7 @@ export async function GET(
         stock <= 0 ? 'out_of_stock' : availableQty < requested ? 'partial' : 'available';
 
       const imagePath = (product.catalog_products as any)?.image_url;
+      const precio = precios.get(product.id);
 
       return {
         storeProductId: product.id,
@@ -112,7 +131,10 @@ export async function GET(
         requestedQty: requested,
         availableQty,
         status,
-        price: Number(product.price_per_unit),
+        price: precio?.finalPrice ?? Number(product.price_per_unit),
+        // El de antes de la oferta: igual a `price` cuando no hay descuento.
+        listPrice: precio?.listPrice ?? Number(product.price_per_unit),
+        offerId: precio?.offerId ?? null,
         image: imagePath ? getSupabaseImageUrl('products', imagePath, PRESET_PRODUCT_CARD) : null,
         storeId: product.store_id,
         storeName: (product.stores as any)?.name ?? null,

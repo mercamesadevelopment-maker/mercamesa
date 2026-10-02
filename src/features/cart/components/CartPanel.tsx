@@ -9,6 +9,8 @@ import {
   AlertTriangle,
   ChevronLeft,
   ShieldCheck,
+  Tag,
+  Trash2,
 } from "lucide-react";
 import { Disclosure } from "@/components/ui/disclosure/Disclosure";
 import {
@@ -26,6 +28,8 @@ import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
 import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
 import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
 import { DiscountSummary } from "./DiscountSummary";
+import { CartItemPrice } from "./CartItemPrice";
+import { CART_SAVINGS_LABEL } from "@/lib/copy/discount-notice";
 import { CARD_TOKENIZATION_ENABLED } from "@/src/features/payment/config";
 import { CartItem } from "@/src/types";
 
@@ -42,13 +46,14 @@ const STEPS: { id: CheckoutStep; label: string }[] = [
 ];
 
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
-  const { updateCartQty, updateCartItemNotes, removeFromCart } = useCart();
+  const { updateCartQty, updateCartItemNotes, removeFromCart, clearCart } = useCart();
   const {
     state,
     isPlacingOrder,
     errorMessage,
     cartByStore,
     subtotal,
+    savings,
     creditBalance,
     useCredit,
     setUseCredit,
@@ -75,6 +80,8 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   } = useCheckout();
 
   const [deletingItem, setDeletingItem] = React.useState<CartItem | null>(null);
+  const [confirmingClear, setConfirmingClear] = React.useState(false);
+  const savingsByItem = new Map(savings.lines.map((l) => [l.item.id, l]));
   const [step, setStep] = React.useState<CheckoutStep>(1);
   /**
    * La dirección elegida tiene punto en el mapa.
@@ -346,7 +353,28 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                       </div>
                     )}
 
+                    {/* Va en un bloque aparte con las tiendas y no como otro hijo
+                        del `space-y-6`: ese espaciado pone su propio margen y
+                        cualquier ajuste acá terminaba montando el botón sobre
+                        la tarjeta. */}
+                    <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-mm-txw">
+                        {state.cart.length === 1
+                          ? "1 producto"
+                          : `${state.cart.length} productos`}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingClear(true)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-mm-txw hover:text-r transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Vaciar canasta
+                      </button>
+                    </div>
+
                     {/* Agrupado por tienda (siempre una sola tienda por carrito) */}
+                    <div className="space-y-6">
                     {cartByStore.map((group, groupIdx) => (
                       <div
                         key={group.store.id || groupIdx}
@@ -414,24 +442,16 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                                   </div>
                                 )}
 
-                                <div className="flex items-center justify-between mt-2">
-                                  <div className="flex items-baseline gap-1">
-                                    {/* El precio de lista, cuando la oferta lo
-                                        rebajó. Sin esto el descuento solo se
-                                        nota en el total. */}
-                                    {item.listPrice != null &&
-                                      item.listPrice > getPrice(item) && (
-                                        <p className="text-[10px] font-bold text-mm-txw line-through decoration-r">
-                                          {fmt(item.listPrice)}
-                                        </p>
-                                      )}
-                                    <p className="font-bold text-mm-g text-sm">
-                                      {fmt(getPrice(item))}
-                                    </p>
-                                    <span className="text-[10px] text-mm-txw">
-                                      / {item.unit || "und"}
-                                    </span>
-                                  </div>
+                                <div className="flex items-end justify-between gap-2 mt-2">
+                                  {/* Con oferta: porcentaje, precio de lista
+                                      tachado y lo que se ahorra, igual que en
+                                      la tarjeta del producto. */}
+                                  <CartItemPrice
+                                    price={getPrice(item)}
+                                    unit={item.unit || "und"}
+                                    listPrice={savingsByItem.get(item.id)?.listPrice}
+                                    savings={savingsByItem.get(item.id)?.savings}
+                                  />
 
                                   {/* Control de cantidad. Bajar de 1 no quita el
                                       producto de una: pide confirmación. */}
@@ -468,6 +488,8 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                         ))}
                       </div>
                     ))}
+                    </div>
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -542,8 +564,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                         total para que el total no se lea como una sorpresa. */}
                     {quote && (
                       <DiscountSummary
-                        items={state.cart}
-                        getPrice={getPrice}
+                        lines={savings.lines}
                         discountTotal={quote.discountTotal}
                       />
                     )}
@@ -603,12 +624,27 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
 
               {step === 1 ? (
                 <>
+                  {/* El ahorro se dice acá, antes de pedir la dirección: en el
+                      paso 2 solo aparece cuando llega la cotización. */}
+                  {savings.total > 0 && (
+                    <p className="flex items-center gap-1.5 mb-2 text-xs font-bold text-ok">
+                      <Tag className="w-3.5 h-3.5 shrink-0" />
+                      {CART_SAVINGS_LABEL(fmt(savings.total))}
+                    </p>
+                  )}
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-sm text-mm-txs">
                       Subtotal <span className="text-mm-txw">(sin envío)</span>
                     </span>
-                    <span className="text-xl font-bold text-mm-g">
-                      {fmt(subtotal)}
+                    <span className="flex items-baseline gap-2">
+                      {savings.total > 0 && (
+                        <span className="text-xs font-bold text-mm-txw line-through decoration-r">
+                          {fmt(subtotal + savings.total)}
+                        </span>
+                      )}
+                      <span className="text-xl font-bold text-mm-g">
+                        {fmt(subtotal)}
+                      </span>
                     </span>
                   </div>
                   <Button
@@ -676,6 +712,27 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
         title="¿Retirar producto de tu canasta?"
         message={`¿Estás seguro de que deseas retirar "${deletingItem?.name}" de tu canasta?`}
         confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+
+      {/* Solo borra lo que está en la canasta: los productos de un pedido
+          pendiente de pago son de ese pedido y no se tocan. */}
+      <ConfirmModal
+        key="confirm-clear-cart"
+        isOpen={confirmingClear}
+        onClose={() => setConfirmingClear(false)}
+        onConfirm={() => {
+          clearCart();
+          setConfirmingClear(false);
+        }}
+        title="¿Vaciar tu canasta?"
+        message={
+          state.cart.length === 1
+            ? "Se quitará el producto que tienes en la canasta."
+            : `Se quitarán los ${state.cart.length} productos que tienes en la canasta.`
+        }
+        confirmText="Sí, vaciar"
         cancelText="Cancelar"
         variant="danger"
       />

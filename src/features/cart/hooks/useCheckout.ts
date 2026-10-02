@@ -17,6 +17,7 @@ import { CartItem } from '@/src/types';
 import { fmt } from '@/src/constants';
 import { checkoutCartDb, clearCartDb, fetchOrderMinPrice } from '../services/cart.service';
 import { quoteCheckout, sumQuotes, type CheckoutQuote } from '../services/checkout-quote.service';
+import { cartSavings, NO_SAVINGS } from '../utils/cart-savings';
 import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
 import type { Database } from '@/types/database_generated';
 
@@ -124,6 +125,15 @@ export function useCheckout() {
     (acc, item) => acc + getPrice(item) * item.qty,
     0
   );
+
+  /**
+   * Lo que se ahorra con las ofertas de la canasta. Es un aviso del navegador:
+   * el ahorro con el que se cobra es `quote.discountTotal`, del servidor.
+   *
+   * Al mayorista no se le aplica ninguna oferta, y su precio mayorista por debajo
+   * del de lista no es un descuento que haya que anunciarle.
+   */
+  const savings = isWS ? NO_SAVINGS : cartSavings(state.cart, getPrice);
 
   /**
    * Carrito con productos de dos tiendas. No debería poder armarse —`addToCart`
@@ -455,6 +465,7 @@ export function useCheckout() {
     errorMessage,
     cartByStore,
     subtotal,
+    savings,
     totalDeliveryFee,
     total,
     creditBalance,

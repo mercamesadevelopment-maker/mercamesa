@@ -16,6 +16,12 @@ export const DISCOUNT_NOTICE_BODY =
 
 export const DISCOUNT_NOTICE_TOTAL_LABEL = 'Ahorro total';
 
+/** Lo ahorrado en un producto de la canasta. Recibe el valor ya con formato de moneda. */
+export const LINE_SAVINGS_LABEL = (amount: string) => `Ahorras ${amount}`;
+
+/** Lo ahorrado en toda la canasta, antes de elegir la dirección. */
+export const CART_SAVINGS_LABEL = (amount: string) => `Ahorras ${amount} en esta compra`;
+
 /**
  * Lo mismo, dicho después de comprar: en «Mis Órdenes» y en el detalle del
  * pedido. Recibe el valor ya con formato de moneda.
