@@ -353,7 +353,17 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                       </div>
                     )}
 
-                    <div className="flex justify-end -mb-3">
+                    {/* Va en un bloque aparte con las tiendas y no como otro hijo
+                        del `space-y-6`: ese espaciado pone su propio margen y
+                        cualquier ajuste acá terminaba montando el botón sobre
+                        la tarjeta. */}
+                    <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-mm-txw">
+                        {state.cart.length === 1
+                          ? "1 producto"
+                          : `${state.cart.length} productos`}
+                      </span>
                       <button
                         type="button"
                         onClick={() => setConfirmingClear(true)}
@@ -364,6 +374,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     </div>
 
                     {/* Agrupado por tienda (siempre una sola tienda por carrito) */}
+                    <div className="space-y-6">
                     {cartByStore.map((group, groupIdx) => (
                       <div
                         key={group.store.id || groupIdx}
@@ -477,6 +488,8 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                         ))}
                       </div>
                     ))}
+                    </div>
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div
