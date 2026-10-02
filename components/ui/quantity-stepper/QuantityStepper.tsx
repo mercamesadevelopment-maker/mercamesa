@@ -18,6 +18,8 @@ interface QuantityStepperProps {
   onBelowMin?: () => void;
   size?: 'sm' | 'md';
   disabled?: boolean;
+  /** Para que quien lo usa decida cuánto ocupa (p. ej. todo el ancho en una tarjeta angosta). */
+  className?: string;
 }
 
 /**
@@ -37,6 +39,7 @@ export function QuantityStepper({
   onBelowMin,
   size = 'md',
   disabled = false,
+  className,
 }: QuantityStepperProps) {
   const atMax = max !== undefined && qty >= max;
 
@@ -49,7 +52,8 @@ export function QuantityStepper({
   };
 
   const btn = cn(
-    'flex items-center justify-center rounded-full text-mm-txs transition-colors',
+    // `shrink-0`: sin él, en un contenedor angosto los botones se aplastan.
+    'flex shrink-0 items-center justify-center rounded-full text-mm-txs transition-colors',
     'hover:text-mm-g hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
     size === 'sm' ? 'w-5 h-5' : 'w-7 h-7'
   );
@@ -58,7 +62,8 @@ export function QuantityStepper({
     <div
       className={cn(
         'flex items-center bg-mm-gbg rounded-full shrink-0',
-        size === 'sm' ? 'gap-2 px-2 py-1' : 'gap-1.5 px-1.5 py-1'
+        size === 'sm' ? 'gap-2 px-2 py-1' : 'gap-1.5 px-1.5 py-1',
+        className
       )}
     >
       <button
@@ -73,7 +78,7 @@ export function QuantityStepper({
 
       <span
         className={cn(
-          'font-bold text-center tabular-nums text-mm-g',
+          'shrink-0 font-bold text-center tabular-nums text-mm-g',
           size === 'sm' ? 'text-xs w-4' : 'text-sm w-6'
         )}
       >

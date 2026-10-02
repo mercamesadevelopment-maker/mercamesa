@@ -155,8 +155,11 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           </p>
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
-          <div className="flex flex-col">
+        {/* `flex-wrap`: en dos columnas de celular el precio y el contador no
+            caben en la misma línea. Cuando no caben, el contador baja y ocupa
+            el ancho de la tarjeta en vez de aplastarse contra el precio. */}
+        <div className="flex flex-wrap items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
+          <div className="flex flex-col shrink-0">
             {hasDiscount && (
               <p className="text-[11px] text-mm-txw line-through leading-none mb-1">{fmt(listPrice)}</p>
             )}
@@ -183,6 +186,9 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
               // Bajar de 1 saca el producto de la canasta.
               min={1}
               onBelowMin={() => updateCartQty(product.id, 0)}
+              // Crece hasta un tope: llena la tarjeta angosta y no se vuelve
+              // una barra larga en la ancha.
+              className="ml-auto grow max-w-36 justify-between"
             />
           ) : (
             <button
