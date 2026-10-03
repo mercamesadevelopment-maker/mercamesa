@@ -64,7 +64,7 @@ export function StockMovementModal({ isOpen, onClose, onSuccess, product }: Stoc
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Registrar Movimiento de Stock"
+      title="Registrar Movimiento de Inventario"
     >
       <form onSubmit={handleSubmit} className="p-10 space-y-6">
         {product && (
@@ -79,7 +79,7 @@ export function StockMovementModal({ isOpen, onClose, onSuccess, product }: Stoc
             <div>
               <h3 className="font-bold text-mm-g text-sm leading-tight">{product.name}</h3>
               <p className="text-xs text-mm-txw mt-0.5">
-                Stock actual: <span className="font-bold text-mm-g">{product.stock} {product.unit}s</span>
+                Inventario actual: <span className="font-bold text-mm-g">{product.stock} {product.unit}s</span>
               </p>
             </div>
           </div>
@@ -141,7 +141,7 @@ export function StockMovementModal({ isOpen, onClose, onSuccess, product }: Stoc
               ? 'Cantidad a ingresar'
               : type === 'exit'
               ? 'Cantidad a retirar'
-              : 'Nuevo valor de stock físico'
+              : 'Nuevo valor de inventario físico'
           }
           type="number"
           required

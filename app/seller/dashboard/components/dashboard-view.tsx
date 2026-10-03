@@ -394,7 +394,7 @@ export function DashboardView() {
       {/* Menor stock */}
       <div className="bg-white p-10 rounded-[48px] border border-mm-crd shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xl font-fraunces text-mm-g">Menor stock</h3>
+          <h3 className="text-xl font-fraunces text-mm-g">Menor inventario</h3>
           {outOfStockCount > 0 ? (
             <AlertCircle className="w-5 h-5 text-r" />
           ) : (

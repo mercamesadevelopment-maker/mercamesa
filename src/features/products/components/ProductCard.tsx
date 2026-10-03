@@ -151,7 +151,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
               product.stock > 0 ? 'text-mm-g/70' : 'text-r'
             )}
           >
-            {product.stock > 0 ? `Inventario Disponible: ${product.stock} ${product.measurement_units?.abbreviation || 'und'}` : 'Sin stock'}
+            {product.stock > 0 ? `Inventario Disponible: ${product.stock} ${product.measurement_units?.abbreviation || 'und'}` : 'Agotado'}
           </p>
         </div>
 

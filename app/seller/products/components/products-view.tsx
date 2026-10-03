@@ -100,7 +100,7 @@ export function ProductsView() {
     },
     {
       key: 'retailPrice',
-      label: 'Precio Retail',
+      label: 'Precio Minorista',
       render: (item: any) => <span className="text-sm font-bold text-mm-g">{fmt(item.retailPrice)}</span>
     },
     {
@@ -110,7 +110,7 @@ export function ProductsView() {
     },
     {
       key: 'stock',
-      label: 'Stock',
+      label: 'Inventario',
       render: (item: any) => (
         <Badge variant={item.stock <= 0 ? 'error' : 'success'}>
           {item.stock <= 0 ? 'Agotado' : `${item.stock} ${item.unit}s`}
@@ -281,12 +281,12 @@ export function ProductsView() {
         <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm h-[400px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xl font-fraunces text-mm-g flex items-center gap-2">
-              Niveles de Stock <Activity className="w-5 h-5 text-mm-txw" />
+              Niveles de Inventario <Activity className="w-5 h-5 text-mm-txw" />
             </h3>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-mm-g" />
-                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Con stock</span>
+                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Con inventario</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-r" />
@@ -344,7 +344,7 @@ export function ProductsView() {
               <Zap className="w-24 h-24" />
             </div>
             <div className="relative z-10">
-              <p className="text-[10px] font-black uppercase opacity-60 tracking-widest mb-1">Stock más Bajo</p>
+              <p className="text-[10px] font-black uppercase opacity-60 tracking-widest mb-1">Inventario más Bajo</p>
               {lowestStockItem ? (
                 <>
                   <h4 className="text-2xl font-fraunces mb-4 truncate pr-12">
@@ -374,7 +374,7 @@ export function ProductsView() {
                 {outOfStockProducts.length > 0 ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Menor stock</p>
+                <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Menor inventario</p>
                 <p className="font-bold text-mm-g leading-tight">
                   {outOfStockProducts.length === 0
                     ? 'Ningún producto agotado'

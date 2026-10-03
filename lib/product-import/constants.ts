@@ -47,7 +47,7 @@ export const TEMPLATE_HEADERS = {
   unit: 'Unidad',
   productCode: 'Código del producto',
   retailPrice: 'Precio minorista',
-  stock: 'Stock',
+  stock: 'Inventario',
   wholesalePrice: 'Precio mayorista',
   wholesaleMinQty: 'Cantidad mínima mayorista',
   minOrderQty: 'Pedido mínimo',
@@ -57,13 +57,15 @@ export type TemplateField = keyof typeof TEMPLATE_HEADERS;
 
 /**
  * Encabezados alternativos aceptados al leer un archivo. La columna del catálogo
- * se llamaba solo "Código" antes de que existiera el código del producto; se
- * sigue aceptando para no romper plantillas ya descargadas.
+ * se llamaba solo "Código" antes de que existiera el código del producto, y la
+ * del inventario se llamaba "Stock"; se siguen aceptando para no romper
+ * plantillas ya descargadas.
  */
 export const TEMPLATE_HEADER_ALIASES: Record<string, TemplateField> = {
   'Código': 'catalogCode',
   'Código de barras': 'productCode',
   'Tu código': 'productCode',
+  'Stock': 'stock',
 };
 
 /** Esquema con el que se lee un archivo subido por el vendedor. */

@@ -91,7 +91,7 @@ export function BulkImportModal({
               <p className="text-sm text-mm-txs leading-relaxed">
                 Descarga la plantilla{storeName ? ` de ${storeName}` : ''}: trae el catálogo con los
                 productos que aún no publicas. Llena <strong>tu código</strong>,{' '}
-                <strong>precio</strong> y <strong>stock</strong> solo en los que vendes —las filas
+                <strong>precio</strong> e <strong>inventario</strong> solo en los que vendes —las filas
                 vacías se ignoran— y súbela.
               </p>
               <p className="text-xs text-mm-txw">

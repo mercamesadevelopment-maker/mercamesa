@@ -114,10 +114,10 @@ export function StockHistoryModal({ isOpen, onClose, product }: StockHistoryModa
             </div>
             <div className="flex-grow min-w-0">
               <h3 className="font-bold text-mm-g text-lg truncate leading-tight">{product.name}</h3>
-              <p className="text-xs text-mm-txs mt-0.5">Historial de variaciones de stock</p>
+              <p className="text-xs text-mm-txs mt-0.5">Historial de variaciones de inventario</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Stock Actual</p>
+              <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Inventario Actual</p>
               <div className="flex items-baseline gap-1 justify-end">
                 <span className="text-3xl font-fraunces font-bold text-mm-g leading-none">
                   {product.stock}
@@ -220,7 +220,7 @@ export function StockHistoryModal({ isOpen, onClose, product }: StockHistoryModa
         <div className="flex gap-2.5 p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd text-xs text-mm-txs font-medium leading-relaxed">
           <span className="text-mm-g">💡</span>
           <p>
-            Los movimientos son automáticos por pedidos web y físicos (Entradas/Salidas), o generados manualmente por cambios de stock en el panel de vendedor.
+            Los movimientos son automáticos por pedidos web y físicos (Entradas/Salidas), o generados manualmente por cambios de inventario en el panel de vendedor.
           </p>
         </div>
 

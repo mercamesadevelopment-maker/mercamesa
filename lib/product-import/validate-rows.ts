@@ -126,7 +126,7 @@ export function validateRows(rows: SellerRow[], lookups: ImportLookups): Validat
         code,
         name: product.name,
         status: 'skipped',
-        message: 'Ya lo tienes publicado. Edita su precio o stock desde el listado.',
+        message: 'Ya lo tienes publicado. Edita su precio o inventario desde el listado.',
       });
       continue;
     }
