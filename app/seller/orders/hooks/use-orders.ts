@@ -5,6 +5,7 @@ import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
 import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
 import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
+import { isPaymentApproved } from '@/src/features/orders/utils/payment-status';
 
 export function useOrders() {
   const { stores, storeId, storeName, selectStore } = useSellerStore();
@@ -196,7 +197,13 @@ export function useOrders() {
         };
       });
 
-      setMyOrders(mappedOrders);
+      // Solo los pedidos con el pago aprobado. Uno sin pagar no es trabajo del
+      // tendero todavía: puede no pagarse nunca, y al vencerse queda cancelado
+      // sin que la tienda haya hecho nada. Antes aparecían los dos —los
+      // pendientes de pago y los que el cliente dejó vencer—, mezclados con los
+      // que sí hay que despachar. Al aprobarse el pago, el pedido entra solo y
+      // ya en «Confirmado».
+      setMyOrders(mappedOrders.filter((o) => isPaymentApproved(o.paymentStatus)));
     } catch (err) {
       console.error('Error loading store orders:', err);
     } finally {

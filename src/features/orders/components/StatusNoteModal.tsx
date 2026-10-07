@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button } from '@/src/components/Shared';
-import { ClipboardList, MessageSquare } from 'lucide-react';
+import { AlertTriangle, ClipboardList, MessageSquare } from 'lucide-react';
 
 interface StatusNoteModalProps {
   isOpen: boolean;
@@ -10,6 +10,8 @@ interface StatusNoteModalProps {
   title: string;
   actionLabel: string;
   nextStatusLabel: string;
+  /** Aviso antes de confirmar, p. ej. que el pago aún no está aprobado. */
+  warning?: string | null;
 }
 
 export function StatusNoteModal({
@@ -19,6 +21,7 @@ export function StatusNoteModal({
   title,
   actionLabel,
   nextStatusLabel,
+  warning,
 }: StatusNoteModalProps) {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,6 +59,13 @@ export function StatusNoteModal({
             El pedido cambiará al estado <span className="font-extrabold text-mm-g uppercase">{nextStatusLabel}</span>.
           </div>
         </div>
+
+        {warning && (
+          <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+            <p className="text-xs text-amber-900 leading-relaxed font-semibold">{warning}</p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-wider text-mm-txw flex items-center gap-1.5">
