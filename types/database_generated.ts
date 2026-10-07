@@ -3905,6 +3905,7 @@ export type Database = {
         Row: {
           category_name: string | null
           featured_at: string | null
+          has_active_offer: boolean | null
           id: string | null
           is_featured: boolean | null
           marketplace_id: string | null

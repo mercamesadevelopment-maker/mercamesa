@@ -135,6 +135,12 @@ async function responderVitrina(
      * `featured_at` va después del orden pedido, no antes: puesto antes mandaría
      * él —cada destacado tiene su propia fecha— y el orden elegido no se notaría.
      */
+    /**
+     * Antes que los destacados, los que tienen una oferta vigente: la oferta
+     * vence y es lo que más le conviene al comprador ver primero. Se decide en
+     * la base (`has_active_offer`) porque la vitrina se pagina en el servidor.
+     */
+    query = query.order('has_active_offer', { ascending: false });
     query = query.order('is_featured', { ascending: false });
 
     const sort = params.get('sort');
