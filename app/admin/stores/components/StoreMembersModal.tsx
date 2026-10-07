@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Trash2, Users, Clock, ShieldCheck, Plus } from 'lucide-react';
+import { Mail, Trash2, Users, Clock, ShieldCheck, Plus, RotateCw, AlertTriangle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Button, Input } from '@/src/components/Shared';
@@ -33,6 +33,9 @@ interface Invitation {
   roles: Role;
   is_pending: boolean;
   created_at: string;
+  expires_at: string;
+  /** El enlace ya no sirve: se ofrece reenviarla. */
+  expired: boolean;
 }
 
 interface StoreMembersModalProps {
@@ -56,6 +59,7 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
   const [email, setEmail] = useState('');
   const [roleId, setRoleId] = useState(STORE_ROLES[1].id); // Default to 'seller' / Tendero
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -111,6 +115,24 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
       alert(err.message || 'Error al agregar miembro');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResend = async (invite: Invitation) => {
+    setResendingId(invite.id);
+    try {
+      const res = await fetch(`/api/stores/${storeId}/members?inviteId=${invite.id}`, {
+        method: 'PATCH',
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+
+      setSuccessMessage(`Reenviamos la invitación a ${invite.email}. Vence en 7 días.`);
+      fetchMembers();
+    } catch (err: any) {
+      alert(err.message || 'No se pudo reenviar la invitación');
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -241,9 +263,15 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
                       <span className="font-bold text-sm text-mm-g block opacity-75">
                         {invite.email}
                       </span>
-                      <span className="text-[10px] text-mm-txw font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Pendiente de registro
-                      </span>
+                      {invite.expired ? (
+                        <span className="text-[10px] text-r font-bold uppercase tracking-wider flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Invitación vencida
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-mm-txw font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Pendiente de registro
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -251,6 +279,17 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
                     <span className="text-xs font-semibold px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full">
                       {invite.roles?.label || 'Invitado'}
                     </span>
+                    {invite.expired && (
+                      <button
+                        onClick={() => handleResend(invite)}
+                        disabled={resendingId === invite.id}
+                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-mm-g hover:bg-mm-gbg rounded-lg transition-colors disabled:opacity-50"
+                        title="Reenviar Invitación"
+                      >
+                        <RotateCw className={`w-3.5 h-3.5 ${resendingId === invite.id ? 'animate-spin' : ''}`} />
+                        {resendingId === invite.id ? 'Enviando...' : 'Reenviar'}
+                      </button>
+                    )}
                     <button 
                       onClick={() => handleDelete(invite.id, true)}
                       className="p-1.5 hover:bg-red-50 text-mm-txw hover:text-r rounded-lg transition-colors"

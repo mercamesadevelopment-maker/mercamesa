@@ -289,6 +289,34 @@ export function adminInvitationEmail(
 
 
 /**
+ * Invitación a ser miembro de una tienda, cuando se reenvía.
+ *
+ * La primera sale con el correo de Supabase (`inviteUserByEmail`), pero ese no
+ * sirve para reenviar: la cuenta ya quedó creada y Supabase rechaza invitarla
+ * otra vez. El enlace nuevo se genera con `generateLink` y se manda acá.
+ */
+export function storeInvitationEmail(
+  storeName: string,
+  rolEtiqueta: string,
+  url: string,
+  diasParaVencer: number
+) {
+  return plantilla({
+    title: `Te invitaron a ${storeName} en MercaMesa`,
+    heading: `Te invitaron a ${storeName}`,
+    body: `
+      <p class="text">Te invitaron a unirte a <span class="highlight">${storeName}</span> en MercaMesa con el rol de <span class="highlight">${rolEtiqueta}</span>.</p>
+      <p class="text">Para empezar, abre el enlace y completa tus datos. La invitación vence en ${diasParaVencer} días.</p>
+      <p class="text">
+        <a href="${url}" style="display:inline-block;background-color:#1A3308;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
+      </p>
+      <p class="text">Si el botón no funciona, copia este enlace en tu navegador:<br><span style="word-break:break-all;">${url}</span></p>
+      <p class="text">Si no esperabas esta invitación, puedes ignorar este correo.</p>
+    `,
+  });
+}
+
+/**
  * Novedad en una PQRS: se radicó, respondió la tienda, se resolvió.
  *
  * Sin enlace a propósito: el caso se abre desde la plataforma con sesión
