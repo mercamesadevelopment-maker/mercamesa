@@ -144,6 +144,9 @@ export function useOrders() {
             price: Number(item.unit_price),
             unit: item.unit_name || 'unid',
             emoji: getEmojiForName(item.catalog_name),
+            // La indicación que el comprador escribió en la canasta ("más
+            // verde", "bien maduro"). Es para quien arma el pedido.
+            notes: item.notes || undefined,
           }));
 
         const client = (buyer?.clients && Array.isArray(buyer.clients) && buyer.clients.length > 0)
