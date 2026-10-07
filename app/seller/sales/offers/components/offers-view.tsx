@@ -5,14 +5,17 @@ import { useOffers } from '../hooks/use-offers';
 import { OfferModal } from '@/src/features/offers/components/OfferModal';
 import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Table } from '@/components/ui/table/components/Table';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
+import { offerDisplayStatus } from '@/src/features/offers/utils/offer-display-status';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
   verified: 'Verificada',
   active: 'Activa',
   inactive: 'Inactiva',
+  expired: 'Vencida',
+  scheduled: 'Programada',
 };
 
 const STATUS_VARIANTS: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
@@ -20,6 +23,10 @@ const STATUS_VARIANTS: Record<string, 'default' | 'success' | 'warning' | 'error
   verified: 'default',
   active: 'success',
   inactive: 'error',
+  // Aprobada pero ya no corre: el comprador no la ve. Ámbar y no rojo, porque
+  // no es un rechazo sino algo que el tendero puede renovar.
+  expired: 'warning',
+  scheduled: 'default',
 };
 
 export function OffersView() {
@@ -60,7 +67,12 @@ export function OffersView() {
       key: 'ends_at',
       label: 'Vence',
       render: (item: StoreOffer) => (
-        <span className="text-xs font-mono font-bold">
+        <span
+          className={cn(
+            'text-xs font-mono font-bold',
+            offerDisplayStatus(item) === 'expired' && 'text-r'
+          )}
+        >
           {item.ends_at ? new Date(item.ends_at).toLocaleDateString() : 'Sin límite'}
         </span>
       )
@@ -68,14 +80,17 @@ export function OffersView() {
     {
       key: 'status',
       label: 'Estado',
-      render: (item: StoreOffer) => (
-        <div className="flex items-center gap-2">
-          <Badge variant={STATUS_VARIANTS[item.status] || 'default'}>
-            {STATUS_LABELS[item.status] || item.status}
-          </Badge>
-          {item.is_featured && <Badge variant="oro">Destacada</Badge>}
-        </div>
-      )
+      render: (item: StoreOffer) => {
+        const status = offerDisplayStatus(item);
+        return (
+          <div className="flex items-center gap-2">
+            <Badge variant={STATUS_VARIANTS[status] || 'default'}>
+              {STATUS_LABELS[status] || status}
+            </Badge>
+            {item.is_featured && <Badge variant="oro">Destacada</Badge>}
+          </div>
+        );
+      }
     }
   ];
 
@@ -143,7 +158,7 @@ export function OffersView() {
              <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
                <Tag className="w-5 h-5" />
              </div>
-             <h3 className="text-xl font-fraunces text-mm-g">Promociones Activas</h3>
+             <h3 className="text-xl font-fraunces text-mm-g">Promociones</h3>
           </div>
           <Badge variant="oro" className="text-xs px-4 py-1.5 uppercase shadow-inner">
             {offers.length} ofertas
