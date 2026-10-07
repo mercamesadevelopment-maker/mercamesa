@@ -11,6 +11,7 @@ import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailMo
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { StatusNoteModal } from './StatusNoteModal';
+import { isPaymentApproved, UNPAID_STATUS_CHANGE_WARNING } from '@/src/features/orders/utils/payment-status';
 import { RevertStatusModal } from './RevertStatusModal';
 import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
 
@@ -60,6 +61,17 @@ export function OrdersView({
   // Pedido sobre el que el tendero radica una PQRS. El admin no radica: resuelve.
   const [reportOrder, setReportOrder] = React.useState<Order | null>(null);
   const [reportedCode, setReportedCode] = React.useState<string | null>(null);
+
+  // Avanzar un pedido sin pago aprobado descuenta inventario y compromete a la
+  // tienda con algo que quizá nunca se pague. No se bloquea —el admin puede
+  // tener razones—, pero se avisa antes de confirmar.
+  const statusChangeOrder = statusChangeRequest
+    ? filteredOrders.find(o => o.id === statusChangeRequest.orderId) ?? null
+    : null;
+  const statusChangeWarning =
+    statusChangeOrder && !isPaymentApproved(statusChangeOrder.paymentStatus)
+      ? UNPAID_STATUS_CHANGE_WARNING
+      : null;
 
   const ordersPerPage = 6;
   const storeFilterThreshold = variant === 'admin' ? 0 : 1;
@@ -419,6 +431,7 @@ export function OrdersView({
         title="Cambiar Estado del Pedido"
         actionLabel={statusChangeRequest?.actionLabel || 'Confirmar'}
         nextStatusLabel={statusChangeRequest?.nextStatusLabel || ''}
+        warning={statusChangeWarning}
       />
     </div>
   );
