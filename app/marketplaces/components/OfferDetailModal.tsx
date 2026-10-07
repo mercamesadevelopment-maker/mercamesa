@@ -8,6 +8,7 @@ import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Badge, Button } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 
 interface OfferDetailModalProps {
   offer: StoreOffer | null;
@@ -16,7 +17,7 @@ interface OfferDetailModalProps {
 
 export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
   const { state, dispatch } = useApp();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateCartQty } = useCart();
 
   // El mismo bloqueo que hace el Modal genérico (components/ui/modal). Sin él,
   // el fondo se desplaza bajo el overlay al arrastrar en móvil.
@@ -38,12 +39,18 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
     ? Number(offer.special_price)
     : Math.round(originalPrice * (1 - (offer.discount_pct || 0) / 100));
 
+  // Igual que la tarjeta del producto: la cantidad se lee del carrito, así el
+  // contador de acá y el de la canasta no se pueden desincronizar.
+  const storeProductId = offer.store_products?.id || '';
+  const qty = cart.find((i) => String(i.id) === String(storeProductId))?.qty ?? 0;
+  const stock = Number(offer.store_products?.stock ?? 0);
+
   const isPercentage = !!offer.discount_pct;
   const discountLabel = isPercentage ? `${offer.discount_pct}% DESCUENTO` : `-$${offer.special_price?.toLocaleString('es-CO')} DTO`;
 
   const handleAddToCart = () => {
     addToCart({
-      id: offer.store_products?.id || '',
+      id: storeProductId,
       name: product?.name || 'Producto en Oferta',
       cat: 'Ofertas',
       retailPrice: discountedPrice,
@@ -60,7 +67,8 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
       storeId: offer.store_products?.store_id || '',
       storeName,
     } as any, 1, offer.id);
-    onClose();
+    // El modal no se cierra: al agregar, el botón cede el puesto al contador,
+    // que es lo que permite llevar más de uno sin abrir la canasta.
   };
 
   const content = (
@@ -143,12 +151,29 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <Button
-                    onClick={handleAddToCart}
-                    className="w-full py-4 text-lg"
-                  >
-                    <ShoppingCart className="w-5 h-5" /> Agregar al carrito
-                  </Button>
+                  {stock <= 0 ? (
+                    <p className="text-center text-sm font-bold text-r py-3">Agotado</p>
+                  ) : qty > 0 ? (
+                    <div className="flex items-center justify-between gap-3 p-3 bg-mm-gbg/50 rounded-2xl border border-mm-crd/50">
+                      <span className="text-sm font-bold text-mm-g pl-1">En tu canasta</span>
+                      <QuantityStepper
+                        qty={qty}
+                        max={stock}
+                        onChange={(next) => updateCartQty(storeProductId, next)}
+                        // Bajar de 1 saca el producto de la canasta, como en la tarjeta.
+                        min={1}
+                        onBelowMin={() => updateCartQty(storeProductId, 0)}
+                        className="bg-white"
+                      />
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleAddToCart}
+                      className="w-full py-4 text-lg"
+                    >
+                      <ShoppingCart className="w-5 h-5" /> Agregar al carrito
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     onClick={onClose}
