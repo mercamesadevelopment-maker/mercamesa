@@ -120,8 +120,9 @@ export function OrderDetailModal({
                 {order.items.map((item, idx) => (
                   <div
                     key={item.id || idx}
-                    className="flex items-center justify-between p-3.5 rounded-2xl bg-mm-gbg/10 border border-mm-crd/40 hover:border-mm-g/20 transition-all"
+                    className="p-3.5 rounded-2xl bg-mm-gbg/10 border border-mm-crd/40 hover:border-mm-g/20 transition-all"
                   >
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="text-2xl select-none flex-shrink-0" role="img" aria-label="product emoji">
                         {item.emoji || '📦'}
@@ -136,6 +137,18 @@ export function OrderDetailModal({
                     <div className="text-sm font-black text-mm-g ml-4">
                       {fmt(item.price * item.qty)}
                     </div>
+                  </div>
+                  {/* La indicación del comprador para este producto. Va en
+                      ámbar, como las notas del pedido: es algo que el tendero
+                      tiene que leer antes de empacar. */}
+                  {item.notes && (
+                    <p className="mt-2.5 flex items-start gap-1.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900 font-medium">
+                      <MessageSquare className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-700" />
+                      <span>
+                        <span className="font-bold">Indicación del cliente:</span> {item.notes}
+                      </span>
+                    </p>
+                  )}
                   </div>
                 ))}
 
