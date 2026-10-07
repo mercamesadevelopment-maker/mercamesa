@@ -41,7 +41,6 @@ export default function MarketplacesPage() {
                   key={offer.id}
                   offer={offer}
                   onClick={() => setSelectedOffer(offer)}
-                  showStore
                 />
               ))}
             </div>

@@ -8,14 +8,6 @@ import { StoreOffer } from '@/src/features/offers/types/offer.types';
 interface OfferCardProps {
   offer: StoreOffer;
   onClick: () => void;
-  /**
-   * Muestra a qué tienda pertenece la oferta.
-   *
-   * Solo lo usa /marketplaces: allí la sección cruza todas las plazas y no hay
-   * ninguna otra señal de la tienda. /promotions tiene un desplegable para
-   * filtrar por tienda, así que no lo necesita.
-   */
-  showStore?: boolean;
 }
 
 /**
@@ -23,7 +15,7 @@ interface OfferCardProps {
  * /promotions. No lleva clases de ancho: el tamaño lo manda la cuadrícula del
  * padre, igual que StoreCard y ProductCard.
  */
-export function OfferCard({ offer, onClick, showStore = false }: OfferCardProps) {
+export function OfferCard({ offer, onClick }: OfferCardProps) {
   const product = offer.store_products?.catalog_products;
 
   return (
@@ -60,11 +52,12 @@ export function OfferCard({ offer, onClick, showStore = false }: OfferCardProps)
             {product?.name || 'Producto en Oferta'}
           </h3>
 
-          {showStore && (
-            <p className="text-[10px] text-mm-txw font-bold uppercase tracking-tighter truncate">
-              {offer.store_products?.stores?.name || 'Tienda'}
-            </p>
-          )}
+          {/* Siempre, también en /promotions: el filtro por tienda de esa página
+              no le dice al comprador de qué tienda es cada oferta cuando ve
+              todas a la vez. */}
+          <p className="text-[10px] text-mm-txw font-bold uppercase tracking-tighter truncate">
+            {offer.store_products?.stores?.name || 'Tienda'}
+          </p>
         </div>
 
         <div className="flex items-center justify-between gap-2 mt-3 pt-3 sm:mt-4 sm:pt-4 border-t border-mm-gbg">
