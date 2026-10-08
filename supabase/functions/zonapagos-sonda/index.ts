@@ -1,63 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-/**
- * Mismo mapeo que `zonapagos-sync`. Las dos funciones confirman el mismo pago por
- * caminos distintos y tienen que dejar el mismo dato en la tabla; antes esta
- * copia además etiquetaba todo como "PSE - <entidad>" aunque el medio fuera otro.
- *
- * `1001` es el código que manda producción, verificado contra los dos pagos que
- * llegaron a una entidad financiera (Nequi y BBVA). El `2701` de la documentación
- * no se ha visto nunca, pero se conserva.
- */
-function mapZonaPagosMethod(code?: string | null) {
-  switch (code) {
-    case '1001':
-    case '2701':
-      return 'pse';
-    case '1000':
-      return 'card';
-    case '3000':
-      return 'cash';
-    default:
-      return 'unknown';
-  }
-}
-
-function getPaymentMethodLabel(method: string, entityName?: string | null) {
-  switch (method) {
-    case 'pse':
-      return entityName ? `PSE - ${entityName}` : 'PSE';
-    case 'card':
-      return 'Tarjeta de Crédito/Débito';
-    case 'cash':
-      return 'Efectivo';
-    default:
-      return entityName || 'Otro';
-  }
-}
-
-/**
- * Si este intento es el último que se abrió para el pedido y el pedido no está
- * ya pagado por otro intento.
- */
-async function esElIntentoVigente(supabase: any, orderId: string, paymentId: string) {
-  const { data: order } = await supabase
-    .from('orders')
-    .select('payment_status')
-    .eq('id', orderId)
-    .maybeSingle();
-  if (!order || order.payment_status === 'approved') return false;
-
-  const { data: ultimo } = await supabase
-    .from('payments')
-    .select('id')
-    .eq('order_id', orderId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return ultimo?.id === paymentId;
-}
+import { resolverPedido, verificarIntento } from '../_shared/zonapagos.ts';
 
 serve(async (req) => {
   try {
@@ -94,113 +37,36 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'No pending payments to sync' }), { status: 200 });
     }
 
-    const idComercio = parseInt(Deno.env.get('ZONAPAGOS_ID_COMERCIO') || '0');
-    const usuario = Deno.env.get('ZONAPAGOS_USUARIO');
-    const clave = Deno.env.get('ZONAPAGOS_CLAVE');
+    // 2. Consultar cada intento en ZonaPagos y guardar lo que responda
+    const orderIds = new Set<string>();
+
+    for (const payment of pendingPayments) {
+      try {
+        const paymentStatus = await verificarIntento(supabase, payment);
+        if (paymentStatus) orderIds.add(payment.order_id);
+      } catch (err) {
+        console.error(`Error syncing payment ${payment.str_id_pago}:`, err);
+      }
+    }
 
     const results = [];
 
-    // 2. Consultar y actualizar cada pago en lote
-    for (const payment of pendingPayments) {
+    // 3. Actualizar cada pedido con el resultado de TODOS sus intentos (ver
+    // `resolverPedido`): un aprobado siempre gana y el pedido solo queda
+    // rechazado cuando no le queda ningún intento por resolver. Así el
+    // «rechazado» de un intento no pisa el pedido que otro intento pagó o
+    // todavía puede pagar, ni le devuelve al carrito productos ya comprados.
+    for (const orderId of orderIds) {
       try {
-        const payload = {
-          int_id_comercio: idComercio,
-          str_usr_comercio: usuario,
-          str_pwd_Comercio: clave,
-          str_id_pago: payment.str_id_pago,
-          int_no_pago: -1,
-        };
+        const paymentStatus = await resolverPedido(supabase, orderId);
 
-        const response = await fetch(
-          'https://www.zonapagos.com/Apis_CicloPago/api/VerificacionPago',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          }
-        );
-
-        if (!response.ok) continue;
-
-        const result = await response.json();
-        const responseParts = result.str_res_pago?.split('|').map((p: string) => p.trim()) || [];
-
-        if (responseParts.length === 0) continue;
-
-        // Extraer códigos correspondientes
-        const transactionCodeRaw = responseParts[4]; // int_estado_pago (999, 4001, 1, 1000, etc.)
-        const paymentMethodCode = responseParts[22]; // 1001 = PSE
-        const entityName = responseParts[24]; // NEQUI, BANCO BBVA COLOMBIA S.A.
-        const paymentMethod = mapZonaPagosMethod(paymentMethodCode);
-        
-        const transactionCode = parseInt(transactionCodeRaw || '-1');
-
-        let paymentStatus = 'pending';
-        if (transactionCode === 1) {
-          paymentStatus = 'approved';
-        } else if ([1000, 1001, 4000, 4003].includes(transactionCode)) {
-          paymentStatus = 'rejected';
-        } else if (transactionCode !== -1) {
-          paymentStatus = 'processing';
-        }
-
-        // 3. Actualizar la tabla de pagos
-        await supabase
-          .from('payments')
-          .update({
-            status: paymentStatus,
-            payment_method: paymentMethod,
-            payment_method_label: getPaymentMethodLabel(paymentMethod, entityName),
-            provider_payment_id: responseParts[21] || null, // No. de pago de la pasarela
-            callback_response: result,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', payment.id);
-
-        // 4. Actualizar la orden asociada.
-        //
-        // Un pedido puede tener varios intentos de pago (el botón «Pagar» de
-        // «Mis órdenes»). Un aprobado siempre gana; lo demás solo lo decide el
-        // intento más reciente. Sin esto, el «rechazado» de un intento viejo
-        // pisaba el pedido que otro intento ya había pagado, y le devolvía al
-        // carrito los productos que ya estaban comprados.
-        const decide = paymentStatus === 'approved'
-          || await esElIntentoVigente(supabase, payment.order_id, payment.id);
-
-        if (!decide) {
-          results.push({ orderId: payment.order_id, status: paymentStatus, superseded: true });
-          continue;
-        }
-
-        const orderUpdate: any = {
-          payment_status: paymentStatus,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (paymentStatus === 'approved') {
-          orderUpdate.status = 'confirmed';
-        }
-
-        let orderQuery = supabase
-          .from('orders')
-          .update(orderUpdate)
-          .eq('id', payment.order_id);
-        if (paymentStatus !== 'approved') {
-          orderQuery = orderQuery.neq('payment_status', 'approved');
-        }
-        await orderQuery;
-
-        // 5. Sincronizar el carrito de base de datos
-        if (paymentStatus === 'approved') {
-          await supabase
-            .from('cart_items')
-            .delete()
-            .eq('order_id', payment.order_id);
-        } else if (paymentStatus === 'rejected') {
+        // 4. Pedido rechazado: sus productos vuelven al carrito. (El carrito de
+        // un pedido aprobado lo borra `resolverPedido`.)
+        if (paymentStatus === 'rejected') {
           const { data: pendingItems } = await supabase
             .from('cart_items')
             .select('id, buyer_id, store_product_id, quantity')
-            .eq('order_id', payment.order_id);
+            .eq('order_id', orderId);
 
           if (pendingItems) {
             for (const item of pendingItems) {
@@ -217,7 +83,7 @@ serve(async (req) => {
                   .from('cart_items')
                   .update({ quantity: activeItem.quantity + item.quantity, updated_at: new Date().toISOString() })
                   .eq('id', activeItem.id);
-                
+
                 await supabase
                   .from('cart_items')
                   .delete()
@@ -232,9 +98,9 @@ serve(async (req) => {
           }
         }
 
-        results.push({ orderId: payment.order_id, status: paymentStatus });
+        results.push({ orderId, status: paymentStatus });
       } catch (err) {
-        console.error(`Error syncing payment ${payment.str_id_pago}:`, err);
+        console.error(`Error resolving order ${orderId}:`, err);
       }
     }
 
