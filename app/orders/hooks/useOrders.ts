@@ -50,9 +50,13 @@ export function useOrders(options: UseOrdersOptions = {}) {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+    // La vista trae una fila por tienda y `order_total` es el del pedido
+    // completo: se cuenta una vez por pedido.
+    const totalByOrder = new Map(orders.map(order => [order.order_id, Number(order.order_total ?? 0)]));
+
     return {
       totalOrders: meta?.total || orders.length,
-      totalSpent: orders.reduce((acc, order) => acc + (order.total || 0), 0),
+      totalSpent: Array.from(totalByOrder.values()).reduce((acc, total) => acc + total, 0),
       thisWeekOrders: orders.filter(order => {
         if (!order.created_at) return false;
         return new Date(order.created_at) > oneWeekAgo;

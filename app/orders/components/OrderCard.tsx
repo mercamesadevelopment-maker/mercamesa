@@ -91,6 +91,11 @@ export function OrderCard({
   const [reportedCode, setReportedCode] = useState<string | null>(null);
   const { pay, paying, error: payError } = usePayOrder();
   const payable = isPayable(order.payable_until);
+  // El total es el del pedido, no `order.total`, que son solo los productos de
+  // la tienda. Mientras se pueda pagar se muestra lo que cobra la pasarela: el
+  // total menos el saldo a favor apartado.
+  const orderTotal = Number(order.order_total ?? 0);
+  const amountShown = payable ? orderTotal - Number(order.credit_applied ?? 0) : orderTotal;
 
   return (
     <motion.div
@@ -253,7 +258,7 @@ export function OrderCard({
             </span>
 
             <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
-              {formatCurrency(order.total || 0)}
+              {formatCurrency(amountShown)}
             </span>
           </div>
 

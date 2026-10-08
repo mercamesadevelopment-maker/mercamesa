@@ -27,6 +27,7 @@ import {
 
 import { ORDER_STATUS_CONFIG, PAYMENT_STATUS_CONFIG } from './OrderCard';
 import { useOrderHistory } from '../hooks/useOrderHistory';
+import { isPayable } from '../hooks/usePayOrder';
 import { OrderSavings } from './OrderSavings';
 import { DeliveryTracking } from '@/src/features/orders/components/DeliveryTracking';
 import { useDeliveryTracking } from '@/src/features/orders/hooks/use-delivery-tracking';
@@ -75,6 +76,16 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
     : { label: 'Desconocido', color: 'bg-mm-gbg text-mm-txw', icon: CreditCard };
 
   const products = (order.products as any[]) || [];
+
+  const netPurchase =
+    Number(order.order_subtotal ?? 0) +
+    Number(order.service_commission_amount ?? 0) +
+    Number(order.messages_amount ?? 0);
+  const creditApplied = Number(order.credit_applied ?? 0);
+  const orderTotal = Number(order.order_total ?? 0);
+  // Mientras se pueda pagar, lo que falta es lo que cobra la pasarela.
+  const payable = isPayable(order.payable_until);
+  const amountShown = payable ? orderTotal - creditApplied : orderTotal;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Detalle de Pedido" maxWidth="max-w-2xl">
@@ -209,10 +220,33 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
           />
         )}
 
-        {/* Total */}
-        <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm flex items-center justify-between">
-          <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">Total Pagado</span>
-          <span className="text-2xl font-fraunces text-mm-g">{formatCurrency(order.total || 0)}</span>
+        {/* Total. Mismo desglose que el carrito y la factura: tres conceptos.
+            Es el del pedido completo, no solo los productos de esta tienda. */}
+        <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm space-y-2.5">
+          <div className="flex justify-between text-sm text-mm-txs">
+            <span>Productos y servicio de compra</span>
+            <span className="font-bold">{formatCurrency(netPurchase)}</span>
+          </div>
+          <div className="flex justify-between text-sm text-mm-txs">
+            <span>Domicilio</span>
+            <span className="font-bold">{formatCurrency(Number(order.delivery_fee ?? 0))}</span>
+          </div>
+          <div className="flex justify-between text-sm text-mm-txs">
+            <span>Servicio MercaMesa</span>
+            <span className="font-bold">{formatCurrency(Number(order.platform_commission_amount ?? 0))}</span>
+          </div>
+          {creditApplied > 0 && (
+            <div className="flex justify-between text-sm text-mm-txs">
+              <span>Saldo a favor</span>
+              <span className="font-bold text-ok">−{formatCurrency(creditApplied)}</span>
+            </div>
+          )}
+          <div className="pt-3 border-t border-mm-crd/65 flex items-center justify-between">
+            <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
+              {payable ? 'Total a pagar' : 'Total Pagado'}
+            </span>
+            <span className="text-2xl font-fraunces text-mm-g">{formatCurrency(amountShown)}</span>
+          </div>
         </div>
 
         {/* Seguridad. Va acá y no antes de pagar: el código de entrega solo
