@@ -3868,20 +3868,27 @@ export type Database = {
           address_line: string | null
           buyer_id: string | null
           created_at: string | null
+          credit_applied: number | null
           delivery_address_id: string | null
+          delivery_fee: number | null
           delivery_instructions: string | null
           department: string | null
           discount_total: number | null
+          messages_amount: number | null
           municipality: string | null
           neighborhood: string | null
           order_code: string | null
           order_id: string | null
+          order_subtotal: number | null
+          order_total: number | null
           parent_code: string | null
           payable_until: string | null
           payment_method: string | null
           payment_method_label: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          platform_commission_amount: number | null
           products: Json | null
+          service_commission_amount: number | null
           status: Database["public"]["Enums"]["order_status"] | null
           store_id: string | null
           store_name: string | null
