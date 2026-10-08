@@ -196,12 +196,14 @@ export async function resolverPedido(supabase: any, orderId: string): Promise<Es
     orderUpdate.status = 'confirmed';
   }
 
-  // Un pedido ya pagado no vuelve atrás.
-  let orderQuery = supabase.from('orders').update(orderUpdate).eq('id', orderId);
-  if (estado !== 'approved') {
-    orderQuery = orderQuery.neq('payment_status', 'approved');
-  }
-  const { error: updateOrderError } = await orderQuery;
+  // Un pedido ya pagado no se vuelve a tocar: ni vuelve atrás por un intento
+  // rechazado, ni regresa a «confirmado» cuando ya va en preparación o
+  // entregado y el comprador reabre la página del estado del pago.
+  const { error: updateOrderError } = await supabase
+    .from('orders')
+    .update(orderUpdate)
+    .eq('id', orderId)
+    .neq('payment_status', 'approved');
   if (updateOrderError) throw new Error(`Update order error: ${updateOrderError.message}`);
 
   if (estado === 'approved') {
