@@ -14,6 +14,20 @@ const nextConfig = {
     // imagen origen procesada y ya se había agotado ese cupo dos veces.
     unoptimized: true,
   },
+  // El service worker nunca se guarda en caché: si el navegador se quedara con
+  // una versión vieja, la app instalada no recibiría los cambios.
+  async headers() {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

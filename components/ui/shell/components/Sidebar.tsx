@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
+import { InstallAppButton } from '@/src/features/pwa/components/InstallAppButton';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -315,6 +316,9 @@ export function Sidebar({
           effectiveCollapsed ? 'px-2' : 'px-4'
         )}
       >
+        {/* Instalar MercaMesa como app. No se muestra si ya está instalada. */}
+        <InstallAppButton collapsed={effectiveCollapsed} />
+
         {!effectiveCollapsed ? (
           <div className="bg-mm-gbg p-3 rounded-2xl flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm shrink-0 overflow-hidden border border-mm-crd">
