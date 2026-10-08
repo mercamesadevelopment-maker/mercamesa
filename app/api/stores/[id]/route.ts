@@ -234,6 +234,15 @@ export async function PUT(
       }
     }
 
+    // Las imágenes de una tienda viven en su propia carpeta. Sin esto un miembro
+    // podía apuntar el logo de su tienda a un archivo de otra.
+    for (const field of ['cover_image_url', 'logo_url'] as const) {
+      const path = body[field];
+      if (path && (typeof path !== 'string' || !path.startsWith(`imgs/${id}/`))) {
+        return NextResponse.json({ error: 'La imagen no pertenece a esta tienda.' }, { status: 400 });
+      }
+    }
+
     const { data: currentStore } = await supabase
       .from('stores')
       .select('cover_image_url, logo_url')
