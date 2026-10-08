@@ -15,3 +15,13 @@
  * piso. Timbre dañado, llamar al llegar."
  */
 export const MAX_DELIVERY_INSTRUCTIONS = 300;
+
+/**
+ * Mínimo de las indicaciones de entrega, que son obligatorias.
+ *
+ * El punto del mapa lleva al mensajero a la cuadra; lo que falta para llegar a
+ * la puerta —torre, apartamento, portón— solo lo sabe el comprador. Diez
+ * caracteres descartan un "." o un "casa" sin pedir un párrafo. La base exige
+ * el mismo mínimo (`fn_delivery_address_requires_location`).
+ */
+export const MIN_DELIVERY_INSTRUCTIONS = 10;
