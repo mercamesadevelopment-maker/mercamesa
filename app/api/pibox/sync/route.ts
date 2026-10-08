@@ -7,10 +7,12 @@ import {
   buildBookingStatusNote,
   buildPackageStatusNote,
   extractFirstPackage,
+  piboxBookingIsClosed,
 } from '@/lib/pibox';
 import {
   persistBookingSnapshot,
   applyOrderStatusFromPibox,
+  noteClosedBooking,
 } from '@/lib/pibox/services/sync.service';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
@@ -69,6 +71,13 @@ export async function POST(request: Request) {
         const booking = await getBooking(row.booking_id);
         await persistBookingSnapshot(row.store_order_id, booking);
         checked++;
+
+        // Sin conductor o cancelada (y sin relanzar): el snapshot ya la dejó
+        // inactiva; el pedido se queda en «Listo Recogida» con la nota.
+        if (piboxBookingIsClosed(booking.status_cd) && !booking.relaunched_to_id) {
+          await noteClosedBooking(row.store_order_id, buildBookingStatusNote(booking.status_cd));
+          continue;
+        }
 
         // El estado del paquete es más específico que el del pedido, así que
         // manda cuando existe.

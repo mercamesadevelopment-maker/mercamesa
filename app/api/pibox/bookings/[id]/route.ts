@@ -4,15 +4,14 @@ import {
   getBooking,
   cancelBooking,
   isPiboxEnabled,
-  piboxBookingStatusToOrderStatus,
   buildBookingStatusNote,
 } from '@/lib/pibox';
 import { canManageStoreOrder } from '@/lib/pibox/authz';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import {
   persistBookingSnapshot,
-  applyOrderStatusFromPibox,
   findStoreOrderIdByBooking,
+  noteClosedBooking,
 } from '@/lib/pibox/services/sync.service';
 
 /** Detalle del domicilio, refrescado contra Pibox. */
@@ -62,7 +61,13 @@ export async function GET(
   }
 }
 
-/** Cancela el domicilio en Pibox. */
+/**
+ * Cancela el domicilio en Pibox.
+ *
+ * Cancela el MENSAJERO, no la compra: el pedido se queda en «Listo Recogida» y
+ * se puede pedir otro. Antes la respuesta 102 se traducía a `cancelled` y
+ * cancelar un domiciliario anulaba un pedido ya pagado.
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -95,11 +100,7 @@ export async function PATCH(
     const booking = await cancelBooking(id);
     await persistBookingSnapshot(storeOrderId, booking);
 
-    await applyOrderStatusFromPibox(
-      storeOrderId,
-      piboxBookingStatusToOrderStatus(booking.status_cd),
-      buildBookingStatusNote(booking.status_cd)
-    );
+    await noteClosedBooking(storeOrderId, buildBookingStatusNote(booking.status_cd));
 
     return NextResponse.json({ data: booking }, { status: 200 });
   } catch (error: unknown) {

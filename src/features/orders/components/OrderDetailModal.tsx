@@ -6,6 +6,11 @@ import { Order, OrderStatus } from '@/src/types';
 import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { OrderStatusTimeline } from './OrderStatusTimeline';
+import { DeliveryTracking } from './DeliveryTracking';
+import { useDeliveryTracking } from '../hooks/use-delivery-tracking';
+
+/** Estados en los que el pedido ya tiene (o tuvo) domiciliario. */
+const DELIVERY_STATUSES: OrderStatus[] = ['at_collection', 'dispatched', 'delivered', 'returned'];
 import {
   User, Phone, Mail, FileText, MapPin,
   CreditCard, Calendar, Clock, ShoppingBag,
@@ -31,6 +36,13 @@ export function OrderDetailModal({
   onStartRevert,
   onReportProblem,
 }: OrderDetailModalProps) {
+  // Los hooks van antes del `return` temprano.
+  const hasDelivery = !!order && DELIVERY_STATUSES.includes(order.status);
+  const tracking = useDeliveryTracking(
+    order?.storeOrderId ? { storeOrderId: String(order.storeOrderId) } : null,
+    isOpen && hasDelivery
+  );
+
   if (!order) return null;
 
   const statusConfig = getStatusConfig(order.status);
@@ -159,6 +171,23 @@ export function OrderDetailModal({
                 )}
               </div>
             </div>
+
+            {/* El domicilio de Pibox: existe desde «Listo Recogida». */}
+            {hasDelivery && (
+              <DeliveryTracking
+                delivery={tracking.data?.delivery ?? null}
+                viewer={tracking.data?.viewer ?? null}
+                loading={tracking.loading}
+                error={tracking.error}
+                history={tracking.data?.history}
+                requesting={tracking.requesting}
+                onRequestAnother={
+                  order.storeOrderId
+                    ? () => tracking.requestAnother(String(order.storeOrderId))
+                    : undefined
+                }
+              />
+            )}
 
             {/* Notes Card */}
             {order.notes && (

@@ -2,7 +2,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { Json } from '@/types/database_generated';
 import { fromSubUnits } from '../constants';
 import { extractFirstPackage } from './booking.service';
-import type { OrderStatus } from '../status-map';
+import { isForwardOrderStatus, piboxBookingIsClosed, type OrderStatus } from '../status-map';
 import type { PiboxBookingResponse } from '../types';
 
 /**
@@ -34,7 +34,9 @@ export async function persistBookingSnapshot(
     canceled_pickup_reason_cd: pkg?.canceled_pickup_reason_cd ?? null,
     not_received_reason_cd: pkg?.not_received_reason_cd ?? null,
     relaunched_to_booking_id: booking.relaunched_to_id ?? null,
-    is_active: true,
+    // Una reserva sin conductor o cancelada ya no cuenta como vigente: así se
+    // puede pedir otro domiciliario. Una relanzada tampoco: manda la sucesora.
+    is_active: !piboxBookingIsClosed(booking.status_cd) && !booking.relaunched_to_id,
     raw: booking as unknown as Json,
   };
 
@@ -50,9 +52,12 @@ export async function persistBookingSnapshot(
 /**
  * Aplica un estado a la orden de tienda.
  *
- * Regla importante: solo escribe en store_order_status_history cuando el estado
- * mapeado difiere del actual. Sin esto, los cuatro estados de Pibox que caen en
- * `at_collection` generarían cuatro filas idénticas en el histórico.
+ * Reglas:
+ * - Solo escribe en store_order_status_history cuando el estado cambia. Sin
+ *   esto, los cuatro estados de Pibox que caen en `at_collection` generarían
+ *   cuatro filas idénticas en el histórico.
+ * - Solo avanza (`isForwardOrderStatus`): Pibox no promete el orden de los
+ *   eventos, y uno atrasado no puede devolver un pedido ya entregado.
  *
  * `changed_by` queda en null: así se distinguen los cambios automáticos de
  * Pibox de los que hizo una persona.
@@ -79,7 +84,7 @@ export async function applyOrderStatusFromPibox(
 
   // Sin equivalente en nuestro enum, o el estado no cambió: no se toca la orden
   // ni se ensucia el histórico con filas repetidas.
-  if (!nextStatus || storeOrder.status === nextStatus) return false;
+  if (!nextStatus || !isForwardOrderStatus(storeOrder.status as OrderStatus, nextStatus)) return false;
 
   const { error: updateError } = await supabase
     .from('store_orders')
@@ -130,4 +135,61 @@ export async function findStoreOrderIdByPackage(
     .maybeSingle();
 
   return data?.store_order_id ?? null;
+}
+
+/**
+ * Deja en el histórico que el domicilio se cerró sin entregar (sin conductor o
+ * cancelado), sin cambiar el estado del pedido: sigue en «Listo Recogida» y la
+ * tienda puede pedir otro domiciliario.
+ */
+export async function noteClosedBooking(storeOrderId: string, note: string): Promise<void> {
+  const supabase = createSupabaseServiceClient();
+
+  const { data: storeOrder } = await supabase
+    .from('store_orders')
+    .select('status')
+    .eq('id', storeOrderId)
+    .maybeSingle();
+
+  if (!storeOrder) return;
+
+  const { error } = await supabase.from('store_order_status_history').insert({
+    store_order_id: storeOrderId,
+    status: storeOrder.status,
+    notes: `${note}. Se puede solicitar otro domiciliario.`,
+    changed_by: null,
+  });
+
+  if (error) console.error('Error registrando el cierre del domicilio:', error.message);
+}
+
+/**
+ * Si el evento es más viejo que el último aplicado a la reserva, se descarta.
+ * Pibox no promete el orden de los webhooks. Devuelve true si se debe aplicar
+ * y, en ese caso, deja guardada la fecha.
+ */
+export async function claimBookingEvent(
+  match: { booking_id: string } | { package_id: string },
+  eventCreatedAt: string | null | undefined
+): Promise<boolean> {
+  if (!eventCreatedAt) return true;
+  const at = new Date(eventCreatedAt);
+  if (Number.isNaN(at.getTime())) return true;
+
+  const db = createSupabaseServiceClient();
+  const byBooking = 'booking_id' in match;
+  const column = byBooking ? 'booking_id' : 'package_id';
+  const value = byBooking ? match.booking_id : match.package_id;
+
+  const { data } = await db
+    .from('pibox_bookings')
+    .select('last_event_at')
+    .eq(column, value)
+    .maybeSingle();
+
+  const last = (data as { last_event_at: string | null } | null)?.last_event_at;
+  if (last && new Date(last) > at) return false;
+
+  await db.from('pibox_bookings').update({ last_event_at: at.toISOString() }).eq(column, value);
+  return true;
 }

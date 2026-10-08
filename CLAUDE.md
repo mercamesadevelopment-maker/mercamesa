@@ -137,7 +137,7 @@ Local no debe tocar servicios reales. `.env.local` lo deja así:
 
 | Servicio | En local | Cómo |
 |---|---|---|
-| Pibox | La cotización es real; la reserva se simula y no sale ningún mensajero | `PIBOX_DRY_RUN=true`. Las reservas simuladas tienen id `SIMULADO-…` |
+| Pibox | La cotización es real; la reserva se simula y no sale ningún mensajero. El recorrido del mensajero se simula con `pnpm local:pibox <código> <paso>` | `PIBOX_DRY_RUN=true` y un `PIBOX_WEBHOOK_SECRET` propio. Las reservas simuladas tienen id `SIMULADO-…`. Detalle en `lib/pibox/README.md` |
 | Correo | No sale: queda en la consola del servidor, incluido el código de ingreso de un administrador | `EMAIL_DRY_RUN=true` |
 | Siigo | No se envía nada; las colas de facturas y notas crédito se llenan y esperan | Sin credenciales |
 | ZonaPagos | No hay pasarela: un pedido se paga con saldo a favor o con `pnpm local:pay <código del pedido>` | `scripts/local-pay.ts`, que se niega a correr contra otra base que no sea la local |
