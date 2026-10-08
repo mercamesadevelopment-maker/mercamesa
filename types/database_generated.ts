@@ -3973,6 +3973,10 @@ export type Database = {
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
       escalate_overdue_pqrs: { Args: never; Returns: number }
       expire_unpaid_orders: { Args: never; Returns: number }
+      fn_is_store_image_of_member: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       has_permission: {
         Args: { action_name: string; module_key: string }
