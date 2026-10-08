@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { resolverPedido, verificarIntentosAbiertos } from '../_shared/zonapagos.ts'
 
 serve(async (req) => {
   const corsHeaders = {
@@ -63,15 +64,19 @@ serve(async (req) => {
       throw new Error('Este pedido ya no se puede pagar. Revisa su estado en «Mis órdenes».')
     }
 
-    // Un intento que ZonaPagos ya reporta en curso (un PSE esperando al banco)
-    // puede terminar aprobado: abrir otro encima arriesga cobrar dos veces.
-    const { count: enCurso } = await supabase
-      .from('payments')
-      .select('id', { count: 'exact', head: true })
-      .eq('order_id', order.id)
-      .eq('status', 'processing')
+    // Antes de abrir otro intento se consultan en ZonaPagos los que siguen sin
+    // resolver. Uno puede estar ya pagado sin que el pedido lo sepa todavía (el
+    // comprador pagó y volvió a «Pagar» antes de que el banco confirmara), o
+    // seguir en curso (un PSE esperando al banco) y terminar aprobado: abrir
+    // otro encima arriesga cobrar dos veces.
+    await verificarIntentosAbiertos(supabase, order.id)
+    const estadoDelPedido = await resolverPedido(supabase, order.id)
 
-    if (enCurso) {
+    if (estadoDelPedido === 'approved') {
+      throw new Error('Este pedido ya quedó pagado. Revisa su estado en «Mis órdenes».')
+    }
+
+    if (estadoDelPedido === 'processing') {
       throw new Error('Hay un pago de este pedido en proceso con tu banco. Espera unos minutos a que se confirme.')
     }
 
