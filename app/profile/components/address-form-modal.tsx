@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, MapPin, Pencil } from 'lucide-react';
 import { Button, Input, Textarea } from '@/src/components/Shared';
-import { MAX_DELIVERY_INSTRUCTIONS } from '@/lib/addresses/limits';
+import { MAX_DELIVERY_INSTRUCTIONS, MIN_DELIVERY_INSTRUCTIONS } from '@/lib/addresses/limits';
+import { MapLocationGuide } from './map-location-guide';
 import { Modal } from '@/components/ui/modal/modal';
 import { MapPicker, type MapPickerChange } from '@/components/ui/map-picker/MapPicker';
 import type { AddressFormValues, DeliveryAddress } from '../types/address.types';
@@ -97,9 +98,33 @@ export function AddressFormModal({
 
   const hasCoords = form.latitude !== null && form.longitude !== null;
 
+  // La guía arranca abierta solo si la dirección llega sin punto: a quien edita
+  // una que ya lo tiene no hace falta explicarle el mapa.
+  const hasCoordsAtOpen = !!editing && editing.latitude !== null && editing.longitude !== null;
+
+  /**
+   * Los campos de texto se abren a pedido («Corregir») o solos cuando falta un
+   * dato obligatorio: si el mapa no pudo leer el punto, la dirección se
+   * escribe a mano. Así nunca queda un campo requerido escondido.
+   */
+  const [editingText, setEditingText] = useState(false);
+  useEffect(() => {
+    if (isOpen) setEditingText(false);
+  }, [isOpen]);
+  const missingText = !form.address_line.trim() || !form.municipality.trim() || !form.department.trim();
+  const showAddressFields = editingText || missingText;
+
+  const addressSummary = [form.address_line, form.neighborhood, form.municipality]
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join(', ');
+
+  const instructionsLength = form.delivery_instructions.trim().length;
+  const instructionsOk = instructionsLength >= MIN_DELIVERY_INSTRUCTIONS;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hasCoords) return;
+    if (!hasCoords || !instructionsOk) return;
     await onSubmit(form);
   };
 
@@ -114,14 +139,12 @@ export function AddressFormModal({
       maxHeight="90dvh"
     >
       <div className="p-4 sm:p-8">
+        {/* El orden es el del trabajo: primero el punto en el mapa, que es lo
+            que lleva al mensajero; después cómo llegar a la puerta desde ahí.
+            Los textos de la dirección los llena el mapa y quedan en segundo
+            plano, corregibles. */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Etiqueta (ej: Casa, Trabajo)" {...field('label')} placeholder="Opcional" />
-          <Input label="Dirección" {...field('address_line')} placeholder="Ej: Calle 45 # 23-12" required />
-          <Input label="Barrio / Sector" {...field('neighborhood')} placeholder="Opcional" />
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            <Input label="Municipio" {...field('municipality')} placeholder="Ej: Medellín" required />
-            <Input label="Departamento" {...field('department')} placeholder="Ej: Antioquia" required />
-          </div>
+          <MapLocationGuide defaultOpen={!hasCoordsAtOpen} />
 
           <MapPicker
             latitude={form.latitude}
@@ -140,19 +163,59 @@ export function AddressFormModal({
             </p>
           )}
 
-          {/* Va después del mapa a propósito: primero se ubica el punto, luego
-              se explica cómo llegar a la puerta desde ahí. */}
+          {/* La dirección que sacó el mapa. Se muestra resumida; se abre para
+              escribirla cuando el mapa no la encontró, o si el comprador quiere
+              corregirla. */}
+          {hasCoords && (
+            <div className="rounded-2xl border border-mm-crd bg-white p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-mm-txw">
+                    Dirección detectada
+                  </p>
+                  <p className="text-sm font-bold text-mm-g break-words">
+                    {addressSummary || 'No pudimos leer la dirección de ese punto'}
+                  </p>
+                </div>
+                {!showAddressFields && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingText(true)}
+                    className="shrink-0 flex items-center gap-1 text-xs font-bold text-mm-g hover:text-mm-oro transition-colors"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Corregir
+                  </button>
+                )}
+              </div>
+
+              {showAddressFields && (
+                <div className="mt-3 space-y-3 border-t border-mm-crd/60 pt-3">
+                  <Input label="Dirección" {...field('address_line')} placeholder="Ej: Calle 45 # 23-12" required />
+                  <Input label="Barrio / Sector" {...field('neighborhood')} placeholder="Opcional" />
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <Input label="Municipio" {...field('municipality')} placeholder="Ej: Medellín" required />
+                    <Input label="Departamento" {...field('department')} placeholder="Ej: Antioquia" required />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <Textarea
             label="Indicaciones para la entrega"
             value={form.delivery_instructions}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, delivery_instructions: e.target.value }))
             }
-            placeholder="Ej: Apartamento 302, segundo piso. Timbre dañado, llamar al llegar."
+            placeholder="Ej: Torre 2, apartamento 302. Portón verde, timbre dañado: llamar al llegar."
             rows={3}
+            minLength={MIN_DELIVERY_INSTRUCTIONS}
             maxLength={MAX_DELIVERY_INSTRUCTIONS}
-            hint="Opcional. Se las mostramos al mensajero para que encuentre tu puerta."
+            required
+            hint={`Obligatorio. Lo que el mapa no sabe: torre, apartamento, portón o una referencia. ${instructionsLength}/${MAX_DELIVERY_INSTRUCTIONS}`}
           />
+
+          <Input label="Etiqueta (ej: Casa, Trabajo)" {...field('label')} placeholder="Opcional" />
 
           <div className="flex items-center gap-3 p-3 sm:p-4 bg-mm-gbg/10 rounded-2xl border border-mm-crd">
             <input
@@ -186,7 +249,7 @@ export function AddressFormModal({
             <Button
               type="submit"
               className="w-full sm:flex-1 flex items-center justify-center gap-2 whitespace-nowrap"
-              disabled={submitting || !hasCoords}
+              disabled={submitting || !hasCoords || !instructionsOk}
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
               {editing ? 'Guardar Cambios' : 'Agregar Dirección'}

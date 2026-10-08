@@ -1,5 +1,5 @@
 import { toCoordinate, validateColombiaCoordinates } from '@/lib/geocoding/mapbox';
-import { MAX_DELIVERY_INSTRUCTIONS } from './limits';
+import { MAX_DELIVERY_INSTRUCTIONS, MIN_DELIVERY_INSTRUCTIONS } from './limits';
 
 /**
  * Convierte el cuerpo que manda el navegador en algo seguro de escribir.
@@ -25,8 +25,8 @@ export interface SanitizedAddress {
   neighborhood: string | null;
   municipality: string;
   department: string;
-  /** Cómo llegar a la puerta: piso, apartamento, punto de referencia. */
-  delivery_instructions: string | null;
+  /** Cómo llegar a la puerta: piso, apartamento, punto de referencia. Obligatorio. */
+  delivery_instructions: string;
   is_default: boolean;
   latitude: number;
   longitude: number;
@@ -62,7 +62,12 @@ export function sanitizeAddress(body: unknown): SanitizeResult {
   if (!department) return { error: 'El departamento es obligatorio.' };
 
   const deliveryInstructions = optionalText(b.delivery_instructions);
-  if (deliveryInstructions && deliveryInstructions.length > MAX_DELIVERY_INSTRUCTIONS) {
+  if (!deliveryInstructions || deliveryInstructions.length < MIN_DELIVERY_INSTRUCTIONS) {
+    return {
+      error: `Escribe las indicaciones para la entrega (mínimo ${MIN_DELIVERY_INSTRUCTIONS} caracteres): torre, apartamento, portón o una referencia.`,
+    };
+  }
+  if (deliveryInstructions.length > MAX_DELIVERY_INSTRUCTIONS) {
     return {
       error: `Las indicaciones para la entrega no pueden pasar de ${MAX_DELIVERY_INSTRUCTIONS} caracteres.`,
     };
