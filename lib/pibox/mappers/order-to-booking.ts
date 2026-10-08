@@ -337,8 +337,12 @@ export function buildBookingPayload(
     );
   }
 
-  // Contra entrega: si el pago aún no está aprobado, el mensajero recauda el total.
-  const counterDelivery = ctx.paymentStatus !== 'approved';
+  /*
+   * Sin contraentrega: solo se pide mensajero para pedidos con el pago aprobado
+   * (lo exige `POST /api/pibox/bookings`). Antes, si el pago no estaba
+   * aprobado, el mensajero salía a cobrar el total en la puerta, algo que la
+   * cuenta de Picap ni siquiera tiene habilitado.
+   */
 
   /**
    * Segunda línea de la dirección de destino: el barrio y las indicaciones que
@@ -406,10 +410,8 @@ export function buildBookingPayload(
                 currency: 'COP',
               },
               reference: `Mercamesa ${ctx.code}`,
-              counter_delivery: counterDelivery,
-              collected_value: counterDelivery
-                ? { sub_units: toSubUnits(ctx.orderTotal), currency: 'COP' }
-                : null,
+              counter_delivery: false,
+              collected_value: null,
               size_cd: getPiboxDefaultPackageSizeCd(),
             },
           ],

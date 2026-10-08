@@ -24,12 +24,13 @@ export function piboxBookingStatusToOrderStatus(statusCd: number): OrderStatus |
       return 'dispatched';
     case PIBOX_BOOKING_STATUS.FINISHED: // 4 Pedido finalizado
       return 'delivered';
-    case PIBOX_BOOKING_STATUS.CANCELED_BY_PASSENGER: // 102
-      return 'cancelled';
     // 0 Buscando conductor, 1 Conductor en camino, 5 Recogiendo, 109 Programado
     // → el paquete sigue en la tienda: se mantiene at_collection.
     // 100 Cancelado por conductor → Pibox relanza solo (relaunched_to_id).
-    // 101 Expirado sin conductor → requiere acción humana.
+    // 101 Expirado sin conductor y 102 Cancelado por nosotros → se cancela el
+    // MENSAJERO, no la compra: el pedido se queda en «Listo Recogida» para
+    // pedir otro. Antes 102 cancelaba el pedido entero, y cancelar un
+    // domiciliario terminaba anulando una compra ya pagada.
     default:
       return null;
   }
@@ -54,8 +55,46 @@ export function piboxPackageStatusToOrderStatus(statusCd: number): OrderStatus |
 export function piboxBookingStatusNeedsAttention(statusCd: number): boolean {
   return (
     statusCd === PIBOX_BOOKING_STATUS.EXPIRED_NO_DRIVER ||
-    statusCd === PIBOX_BOOKING_STATUS.CANCELED_BY_DRIVER
+    statusCd === PIBOX_BOOKING_STATUS.CANCELED_BY_DRIVER ||
+    statusCd === PIBOX_BOOKING_STATUS.CANCELED_BY_PASSENGER
   );
+}
+
+/**
+ * La reserva ya no va a traer a nadie: no hubo conductor (101) o se canceló
+ * (102). Queda inactiva para que se pueda pedir otro domiciliario; sin esto la
+ * idempotencia de `POST /api/pibox/bookings` devolvía la reserva muerta y el
+ * pedido quedaba trabado.
+ *
+ * 100 (canceló el conductor) no entra: Pibox relanza solo y el sucesor llega
+ * en `relaunched_to_id`, que el webhook ya enlaza.
+ */
+export function piboxBookingIsClosed(statusCd: number | null | undefined): boolean {
+  return (
+    statusCd === PIBOX_BOOKING_STATUS.EXPIRED_NO_DRIVER ||
+    statusCd === PIBOX_BOOKING_STATUS.CANCELED_BY_PASSENGER
+  );
+}
+
+/**
+ * Orden de avance de un pedido mientras lo lleva Pibox. Pibox no promete que
+ * los eventos lleguen en orden, así que su estado solo puede mover el pedido
+ * hacia adelante: un «Paquete a bordo» atrasado no devuelve un «Entregado».
+ */
+const ORDER_PROGRESS: Partial<Record<OrderStatus, number>> = {
+  at_collection: 0,
+  dispatched: 1,
+  delivered: 2,
+  returned: 2,
+};
+
+export function isForwardOrderStatus(current: OrderStatus, next: OrderStatus): boolean {
+  const from = ORDER_PROGRESS[current];
+  const to = ORDER_PROGRESS[next];
+  // Un estado fuera de este recorrido (cancelado, por ejemplo) lo maneja una
+  // persona: Pibox no lo pisa.
+  if (from === undefined || to === undefined) return false;
+  return to > from;
 }
 
 /**

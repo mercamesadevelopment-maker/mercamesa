@@ -4,14 +4,17 @@ import {
   piboxBookingStatusToOrderStatus,
   piboxPackageStatusToOrderStatus,
   piboxBookingStatusNeedsAttention,
+  piboxBookingIsClosed,
   buildBookingStatusNote,
   buildPackageStatusNote,
   PIBOX_BOOKING_STATUS_LABEL,
 } from '@/lib/pibox';
 import {
   applyOrderStatusFromPibox,
+  claimBookingEvent,
   findStoreOrderIdByBooking,
   findStoreOrderIdByPackage,
+  noteClosedBooking,
 } from '@/lib/pibox/services/sync.service';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { createNotification } from '@/lib/notifications/create-notification';
@@ -75,16 +78,27 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
     return;
   }
 
+  // Pibox no promete el orden de los eventos: uno más viejo que el último
+  // aplicado se descarta para no devolver la reserva a un estado anterior.
+  if (!(await claimBookingEvent({ booking_id: payload.booking_id }, payload.created_at))) {
+    return;
+  }
+
   const db = createSupabaseServiceClient();
+  const closed = piboxBookingIsClosed(payload.status_cd);
 
   await db
     .from('pibox_bookings')
     .update({
       status_cd: payload.status_cd,
-      driver_name: payload.driver?.name ?? null,
-      driver_phone: payload.driver?.phone ?? null,
-      vehicle_plates: payload.vehicle?.plates ?? null,
+      // Solo si el evento trae conductor: uno sin `driver` no lo borra.
+      ...(payload.driver
+        ? { driver_name: payload.driver.name ?? null, driver_phone: payload.driver.phone ?? null }
+        : {}),
+      ...(payload.vehicle ? { vehicle_plates: payload.vehicle.plates ?? null } : {}),
       relaunched_to_booking_id: payload.relaunched_to_id ?? null,
+      // Sin conductor o cancelada: deja de ser la vigente, para poder pedir otra.
+      ...(closed ? { is_active: false } : {}),
     })
     .eq('booking_id', payload.booking_id);
 
@@ -120,14 +134,21 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
     );
   }
 
-  await applyOrderStatusFromPibox(
-    storeOrderId,
-    piboxBookingStatusToOrderStatus(payload.status_cd),
-    buildBookingStatusNote(payload.status_cd, {
-      driverName: payload.driver?.name,
-      vehiclePlates: payload.vehicle?.plates,
-    })
-  );
+  const note = buildBookingStatusNote(payload.status_cd, {
+    driverName: payload.driver?.name,
+    vehiclePlates: payload.vehicle?.plates,
+  });
+
+  // El pedido no se cancela con el mensajero: se queda en «Listo Recogida».
+  if (closed && !payload.relaunched_to_id) {
+    await noteClosedBooking(storeOrderId, note);
+  } else {
+    await applyOrderStatusFromPibox(
+      storeOrderId,
+      piboxBookingStatusToOrderStatus(payload.status_cd),
+      note
+    );
+  }
 
   if (piboxBookingStatusNeedsAttention(payload.status_cd)) {
     await notifyStoreMembers(
@@ -142,6 +163,10 @@ async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
   const storeOrderId = await findStoreOrderIdByPackage(payload.package_id);
   if (!storeOrderId) {
     console.warn(`Evento de Pibox para un paquete desconocido: ${payload.package_id}`);
+    return;
+  }
+
+  if (!(await claimBookingEvent({ package_id: payload.package_id }, payload.created_at))) {
     return;
   }
 

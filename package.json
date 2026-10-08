@@ -16,6 +16,7 @@
     "gen:types:local": "supabase gen types typescript --local --schema public > types/database_generated.ts",
     "db:sync-storage": "tsx scripts/sync-storage-local.ts",
     "local:pay": "tsx scripts/local-pay.ts",
+    "local:pibox": "tsx scripts/local-pibox.ts",
     "backfill:images": "tsx scripts/backfill-image-variants.ts",
     "pibox:hooks": "tsx scripts/pibox-webhooks.ts",
     "lint": "next lint",

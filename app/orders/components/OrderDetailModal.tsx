@@ -28,6 +28,12 @@ import {
 import { ORDER_STATUS_CONFIG, PAYMENT_STATUS_CONFIG } from './OrderCard';
 import { useOrderHistory } from '../hooks/useOrderHistory';
 import { OrderSavings } from './OrderSavings';
+import { DeliveryTracking } from '@/src/features/orders/components/DeliveryTracking';
+import { useDeliveryTracking } from '@/src/features/orders/hooks/use-delivery-tracking';
+import type { OrderStatus } from '../types/order.types';
+
+/** Estados en los que el pedido ya tiene (o tuvo) domiciliario. */
+const DELIVERY_STATUSES: OrderStatus[] = ['at_collection', 'dispatched', 'delivered', 'returned'];
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -41,6 +47,13 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
   const { history } = useOrderHistory(
     isOpen ? order?.order_id || null : null,
     isOpen ? order?.store_id || null : null
+  );
+
+  // El domicilio de Pibox existe desde «Listo Recogida».
+  const hasDelivery = !!order?.status && DELIVERY_STATUSES.includes(order.status);
+  const tracking = useDeliveryTracking(
+    order?.order_id && order?.store_id ? { orderId: order.order_id, storeId: order.store_id } : null,
+    isOpen && hasDelivery
   );
 
   if (!order) return null;
@@ -186,6 +199,15 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
             getLabel={(s) => ORDER_STATUS_LABELS[s] || 'Desconocido'}
           />
         </div>
+
+        {hasDelivery && (
+          <DeliveryTracking
+            delivery={tracking.data?.delivery ?? null}
+            viewer={tracking.data?.viewer ?? null}
+            loading={tracking.loading}
+            error={tracking.error}
+          />
+        )}
 
         {/* Total */}
         <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm flex items-center justify-between">

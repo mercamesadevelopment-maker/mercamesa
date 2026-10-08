@@ -1978,6 +1978,7 @@ export type Database = {
           final_cost: number | null
           id: string
           is_active: boolean
+          last_event_at: string | null
           not_received_reason_cd: number | null
           package_id: string | null
           package_status_cd: number | null
@@ -2002,6 +2003,7 @@ export type Database = {
           final_cost?: number | null
           id?: string
           is_active?: boolean
+          last_event_at?: string | null
           not_received_reason_cd?: number | null
           package_id?: string | null
           package_status_cd?: number | null
@@ -2026,6 +2028,7 @@ export type Database = {
           final_cost?: number | null
           id?: string
           is_active?: boolean
+          last_event_at?: string | null
           not_received_reason_cd?: number | null
           package_id?: string | null
           package_status_cd?: number | null
