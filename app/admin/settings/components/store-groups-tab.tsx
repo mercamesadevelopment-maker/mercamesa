@@ -236,7 +236,7 @@ export function StoreGroupsTab() {
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-2xl font-fraunces text-mm-g mb-2">
+              <h3 className="text-2xl font-display text-mm-g mb-2">
                 {editingGroup ? 'Editar Grupo de Tiendas' : 'Nuevo Grupo de Tiendas'}
               </h3>
               <p className="text-xs text-mm-txs mb-6">

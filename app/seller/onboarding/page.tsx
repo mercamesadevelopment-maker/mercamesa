@@ -124,7 +124,7 @@ export default function SellerOnboarding() {
     <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-fraunces text-mm-g">Finalizar Registro de Tienda</h2>
+          <h2 className="text-2xl font-display text-mm-g">Finalizar Registro de Tienda</h2>
           <p className="text-sm text-mm-txs mt-1">Para poder operar en la plataforma, debes subir y verificar la documentación requerida.</p>
         </div>
       </div>

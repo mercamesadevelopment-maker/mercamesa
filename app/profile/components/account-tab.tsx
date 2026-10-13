@@ -126,7 +126,7 @@ function AccountTabContent() {
       exit={{ opacity: 0, x: -20 }}
       className="bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[40px] border border-mm-crd shadow-sm"
     >
-      <h2 className="text-2xl sm:text-3xl font-fraunces text-mm-g mb-6 sm:mb-8">Mi Cuenta</h2>
+      <h2 className="text-2xl sm:text-3xl font-display text-mm-g mb-6 sm:mb-8">Mi Cuenta</h2>
 
       {incomplete && (
         <div className="mb-6 bg-amber-50 text-amber-800 text-sm font-medium px-4 py-3 rounded-2xl border border-amber-200">
@@ -232,7 +232,7 @@ function AccountTabContent() {
       </form>
 
       <div className="mt-8 sm:mt-10 max-w-xl border-t border-mm-crd pt-6 sm:pt-8">
-        <h3 className="mb-1 text-xl font-fraunces text-mm-g">Seguridad</h3>
+        <h3 className="mb-1 text-xl font-display text-mm-g">Seguridad</h3>
         <p className="mb-4 sm:mb-6 text-sm text-mm-txs">
           Protege el acceso a tu cuenta.
         </p>

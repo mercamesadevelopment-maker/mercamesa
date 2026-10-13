@@ -7,6 +7,7 @@ import { X, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Button, Input, StepBar } from '@/src/components/Shared';
 import { ROLE_ROUTES } from '@/src/constants';
 import { useAuthHooks } from '../hooks/useAuth';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 export function LoginModal({
   isOpen,
@@ -140,25 +141,13 @@ export function LoginModal({
         {/* Content */}
         <div className="p-8 md:p-10">
           {/* Logo */}
-          <div className="mb-10 flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mm-oro text-2xl">
-              🌿
-            </div>
-
-            <div>
-              <h1 className="font-fraunces text-2xl font-bold text-mm-g">
-                MercaMesa
-              </h1>
-
-              <p className="text-sm text-mm-txs">
-                Plataforma agroalimentaria
-              </p>
-            </div>
+          <div className="mb-10 flex justify-center">
+            <BrandLogo className="text-3xl" />
           </div>
 
           {/* Heading */}
           <div className="mb-8 text-center">
-            <h2 className="mb-2 font-fraunces text-3xl text-mm-g">
+            <h2 className="mb-2 font-display text-3xl text-mm-g">
               {pasoCodigo ? 'Verifica que eres tú' : 'Bienvenido de vuelta'}
             </h2>
 

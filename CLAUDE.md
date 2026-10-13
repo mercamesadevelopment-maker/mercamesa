@@ -274,6 +274,10 @@ Inventario actual:
 - `quantity-stepper/` — stepper de cantidad.
 - `category-scroller.tsx`, `searchable-select.tsx` — componentes de un solo archivo,
   sin estado/lógica compleja propia.
+- `brand-logo.tsx` — `BrandLogo` (símbolo + «MercaMesa») y `BrandSymbol`. Es el
+  único logo: no usar imágenes sueltas del logo.
+- `stamp.tsx` — sellos de la marca: descuento (arcilla), ahorro (lima), tinta.
+- `floating.tsx` — producto flotando en bucle (ver «Marca» abajo).
 
 Convención para agregar uno nuevo:
 
@@ -301,6 +305,30 @@ Convención para agregar uno nuevo:
   panel con `translate-y`/`translate-x` + `transition-all duration-300`, que se cierra
   al tocar el backdrop o al navegar. Es el patrón de `Sidebar` (ver arriba) — replícalo
   para cualquier otro menú/panel off-canvas en vez de inventar una variante nueva.
+
+---
+
+## Marca
+
+Caso de marca: `docs/cotizacionFase2/MercaMesa_Branding_Case.pdf`.
+
+- **Colores**, en `app/globals.css`: `tinta` #0E3B2F, `lima` #C3F03F, `arcilla`
+  #E8734A, `salvia` #4C7A5E y `hueso` #F7F5EE, con variantes `-clara` y `-oscura`.
+  Los `mm-*` de antes siguen existiendo, reasignados a esta paleta; para lo nuevo
+  se usan los nombres de la marca. No se escriben colores en hex en los componentes.
+- **La lima no es color de texto sobre fondo claro**, porque no se lee: es fondo con
+  texto en tinta, o texto sobre tinta. Para texto en arcilla, `arcilla-oscura`.
+- **Tipografía**: Poppins (`font-display`/`font-sans`; 800 en titulares y precios)
+  y JetBrains Mono (`font-mono`) para datos: pedido, peso, unidad, horario y
+  etiquetas en mayúscula.
+- **Movimiento**, por rendimiento:
+  - solo `transform` y `opacity`, en CSS (`mm-rise`, `mm-lift`, `mm-float` en
+    `globals.css`); nada de librerías de animación por tarjeta;
+  - en bucle solo los pocos elementos destacados, con `<Floating>`, que se pausa
+    fuera de pantalla. Las tarjetas de un listado entran una vez y reaccionan al
+    pasar el mouse, no flotan;
+  - todo se apaga con «reducir movimiento» del sistema;
+  - lo que llega después de cargar reserva su espacio, para no empujar la página.
 
 ---
 

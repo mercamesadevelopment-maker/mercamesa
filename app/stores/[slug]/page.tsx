@@ -199,7 +199,7 @@ export default function StoreDetailPage() {
 
       {/* Store Products */}
       <div className="mb-8">
-        <h2 className="text-2xl font-fraunces text-mm-g mb-6">Catálogo de Productos</h2>
+        <h2 className="text-2xl font-display text-mm-g mb-6">Catálogo de Productos</h2>
         
         <div className="space-y-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">

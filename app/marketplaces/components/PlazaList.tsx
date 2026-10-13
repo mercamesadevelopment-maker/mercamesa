@@ -28,7 +28,7 @@ export function PlazaList() {
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Explora las Plazas</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Explora las Plazas</h1>
           <p className="text-mm-txs">Encuentra los mejores productos frescos directamente de la fuente.</p>
         </div>
         <div className="relative w-full max-w-md mx-auto md:mx-0">
@@ -69,7 +69,7 @@ export function PlazaList() {
             
             <div className="p-6 flex-grow flex flex-col">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-mm-g font-fraunces leading-tight">{plaza.name}</h3>
+                <h3 className="text-xl font-bold text-mm-g font-display leading-tight">{plaza.name}</h3>
               </div>
               <div className="flex items-center gap-2 text-xs text-mm-txw mb-4">
                 <MapPin className="w-3.5 h-3.5" /> {plaza.city}, {plaza.department}

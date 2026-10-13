@@ -252,7 +252,7 @@ function ReportSummary({ report }: { report: ImportReport }) {
         <div key={card.label} className={`${card.className} rounded-2xl p-4 text-center`}>
           <div className="flex items-center justify-center gap-2 mb-1">
             {card.icon}
-            <span className="text-3xl font-bold font-fraunces tabular-nums">{card.value}</span>
+            <span className="text-3xl font-bold font-display tabular-nums">{card.value}</span>
           </div>
           <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
         </div>

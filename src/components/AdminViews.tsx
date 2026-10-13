@@ -123,7 +123,7 @@ export function ProviderProductsView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Inventario</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Inventario</h1>
           <p className="text-mm-txs">Gestiona tus productos, precios y existencias.</p>
         </div>
         <div className="flex gap-3">
@@ -145,7 +145,7 @@ export function ProviderProductsView() {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm h-[400px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-fraunces text-mm-g flex items-center gap-2">
+            <h3 className="text-xl font-display text-mm-g flex items-center gap-2">
               Niveles de Stock <Activity className="w-5 h-5 text-mm-txw" />
             </h3>
             <div className="flex gap-4">
@@ -167,20 +167,20 @@ export function ProviderProductsView() {
                   dataKey="name"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 9, fill: '#9AA88C', fontWeight: 600 }}
+                  tick={{ fontSize: 9, fill: '#6A7C74', fontWeight: 600 }}
                   angle={-45}
                   textAnchor="end"
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: '#9AA88C' }}
+                  tick={{ fontSize: 10, fill: '#6A7C74' }}
                 />
                 <Tooltip
-                  cursor={{ fill: '#F2F7EC', radius: 12 }}
+                  cursor={{ fill: '#EEF2E8', radius: 12 }}
                   contentStyle={{
                     borderRadius: '24px',
-                    border: '1px solid #E8E8DC',
+                    border: '1px solid #E2E6DD',
                     boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)',
                     padding: '16px'
                   }}
@@ -193,7 +193,7 @@ export function ProviderProductsView() {
                   {myProducts.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={entry.stock <= (entry.minStock || 10) ? '#CF3D2E' : '#2A4E12'}
+                      fill={entry.stock <= (entry.minStock || 10) ? '#B4322A' : '#0E3B2F'}
                     />
                   ))}
                 </Bar>
@@ -211,11 +211,11 @@ export function ProviderProductsView() {
               <p className="text-[10px] font-black uppercase opacity-60 tracking-widest mb-1">Stock más Bajo</p>
               {myProducts.length > 0 ? (
                 <>
-                  <h4 className="text-2xl font-fraunces mb-4 truncate pr-12">
+                  <h4 className="text-2xl font-display mb-4 truncate pr-12">
                     {myProducts.slice().sort((a, b) => a.stock - b.stock)[0].name}
                   </h4>
                   <div className="flex items-end gap-2">
-                    <span className="text-5xl font-bold font-fraunces tabular-nums">
+                    <span className="text-5xl font-bold font-display tabular-nums">
                       {myProducts.slice().sort((a, b) => a.stock - b.stock)[0].stock}
                     </span>
                     <span className="text-sm font-bold opacity-80 mb-2 uppercase tracking-widest">
@@ -356,7 +356,7 @@ export function ProviderProductsView() {
                 <X className="w-6 h-6 text-mm-txs" />
               </button>
 
-              <h2 className="text-2xl font-fraunces text-mm-g mb-6">
+              <h2 className="text-2xl font-display text-mm-g mb-6">
                 {editingProduct ? 'Editar Producto' : 'Gestión de Inventario'}
               </h2>
 
@@ -688,7 +688,7 @@ export function AdminView() {
     openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
   });
   const [newPlaza, setNewPlaza] = useState({
-    name: '', city: '', address: '', emoji: '🏛️', bg: '#F4F4E8', image: '',
+    name: '', city: '', address: '', emoji: '🏛️', bg: '#EEF2E8', image: '',
     openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
   });
   const [newProduct, setNewProduct] = useState({ name: '', storeId: 1 as number | string, retailPrice: 0, stock: 0, unit: 'kg', emoji: '🍎', cat: 'Varios', image: '', masterId: 0 as any });
@@ -823,7 +823,7 @@ export function AdminView() {
     dispatch({ type: 'ADD_PLAZA', plaza });
     setIsAddPlazaOpen(false);
     setNewPlaza({
-      name: '', city: '', address: '', emoji: '🏛️', bg: '#F4F4E8', image: '',
+      name: '', city: '', address: '', emoji: '🏛️', bg: '#EEF2E8', image: '',
       openTime: '06:00', closeTime: '18:00', lat: 0, lng: 0, website: '', email: '', phone: ''
     });
   };
@@ -1017,7 +1017,7 @@ export function AdminView() {
     }).sort((a, b) => b.totalStock - a.totalStock);
   }, [state.stores, state.products]);
 
-  const chartPalette = ['#3E7023', '#F29F05', '#D94B18', '#5C6B4A', '#8C9184', '#BDBF95'];
+  const chartPalette = ['#4C7A5E', '#E8734A', '#B9502A', '#3A5248', '#6A7C74', '#C3F03F'];
 
   const projectionData = useMemo(() => {
     // Fake projection data based on historical trends
@@ -1096,7 +1096,7 @@ export function AdminView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4 border-t border-mm-crd/20">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-4xl font-fraunces text-mm-g">
+            <h1 className="text-4xl font-display text-mm-g">
               {isProvider ? (currentTabLabel || 'Analítica') : (isSuperAdmin ? 'Super Administrador' : 'Panel de Control')}
             </h1>
             {isSuperAdmin && <Badge variant="oro" className="text-[10px] py-1 px-3">Acceso Total</Badge>}
@@ -1113,7 +1113,7 @@ export function AdminView() {
         {activeTab === 'plazas' && (
           <motion.div key="plazas" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Plazas</h2>
+              <h2 className="text-2xl font-display text-mm-g">Gestión de Plazas</h2>
               <Button size="sm" onClick={() => setIsAddPlazaOpen(true)}><Plus className="w-4 h-4" /> Nueva Plaza</Button>
             </div>
             <div className="bg-white rounded-3xl border border-mm-crd shadow-sm overflow-hidden">
@@ -1162,7 +1162,7 @@ export function AdminView() {
         {activeTab === 'stores' && (
           <motion.div key="stores" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Tiendas</h2>
+              <h2 className="text-2xl font-display text-mm-g">Gestión de Tiendas</h2>
               <Button size="sm" onClick={() => setIsAddStoreOpen(true)}><Plus className="w-4 h-4" /> Nueva Tienda</Button>
             </div>
             <div className="bg-white rounded-3xl border border-mm-crd shadow-sm overflow-hidden">
@@ -1220,7 +1220,7 @@ export function AdminView() {
           <motion.div key="products" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-fraunces text-mm-g">Inventarios Consolidados</h2>
+                <h2 className="text-2xl font-display text-mm-g">Inventarios Consolidados</h2>
                 <p className="text-sm text-mm-txs">Existencias totales y precios promedio en toda la plataforma.</p>
               </div>
               <div className="flex gap-2">
@@ -1357,7 +1357,7 @@ export function AdminView() {
         {activeTab === 'orders' && (
           <motion.div key="orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-fraunces text-mm-g">Todos los Pedidos</h2>
+              <h2 className="text-2xl font-display text-mm-g">Todos los Pedidos</h2>
               <Badge variant="oro" className="px-4 py-1">{state.orders.length} Pedidos Totales</Badge>
             </div>
             <div className="bg-white rounded-3xl border border-mm-crd shadow-sm overflow-hidden">
@@ -1404,7 +1404,7 @@ export function AdminView() {
           <motion.div key="projections" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <h2 className="text-2xl font-fraunces text-mm-g flex items-center gap-2">
+                <h2 className="text-2xl font-display text-mm-g flex items-center gap-2">
                   Proyección de Demanda y Oferta <BrainCircuit className="w-6 h-6 text-mm-oro" />
                 </h2>
                 <p className="text-sm text-mm-txs">Algoritmos predictivos basados en históricos de consumo.</p>
@@ -1421,7 +1421,7 @@ export function AdminView() {
               <div className="lg:col-span-2 space-y-8">
                 <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
                   <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-xl font-fraunces text-mm-g">Predicción de Demanda Semanal</h3>
+                    <h3 className="text-xl font-display text-mm-g">Predicción de Demanda Semanal</h3>
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-mm-g" />
@@ -1436,15 +1436,15 @@ export function AdminView() {
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={projectionData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6DD" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} />
                         <Tooltip
                           contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                         />
-                        <Area type="monotone" dataKey="actual" fill="#3E7023" fillOpacity={0.1} stroke="none" />
-                        <Line type="monotone" dataKey="actual" stroke="#3E7023" strokeWidth={3} dot={{ r: 4, fill: '#3E7023' }} />
-                        <Line type="monotone" dataKey="projected" stroke="#F29F05" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 6, fill: '#F29F05' }} />
+                        <Area type="monotone" dataKey="actual" fill="#4C7A5E" fillOpacity={0.1} stroke="none" />
+                        <Line type="monotone" dataKey="actual" stroke="#4C7A5E" strokeWidth={3} dot={{ r: 4, fill: '#4C7A5E' }} />
+                        <Line type="monotone" dataKey="projected" stroke="#E8734A" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 6, fill: '#E8734A' }} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
@@ -1472,7 +1472,7 @@ export function AdminView() {
               <div className="space-y-6">
                 <div className="bg-mm-g text-white p-8 rounded-[40px] shadow-lg relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-                  <h3 className="text-xl font-fraunces mb-4 relative z-10">Recomendaciones de Reabastecimiento</h3>
+                  <h3 className="text-xl font-display mb-4 relative z-10">Recomendaciones de Reabastecimiento</h3>
                   <div className="space-y-4 relative z-10">
                     <div className="flex items-start gap-3 bg-white/10 p-4 rounded-2xl backdrop-blur-sm">
                       <Zap className="w-5 h-5 text-mm-oro shrink-0 mt-1" />
@@ -1493,7 +1493,7 @@ export function AdminView() {
                 </div>
 
                 <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-                  <h4 className="font-fraunces text-mm-g mb-6">Precisión del Modelo</h4>
+                  <h4 className="font-display text-mm-g mb-6">Precisión del Modelo</h4>
                   <div className="flex items-center gap-6 mb-8">
                     <div className="relative w-20 h-20">
                       <svg className="w-full h-full transform -rotate-90">
@@ -1526,7 +1526,7 @@ export function AdminView() {
           <motion.div key="reputation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <h2 className="text-2xl font-fraunces text-mm-g flex items-center gap-2">
+                <h2 className="text-2xl font-display text-mm-g flex items-center gap-2">
                   Gestión de Reputación y Calificaciones <Star className="w-6 h-6 text-mm-oro fill-mm-oro" />
                 </h2>
                 <p className="text-sm text-mm-txs">Monitoreo de satisfacción del cliente y calidad del servicio.</p>
@@ -1545,7 +1545,7 @@ export function AdminView() {
 
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-1 space-y-6">
-                <h3 className="text-lg font-fraunces text-mm-g">Ranking de Tiendas</h3>
+                <h3 className="text-lg font-display text-mm-g">Ranking de Tiendas</h3>
                 <div className="space-y-3">
                   {state.stores
                     .filter(s => !isProvider || s.id === state.stores[0].id)
@@ -1582,7 +1582,7 @@ export function AdminView() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-fraunces text-mm-g">
+                    <h3 className="text-lg font-display text-mm-g">
                       {filterStoreId === 'all'
                         ? (isProvider ? 'Reseñas de mi Tienda' : 'Historial de Reseñas Recientes')
                         : `Reseñas de ${state.stores.find(s => s.id === filterStoreId)?.name}`
@@ -1706,28 +1706,28 @@ export function AdminView() {
             )}
             <div className="grid lg:grid-cols-2 gap-8">
               <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-                <h3 className="text-xl font-fraunces text-mm-g mb-8">Ingresos Semanales</h3>
+                <h3 className="text-xl font-display text-mm-g mb-8">Ingresos Semanales</h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={WEEK_DATA}>
                       <defs>
                         <linearGradient id="colorV" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3E7023" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#3E7023" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#4C7A5E" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#4C7A5E" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}k`} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6DD" />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} tickFormatter={(v) => `$${v / 1000}k`} />
                       <Tooltip />
-                      <Area type="monotone" dataKey="v" stroke="#3E7023" strokeWidth={3} fillOpacity={1} fill="url(#colorV)" />
+                      <Area type="monotone" dataKey="v" stroke="#4C7A5E" strokeWidth={3} fillOpacity={1} fill="url(#colorV)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
               <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-                <h3 className="text-xl font-fraunces text-mm-g mb-8">Distribución por Categoría</h3>
+                <h3 className="text-xl font-display text-mm-g mb-8">Distribución por Categoría</h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -1755,7 +1755,7 @@ export function AdminView() {
             <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm overflow-hidden">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                  <h3 className="text-xl font-fraunces text-mm-g">Consolidado de Inventario por Tienda</h3>
+                  <h3 className="text-xl font-display text-mm-g">Consolidado de Inventario por Tienda</h3>
                   <p className="text-xs text-mm-txs">Desglose de productos, existencias totales y valoración por punto de venta.</p>
                 </div>
                 <div className="flex gap-2">
@@ -1903,7 +1903,7 @@ export function AdminView() {
             <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                  <h3 className="text-xl font-fraunces text-mm-g">Inventario Global por Producto (Suma Total)</h3>
+                  <h3 className="text-xl font-display text-mm-g">Inventario Global por Producto (Suma Total)</h3>
                   <p className="text-xs text-mm-txs">Consolidado de existencias sumando todos los puntos de venta.</p>
                 </div>
                 <div className="flex gap-2">
@@ -1917,24 +1917,24 @@ export function AdminView() {
                     layout="vertical"
                     margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E8E8DC" />
-                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E2E6DD" />
+                    <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} />
                     <YAxis
                       type="category"
                       dataKey="name"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#5C6B4A', fontSize: 13, fontWeight: 'bold' }}
+                      tick={{ fill: '#3A5248', fontSize: 13, fontWeight: 'bold' }}
                       width={120}
                     />
                     <Tooltip
-                      cursor={{ fill: '#F4F4E8', opacity: 0.4 }}
+                      cursor={{ fill: '#EEF2E8', opacity: 0.4 }}
                       contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '16px' }}
-                      itemStyle={{ fontWeight: 'bold', fontSize: '13px', color: '#3E7023' }}
+                      itemStyle={{ fontWeight: 'bold', fontSize: '13px', color: '#4C7A5E' }}
                     />
                     <Bar
                       dataKey="total"
-                      fill="#3E7023"
+                      fill="#4C7A5E"
                       radius={[0, 6, 6, 0]}
                       barSize={24}
                     />
@@ -1946,7 +1946,7 @@ export function AdminView() {
             <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                  <h3 className="text-xl font-fraunces text-mm-g">Existencias por Producto y Tienda (Filtro Dinámico)</h3>
+                  <h3 className="text-xl font-display text-mm-g">Existencias por Producto y Tienda (Filtro Dinámico)</h3>
                   <p className="text-xs text-mm-txs">Desglose de stock total por cada punto de venta.</p>
                 </div>
                 <div className="flex gap-2">
@@ -1960,19 +1960,19 @@ export function AdminView() {
                     margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                     barGap={0}
                   >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6DD" />
                     <XAxis
                       dataKey="name"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fill: '#5C6B4A', fontSize: 13, fontWeight: 'bold' }}
+                      tick={{ fill: '#3A5248', fontSize: 13, fontWeight: 'bold' }}
                       interval={0}
                       angle={-35}
                       textAnchor="end"
                     />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} />
                     <Tooltip
-                      cursor={{ fill: '#F4F4E8', opacity: 0.4 }}
+                      cursor={{ fill: '#EEF2E8', opacity: 0.4 }}
                       contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '16px' }}
                       itemStyle={{ fontWeight: 'bold', fontSize: '13px' }}
                     />
@@ -1981,7 +1981,7 @@ export function AdminView() {
                       align="right"
                       height={50}
                       iconType="circle"
-                      wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', fontWeight: 'bold', color: '#5C6B4A' }}
+                      wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', fontWeight: 'bold', color: '#3A5248' }}
                     />
                     {uniqueStoreNames.map((storeName, index) => (
                       <Bar
@@ -2002,7 +2002,7 @@ export function AdminView() {
 
             {isSuperAdmin && (
               <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-                <h3 className="text-xl font-fraunces text-mm-g mb-6">Actividad Reciente en la Plataforma</h3>
+                <h3 className="text-xl font-display text-mm-g mb-6">Actividad Reciente en la Plataforma</h3>
                 <div className="space-y-4">
                   {state.orders.slice(0, 5).map(order => (
                     <div key={order.id} className="flex items-center justify-between p-4 bg-mm-gbg/30 rounded-2xl">
@@ -2029,7 +2029,7 @@ export function AdminView() {
           <motion.div key="catalog" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-fraunces text-mm-g">Catálogo Maestro</h2>
+                <h2 className="text-2xl font-display text-mm-g">Catálogo Maestro</h2>
                 <p className="text-sm text-mm-txs">Productos preestablecidos disponibles para las tiendas.</p>
               </div>
               <Button size="sm" onClick={() => setIsAddCatalogOpen(true)}><Plus className="w-4 h-4" /> Nuevo Item</Button>
@@ -2100,7 +2100,7 @@ export function AdminView() {
                 <X className="w-6 h-6 text-mm-txs" />
               </button>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nueva Tienda</h2>
+              <h2 className="text-3xl font-display text-mm-g mb-6">Nueva Tienda</h2>
 
               <form onSubmit={handleAddStore} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-4 custom-scrollbar">
                 <div className="space-y-2">
@@ -2270,7 +2270,7 @@ export function AdminView() {
                 <X className="w-6 h-6 text-mm-txs" />
               </button>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nueva Plaza</h2>
+              <h2 className="text-3xl font-display text-mm-g mb-6">Nueva Plaza</h2>
 
               <form onSubmit={handleAddPlaza} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-4 custom-scrollbar">
                 <div className="space-y-2">
@@ -2435,7 +2435,7 @@ export function AdminView() {
                 <X className="w-6 h-6 text-mm-txs" />
               </button>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nuevo Producto</h2>
+              <h2 className="text-3xl font-display text-mm-g mb-6">Nuevo Producto</h2>
 
               <form onSubmit={handleAddProduct} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pr-4 custom-scrollbar">
                 <div className="space-y-4">
@@ -2587,7 +2587,7 @@ export function AdminView() {
                 <X className="w-6 h-6 text-mm-txs" />
               </button>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nueva Oferta</h2>
+              <h2 className="text-3xl font-display text-mm-g mb-6">Nueva Oferta</h2>
 
               <form onSubmit={handleAddOffer} className="space-y-4">
                 <div className="space-y-2">
@@ -2735,7 +2735,7 @@ export function AdminView() {
                 <X className="w-6 h-6 text-mm-txs" />
               </button>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-6">Nuevo Item Catálogo</h2>
+              <h2 className="text-3xl font-display text-mm-g mb-6">Nuevo Item Catálogo</h2>
 
               <form onSubmit={handleAddCatalogItem} className="space-y-4">
                 <div className="space-y-2">
@@ -2827,7 +2827,7 @@ export function AdminView() {
                     <Receipt className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-fraunces text-mm-g">Pedido {formatOrderCode(selectedOrder.code, selectedOrder.storeOrderId)}</h2>
+                    <h2 className="text-2xl font-display text-mm-g">Pedido {formatOrderCode(selectedOrder.code, selectedOrder.storeOrderId)}</h2>
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">{new Date(selectedOrder.date).toLocaleString()}</p>
                   </div>
                 </div>
@@ -2901,7 +2901,7 @@ export function AdminView() {
               <div className="p-8 bg-mm-gbg/10 border-t border-mm-crd">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-mm-txw">Total del Pedido</span>
-                  <span className="text-3xl font-fraunces text-mm-g">{fmt(selectedOrder.total)}</span>
+                  <span className="text-3xl font-display text-mm-g">{fmt(selectedOrder.total)}</span>
                 </div>
                 <Button
                   onClick={() => setSelectedOrder(null)}
@@ -2949,7 +2949,7 @@ export function ProviderOrdersView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Órdenes</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Órdenes</h1>
           <p className="text-mm-txs">Gestiona el flujo de trabajo de tu tienda en tiempo real.</p>
         </div>
         <div className="flex gap-2 bg-mm-gbg/50 p-1.5 rounded-2xl border border-mm-crd shadow-inner">
@@ -3069,7 +3069,7 @@ export function ProviderOrdersView() {
         {filtered.length === 0 && (
           <div className="col-span-full py-32 text-center opacity-30">
             <ClipboardList className="w-32 h-32 mx-auto mb-6" />
-            <h3 className="text-2xl font-fraunces">Bandeja de Entrada Vacía</h3>
+            <h3 className="text-2xl font-display">Bandeja de Entrada Vacía</h3>
             <p className="max-w-xs mx-auto mt-2 italic font-medium">Los nuevos pedidos aparecerán aquí automáticamente.</p>
           </div>
         )}
@@ -3191,7 +3191,7 @@ export function ProviderSalesView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Ventas en Sitio</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Ventas en Sitio</h1>
           <p className="text-mm-txs">Registra ventas rápidas desde tu local físico.</p>
         </div>
         <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-mm-crd shadow-sm">
@@ -3274,7 +3274,7 @@ export function ProviderSalesView() {
         <div className="lg:col-span-5 space-y-6">
           <form onSubmit={handleCheckout} className="bg-white rounded-[40px] border border-mm-crd shadow-xl overflow-hidden flex flex-col min-h-[600px]">
             <div className="p-8 border-b border-mm-crd flex items-center justify-between bg-mm-gbg/10">
-              <h3 className="text-xl font-fraunces text-mm-g flex items-center gap-2">
+              <h3 className="text-xl font-display text-mm-g flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5" /> Nueva Venta
               </h3>
               {cart.length > 0 && (
@@ -3294,7 +3294,7 @@ export function ProviderSalesView() {
                   <div className="w-20 h-20 bg-mm-gbg rounded-[32px] flex items-center justify-center mb-6">
                     <ShoppingCart className="w-10 h-10 text-mm-txw" />
                   </div>
-                  <p className="text-xl font-fraunces text-mm-g mb-2 text-mm-g">Comienza tu venta</p>
+                  <p className="text-xl font-display text-mm-g mb-2 text-mm-g">Comienza tu venta</p>
                   <p className="text-sm px-10">Agrega productos del inventario para iniciar el cobro</p>
                 </div>
               ) : (
@@ -3390,7 +3390,7 @@ export function ProviderSalesView() {
               <div className="space-y-3 pt-4 border-t border-mm-crd/50">
                 <div className="flex justify-between items-center text-mm-g">
                   <span className="text-sm font-bold">Total a Cobrar</span>
-                  <span className="text-3xl font-fraunces tabular-nums">{fmt(total)}</span>
+                  <span className="text-3xl font-display tabular-nums">{fmt(total)}</span>
                 </div>
               </div>
 
@@ -3455,7 +3455,7 @@ export function ProviderSalesHistoryView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Historial de Ventas</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Historial de Ventas</h1>
           <p className="text-mm-txs">Consulta y gestiona todos los registros de ventas directas.</p>
         </div>
         <div className="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-mm-crd shadow-sm">
@@ -3473,7 +3473,7 @@ export function ProviderSalesHistoryView() {
             <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
               <History className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-fraunces text-mm-g">Registros</h3>
+            <h3 className="text-xl font-display text-mm-g">Registros</h3>
           </div>
           <Badge variant="default" className="text-xs px-4 py-1.5 uppercase tracking-tighter shadow-inner">
             {mySales.length} ventas
@@ -3562,7 +3562,7 @@ export function ProviderSalesHistoryView() {
                     <div className="w-20 h-20 bg-mm-gbg rounded-[32px] flex items-center justify-center mx-auto mb-6">
                       <History className="w-10 h-10 text-mm-txw" />
                     </div>
-                    <p className="text-xl font-fraunces text-mm-g">Sin movimientos</p>
+                    <p className="text-xl font-display text-mm-g">Sin movimientos</p>
                     <p className="text-sm">Tu historial de ventas directas aparecerá aquí</p>
                   </td>
                 </tr>
@@ -3594,7 +3594,7 @@ export function ProviderSalesHistoryView() {
                     <Receipt className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-fraunces text-mm-g">Venta #{selectedSale.id}</h2>
+                    <h2 className="text-2xl font-display text-mm-g">Venta #{selectedSale.id}</h2>
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">{new Date(selectedSale.date).toLocaleString()}</p>
                   </div>
                 </div>
@@ -3666,7 +3666,7 @@ export function ProviderSalesHistoryView() {
               <div className="p-8 bg-mm-gbg/10 border-t border-mm-crd space-y-3">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-lg font-bold text-mm-txw">Total Cobrado</span>
-                  <span className="text-3xl font-fraunces text-mm-g">{fmt(selectedSale.total)}</span>
+                  <span className="text-3xl font-display text-mm-g">{fmt(selectedSale.total)}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

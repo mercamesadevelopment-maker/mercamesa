@@ -34,12 +34,12 @@ import { fmt } from '@/src/constants';
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/app/orders/types/order.types';
 import { useSellerDashboard, type Trend } from '../hooks/use-seller-dashboard';
 
-const LOCAL_COLOR = '#3E7023';
-const DIGITAL_COLOR = '#D4AF37';
+const LOCAL_COLOR = '#4C7A5E';
+const DIGITAL_COLOR = '#E8734A';
 
 const CHART_TOOLTIP_STYLE = {
   borderRadius: '24px',
-  border: '1px solid #E8E8DC',
+  border: '1px solid #E2E6DD',
   boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.05)',
   padding: '12px 20px',
 };
@@ -98,7 +98,7 @@ export function DashboardView() {
                 </Badge>
               )}
             </div>
-            <h1 className="text-5xl lg:text-6xl font-fraunces mb-4 leading-tight">
+            <h1 className="text-5xl lg:text-6xl font-display mb-4 leading-tight">
               ¡Buen día{sellerName ? `, ${sellerName}` : ''}! 🥕
             </h1>
             <p className="text-mm-gll text-lg max-w-md leading-relaxed opacity-90">
@@ -212,7 +212,7 @@ export function DashboardView() {
       <div className="bg-white p-8 lg:p-10 rounded-[48px] border border-mm-crd shadow-sm">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
-            <h3 className="text-2xl font-fraunces text-mm-g">Ingresos por día</h3>
+            <h3 className="text-2xl font-display text-mm-g">Ingresos por día</h3>
             <p className="text-sm text-mm-txs">Últimos 30 días, sin contar pedidos cancelados</p>
           </div>
         </div>
@@ -231,14 +231,14 @@ export function DashboardView() {
                   dataKey="label"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: '#9AA88C' }}
+                  tick={{ fontSize: 10, fill: '#6A7C74' }}
                   interval="preserveStartEnd"
                   minTickGap={24}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: '#9AA88C' }}
+                  tick={{ fontSize: 10, fill: '#6A7C74' }}
                   tickFormatter={(value: number) => (value >= 1000 ? `$${value / 1000}k` : `$${value}`)}
                   width={56}
                 />
@@ -270,7 +270,7 @@ export function DashboardView() {
         <div className="lg:col-span-2 bg-white p-10 rounded-[48px] border border-mm-crd shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
             <div>
-              <h3 className="text-2xl font-fraunces text-mm-g">Comparativo por canal</h3>
+              <h3 className="text-2xl font-display text-mm-g">Comparativo por canal</h3>
               <p className="text-sm text-mm-txs">Ventas en local frente a pedidos digitales</p>
             </div>
             <div className="flex items-center gap-4 bg-mm-gbg/50 px-4 py-2 rounded-2xl">
@@ -329,7 +329,7 @@ export function DashboardView() {
         {/* Actividad reciente */}
         <div className="bg-white p-10 rounded-[48px] border border-mm-crd shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-fraunces text-mm-g">Actividad reciente</h3>
+            <h3 className="text-xl font-display text-mm-g">Actividad reciente</h3>
             <History className="w-5 h-5 text-mm-txw" />
           </div>
           <div className="flex-grow space-y-6 overflow-y-auto pr-2 scrollbar-hide">
@@ -394,7 +394,7 @@ export function DashboardView() {
       {/* Menor stock */}
       <div className="bg-white p-10 rounded-[48px] border border-mm-crd shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xl font-fraunces text-mm-g">Menor stock</h3>
+          <h3 className="text-xl font-display text-mm-g">Menor stock</h3>
           {outOfStockCount > 0 ? (
             <AlertCircle className="w-5 h-5 text-r" />
           ) : (

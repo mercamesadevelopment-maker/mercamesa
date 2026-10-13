@@ -1,27 +1,56 @@
 @import "tailwindcss";
 
-/* Las fuentes las carga `next/font` en `app/layout.tsx`; acá solo se nombran. */
+/* Las fuentes las carga `next/font` en `app/layout.tsx`; acá solo se nombran.
+ * Marca (MercaMesa_Branding_Case.pdf): Poppins para todo el texto y JetBrains
+ * Mono para los datos (pedido, peso, horario, etiquetas en mayúscula). */
 @theme inline {
-  --font-fraunces: var(--font-fraunces-src), serif;
-  --font-dm-sans: var(--font-dm-sans-src), sans-serif;
+  --font-display: var(--font-poppins-src), system-ui, sans-serif;
+  --font-sans: var(--font-poppins-src), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-src), ui-monospace, monospace;
 }
 
+/*
+ * Paleta de la marca. «La paleta sale de la plaza»: proporción de uso
+ * aproximada tinta 50 %, hueso 30 %, lima 12 %, salvia 5 %, arcilla 3 %.
+ *
+ * - La lima no va como texto sobre fondo claro (no se lee): es fondo, con texto
+ *   en tinta, o texto sobre tinta.
+ * - La arcilla de relleno (`arcilla`) no alcanza contraste para texto pequeño
+ *   sobre blanco; para eso está `arcilla-oscura`.
+ */
 @theme {
-  --color-mm-g: #1A3308;
-  --color-mm-gm: #2A4E12;
-  --color-mm-gl: #4A7023;
-  --color-mm-gll: #B6D98D;
-  --color-mm-gbg: #F5F8F0;
-  --color-mm-oro: #B87900;
-  --color-mm-orl: #FDF4E3;
-  --color-mm-txs: #3D4D2E;
-  --color-mm-txw: #707A65;
-  --color-mm-crd: #E2E2D0;
+  --color-tinta: #0E3B2F;
+  --color-tinta-oscura: #0A2B22;
+  --color-tinta-media: #1B5240;
+  --color-lima: #C3F03F;
+  --color-lima-clara: #EDF8D2;
+  --color-arcilla: #E8734A;
+  --color-arcilla-oscura: #B9502A;
+  --color-arcilla-clara: #FCE7DD;
+  --color-salvia: #4C7A5E;
+  --color-salvia-clara: #E3ECE5;
+  --color-hueso: #F7F5EE;
 
-  --color-ok: #1B4332;
-  --color-okl: #D8F3DC;
-  --color-r: #A42426;
-  --color-rl: #FAD2D3;
+  /*
+   * Los `mm-*` de antes, reasignados a la paleta nueva. Se usan en toda la app
+   * (unos 150 archivos); reasignarlos cambia la marca sin tocar cada pantalla.
+   * Para lo nuevo, usar los nombres de arriba.
+   */
+  --color-mm-g: #0E3B2F;     /* tinta */
+  --color-mm-gm: #1B5240;    /* tinta media: hover */
+  --color-mm-gl: #4C7A5E;    /* salvia */
+  --color-mm-gll: #C3F03F;   /* lima */
+  --color-mm-gbg: #EEF2E8;   /* fondo suave verdoso */
+  --color-mm-oro: #B9502A;   /* arcilla oscura: legible como texto */
+  --color-mm-orl: #FCE7DD;   /* arcilla clara */
+  --color-mm-txs: #3A5248;
+  --color-mm-txw: #6A7C74;
+  --color-mm-crd: #E2E6DD;
+
+  --color-ok: #1F6B47;
+  --color-okl: #DDF3E4;
+  --color-r: #B4322A;
+  --color-rl: #FBDCD6;
   --color-blue: #2A5A7A;
   --color-bluel: #EBF2FA;
   --color-warn: #9B6A3E;
@@ -30,10 +59,10 @@
 
 @layer base {
   body {
-    @apply font-dm-sans text-[#1A2610] bg-[#FAFAF5];
+    @apply font-sans text-[#10261E] bg-hueso;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-fraunces font-bold;
+    @apply font-display font-bold tracking-tight;
   }
 }
 
@@ -95,6 +124,61 @@
 .animate-spin-slow { animation: spin 3s linear infinite; }
 .animate-pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 .animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
+
+/*
+ * El producto «flotando» (caso de marca, láminas 3, 13 y 16).
+ *
+ * Reglas para que no cueste rendimiento, también con muchos productos en
+ * pantalla y en celulares de gama baja:
+ * - Solo se anima `transform` y `opacity`: el navegador lo resuelve en la
+ *   tarjeta gráfica, sin recalcular la página.
+ * - El bucle (`mm-float`) es solo para unos pocos elementos destacados, y lo
+ *   pausa `components/ui/floating.tsx` cuando sale de la pantalla. Las tarjetas
+ *   de un listado NO van en bucle: entran una vez (`mm-rise`) y reaccionan al
+ *   pasar el mouse (`mm-lift`).
+ * - `mm-rise` usa la línea de tiempo de scroll del propio CSS; donde el
+ *   navegador no la soporta, la tarjeta simplemente aparece, sin JavaScript.
+ * - Con «reducir movimiento» activado en el sistema, no se mueve nada.
+ */
+@keyframes mmFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+
+@keyframes mmFloatShadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.35; }
+  50% { transform: scaleX(0.82); opacity: 0.22; }
+}
+
+@keyframes mmRise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.mm-float { animation: mmFloat 5s ease-in-out infinite; will-change: transform; }
+.mm-float-shadow { animation: mmFloatShadow 5s ease-in-out infinite; }
+.mm-paused .mm-float,
+.mm-paused .mm-float-shadow,
+.mm-paused.mm-float { animation-play-state: paused; }
+
+@supports (animation-timeline: view()) {
+  .mm-rise {
+    animation: mmRise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 70%;
+  }
+}
+
+.mm-lift { transition: transform 250ms ease, box-shadow 250ms ease; }
+.mm-lift:hover { transform: translate3d(0, -6px, 0); }
+.mm-lift .mm-lift-img { transition: transform 300ms ease; }
+.mm-lift:hover .mm-lift-img { transform: translate3d(0, -4px, 0) scale(1.03); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-float, .mm-float-shadow, .mm-rise { animation: none !important; }
+  .mm-lift, .mm-lift .mm-lift-img { transition: none; }
+  .mm-lift:hover, .mm-lift:hover .mm-lift-img { transform: none; }
+}
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

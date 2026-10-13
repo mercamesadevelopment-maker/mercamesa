@@ -13,7 +13,7 @@
  * Al cambiar algo de lo guardado, subir la versión: al activarse se borran las
  * cachés anteriores.
  */
-const CACHE = 'mercamesa-offline-v1';
+const CACHE = 'mercamesa-offline-v2';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/icons/icon-192.png'];
 
