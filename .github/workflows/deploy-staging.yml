@@ -8,7 +8,7 @@ name: Desplegar a staging
 #
 # Secretos, en Settings → Environments → staging (nunca los de producción):
 #   STAGING_DB_URL         cadena del Session pooler de staging (ver .env.staging.example)
-#   STAGING_PROJECT_REF    pzvtrduhbcqcnnpdkcct
+#   STAGING_PROJECT_REF    llfjupjvxucdjwezfpeq
 #   SUPABASE_ACCESS_TOKEN  token personal de una cuenta con acceso al proyecto de staging
 
 on:

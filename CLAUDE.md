@@ -61,7 +61,7 @@ Hay tres entornos, y **se desarrolla contra el local**:
 | Entorno | Base de datos | Cómo la usa la app |
 |---|---|---|
 | Local | Supabase en Docker (`supabase start`) | `.env.local`, que Next.js lee por encima de `.env` |
-| Staging | Proyecto `pzvtrduhbcqcnnpdkcct`, con copia de prod. Recibe lo que se fusiona en `develop` | Variables de Preview de la rama `develop` en Vercel; `.env.staging` para los scripts. Detalle en `docs/entornos.md` |
+| Staging | Proyecto `llfjupjvxucdjwezfpeq`, con copia de prod. Recibe lo que se fusiona en `develop` | Variables de Preview de la rama `develop` en Vercel; `.env.staging` para los scripts. Detalle en `docs/entornos.md` |
 | Producción | Proyecto `zaqvcpehhmkiyjdbcufj` | `.env` y las variables de Vercel |
 
 Para trabajar contra producción desde la máquina local hay que renombrar `.env.local`. No

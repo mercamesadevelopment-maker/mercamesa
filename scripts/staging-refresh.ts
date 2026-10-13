@@ -97,24 +97,29 @@ function main() {
     '--sql-paths', './seed/post.sql',
   ]);
 
-  // 2. Vault. Va en un archivo temporal, fuera del repo, y se borra al terminar.
-  const sql = ['app_base_url', 'app_cron_secret']
-    .map((nombre, i) => {
-      const valor = literal(i === 0 ? appUrl : cronSecret);
-      return `select case
-  when exists (select 1 from vault.secrets where name = '${nombre}')
-    then (select vault.update_secret(id, ${valor}) from vault.secrets where name = '${nombre}')::text
-  else vault.create_secret(${valor}, '${nombre}')::text
-end as ${nombre};`;
-    })
-    .join('\n');
-
-  const tmp = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'staging-')), 'vault.sql');
+  // 2. Vault. Cada secreto va en un archivo temporal, fuera del repo, que se
+  // borra al terminar; uno por llamada, porque `db query` acepta una sola
+  // sentencia.
+  const secretos: [string, string][] = [
+    ['app_base_url', appUrl],
+    ['app_cron_secret', cronSecret],
+  ];
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'staging-'));
   try {
-    fs.writeFileSync(tmp, sql);
-    supabase(['db', 'query', '--db-url', dbUrl, '-f', tmp]);
+    for (const [nombre, valor] of secretos) {
+      const tmp = path.join(dir, `${nombre}.sql`);
+      fs.writeFileSync(
+        tmp,
+        `select case
+  when exists (select 1 from vault.secrets where name = '${nombre}')
+    then (select vault.update_secret(id, ${literal(valor)}) from vault.secrets where name = '${nombre}')::text
+  else vault.create_secret(${literal(valor)}, '${nombre}')::text
+end as ${nombre}`
+      );
+      supabase(['db', 'query', '--db-url', dbUrl, '-f', tmp]);
+    }
   } finally {
-    fs.rmSync(path.dirname(tmp), { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 
   console.log('\nStaging quedó con los datos de producción. Faltan las imágenes: pnpm staging:sync-storage');
