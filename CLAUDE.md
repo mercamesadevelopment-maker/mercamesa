@@ -61,7 +61,7 @@ Hay tres entornos, y **se desarrolla contra el local**:
 | Entorno | Base de datos | Cómo la usa la app |
 |---|---|---|
 | Local | Supabase en Docker (`supabase start`) | `.env.local`, que Next.js lee por encima de `.env` |
-| Staging | Proyecto de Supabase aparte (pendiente de crear) | Variables del despliegue de staging |
+| Staging | Proyecto `pzvtrduhbcqcnnpdkcct`, con copia de prod. Recibe lo que se fusiona en `develop` | Variables de Preview de la rama `develop` en Vercel; `.env.staging` para los scripts. Detalle en `docs/entornos.md` |
 | Producción | Proyecto `zaqvcpehhmkiyjdbcufj` | `.env` y las variables de Vercel |
 
 Para trabajar contra producción desde la máquina local hay que renombrar `.env.local`. No
@@ -86,8 +86,9 @@ Studio `57323`, correo de pruebas `57324`. Configuración en `supabase/config.to
    personales y contraseñas cifradas). Se trae o se actualiza con `pnpm db:pull-data`;
    las cuentas entran con las mismas contraseñas que en producción. No trae roles,
    módulos ni permisos: esos salen de las migraciones.
-3. `local.sql`: secretos de Vault de mentira, vuelve a poner las validaciones, apaga
-   las tareas programadas que llaman hacia afuera y activa todos los módulos.
+3. `post.sql`: vuelve a poner las validaciones, apaga las tareas programadas que
+   llaman hacia afuera y activa todos los módulos. Lo comparte con staging.
+4. `local.sql`: secretos de Vault de mentira.
 
 Un `db:reset` también vacía el Storage local; `pnpm db:sync-storage` lo vuelve a llenar
 desde `supabase/.storage-cache` sin bajar nada de nuevo.
@@ -141,7 +142,7 @@ Local no debe tocar servicios reales. `.env.local` lo deja así:
 | Correo | No sale: queda en la consola del servidor, incluido el código de ingreso de un administrador | `EMAIL_DRY_RUN=true` |
 | Siigo | No se envía nada; las colas de facturas y notas crédito se llenan y esperan | Sin credenciales |
 | ZonaPagos | No hay pasarela: un pedido se paga con saldo a favor o con `pnpm local:pay <código del pedido>` | `scripts/local-pay.ts`, que se niega a correr contra otra base que no sea la local |
-| Tareas programadas | Solo corren las que son SQL puro (vencer pedidos, escalar PQRS). Las demás se llaman a mano con `CRON_SECRET` | `supabase/seed/local.sql` |
+| Tareas programadas | Solo corren las que son SQL puro (vencer pedidos, escalar PQRS). Las demás se llaman a mano con `CRON_SECRET` | `supabase/seed/post.sql` |
 
 `PIBOX_DRY_RUN` y `EMAIL_DRY_RUN` nunca se encienden en producción.
 

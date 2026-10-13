@@ -20,7 +20,9 @@
     "backfill:images": "tsx scripts/backfill-image-variants.ts",
     "pibox:hooks": "tsx scripts/pibox-webhooks.ts",
     "lint": "next lint",
-    "siigo": "tsx scripts/siigo.ts"
+    "siigo": "tsx scripts/siigo.ts",
+    "staging:refresh": "tsx scripts/staging-refresh.ts",
+    "staging:sync-storage": "tsx scripts/sync-storage-local.ts --staging"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

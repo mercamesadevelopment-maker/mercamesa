@@ -1,8 +1,9 @@
 /**
  * scripts/sync-storage-local.ts
  *
- * Copia al Storage LOCAL los archivos de los buckets públicos de producción
- * (fotos de productos, tiendas y plazas, avatares, documentos legales).
+ * Copia al Storage LOCAL —o al de staging, con `--staging`— los archivos de los
+ * buckets públicos de producción (fotos de productos, tiendas y plazas, avatares,
+ * documentos legales).
  *
  * `supabase db reset` trae los datos, pero los archivos no viajan en un volcado
  * de la base: sin esto, en local las imágenes salen rotas. Los buckets privados
@@ -11,9 +12,11 @@
  * Uso:
  *   pnpm db:sync-storage              Todos los buckets públicos
  *   pnpm db:sync-storage plazas       Solo uno
+ *   pnpm staging:sync-storage         Lo mismo, hacia staging
  *
- * Lee producción de `.env` y local de `.env.local`. Solo escribe en local: si la
- * URL de destino no es de esta máquina, se niega. Lo que ya existe en local se
+ * Lee producción de `.env` y el destino de `.env.local` (o `.env.staging`). Nunca
+ * escribe en producción: en local exige que la URL sea de esta máquina, y en
+ * staging que no sea la de producción. Lo que ya existe en local se
  * salta, así que se puede cortar y volver a correr.
  *
  * Lo bajado queda en `supabase/.storage-cache` (fuera de git). `supabase db
@@ -119,17 +122,32 @@ async function copiarBucket(prod: SupabaseClient, local: SupabaseClient, bucket:
   console.log(`${bucket}: ${copiados} copiados${fallidos ? `, ${fallidos} con error` : ''}.`);
 }
 
-async function main() {
-  const envLocal = leerEnv('.env.local');
-  const destino = new URL(envLocal.NEXT_PUBLIC_SUPABASE_URL ?? 'http://sin-url');
-  if (!['127.0.0.1', 'localhost'].includes(destino.hostname)) {
-    throw new Error(`El destino debe ser la base local, y .env.local apunta a ${destino.host}.`);
+const PROD_REF = 'zaqvcpehhmkiyjdbcufj';
+
+/** El Storage al que se copia: el local o, con `--staging`, el de staging. */
+function destino(): { env: Record<string, string>; archivo: string } {
+  if (process.argv.includes('--staging')) {
+    const env = leerEnv('.env.staging');
+    if ((env.NEXT_PUBLIC_SUPABASE_URL ?? '').includes(PROD_REF)) {
+      throw new Error('.env.staging apunta al proyecto de PRODUCCIÓN. No se hace nada.');
+    }
+    return { env, archivo: '.env.staging' };
   }
 
-  const prod = cliente(leerEnv('.env'), '.env');
-  const local = cliente(envLocal, '.env.local');
+  const env = leerEnv('.env.local');
+  const host = new URL(env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://sin-url').hostname;
+  if (!['127.0.0.1', 'localhost'].includes(host)) {
+    throw new Error(`El destino debe ser la base local, y .env.local apunta a ${host}.`);
+  }
+  return { env, archivo: '.env.local' };
+}
 
-  const pedido = process.argv[2];
+async function main() {
+  const dest = destino();
+  const prod = cliente(leerEnv('.env'), '.env');
+  const local = cliente(dest.env, dest.archivo);
+
+  const pedido = process.argv.slice(2).find((a) => !a.startsWith('--'));
   if (pedido && !BUCKETS_PUBLICOS.includes(pedido)) {
     throw new Error(`"${pedido}" no es un bucket público. Opciones: ${BUCKETS_PUBLICOS.join(', ')}.`);
   }
