@@ -105,7 +105,7 @@ export function ForgotPasswordModal({
             {step === 0 && (
               <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Recupera tu contraseña</h2>
+                  <h2 className="mb-2 font-display text-3xl text-mm-g">Recupera tu contraseña</h2>
                   <p className="text-mm-txs">Te enviaremos un código de 6 dígitos a tu correo.</p>
                 </div>
 
@@ -123,7 +123,7 @@ export function ForgotPasswordModal({
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Revisa tu correo</h2>
+                  <h2 className="mb-2 font-display text-3xl text-mm-g">Revisa tu correo</h2>
                   <p className="text-mm-txs">
                     Si <span className="font-medium text-mm-g">{email}</span> está registrado, te enviamos un código. Ingrésalo aquí (vence en 10 minutos).
                   </p>
@@ -159,7 +159,7 @@ export function ForgotPasswordModal({
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Crea tu nueva contraseña</h2>
+                  <h2 className="mb-2 font-display text-3xl text-mm-g">Crea tu nueva contraseña</h2>
                   <p className="text-mm-txs">Elige una contraseña segura para tu cuenta.</p>
                 </div>
 
@@ -195,7 +195,7 @@ export function ForgotPasswordModal({
             {step === 3 && (
               <motion.div key="step3" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-4 text-center">
                 <CheckCircle2 className="mx-auto mb-6 h-16 w-16 text-mm-g" />
-                <h2 className="mb-4 font-fraunces text-3xl text-mm-g">¡Contraseña actualizada!</h2>
+                <h2 className="mb-4 font-display text-3xl text-mm-g">¡Contraseña actualizada!</h2>
                 <p className="mb-10 text-mm-txs">Ya puedes iniciar sesión con tu nueva contraseña.</p>
 
                 <Button

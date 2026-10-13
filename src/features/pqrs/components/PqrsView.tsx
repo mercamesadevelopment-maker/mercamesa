@@ -60,7 +60,7 @@ export function PqrsView({ scope, title, subtitle, storeId, headerExtra, childre
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">{title}</h1>
+            <h1 className="text-3xl sm:text-4xl font-display text-mm-g mb-1 sm:mb-2">{title}</h1>
             <p className="text-sm sm:text-base text-mm-txs">{subtitle}</p>
           </div>
           {headerExtra}

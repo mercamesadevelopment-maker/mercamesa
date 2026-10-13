@@ -297,7 +297,7 @@ export default function CatalogAdmin() {
     <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-fraunces text-mm-g">Inventarios Consolidados</h2>
+          <h2 className="text-2xl font-display text-mm-g">Inventarios Consolidados</h2>
           <p className="text-sm text-mm-txs mt-1">Existencias y precios de los productos en cada tienda.</p>
         </div>
         <div className="flex gap-3">

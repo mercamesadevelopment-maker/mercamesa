@@ -27,7 +27,7 @@ export default function MarketplacesSectionPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-up">
       <div>
-        <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">Todas las Plazas</h1>
+        <h1 className="text-3xl sm:text-4xl font-display text-mm-g mb-1 sm:mb-2">Todas las Plazas</h1>
         <p className="text-sm sm:text-base text-mm-txs">Explora los centros de abastecimiento más frescos de la región.</p>
       </div>
 
@@ -83,7 +83,7 @@ export default function MarketplacesSectionPage() {
               </div>
             </div>
             <div className="p-3 sm:p-6 flex-grow flex flex-col">
-              <h3 className="text-base sm:text-xl font-bold text-mm-g font-fraunces leading-tight mb-1 sm:mb-2 line-clamp-2 break-words">{plaza.name}</h3>
+              <h3 className="text-base sm:text-xl font-bold text-mm-g font-display leading-tight mb-1 sm:mb-2 line-clamp-2 break-words">{plaza.name}</h3>
               <div className="flex items-start gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-mm-txw mb-3 sm:mb-4">
                 <MapPin className="w-3.5 h-3.5 shrink-0 mt-px" />
                 <span className="line-clamp-2 break-words">{plaza.city} • {plaza.address}</span>

@@ -48,7 +48,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isNoLayoutPage) return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5]">
+    <div className="min-h-screen bg-[#F7F5EE]">
       <Topbar
         onCartOpen={() => setIsCartOpen(true)}
         onToggleSidebar={() =>

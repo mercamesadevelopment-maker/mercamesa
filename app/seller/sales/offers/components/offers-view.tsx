@@ -125,7 +125,7 @@ export function OffersView() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Ofertas por Tienda</h1>
+            <h1 className="text-4xl font-display text-mm-g mb-2">Ofertas por Tienda</h1>
             <p className="text-mm-txs">Registra y administra ofertas y promociones especiales.</p>
           </div>
           {stores.length > 1 && (
@@ -158,7 +158,7 @@ export function OffersView() {
              <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
                <Tag className="w-5 h-5" />
              </div>
-             <h3 className="text-xl font-fraunces text-mm-g">Promociones</h3>
+             <h3 className="text-xl font-display text-mm-g">Promociones</h3>
           </div>
           <Badge variant="oro" className="text-xs px-4 py-1.5 uppercase shadow-inner">
             {offers.length} ofertas

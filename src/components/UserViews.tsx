@@ -88,7 +88,7 @@ export function OrdersView() {
     <div className="p-6 lg:p-10 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">{title}</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">{title}</h1>
           <p className="text-mm-txs">{subtitle}</p>
         </div>
         <div className="flex bg-white p-1 rounded-2xl border border-mm-crd shadow-sm self-start">
@@ -110,17 +110,17 @@ export function OrdersView() {
       <div className="grid sm:grid-cols-3 gap-6 mb-10">
         <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
           <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2">Total pedidos</p>
-          <p className="text-3xl font-fraunces text-mm-g">{isProvider ? state.orders.filter(o => o.storeId === myStoreId).length : state.orders.length}</p>
+          <p className="text-3xl font-display text-mm-g">{isProvider ? state.orders.filter(o => o.storeId === myStoreId).length : state.orders.length}</p>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
           <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2">{isProvider ? 'Ventas totales' : 'Gasto total'}</p>
-          <p className="text-3xl font-fraunces text-mm-g">
+          <p className="text-3xl font-display text-mm-g">
             {fmt(state.orders.filter(o => !isProvider || o.storeId === myStoreId).reduce((acc, o) => acc + o.total, 0))}
           </p>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-mm-crd shadow-sm">
           <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2">Esta semana</p>
-          <p className="text-3xl font-fraunces text-mm-g">
+          <p className="text-3xl font-display text-mm-g">
             {state.orders.filter(o => (!isProvider || o.storeId === myStoreId) && new Date(o.date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}
           </p>
         </div>
@@ -130,7 +130,7 @@ export function OrdersView() {
         {filteredOrders.length === 0 ? (
           <div className="bg-white p-12 rounded-[32px] border border-mm-crd text-center opacity-40 flex flex-col items-center">
             <ClipboardList className="w-20 h-20 text-mm-txw mb-4" />
-            <p className="text-xl font-fraunces">No hay pedidos {activeTab === 'active' ? 'activos' : activeTab === 'completed' ? 'completados' : 'anulados'}</p>
+            <p className="text-xl font-display">No hay pedidos {activeTab === 'active' ? 'activos' : activeTab === 'completed' ? 'completados' : 'anulados'}</p>
           </div>
         ) : (
           filteredOrders.map(order => {
@@ -199,7 +199,7 @@ export function OrdersView() {
                 <div className="p-6 bg-mm-gbg/30 border-t border-mm-crd flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">Total {isProvider ? 'Venta' : 'Pagado'}</span>
-                    <span className="text-2xl font-fraunces text-mm-g">{fmt(order.total)}</span>
+                    <span className="text-2xl font-display text-mm-g">{fmt(order.total)}</span>
                   </div>
                   <div className="flex gap-3">
                     <Button variant="outline" size="sm">Ver factura</Button>
@@ -248,7 +248,7 @@ export function OrdersView() {
                 {state.stores.find(s => String(s.id) === String(ratingStoreId))?.emoji}
               </div>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-2">
+              <h2 className="text-3xl font-display text-mm-g mb-2">
                 Â¿QuÃ© tal tu compra?
               </h2>
               <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{state.stores.find(s => String(s.id) === String(ratingStoreId))?.name}</span></p>

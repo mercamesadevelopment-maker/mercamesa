@@ -74,15 +74,15 @@ function plantilla({
       <meta charset="utf-8">
       <title>${title} - Mercamesa</title>
       <style>
-        body { font-family: Arial, sans-serif; background-color: #FAFAF5; color: #1A2610; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 20px rgba(26, 51, 8, 0.08); border: 1px solid #E2E2D0; }
-        .header { background-color: #1A3308; padding: 40px 20px; text-align: center; }
+        body { font-family: Arial, sans-serif; background-color: #F7F5EE; color: #10261E; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 20px rgba(26, 51, 8, 0.08); border: 1px solid #E2E6DD; }
+        .header { background-color: #0E3B2F; padding: 40px 20px; text-align: center; }
         .content { padding: 40px 30px; text-align: center; }
-        .title { font-family: Georgia, serif; font-size: 26px; color: #1A3308; margin-top: 0; margin-bottom: 20px; font-weight: bold; }
+        .title { font-family: Georgia, serif; font-size: 26px; color: #0E3B2F; margin-top: 0; margin-bottom: 20px; font-weight: bold; }
         .text { font-size: 16px; line-height: 1.6; color: #3D4D2E; margin-bottom: 24px; }
-        .code { display: inline-block; font-size: 36px; letter-spacing: 8px; font-weight: bold; color: #1A3308; background-color: #F5F8F0; border: 1px solid #E2E2D0; border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; }
-        .highlight { font-weight: bold; color: #1A3308; }
-        .footer { background-color: #F5F8F0; padding: 24px; text-align: center; font-size: 12px; color: #707A65; border-top: 1px solid #E2E2D0; }
+        .code { display: inline-block; font-size: 36px; letter-spacing: 8px; font-weight: bold; color: #0E3B2F; background-color: #EEF2E8; border: 1px solid #E2E6DD; border-radius: 16px; padding: 16px 24px; margin-bottom: 24px; }
+        .highlight { font-weight: bold; color: #0E3B2F; }
+        .footer { background-color: #EEF2E8; padding: 24px; text-align: center; font-size: 12px; color: #6A7C74; border-top: 1px solid #E2E6DD; }
       </style>
     </head>
     <body>
@@ -251,7 +251,7 @@ export function legalDocumentUpdatedEmail(etiqueta: string, version: number, url
       <p class="text">Publicamos la versión <span class="highlight">${version}</span> de ${etiqueta.toLowerCase()}. Te lo contamos porque te afecta: al entrar a MercaMesa te pediremos aceptarla para poder seguir.</p>
       <p class="text">Fecha de la publicación: <span class="highlight">${momentoEnColombia()}</span></p>
       <p class="text">
-        <a href="${url}" style="display:inline-block;background-color:#1A3308;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Leer el documento</a>
+        <a href="${url}" style="display:inline-block;background-color:#0E3B2F;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Leer el documento</a>
       </p>
       <p class="text">Si el botón no funciona, copia este enlace en tu navegador:<br><span style="word-break:break-all;">${url}</span></p>
     `,
@@ -279,7 +279,7 @@ export function adminInvitationEmail(
       <p class="text"><span class="highlight">${invitadoPor}</span> te invitó a MercaMesa con el rol de <span class="highlight">${rolEtiqueta}</span>.</p>
       <p class="text">Para empezar, abre el enlace y define tu contraseña. La invitación vence en ${diasParaVencer} días.</p>
       <p class="text">
-        <a href="${url}" style="display:inline-block;background-color:#1A3308;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
+        <a href="${url}" style="display:inline-block;background-color:#0E3B2F;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
       </p>
       <p class="text">Si el botón no funciona, copia este enlace en tu navegador:<br><span style="word-break:break-all;">${url}</span></p>
       <p class="text">Si no esperabas esta invitación, puedes ignorar este correo: sin abrir el enlace no se crea ninguna cuenta.</p>
@@ -308,7 +308,7 @@ export function storeInvitationEmail(
       <p class="text">Te invitaron a unirte a <span class="highlight">${storeName}</span> en MercaMesa con el rol de <span class="highlight">${rolEtiqueta}</span>.</p>
       <p class="text">Para empezar, abre el enlace y completa tus datos. La invitación vence en ${diasParaVencer} días.</p>
       <p class="text">
-        <a href="${url}" style="display:inline-block;background-color:#1A3308;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
+        <a href="${url}" style="display:inline-block;background-color:#0E3B2F;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
       </p>
       <p class="text">Si el botón no funciona, copia este enlace en tu navegador:<br><span style="word-break:break-all;">${url}</span></p>
       <p class="text">Si no esperabas esta invitación, puedes ignorar este correo.</p>

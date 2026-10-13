@@ -130,7 +130,7 @@ export function OrdersView({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">
+          <h1 className="text-4xl font-display text-mm-g mb-2">
             {variant === 'admin' ? 'Órdenes' : 'Órdenes'}
           </h1>
           <p className="text-mm-txs">
@@ -331,7 +331,7 @@ export function OrdersView({
         {!loading && filteredOrders.length === 0 && (
           <div className="col-span-full py-32 text-center opacity-30">
             <ClipboardList className="w-32 h-32 mx-auto mb-6" />
-            <h3 className="text-2xl font-fraunces">Bandeja de Entrada Vacía</h3>
+            <h3 className="text-2xl font-display">Bandeja de Entrada Vacía</h3>
             <p className="max-w-xs mx-auto mt-2 italic font-medium">Los nuevos pedidos aparecerán aquí automáticamente.</p>
           </div>
         )}

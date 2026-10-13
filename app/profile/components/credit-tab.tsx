@@ -30,7 +30,7 @@ export function CreditTab() {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-4 sm:space-y-6"
     >
-      <h2 className="text-2xl sm:text-3xl font-fraunces text-mm-g">Saldo a favor</h2>
+      <h2 className="text-2xl sm:text-3xl font-display text-mm-g">Saldo a favor</h2>
 
       {error && <div className="bg-rl text-r text-sm font-medium px-4 py-3 rounded-2xl">{error}</div>}
 
@@ -43,7 +43,7 @@ export function CreditTab() {
           <>
             <div className="bg-white rounded-3xl border border-mm-crd shadow-sm p-5 sm:p-6">
               <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">Disponible</p>
-              <p className="text-3xl sm:text-4xl font-fraunces text-mm-g mt-1">{fmt(credit.balance)}</p>
+              <p className="text-3xl sm:text-4xl font-display text-mm-g mt-1">{fmt(credit.balance)}</p>
               <p className="text-sm text-mm-txs mt-2">
                 Lo recibes cuando se aprueba una devolución. Sirve para comprar en cualquier tienda y no vence.
               </p>

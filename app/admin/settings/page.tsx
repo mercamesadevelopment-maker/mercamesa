@@ -116,7 +116,7 @@ export default function AdminSettingsPage() {
               <Settings2 className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-fraunces text-mm-g">Parametrización del Sistema</h1>
+              <h1 className="text-3xl font-display text-mm-g">Parametrización del Sistema</h1>
               <p className="text-sm text-mm-txs mt-0.5">
                 Administra los catálogos globales y configuraciones maestras de Mercamesa.
               </p>

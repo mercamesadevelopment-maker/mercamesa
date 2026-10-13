@@ -59,7 +59,7 @@ function OffersAdminContent() {
     <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Ofertas</h2>
+          <h2 className="text-2xl font-display text-mm-g">Gestión de Ofertas</h2>
           <p className="text-sm text-mm-txs mt-1">Administra los descuentos y precios especiales de tus productos.</p>
         </div>
         <Button size="sm" className="w-full sm:w-auto whitespace-nowrap" onClick={() => { setEditingOffer(null); setIsModalOpen(true); }}>

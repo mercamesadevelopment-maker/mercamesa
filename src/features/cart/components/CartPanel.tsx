@@ -211,7 +211,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
           {/* Header */}
           <div className="p-6 pb-4 border-b border-mm-gbg">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-fraunces text-mm-g flex items-center gap-2">
+              <h2 className="text-2xl font-display text-mm-g flex items-center gap-2">
                 <ShoppingCart className="w-6 h-6" /> Tu Canasta
               </h2>
               <button
