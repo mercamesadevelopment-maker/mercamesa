@@ -1,6 +1,6 @@
 name: Desplegar a staging
 
-# Al fusionar en `develop`, aplica en STAGING las migraciones nuevas y despliega
+# Al fusionar en `development`, aplica en STAGING las migraciones nuevas y despliega
 # las funciones de borde. La aplicación la publica Vercel por su cuenta.
 #
 # Producción no se toca desde acá: sus migraciones las aplica la integración de
@@ -13,7 +13,7 @@ name: Desplegar a staging
 
 on:
   push:
-    branches: [develop]
+    branches: [development]
   workflow_dispatch:
 
 concurrency:
