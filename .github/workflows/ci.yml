@@ -1,6 +1,6 @@
 name: CI
 
-# Corre en cada PR hacia main o develop. Comprueba lo que hasta ahora dependía
+# Corre en cada PR hacia main o development. Comprueba lo que hasta ahora dependía
 # de acordarse:
 #
 #   1. Que las migraciones aplican sobre una base vacía.
@@ -13,7 +13,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, development]
 
 concurrency:
   group: ci-${{ github.ref }}

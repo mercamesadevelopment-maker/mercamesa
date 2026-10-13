@@ -122,7 +122,7 @@ Reglas:
 
 ### Integración continua y despliegue de migraciones
 
-- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main` o `develop`: levanta una
+- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main` o `development`: levanta una
   base vacía, aplica todas las migraciones, regenera los tipos y falla si
   `types/database_generated.ts` no coincide, si `tsc` no compila o si falla alguna
   prueba (ver «Pruebas» abajo). Si falla por los tipos: `pnpm db:reset`,
