@@ -1,28 +1,44 @@
 name: CI
 
-# Corre en cada PR hacia main. Comprueba tres cosas que hasta ahora dependían de
-# acordarse:
+# Corre en cada PR hacia main o develop. Comprueba lo que hasta ahora dependía
+# de acordarse:
 #
 #   1. Que las migraciones aplican sobre una base vacía.
 #   2. Que `types/database_generated.ts` corresponde a esas migraciones.
 #   3. Que el código compila contra esos tipos.
+#   4. Que pasan las pruebas unitarias (Vitest) y las de base de datos (pgTAP).
 #
 # No toca producción ni necesita secretos: levanta una base de Supabase dentro
 # del propio runner.
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  tipos:
-    name: Migraciones y tipos
+  unitarias:
+    name: Pruebas unitarias
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  tipos:
+    name: Migraciones, tipos y base de datos
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -63,3 +79,9 @@ jobs:
 
       - name: El código compila
         run: pnpm exec tsc --noEmit
+
+      # Cada prueba crea sus propios datos y los deshace al terminar
+      # (supabase/tests/_helpers/fixtures.inc), así que no necesita la copia
+      # de producción.
+      - name: Pruebas de base de datos
+        run: pnpm test:db
