@@ -122,14 +122,29 @@ Reglas:
 
 ### Integración continua y despliegue de migraciones
 
-- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main`: levanta una base vacía,
-  aplica todas las migraciones, regenera los tipos y falla si
-  `types/database_generated.ts` no coincide o si `tsc` no compila. Si falla por los tipos:
-  `pnpm db:reset`, `pnpm gen:types:local` y subir el archivo.
+- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main` o `development`: levanta una
+  base vacía, aplica todas las migraciones, regenera los tipos y falla si
+  `types/database_generated.ts` no coincide, si `tsc` no compila o si falla alguna
+  prueba (ver «Pruebas» abajo). Si falla por los tipos: `pnpm db:reset`,
+  `pnpm gen:types:local` y subir el archivo.
 - **Supabase está conectado al repositorio** (directorio de trabajo `.`, ramas de vista
   previa apagadas). Con «Deploy to production» encendido, al fusionar a `main` Supabase
   aplica en producción las migraciones de `supabase/migrations` que no estén en su
   registro. Por eso una migración solo se fusiona cuando ya pasó por local y por el CI.
+
+### Pruebas
+
+| Tipo | Comando | Dónde viven | Qué cubren |
+|---|---|---|---|
+| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `src/features/**/utils`: sin base, sin red |
+| Base de datos (pgTAP) | `pnpm test:db`, con la base local arriba | `supabase/tests/*.test.sql` | Lo que solo vive en SQL: políticas RLS y de Storage, triggers, funciones de las tareas programadas |
+
+- Cada prueba de base de datos incluye `supabase/tests/_helpers/fixtures.inc`, que crea
+  una plaza, dos tiendas y cuatro usuarios con ids fijos, y `pg_temp.como(<id>)` para
+  actuar como uno de ellos. Todo corre en una transacción con `rollback`: no deja nada
+  en la base, ni en local ni en el CI (que no tiene la copia de producción).
+- **Regla: cada bug que se arregla entra con una prueba que lo reproduce.** Es lo que
+  evita que vuelva (regresión).
 
 ### Qué está simulado en local
 
