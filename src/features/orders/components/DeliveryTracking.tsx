@@ -3,7 +3,12 @@
 import { Bike, Loader2, MapPinned, Phone, RotateCw, Search, AlertTriangle, CheckCircle2, KeyRound } from 'lucide-react';
 import { Button, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
-import type { DeliveryStage, DeliveryView, DeliveryViewer } from '@/lib/pibox/delivery-view';
+import type {
+  DeliveryStage,
+  DeliveryTimelineEntry,
+  DeliveryView,
+  DeliveryViewer,
+} from '@/lib/pibox/delivery-view';
 
 interface DeliveryTrackingProps {
   delivery: DeliveryView | null;
@@ -15,6 +20,8 @@ interface DeliveryTrackingProps {
   requesting?: boolean;
   /** Solo admin: las reservas anteriores (relanzadas o canceladas). */
   history?: DeliveryView[];
+  /** Tienda y admin: los avisos de Picap en frases («Álvaro aceptó…»). */
+  timeline?: DeliveryTimelineEntry[];
 }
 
 /** Los pasos que ve quien sigue el pedido, en orden. */
@@ -47,6 +54,7 @@ export function DeliveryTracking({
   onRequestAnother,
   requesting = false,
   history,
+  timeline,
 }: DeliveryTrackingProps) {
   return (
     <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm">
@@ -75,6 +83,8 @@ export function DeliveryTracking({
       )}
 
       {error && <p className="mt-3 text-xs font-medium text-r">{error}</p>}
+
+      {timeline && timeline.length > 0 && <DeliveryTimeline entries={timeline} />}
 
       {history && history.length > 1 && (
         <div className="mt-4 border-t border-mm-crd/60 pt-3">
@@ -199,6 +209,33 @@ function DeliveryBody({
           Costo del domicilio: <span className="font-bold text-mm-g">{fmt(delivery.cost)}</span>
         </p>
       )}
+    </div>
+  );
+}
+
+const TONE_DOT: Record<DeliveryTimelineEntry['tone'], string> = {
+  info: 'bg-mm-txw',
+  ok: 'bg-ok',
+  warn: 'bg-arcilla',
+};
+
+const hora = (iso: string) =>
+  new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Bogota' });
+
+/** Lo que ha pasado con el domicilio, de lo más viejo a lo más nuevo. */
+function DeliveryTimeline({ entries }: { entries: DeliveryTimelineEntry[] }) {
+  return (
+    <div className="mt-4 border-t border-mm-crd/60 pt-3">
+      <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-mm-txw">Historial del domicilio</p>
+      <ol className="space-y-1.5">
+        {entries.map((e, i) => (
+          <li key={`${e.at}-${i}`} className="flex items-start gap-2 text-xs text-mm-txs">
+            <span className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', TONE_DOT[e.tone])} />
+            <span className="shrink-0 font-mono text-[11px] text-mm-txw">{hora(e.at)}</span>
+            <span>{e.text}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

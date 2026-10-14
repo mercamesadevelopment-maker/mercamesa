@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { DeliveryStage, DeliveryView, DeliveryViewer } from '@/lib/pibox/delivery-view';
+import type {
+  DeliveryStage,
+  DeliveryTimelineEntry,
+  DeliveryView,
+  DeliveryViewer,
+} from '@/lib/pibox/delivery-view';
 
 /** Cómo se identifica el pedido: la tienda y el admin tienen el id de la parte; el comprador, el pedido y la tienda. */
 export type DeliveryTarget =
@@ -12,6 +17,8 @@ interface DeliveryTrackingData {
   viewer: DeliveryViewer;
   delivery: DeliveryView | null;
   history?: DeliveryView[];
+  /** Tienda y admin: lo que ha pasado con el domicilio, en frases. */
+  timeline?: DeliveryTimelineEntry[];
 }
 
 /** Etapas en las que el domicilio sigue moviéndose y vale la pena volver a consultar. */

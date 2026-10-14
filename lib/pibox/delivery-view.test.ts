@@ -31,7 +31,8 @@ describe('deliveryStage', () => {
     [7, 'on_the_way'],
     [4, 'delivered'],
     [109, 'scheduled'],
-    [100, 'closed'],
+    // Canceló el conductor: Picap ya está buscando otro sobre la misma reserva.
+    [100, 'searching'],
     [101, 'closed'],
     [102, 'closed'],
   ])('estado %i → %s', (status_cd, etapa) => {
