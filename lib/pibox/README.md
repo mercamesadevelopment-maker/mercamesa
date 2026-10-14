@@ -29,11 +29,32 @@ Pibox es la API logística de Picap: MercaMesa la usa para cotizar el domicilio 
 | 4 Finalizado, paquete 2 Entregado | Entregado | «Pedido entregado» |
 | paquete 4 No recibido, 5 Devuelto | Devuelto | — |
 | 101 Sin conductor, 102 Cancelado | **sigue en Listo Recogida** | aviso; la tienda ve «Solicitar otro domiciliario» |
-| 100 Canceló el conductor | sigue en Listo Recogida | Pibox relanza solo: el webhook enlaza la reserva nueva (`relaunched_to_id`) |
+| 100 Canceló el conductor | sigue en Listo Recogida | «Buscando otro conductor»: Pibox relanza solo, sobre la misma reserva (ver abajo) |
 
 Cancelar el mensajero (`PATCH /api/pibox/bookings/{id}`) cancela solo el domicilio, nunca la compra. Una reserva sin conductor o cancelada queda en `is_active = false`, y por eso se puede pedir otra.
 
 Los estados de Pibox son más finos que los del pedido: el detalle completo queda en las notas del historial (`buildBookingStatusNote`).
+
+## Relanzamientos: cómo funciona de verdad
+
+Visto en la primera prueba real (MM-2026-001091-1, 14 oct. 2026), donde dos conductores aceptaron y cancelaron antes de que un tercero lo tomara:
+
+- **Picap no cierra la reserva ni abre otra.** La original sigue siendo la principal: `GET /bookings/{id}` la devuelve aunque se le pida cualquier id de la cadena.
+- **El aviso de cancelación** (estado 100) trae un `relaunched_to_id`, y los avisos siguientes llegan con ese id nuevo, que es interno de Picap.
+- **En MercaMesa hay una sola fila por pedido.** Los ids de relanzamiento se guardan en `alias_booking_ids` de la reserva principal, y un aviso con cualquiera de ellos se aplica sobre la principal. La base no admite dos reservas activas para el mismo pedido (índice único parcial).
+
+Antes se creaba una fila nueva y vacía por cada relanzamiento. El pedido quedaba con dos activas y la pantalla mostraba la vacía, sin costo ni código.
+
+### Avisos que llegan antes de tiempo
+
+- **El aviso de una reserva nueva llega antes de que la terminemos de guardar**: en producción, ~0,6 s antes.
+- **Antes de dar un aviso por desconocido**, el webhook reintenta dos veces (0,8 s y 1,5 s).
+- **Si sigue sin aparecer**, le pregunta a Picap con `GET /bookings/{id}` a qué reserva principal pertenece (`resolveBooking` en `services/sync.service.ts`).
+
+### Bitácora
+
+- **Cada aviso queda en `pibox_booking_events`**, también los atrasados y los que no se pudieron asociar (con `store_order_id` en null). Es la historia completa del domicilio; la reserva solo guarda el último estado.
+- **Con ella se arma la línea de tiempo** («Álvaro aceptó · Álvaro canceló · Mateo aceptó»), con `toDeliveryTimeline` en `delivery-view.ts`. La ven la tienda y el admin; el comprador ve solo el estado actual.
 
 ## Quién ve qué
 
@@ -45,6 +66,7 @@ Los estados de Pibox son más finos que los del pedido: el detalle completo qued
 | Costo del domicilio | no | sí | sí |
 | Código de recogida (`pickup_validation_code`) | no | sí | sí |
 | Código de entrega (`validation_code`) | sí | no | sí |
+| Línea de tiempo del domicilio (`timeline`) | no | sí | sí |
 | Historial de reservas del pedido | no | no | sí |
 
 La tabla `pibox_bookings` solo la puede leer el comprador del pedido, la tienda o un admin (política RLS). Las escrituras las hace únicamente el servidor, con la llave de servicio.
@@ -55,11 +77,22 @@ La tabla `pibox_bookings` solo la puede leer el comprador del pedido, la tienda 
 |---|---|
 | `PIBOX_ENABLED` | Interruptor general. En `false`, las rutas responden 503 y no se pide nada. |
 | `PIBOX_API_TOKEN` | Token de la cuenta. Viaja como `?t=` en la URL, no en un encabezado. |
-| `PIBOX_API_URL` | Por defecto `https://turing.thetrancon.com/api/third`. |
+| `PIBOX_API_URL` | Depende del ambiente (ver abajo). Por defecto, el de pruebas. |
 | `PIBOX_SERVICE_TYPE_ID` | Por defecto, mensajería en moto (`5c71b03a58b9ba10fa6393cf`). |
 | `PIBOX_DEFAULT_PACKAGE_SIZE_CD` | Tamaño del paquete (0 a 3). Por defecto 2, mediano. |
 | `PIBOX_WEBHOOK_SECRET` | Lo que Pibox reenvía en `x-pibox-secret`. Sin él, el webhook rechaza todo. |
 | `PIBOX_DRY_RUN` | Solo local o staging: se cotiza de verdad, la reserva se simula (`SIMULADO-…`). |
+
+### Dos ambientes de Picap
+
+Cada token funciona solo en su dominio. En el otro responde 422, «No estás autorizado para hacer eso».
+
+| Ambiente | `PIBOX_API_URL` | Dónde se usa |
+|---|---|---|
+| Pruebas | `https://turing.thetrancon.com/api/third` | Local (`.env.local`, fijo a propósito) y la vista previa de Vercel (staging) |
+| Producción | `https://integrations.picapdb.co/api/third` | Vercel Production y `.env` (scripts como `pnpm pibox:hooks`) |
+
+`docs/picap.MD` solo documenta el de pruebas. El de producción lo dio Picap el 14 de octubre de 2026. Hasta ese día, producción usaba por error el ambiente de pruebas: los pedidos anteriores se cotizaron con esas tarifas, más bajas.
 
 ## Webhooks
 
@@ -87,7 +120,7 @@ pnpm local:pibox MM-2026-001090-1 asignado        # conductor, placa, enlace y c
 pnpm local:pibox MM-2026-001090-1 recogido        # → Despachado
 pnpm local:pibox MM-2026-001090-1 entregado       # → Entregado
 pnpm local:pibox MM-2026-001090-1 sin-conductor   # → aviso y «Solicitar otro domiciliario»
-pnpm local:pibox MM-2026-001090-1 relanzado       # canceló el conductor y Pibox relanzó
+pnpm local:pibox MM-2026-001090-1 relanzado       # canceló el conductor; avisos con el id nuevo y otro conductor
 pnpm local:pibox MM-2026-001090-1 atrasado        # evento viejo: no debe cambiar nada
 ```
 
