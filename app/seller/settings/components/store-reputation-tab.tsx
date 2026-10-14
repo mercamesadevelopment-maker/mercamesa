@@ -49,7 +49,7 @@ export function StoreReputationTab({ storeId }: StoreReputationTabProps) {
             <Star className="w-10 h-10 text-mm-oro fill-mm-oro" />
           </div>
           <div>
-            <p className="text-5xl font-fraunces text-mm-g">{average.toFixed(1)}</p>
+            <p className="text-5xl font-display text-mm-g">{average.toFixed(1)}</p>
             <p className="text-xs font-black uppercase text-mm-txw tracking-widest mt-1">Calificación General</p>
           </div>
           <div className="flex justify-center">
@@ -87,7 +87,7 @@ export function StoreReputationTab({ storeId }: StoreReputationTabProps) {
       </div>
 
       <div className="lg:col-span-2 space-y-6">
-        <h3 className="text-xl font-fraunces text-mm-g flex items-center gap-2">
+        <h3 className="text-xl font-display text-mm-g flex items-center gap-2">
           Reseñas Recientes <MessageSquare className="w-5 h-5" />
         </h3>
         <div className="space-y-4">

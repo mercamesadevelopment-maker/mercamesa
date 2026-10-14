@@ -104,7 +104,7 @@ export function PasswordChangeModal({
             {done ? (
               <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-4 text-center">
                 <CheckCircle2 className="mx-auto mb-6 h-16 w-16 text-mm-g" />
-                <h2 className="mb-4 font-fraunces text-3xl text-mm-g">¡Contraseña actualizada!</h2>
+                <h2 className="mb-4 font-display text-3xl text-mm-g">¡Contraseña actualizada!</h2>
                 <p className="mb-10 text-mm-txs">
                   Te enviamos un aviso a tu correo. La próxima vez que ingreses, usa tu contraseña nueva.
                 </p>
@@ -116,7 +116,7 @@ export function PasswordChangeModal({
             ) : (
               <motion.div key={`paso-${paso}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Cambiar contraseña</h2>
+                  <h2 className="mb-2 font-display text-3xl text-mm-g">Cambiar contraseña</h2>
                   <p className="text-mm-txs">
                     {paso === 0 && 'Primero confirma tu contraseña actual.'}
                     {paso === 1 && 'Te enviamos un código de 6 dígitos a tu correo.'}

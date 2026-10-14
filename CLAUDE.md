@@ -61,7 +61,7 @@ Hay tres entornos, y **se desarrolla contra el local**:
 | Entorno | Base de datos | Cómo la usa la app |
 |---|---|---|
 | Local | Supabase en Docker (`supabase start`) | `.env.local`, que Next.js lee por encima de `.env` |
-| Staging | Proyecto de Supabase aparte (pendiente de crear) | Variables del despliegue de staging |
+| Staging | Proyecto `llfjupjvxucdjwezfpeq` (us-west-1), con copia de prod. Recibe lo que se fusiona en `development` | Variables de **Preview** de Vercel (todas las vistas previas, no solo `development`); `.env.staging` para los scripts |
 | Producción | Proyecto `zaqvcpehhmkiyjdbcufj` | `.env` y las variables de Vercel |
 
 Para trabajar contra producción desde la máquina local hay que renombrar `.env.local`. No
@@ -86,8 +86,9 @@ Studio `57323`, correo de pruebas `57324`. Configuración en `supabase/config.to
    personales y contraseñas cifradas). Se trae o se actualiza con `pnpm db:pull-data`;
    las cuentas entran con las mismas contraseñas que en producción. No trae roles,
    módulos ni permisos: esos salen de las migraciones.
-3. `local.sql`: secretos de Vault de mentira, vuelve a poner las validaciones, apaga
-   las tareas programadas que llaman hacia afuera y activa todos los módulos.
+3. `post.sql`: vuelve a poner las validaciones, apaga las tareas programadas que
+   llaman hacia afuera y activa todos los módulos. Lo comparte con staging.
+4. `local.sql`: secretos de Vault de mentira.
 
 Un `db:reset` también vacía el Storage local; `pnpm db:sync-storage` lo vuelve a llenar
 desde `supabase/.storage-cache` sin bajar nada de nuevo.
@@ -122,14 +123,29 @@ Reglas:
 
 ### Integración continua y despliegue de migraciones
 
-- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main`: levanta una base vacía,
-  aplica todas las migraciones, regenera los tipos y falla si
-  `types/database_generated.ts` no coincide o si `tsc` no compila. Si falla por los tipos:
-  `pnpm db:reset`, `pnpm gen:types:local` y subir el archivo.
+- **CI (`.github/workflows/ci.yml`)**, en cada PR hacia `main` o `development`: levanta una
+  base vacía, aplica todas las migraciones, regenera los tipos y falla si
+  `types/database_generated.ts` no coincide, si `tsc` no compila o si falla alguna
+  prueba (ver «Pruebas» abajo). Si falla por los tipos: `pnpm db:reset`,
+  `pnpm gen:types:local` y subir el archivo.
 - **Supabase está conectado al repositorio** (directorio de trabajo `.`, ramas de vista
   previa apagadas). Con «Deploy to production» encendido, al fusionar a `main` Supabase
   aplica en producción las migraciones de `supabase/migrations` que no estén en su
   registro. Por eso una migración solo se fusiona cuando ya pasó por local y por el CI.
+
+### Pruebas
+
+| Tipo | Comando | Dónde viven | Qué cubren |
+|---|---|---|---|
+| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `src/features/**/utils`: sin base, sin red |
+| Base de datos (pgTAP) | `pnpm test:db`, con la base local arriba | `supabase/tests/*.test.sql` | Lo que solo vive en SQL: políticas RLS y de Storage, triggers, funciones de las tareas programadas |
+
+- Cada prueba de base de datos incluye `supabase/tests/_helpers/fixtures.inc`, que crea
+  una plaza, dos tiendas y cuatro usuarios con ids fijos, y `pg_temp.como(<id>)` para
+  actuar como uno de ellos. Todo corre en una transacción con `rollback`: no deja nada
+  en la base, ni en local ni en el CI (que no tiene la copia de producción).
+- **Regla: cada bug que se arregla entra con una prueba que lo reproduce.** Es lo que
+  evita que vuelva (regresión).
 
 ### Qué está simulado en local
 
@@ -141,7 +157,7 @@ Local no debe tocar servicios reales. `.env.local` lo deja así:
 | Correo | No sale: queda en la consola del servidor, incluido el código de ingreso de un administrador | `EMAIL_DRY_RUN=true` |
 | Siigo | No se envía nada; las colas de facturas y notas crédito se llenan y esperan | Sin credenciales |
 | ZonaPagos | No hay pasarela: un pedido se paga con saldo a favor o con `pnpm local:pay <código del pedido>` | `scripts/local-pay.ts`, que se niega a correr contra otra base que no sea la local |
-| Tareas programadas | Solo corren las que son SQL puro (vencer pedidos, escalar PQRS). Las demás se llaman a mano con `CRON_SECRET` | `supabase/seed/local.sql` |
+| Tareas programadas | Solo corren las que son SQL puro (vencer pedidos, escalar PQRS). Las demás se llaman a mano con `CRON_SECRET` | `supabase/seed/post.sql` |
 
 `PIBOX_DRY_RUN` y `EMAIL_DRY_RUN` nunca se encienden en producción.
 
@@ -151,6 +167,87 @@ sobre **producción**, no sobre local.
 ### No va a git
 
 `.env.local`, `supabase/seed/prod_data.sql` y `supabase/.storage-cache`.
+
+---
+
+## Staging, ramas y despliegue
+
+### Flujo de ramas
+
+```
+rama de trabajo ──PR──▶ development ──(fusión)──▶ STAGING ──PR──▶ main ──(fusión)──▶ PRODUCCIÓN
+```
+
+- Las ramas nuevas salen de `development`, no de `main`.
+- `main` solo recibe PRs desde `development`, salvo un arreglo urgente (`hotfix/*`), que
+  después se fusiona también en `development` para que no se pierda.
+- Ninguna de las dos admite push directo; el CI tiene que estar en verde para fusionar.
+
+### Qué pasa al fusionar
+
+| Al fusionar en | Base de datos | Funciones de borde | Aplicación |
+|---|---|---|---|
+| `development` | `.github/workflows/deploy-staging.yml` corre `supabase db push` contra staging | El mismo workflow las despliega en staging | Vercel publica la vista previa de `development` |
+| `main` | La integración de Supabase con GitHub aplica las migraciones en producción | **A mano**, con autorización | Vercel publica producción |
+
+El proyecto de staging **no** se conecta a la integración de GitHub de Supabase: esa
+integración aplica lo que llega a `main`, y conectada a staging le aplicaría lo de
+producción.
+
+### Secretos de GitHub (Settings → Environments → `staging`)
+
+| Secreto | Qué es |
+|---|---|
+| `STAGING_DB_URL` | La cadena del **Session pooler** de staging (puerto 5432), con la contraseña codificada. No la conexión directa: es solo IPv6 y GitHub Actions no la alcanza |
+| `STAGING_PROJECT_REF` | `llfjupjvxucdjwezfpeq` |
+| `SUPABASE_ACCESS_TOKEN` | Token personal de la cuenta **dueña del proyecto de staging** (que no es la misma de la CLI de esta máquina) |
+
+El workflow se detiene si cualquiera de los tres apunta a producción.
+
+### Variables de Vercel
+
+Cada variable vive en **un** entorno: ninguna se comparte entre Production y Preview.
+
+- **Production**: los valores reales (Supabase de producción, Siigo, Resend, Pibox, Mapbox,
+  `CRON_SECRET`).
+- **Preview** (todas las vistas previas: `development` y cada PR): Supabase de staging,
+  `EMAIL_DRY_RUN=true`, `PIBOX_DRY_RUN=true`, `CRON_SECRET` y `PIBOX_WEBHOOK_SECRET`
+  propios, y Pibox y Mapbox con los mismos valores de producción (Pibox solo cotiza). **No
+  llevan** Siigo, Resend ni ZonaPagos.
+
+Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
+corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada
+vista previa escribía en la base de producción; no volver a marcar las dos casillas.
+
+La CLI de Vercel de esta máquina tiene la sesión de otro cliente. La de MercaMesa está en
+una configuración aparte: `vercel <comando> --global-config "$HOME\.vercel-mercamesa"`.
+Las variables marcadas «sensitive» con prefijo `NEXT_PUBLIC_` no se pueden editar desde el
+panel (pide pasarlas a «Config»); se cambian por la API de Vercel.
+
+### Datos de staging
+
+Staging es una **copia completa de producción**: datos personales reales, y las cuentas
+entran con su contraseña de producción. Por eso correo y Pibox están simulados, las tareas
+programadas que llaman hacia afuera están apagadas (`supabase/seed/post.sql`) y a terceros
+(Meteor) no se les dan llaves de la base de staging.
+
+```
+pnpm db:pull-data              # copia reciente de producción
+pnpm staging:refresh           # muestra qué va a hacer
+pnpm staging:refresh --si      # BORRA staging y lo recarga (esquema, datos, Vault)
+pnpm staging:sync-storage      # imágenes, desde la caché de supabase/.storage-cache
+```
+
+Leen `.env.staging` (fuera de git; plantilla en `.env.staging.example`) y se niegan a
+correr si alguna URL apunta a producción.
+
+### Pendiente en staging
+
+- `call_edge_cron` tiene escrita la URL de producción; hay que leerla de Vault antes de
+  encender ahí la sonda de pagos.
+- Cómo se paga en staging: comercio de pruebas de ZonaPagos, si existe; si no, habilitar
+  ahí el simulador de `pnpm local:pay`.
+- Las pruebas de punta a punta (Playwright) contra staging.
 
 ---
 
@@ -177,6 +274,10 @@ Inventario actual:
 - `quantity-stepper/` — stepper de cantidad.
 - `category-scroller.tsx`, `searchable-select.tsx` — componentes de un solo archivo,
   sin estado/lógica compleja propia.
+- `brand-logo.tsx` — `BrandLogo` (símbolo + «MercaMesa») y `BrandSymbol`. Es el
+  único logo: no usar imágenes sueltas del logo.
+- `stamp.tsx` — sellos de la marca: descuento (arcilla), ahorro (lima), tinta.
+- `floating.tsx` — producto flotando en bucle (ver «Marca» abajo).
 
 Convención para agregar uno nuevo:
 
@@ -204,6 +305,30 @@ Convención para agregar uno nuevo:
   panel con `translate-y`/`translate-x` + `transition-all duration-300`, que se cierra
   al tocar el backdrop o al navegar. Es el patrón de `Sidebar` (ver arriba) — replícalo
   para cualquier otro menú/panel off-canvas en vez de inventar una variante nueva.
+
+---
+
+## Marca
+
+Caso de marca: `docs/cotizacionFase2/MercaMesa_Branding_Case.pdf`.
+
+- **Colores**, en `app/globals.css`: `tinta` #0E3B2F, `lima` #C3F03F, `arcilla`
+  #E8734A, `salvia` #4C7A5E y `hueso` #F7F5EE, con variantes `-clara` y `-oscura`.
+  Los `mm-*` de antes siguen existiendo, reasignados a esta paleta; para lo nuevo
+  se usan los nombres de la marca. No se escriben colores en hex en los componentes.
+- **La lima no es color de texto sobre fondo claro**, porque no se lee: es fondo con
+  texto en tinta, o texto sobre tinta. Para texto en arcilla, `arcilla-oscura`.
+- **Tipografía**: Poppins (`font-display`/`font-sans`; 800 en titulares y precios)
+  y JetBrains Mono (`font-mono`) para datos: pedido, peso, unidad, horario y
+  etiquetas en mayúscula.
+- **Movimiento**, por rendimiento:
+  - solo `transform` y `opacity`, en CSS (`mm-rise`, `mm-lift`, `mm-float` en
+    `globals.css`); nada de librerías de animación por tarjeta;
+  - en bucle solo los pocos elementos destacados, con `<Floating>`, que se pausa
+    fuera de pantalla. Las tarjetas de un listado entran una vez y reaccionan al
+    pasar el mouse, no flotan;
+  - todo se apaga con «reducir movimiento» del sistema;
+  - lo que llega después de cargar reserva su espacio, para no empujar la página.
 
 ---
 

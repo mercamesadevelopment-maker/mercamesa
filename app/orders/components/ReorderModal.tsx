@@ -178,7 +178,7 @@ export function ReorderModal({
         <div className="flex items-center justify-between border-b border-mm-crd p-6">
           <div className="flex items-center gap-3">
             <RotateCcw className="h-5 w-5 text-mm-g" />
-            <h3 className="font-fraunces text-xl text-mm-g">Recomprar este pedido</h3>
+            <h3 className="font-display text-xl text-mm-g">Recomprar este pedido</h3>
           </div>
           <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-mm-gbg">
             <X className="h-5 w-5 text-mm-txs" />
@@ -238,7 +238,7 @@ export function ReorderModal({
                 <span className="text-xs font-bold uppercase tracking-widest text-mm-txw">
                   Subtotal
                 </span>
-                <span className="font-fraunces text-2xl text-mm-g">{fmt(total)}</span>
+                <span className="font-display text-2xl text-mm-g">{fmt(total)}</span>
               </div>
             )}
 

@@ -119,7 +119,7 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
               <div className="p-5 sm:p-8">
                 <div className="mb-6">
                   <p className="text-xs font-bold text-mm-txw uppercase tracking-widest mb-1">{storeName}</p>
-                  <h3 className="text-2xl font-fraunces text-mm-g mb-2 break-words">{product?.name}</h3>
+                  <h3 className="text-2xl font-display text-mm-g mb-2 break-words">{product?.name}</h3>
                   <p className="text-mm-txs">{offer.label || 'Oferta especial por tiempo limitado'}</p>
                 </div>
 

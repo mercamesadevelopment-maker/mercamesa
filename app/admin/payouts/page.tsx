@@ -52,7 +52,7 @@ export default function PayoutsPage() {
           <Banknote className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="font-fraunces text-3xl text-mm-g">Dispersiones</h1>
+          <h1 className="font-display text-3xl text-mm-g">Dispersiones</h1>
           <p className="text-sm text-mm-txs">
             Pagos a las tiendas por sus pedidos entregados.
           </p>

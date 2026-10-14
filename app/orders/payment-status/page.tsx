@@ -69,7 +69,7 @@ function PaymentStatusContent() {
     return (
       <div className="bg-white p-10 rounded-[40px] shadow-sm border border-mm-crd flex flex-col items-center max-w-md w-full">
         <RefreshCw className="w-16 h-16 text-mm-g animate-spin mb-6" />
-        <h1 className="text-2xl font-fraunces text-mm-g mb-2 text-center">Verificando Pago</h1>
+        <h1 className="text-2xl font-display text-mm-g mb-2 text-center">Verificando Pago</h1>
         <p className="text-mm-txs text-center">Estamos consultando el estado de tu transacción con Zonapagos...</p>
       </div>
     );
@@ -81,7 +81,7 @@ function PaymentStatusContent() {
         return (
           <>
             <CheckCircle2 className="w-20 h-20 text-mm-g mb-6" />
-            <h1 className="text-3xl font-fraunces text-mm-g mb-2 text-center">¡Pago Exitoso!</h1>
+            <h1 className="text-3xl font-display text-mm-g mb-2 text-center">¡Pago Exitoso!</h1>
             <p className="text-mm-txs text-center mb-8">
               Tu pedido ha sido confirmado y pronto comenzará su preparación.
             </p>
@@ -91,7 +91,7 @@ function PaymentStatusContent() {
         return (
           <>
             <XCircle className="w-20 h-20 text-red-500 mb-6" />
-            <h1 className="text-3xl font-fraunces text-red-600 mb-2 text-center">Pago Rechazado</h1>
+            <h1 className="text-3xl font-display text-red-600 mb-2 text-center">Pago Rechazado</h1>
             <p className="text-mm-txs text-center mb-8">
               Lo sentimos, la transacción no pudo ser completada. Por favor, intenta nuevamente o usa otro medio de pago.
             </p>
@@ -102,7 +102,7 @@ function PaymentStatusContent() {
         return (
           <>
             <Clock className="w-20 h-20 text-orange-400 mb-6" />
-            <h1 className="text-3xl font-fraunces text-orange-500 mb-2 text-center">Pago en Proceso</h1>
+            <h1 className="text-3xl font-display text-orange-500 mb-2 text-center">Pago en Proceso</h1>
             <p className="text-mm-txs text-center mb-8">
               Zonapagos aún está procesando tu pago. Esto puede tardar unos minutos. Te avisaremos cuando el estado cambie.
             </p>
@@ -112,7 +112,7 @@ function PaymentStatusContent() {
         return (
           <>
             <XCircle className="w-20 h-20 text-red-500 mb-6" />
-            <h1 className="text-3xl font-fraunces text-red-600 mb-2 text-center">Error en la Verificación</h1>
+            <h1 className="text-3xl font-display text-red-600 mb-2 text-center">Error en la Verificación</h1>
             <p className="text-mm-txs text-center mb-8">
               {error || 'No pudimos determinar el estado de tu pago.'}
             </p>

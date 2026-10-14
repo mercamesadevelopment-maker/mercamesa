@@ -100,7 +100,7 @@ export function EmailChangeModal({
             {step === 0 && (
               <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Cambiar correo</h2>
+                  <h2 className="mb-2 font-display text-3xl text-mm-g">Cambiar correo</h2>
                   <p className="text-mm-txs">
                     Correo actual: <span className="font-medium text-mm-g">{currentEmail}</span>. Te enviaremos un código de 6 dígitos al correo nuevo.
                   </p>
@@ -138,7 +138,7 @@ export function EmailChangeModal({
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 font-fraunces text-3xl text-mm-g">Revisa tu correo nuevo</h2>
+                  <h2 className="mb-2 font-display text-3xl text-mm-g">Revisa tu correo nuevo</h2>
                   <p className="text-mm-txs">
                     Enviamos un código a <span className="font-medium text-mm-g">{newEmail}</span>. Ingrésalo aquí (vence en 10 minutos).
                   </p>
@@ -183,7 +183,7 @@ export function EmailChangeModal({
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-4 text-center">
                 <CheckCircle2 className="mx-auto mb-6 h-16 w-16 text-mm-g" />
-                <h2 className="mb-4 font-fraunces text-3xl text-mm-g">¡Correo actualizado!</h2>
+                <h2 className="mb-4 font-display text-3xl text-mm-g">¡Correo actualizado!</h2>
                 <p className="mb-10 text-mm-txs">
                   Tu correo ahora es <span className="font-medium text-mm-g">{confirmedEmail}</span>.
                 </p>

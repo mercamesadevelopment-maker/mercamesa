@@ -226,7 +226,7 @@ export function MeasurementUnitsTab() {
                 <X className="w-5 h-5" />
               </button>
 
-              <h3 className="text-2xl font-fraunces text-mm-g mb-6">
+              <h3 className="text-2xl font-display text-mm-g mb-6">
                 {editingUnit ? 'Editar Unidad de Medida' : 'Nueva Unidad de Medida'}
               </h3>
 

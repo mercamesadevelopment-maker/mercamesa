@@ -7,14 +7,17 @@ import {
   piboxBookingIsClosed,
   buildBookingStatusNote,
   buildPackageStatusNote,
+  PIBOX_BOOKING_STATUS,
   PIBOX_BOOKING_STATUS_LABEL,
 } from '@/lib/pibox';
 import {
   applyOrderStatusFromPibox,
+  addBookingAlias,
   claimBookingEvent,
-  findStoreOrderIdByBooking,
-  findStoreOrderIdByPackage,
   noteClosedBooking,
+  recordBookingEvent,
+  resolveBooking,
+  resolvePackage,
 } from '@/lib/pibox/services/sync.service';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { createNotification } from '@/lib/notifications/create-notification';
@@ -72,67 +75,68 @@ export async function POST(request: Request) {
 }
 
 async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
-  const storeOrderId = await findStoreOrderIdByBooking(payload.booking_id);
-  if (!storeOrderId) {
+  const ref = await resolveBooking(payload.booking_id);
+
+  // A la bitácora siempre, incluso si no se puede asociar o llega atrasado.
+  await recordBookingEvent({
+    storeOrderId: ref?.store_order_id ?? null,
+    bookingId: ref?.booking_id ?? null,
+    eventBookingId: payload.booking_id,
+    packageId: null,
+    eventCd: PIBOX_WEBHOOK_EVENT.BOOKING_UPDATED,
+    statusCd: payload.status_cd ?? null,
+    driverName: payload.driver?.name,
+    driverPhone: payload.driver?.phone,
+    vehiclePlates: payload.vehicle?.plates,
+    relaunchedToId: payload.relaunched_to_id,
+    eventCreatedAt: payload.created_at,
+    payload,
+  });
+
+  if (!ref) {
     console.warn(`Evento de Pibox para un booking desconocido: ${payload.booking_id}`);
     return;
   }
 
+  const { booking_id: bookingId, store_order_id: storeOrderId } = ref;
+
+  // Picap relanza sobre la MISMA reserva: el id nuevo es interno suyo. Se
+  // guarda como alias para reconocer los avisos que lleguen con él; no se crea
+  // otra fila ni se cierra esta.
+  if (payload.relaunched_to_id) {
+    await addBookingAlias(bookingId, payload.relaunched_to_id);
+  }
+
   // Pibox no promete el orden de los eventos: uno más viejo que el último
   // aplicado se descarta para no devolver la reserva a un estado anterior.
-  if (!(await claimBookingEvent({ booking_id: payload.booking_id }, payload.created_at))) {
+  if (!(await claimBookingEvent({ booking_id: bookingId }, payload.created_at))) {
     return;
   }
 
   const db = createSupabaseServiceClient();
   const closed = piboxBookingIsClosed(payload.status_cd);
+  // Canceló el conductor: Picap ya está buscando otro, así que el que canceló
+  // deja de mostrarse. Queda en la bitácora.
+  const driverLeft = payload.status_cd === PIBOX_BOOKING_STATUS.CANCELED_BY_DRIVER;
 
   await db
     .from('pibox_bookings')
     .update({
       status_cd: payload.status_cd,
-      // Solo si el evento trae conductor: uno sin `driver` no lo borra.
-      ...(payload.driver
-        ? { driver_name: payload.driver.name ?? null, driver_phone: payload.driver.phone ?? null }
-        : {}),
-      ...(payload.vehicle ? { vehicle_plates: payload.vehicle.plates ?? null } : {}),
-      relaunched_to_booking_id: payload.relaunched_to_id ?? null,
+      ...(driverLeft
+        ? { driver_name: null, driver_phone: null, vehicle_plates: null }
+        : {
+            // Solo si el evento trae conductor: uno sin `driver` no lo borra.
+            ...(payload.driver
+              ? { driver_name: payload.driver.name ?? null, driver_phone: payload.driver.phone ?? null }
+              : {}),
+            ...(payload.vehicle ? { vehicle_plates: payload.vehicle.plates ?? null } : {}),
+          }),
+      ...(payload.relaunched_to_id ? { relaunched_to_booking_id: payload.relaunched_to_id } : {}),
       // Sin conductor o cancelada: deja de ser la vigente, para poder pedir otra.
       ...(closed ? { is_active: false } : {}),
     })
-    .eq('booking_id', payload.booking_id);
-
-  // Cuando el conductor cancela, Pibox crea otro booking: el vigente pasa a ser
-  // el nuevo, así que se marca el actual como inactivo y se enlaza el sucesor.
-  if (payload.relaunched_to_id) {
-    await db
-      .from('pibox_bookings')
-      .update({ is_active: false })
-      .eq('booking_id', payload.booking_id);
-
-    await db.from('pibox_bookings').upsert(
-      {
-        store_order_id: storeOrderId,
-        booking_id: payload.relaunched_to_id,
-        package_id: null,
-        status_cd: null,
-        package_status_cd: null,
-        tracking_link: null,
-        pickup_validation_code: null,
-        validation_code: null,
-        estimated_cost: null,
-        final_cost: null,
-        driver_name: null,
-        driver_phone: null,
-        vehicle_plates: null,
-        canceled_pickup_reason_cd: null,
-        not_received_reason_cd: null,
-        relaunched_to_booking_id: null,
-        raw: null,
-      },
-      { onConflict: 'booking_id' }
-    );
-  }
+    .eq('booking_id', bookingId);
 
   const note = buildBookingStatusNote(payload.status_cd, {
     driverName: payload.driver?.name,
@@ -140,7 +144,7 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
   });
 
   // El pedido no se cancela con el mensajero: se queda en «Listo Recogida».
-  if (closed && !payload.relaunched_to_id) {
+  if (closed) {
     await noteClosedBooking(storeOrderId, note);
   } else {
     await applyOrderStatusFromPibox(
@@ -160,8 +164,20 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
 }
 
 async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
-  const storeOrderId = await findStoreOrderIdByPackage(payload.package_id);
-  if (!storeOrderId) {
+  const ref = await resolvePackage(payload.package_id);
+
+  await recordBookingEvent({
+    storeOrderId: ref?.store_order_id ?? null,
+    bookingId: ref?.booking_id ?? null,
+    eventBookingId: null,
+    packageId: payload.package_id,
+    eventCd: PIBOX_WEBHOOK_EVENT.PACKAGE_UPDATED,
+    statusCd: payload.status_cd ?? null,
+    eventCreatedAt: payload.created_at,
+    payload,
+  });
+
+  if (!ref) {
     console.warn(`Evento de Pibox para un paquete desconocido: ${payload.package_id}`);
     return;
   }
@@ -174,10 +190,10 @@ async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
   await db
     .from('pibox_bookings')
     .update({ package_status_cd: payload.status_cd })
-    .eq('package_id', payload.package_id);
+    .eq('booking_id', ref.booking_id);
 
   await applyOrderStatusFromPibox(
-    storeOrderId,
+    ref.store_order_id,
     piboxPackageStatusToOrderStatus(payload.status_cd),
     buildPackageStatusNote(payload.status_cd)
   );

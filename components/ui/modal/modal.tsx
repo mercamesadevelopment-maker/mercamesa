@@ -70,7 +70,7 @@ export function Modal({
           >
             {/* Header */}
             <div className="p-6 border-b border-mm-gbg flex justify-between items-center shrink-0">
-              <h2 className="text-2xl font-fraunces text-mm-g">{title}</h2>
+              <h2 className="text-2xl font-display text-mm-g">{title}</h2>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-mm-gbg rounded-full transition-colors text-mm-txs"

@@ -46,7 +46,7 @@ export default function PromotionsPage() {
     <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">
+          <h1 className="text-3xl sm:text-4xl font-display text-mm-g mb-1 sm:mb-2">
             Promociones y Ofertas 🔥
           </h1>
           <p className="text-sm sm:text-base text-mm-txs">
@@ -88,10 +88,11 @@ export default function PromotionsPage() {
       {filteredOffers.length > 0 ? (
         // Dos columnas desde móvil: cada tarjeta mide ~165px a 375px, por eso todo lo de adentro se compacta por debajo de `sm`.
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-          {filteredOffers.map((offer) => (
+          {filteredOffers.map((offer, i) => (
             <OfferCard
               key={offer.id}
               offer={offer}
+              index={i}
               onClick={() => setSelectedOffer(offer)}
             />
           ))}

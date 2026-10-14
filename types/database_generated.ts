@@ -1966,8 +1966,68 @@ export type Database = {
         }
         Relationships: []
       }
+      pibox_booking_events: {
+        Row: {
+          booking_id: string | null
+          driver_name: string | null
+          driver_phone: string | null
+          event_booking_id: string | null
+          event_cd: number
+          event_created_at: string | null
+          id: number
+          package_id: string | null
+          payload: Json
+          received_at: string
+          relaunched_to_id: string | null
+          status_cd: number | null
+          store_order_id: string | null
+          vehicle_plates: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          event_booking_id?: string | null
+          event_cd: number
+          event_created_at?: string | null
+          id?: never
+          package_id?: string | null
+          payload: Json
+          received_at?: string
+          relaunched_to_id?: string | null
+          status_cd?: number | null
+          store_order_id?: string | null
+          vehicle_plates?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          event_booking_id?: string | null
+          event_cd?: number
+          event_created_at?: string | null
+          id?: never
+          package_id?: string | null
+          payload?: Json
+          received_at?: string
+          relaunched_to_id?: string | null
+          status_cd?: number | null
+          store_order_id?: string | null
+          vehicle_plates?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pibox_booking_events_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pibox_bookings: {
         Row: {
+          alias_booking_ids: string[]
           booking_id: string
           canceled_pickup_reason_cd: number | null
           created_at: string
@@ -1993,6 +2053,7 @@ export type Database = {
           vehicle_plates: string | null
         }
         Insert: {
+          alias_booking_ids?: string[]
           booking_id: string
           canceled_pickup_reason_cd?: number | null
           created_at?: string
@@ -2018,6 +2079,7 @@ export type Database = {
           vehicle_plates?: string | null
         }
         Update: {
+          alias_booking_ids?: string[]
           booking_id?: string
           canceled_pickup_reason_cd?: number | null
           created_at?: string

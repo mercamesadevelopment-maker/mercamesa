@@ -257,7 +257,7 @@ export function OrderCard({
               {payable ? 'Total a pagar' : 'Total Pagado'}
             </span>
 
-            <span className="text-xl sm:text-2xl font-fraunces text-mm-g whitespace-nowrap">
+            <span className="text-xl sm:text-2xl font-display text-mm-g whitespace-nowrap">
               {formatCurrency(amountShown)}
             </span>
           </div>

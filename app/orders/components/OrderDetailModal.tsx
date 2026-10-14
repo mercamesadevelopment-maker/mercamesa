@@ -245,7 +245,7 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
             <span className="text-xs text-mm-txw font-bold uppercase tracking-widest">
               {payable ? 'Total a pagar' : 'Total Pagado'}
             </span>
-            <span className="text-2xl font-fraunces text-mm-g">{formatCurrency(amountShown)}</span>
+            <span className="text-2xl font-display text-mm-g">{formatCurrency(amountShown)}</span>
           </div>
         </div>
 

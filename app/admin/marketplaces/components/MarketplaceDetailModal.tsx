@@ -113,7 +113,7 @@ export function MarketplaceDetailModal({
           <div className="px-6 pt-16 pb-8 space-y-8">
             <div className="flex justify-between items-start gap-4">
               <div>
-                <h2 className="text-3xl font-fraunces text-mm-g mb-2">
+                <h2 className="text-3xl font-display text-mm-g mb-2">
                   {data.name}
                 </h2>
 
