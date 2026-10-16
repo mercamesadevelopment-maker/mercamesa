@@ -82,8 +82,16 @@ function PaymentStatusContent() {
           <>
             <CheckCircle2 className="w-20 h-20 text-mm-g mb-6" />
             <h1 className="text-3xl font-fraunces text-mm-g mb-2 text-center">¡Pago Exitoso!</h1>
-            <p className="text-mm-txs text-center mb-8">
+            <p className="text-mm-txs text-center mb-4">
               Tu pedido ha sido confirmado y pronto comenzará su preparación.
+            </p>
+            {/* Política de sustituciones: el comprador la ve justo después de pagar. */}
+            <p className="text-sm text-mm-txs text-left leading-relaxed bg-mm-gbg/60 border border-mm-crd rounded-2xl p-4 mb-8">
+              El tendero hará su mejor esfuerzo para surtir el pedido utilizando su propio inventario o el de otros
+              tenderos de la plaza. Si algún producto no está disponible, se comunicará con nosotros para contactarlo
+              y definir una alternativa de sustitución. Ningún producto podrá ser reemplazado por otro sin la
+              autorización previa y expresa del cliente. Solo se realizarán sustituciones cuando el comprador haya
+              otorgado su consentimiento.
             </p>
           </>
         );
