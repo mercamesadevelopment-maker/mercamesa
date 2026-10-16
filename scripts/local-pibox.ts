@@ -31,6 +31,7 @@ const WEBHOOK_URL = process.env.LOCAL_APP_URL
 
 /** Datos de ejemplo, con la forma de la documentación. */
 const CONDUCTOR = { id: '613a3ea7a585b2001e1eb92c', name: 'David (simulado)', phone: '3013016295' };
+const OTRO_CONDUCTOR = { id: '613a3ea7a585b2001e1eb93d', name: 'Marta (simulada)', phone: '3015550101' };
 const VEHICULO = { plates: 'POI123' };
 
 const PASOS = ['buscando', 'asignado', 'recogido', 'entregado', 'sin-conductor', 'relanzado', 'atrasado'] as const;
@@ -118,6 +119,9 @@ async function main() {
   }
 
   const ahora = new Date().toISOString();
+  // Un instante después de `ahora`: para que los avisos de un mismo paso no
+  // compartan la fecha y el filtro de avisos atrasados no descarte ninguno.
+  const luego = (ms: number) => new Date(Date.now() + ms).toISOString();
   const pedido = (status_cd: number, extra: Record<string, unknown> = {}, created_at = ahora) => ({
     booking_id: booking.booking_id,
     status_cd,
@@ -135,7 +139,18 @@ async function main() {
     recogido: [pedido(5, conConductor), paquete(1), pedido(6, conConductor)],
     entregado: [pedido(7, conConductor), paquete(2), pedido(4, conConductor)],
     'sin-conductor': [pedido(101)],
-    relanzado: [pedido(100, { relaunched_to_id: `SIMULADO-${crypto.randomUUID()}` })],
+    // Como lo hace Picap de verdad (prueba real del 14 oct.): el conductor
+    // cancela sobre la reserva original con un `relaunched_to_id`, y los avisos
+    // siguientes llegan con ese id nuevo, que es interno de Picap. Para la app
+    // debe seguir siendo la misma reserva, ahora con otro conductor.
+    relanzado: (() => {
+      const sucesor = `SIMULADO-${crypto.randomUUID()}`;
+      return [
+        pedido(100, { ...conConductor, relaunched_to_id: sucesor }, luego(0)),
+        { ...pedido(0, {}, luego(10)), booking_id: sucesor },
+        { ...pedido(1, { driver: OTRO_CONDUCTOR, vehicle: { plates: 'XYZ987' } }, luego(20)), booking_id: sucesor },
+      ];
+    })(),
     // Un «Paquete a bordo» de hace una hora, que llega tarde: no debe hacer retroceder nada.
     atrasado: [pedido(6, conConductor, new Date(Date.now() - 3_600_000).toISOString())],
   };
