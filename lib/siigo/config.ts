@@ -120,6 +120,16 @@ export function toSiigoPaymentTypeId(paymentMethod: string | null): number {
 export const SIIGO_NC_DOCUMENT_ID = envInt('SIIGO_NC_DOCUMENT_ID', 0);
 
 /**
+ * Si el comprobante de nota crédito maneja centro de costo.
+ *
+ * El de la cuenta (`26737`, «Nota Crédito», electrónico desde octubre de 2026)
+ * no lo maneja (`cost_center: false` en GET /v1/document-types?type=NC), a
+ * diferencia de la factura, que lo exige. Enviarle uno a un comprobante que no
+ * lo maneja es arriesgar un rechazo. Si algún día se configura, se enciende acá.
+ */
+export const SIIGO_NC_USES_COST_CENTER = process.env.SIIGO_NC_USES_COST_CENTER === 'true';
+
+/**
  * Motivo DIAN de la nota: «1» devolución parcial de bienes, «2» anulación de la
  * factura. Se usa «2» cuando se devuelve el pedido completo.
  */
