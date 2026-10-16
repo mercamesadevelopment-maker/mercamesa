@@ -2,6 +2,7 @@ import {
   SIIGO_MAIL_SEND,
   SIIGO_NC_DOCUMENT_ID,
   SIIGO_NC_PAYMENT_TYPE,
+  SIIGO_NC_USES_COST_CENTER,
   SIIGO_NC_REASON_FULL,
   SIIGO_NC_REASON_PARTIAL,
   SIIGO_STAMP_SEND,
@@ -130,7 +131,10 @@ export function buildCreditNotePayload(ctx: CreditNoteContext): SiigoCreditNoteP
     document: { id: SIIGO_NC_DOCUMENT_ID },
     date: fecha,
     invoice: ctx.siigoInvoiceId,
-    ...(ctx.invoiceRequest.cost_center ? { cost_center: ctx.invoiceRequest.cost_center } : {}),
+    // Solo si el comprobante de nota crédito lo maneja: el de la cuenta no.
+    ...(SIIGO_NC_USES_COST_CENTER && ctx.invoiceRequest.cost_center
+      ? { cost_center: ctx.invoiceRequest.cost_center }
+      : {}),
     reason: ctx.scope === 'order' ? SIIGO_NC_REASON_FULL : SIIGO_NC_REASON_PARTIAL,
     observations: `Devolución ${ctx.pqrsCode} del pedido ${ctx.orderCode} - Mercamesa`,
     stamp: { send: SIIGO_STAMP_SEND },
