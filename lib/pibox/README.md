@@ -19,6 +19,17 @@ Pibox es la API logística de Picap: MercaMesa la usa para cotizar el domicilio 
 4. **Red de seguridad: cron.** `pibox_sync` corre cada 10 minutos (`POST /api/pibox/sync`, con `CRON_SECRET`). Vuelve a consultar en Pibox las reservas vigentes y aplica la misma traducción de estados. Existe porque Pibox no promete reintentar un webhook que falle.
 5. **Pantallas.** El comprador, la tienda y el admin ven el domicilio en el detalle del pedido (`DeliveryTracking`). Leen `GET /api/pibox/bookings`, que recorta los campos según quién pregunta, y vuelven a consultar cada 30 s mientras el mensajero está en camino.
 
+## Pedidos de varias tiendas: un mensajero para el pedido entero
+
+En un pedido de varias tiendas de una plaza (`orders.fulfillment = 'consolidated'`) ninguna tienda pide su propio mensajero: las partes se juntan en la bahía y sale **uno solo**. Su reserva es del pedido (`pibox_bookings.order_id`) y no de una tienda (`store_order_id`); la base exige una de las dos, nunca ambas.
+
+- **Cuándo se pide** lo decide `readyForCourier` (`lib/orders/consolidation.ts`), según lo que la plaza tenía al crear el pedido: con logística, cuando ella recibió todas las partes; con patinador y sin logística, cuando él marca «Entregado en bahía»; sin ninguno, cuando la última tienda marca «Listo Recogida». El que lo pide es `requestCourierIfReady` (`lib/orders/consolidated-order.ts`).
+- **Origen**: la dirección de la plaza (la bahía). **Indicación del paquete**: de qué tiendas es y cómo va empacada cada parte, con las notas del tendero (`packingNotesForCourier`).
+- **Lo que avisa Pibox** se aplica a todas las partes que siguen en el pedido (`applyStatusToOwner`); una parte cancelada no viaja.
+- **Pantallas**: cada parte muestra la reserva del pedido. El patinador y logística la ven como la tienda, con el código de recogida.
+
+Para simularlo en local, `pnpm local:pibox` acepta el código del pedido o de cualquiera de sus partes.
+
 ## Cómo se traduce el estado
 
 | Pibox | Pedido en MercaMesa | Se ve |

@@ -62,10 +62,12 @@ async function main() {
 
   const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-  // Acepta el código de la parte de tienda (MM-…-1) o el del pedido, si tiene una sola tienda.
+  // Acepta el código de la parte de tienda (MM-…-1) o el del pedido. En un
+  // pedido de varias tiendas la reserva es del pedido entero: cualquiera de los
+  // dos códigos sirve.
   let { data: storeOrders } = await supabase
     .from('store_orders')
-    .select('id, code, status')
+    .select('id, code, status, order_id')
     .eq('code', code);
 
   if (!storeOrders?.length) {
@@ -73,27 +75,27 @@ async function main() {
     if (order) {
       ({ data: storeOrders } = await supabase
         .from('store_orders')
-        .select('id, code, status')
+        .select('id, code, status, order_id')
         .eq('order_id', order.id));
     }
   }
 
-  if (storeOrders?.length !== 1) {
-    console.error(`No encontré un único pedido de tienda con el código ${code}. Usa el código con el sufijo de la tienda (MM-…-1).`);
+  if (!storeOrders?.length) {
+    console.error(`No encontré un pedido con el código ${code}.`);
     process.exit(1);
   }
-  const storeOrder = storeOrders[0];
+  const orderId = storeOrders[0].order_id;
 
   const { data: booking } = await supabase
     .from('pibox_bookings')
     .select('booking_id, package_id, is_active, tracking_link')
-    .eq('store_order_id', storeOrder.id)
+    .or(`order_id.eq.${orderId},store_order_id.in.(${storeOrders.map((s) => s.id).join(',')})`)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!booking) {
-    console.error(`El pedido ${storeOrder.code} no tiene domiciliario solicitado. Márcalo como «Listo Recogida» primero.`);
+    console.error(`El pedido ${code} no tiene domiciliario solicitado todavía.`);
     process.exit(1);
   }
   if (!booking.booking_id.startsWith('SIMULADO-')) {
@@ -169,10 +171,11 @@ async function main() {
 
   const { data: after } = await supabase
     .from('store_orders')
-    .select('status')
-    .eq('id', storeOrder.id)
-    .single();
-  console.log(`\nPedido ${storeOrder.code}: ${storeOrder.status} → ${after?.status}`);
+    .select('id, status')
+    .in('id', storeOrders.map((s) => s.id));
+  for (const so of storeOrders) {
+    console.log(`Pedido ${so.code}: ${so.status} → ${after?.find((x) => x.id === so.id)?.status}`);
+  }
 }
 
 main().catch((err) => {

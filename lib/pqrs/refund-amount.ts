@@ -105,3 +105,45 @@ export function computeRefund(order: OrderMoney, lines: RefundLine[], scope: Ref
     items,
   };
 }
+
+/**
+ * Cuánto se devuelve cuando una tienda cancela su parte de un pedido ya pagado.
+ *
+ * Es la misma cuenta de un producto dañado, sobre todos los productos de esa
+ * tienda: su valor y la parte de las comisiones que se cobró por ellos. El
+ * domicilio y los mensajes no entran, porque el resto del pedido sí sale.
+ *
+ * Salvo que sea la última parte que quedaba (`lastActivePart`): ahí ya no sale
+ * nada, así que se devuelve todo lo que falte por devolver del pedido —domicilio
+ * y mensajes incluidos—, ni un peso más ni uno menos. `alreadyRefunded` es lo
+ * devuelto antes por este pedido.
+ */
+export function computeCancellationRefund(
+  order: OrderMoney,
+  lines: RefundLine[],
+  options: { lastActivePart: boolean; alreadyRefunded: number }
+): RefundBreakdown {
+  const parte = computeRefund(order, lines, 'items');
+  if (!options.lastActivePart) return parte;
+
+  const restante = Math.max(0, order.total - options.alreadyRefunded);
+  const messages = order.messagesAmount;
+  const delivery = order.deliveryFee;
+
+  // Lo que no sea productos, mensajes ni domicilio son comisiones. El ajuste por
+  // los redondeos de las devoluciones anteriores cae en la de plataforma, que es
+  // la de MercaMesa.
+  const comisiones = Math.max(0, restante - parte.products - messages - delivery);
+  const serviceCommission = Math.min(parte.serviceCommission, comisiones);
+
+  return {
+    scope: 'order',
+    products: parte.products,
+    serviceCommission,
+    platformCommission: comisiones - serviceCommission,
+    messages,
+    delivery,
+    total: parte.products + comisiones + messages + delivery,
+    items: parte.items,
+  };
+}

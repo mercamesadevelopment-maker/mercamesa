@@ -21,6 +21,9 @@ export default function AcceptInvite() {
   // facturación de una tienda, porque no va a facturar nada.
   const [esAdmin, setEsAdmin] = useState(false);
   const [roleLabel, setRoleLabel] = useState<string | null>(null);
+  /** Invitación al equipo de una plaza (patinador o logística): su plaza. */
+  const [plaza, setPlaza] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
   const { personTypes, loading: loadingTypes } = useIdentificationTypes();
@@ -83,7 +86,9 @@ export default function AcceptInvite() {
           if (result.hasInvite) {
             setHasInvite(true);
             setStoreName(result.storeName);
-            setEsAdmin(result.invitationType === 'admin');
+            // El equipo de una plaza usa el mismo formulario corto del admin.
+            setEsAdmin(result.invitationType === 'admin' || result.invitationType === 'marketplace_member');
+            setPlaza(result.invitationType === 'marketplace_member' ? result.marketplaceName ?? 'la plaza' : null);
             setRoleLabel(result.roleLabel ?? null);
           }
         } else {
@@ -183,6 +188,7 @@ export default function AcceptInvite() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
+      setRedirectUrl(result.redirectUrl ?? null);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Error al completar el registro.');
@@ -248,7 +254,12 @@ export default function AcceptInvite() {
               </div>
               <h2 className="text-2xl font-display text-mm-g mb-3">¡Registro Completado! 🎉</h2>
               <p className="text-sm text-mm-txw leading-relaxed mb-8">
-                {esAdmin ? (
+                {plaza ? (
+                  <>
+                    Tu cuenta quedó lista: ya eres parte del equipo de{' '}
+                    <span className="font-bold text-mm-g">{plaza}</span>.
+                  </>
+                ) : esAdmin ? (
                   <>
                     Tu cuenta de administrador quedó lista. De ahora en adelante, al ingresar
                     te pediremos además un código de 6 dígitos que te llegará al correo.
@@ -261,7 +272,7 @@ export default function AcceptInvite() {
                 )}
               </p>
               <Button
-                onClick={() => router.push(esAdmin ? '/admin' : '/seller/onboarding')}
+                onClick={() => router.push(redirectUrl ?? (esAdmin ? '/admin' : '/seller/onboarding'))}
                 size="lg"
                 className="w-full"
               >
@@ -278,7 +289,15 @@ export default function AcceptInvite() {
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-display text-mm-g mb-2">Completar Registro</h2>
                 <p className="text-xs text-mm-txw">
-                  {esAdmin ? (
+                  {plaza ? (
+                    <>
+                      Te invitaron al equipo de <span className="font-bold text-mm-g">{plaza}</span>
+                      {roleLabel && (
+                        <> como <span className="font-bold text-mm-g">{roleLabel}</span></>
+                      )}
+                      .
+                    </>
+                  ) : esAdmin ? (
                     <>
                       Has sido invitado a administrar MercaMesa
                       {roleLabel && (

@@ -35,7 +35,9 @@ interface OrderForRefund {
   money: OrderMoney;
   paid: boolean;
   buyerId: string | null;
-  lines: (RefundLine & { name: string })[];
+  lines: (RefundLine & { name: string; storeId: string | null })[];
+  /** Tiendas distintas en el pedido. */
+  storeCount: number;
 }
 
 async function loadOrderForRefund(service: SupabaseClient<any>, orderId: string): Promise<OrderForRefund | null> {
@@ -44,7 +46,8 @@ async function loadOrderForRefund(service: SupabaseClient<any>, orderId: string)
     .select(
       `buyer_id, payment_status, subtotal, total, delivery_fee,
        service_commission_amount, messages_amount, platform_commission_amount,
-       order_items ( id, catalog_name, quantity, unit_price )`
+       order_items ( id, catalog_name, quantity, unit_price, store_products ( store_id ) ),
+       store_orders ( store_id )`
     )
     .eq('id', orderId)
     .maybeSingle();
@@ -67,7 +70,9 @@ async function loadOrderForRefund(service: SupabaseClient<any>, orderId: string)
       name: i.catalog_name,
       quantity: Number(i.quantity),
       unitPrice: Number(i.unit_price),
+      storeId: i.store_products?.store_id ?? null,
     })),
+    storeCount: new Set(((order as any).store_orders ?? []).map((so: any) => so.store_id)).size,
   };
 }
 
@@ -84,19 +89,31 @@ interface PqrsForRefund {
  *
  * `quantities` permite al administrador devolver menos de lo reclamado (medio
  * kilo de los dos que el comprador marcó); sin él se usa lo reclamado.
+ *
+ * «Todo el pedido» depende de quién lo asume. Si falló la entrega (logística o
+ * MercaMesa), es el pedido entero, con domicilio. Si lo asume UNA tienda de un
+ * pedido de varias, es toda la parte de esa tienda y nada más: no se le puede
+ * cargar lo que vendieron las otras ni un domicilio que sí salió.
  */
 export async function quoteRefund(
   service: SupabaseClient<any>,
   pqrs: PqrsForRefund,
   scope: RefundScope,
-  quantities?: Record<string, number>
+  quantities?: Record<string, number>,
+  liable?: RefundLiable
 ): Promise<RefundBreakdown | null> {
   if (!pqrs.order_id) return null;
 
   const order = await loadOrderForRefund(service, pqrs.order_id);
   if (!order || !order.paid) return null;
 
-  if (scope === 'order') return computeRefund(order.money, order.lines, 'order');
+  if (scope === 'order') {
+    if (liable === 'store' && order.storeCount > 1) {
+      const deLaTienda = order.lines.filter((l) => l.storeId === pqrs.store_id);
+      return deLaTienda.length > 0 ? computeRefund(order.money, deLaTienda, 'items') : null;
+    }
+    return computeRefund(order.money, order.lines, 'order');
+  }
 
   const { data: reclamados } = await service
     .from('pqrs_items')
@@ -142,7 +159,7 @@ export async function createRefundForPqrs(
     throw new PqrsInputError('Este caso no tiene pedido, tienda o comprador: no se puede devolver nada.');
   }
 
-  const cuenta = await quoteRefund(service, pqrs, params.scope, params.quantities);
+  const cuenta = await quoteRefund(service, pqrs, params.scope, params.quantities, params.liable);
   if (!cuenta || cuenta.total <= 0) {
     throw new PqrsInputError(
       'No hay nada que devolver: el pedido no tiene un pago aprobado o el caso no tiene productos marcados.'

@@ -8,8 +8,10 @@ import {
   removeFromCartDb,
   clearCartDb,
   fetchCart,
+  fetchPickupGroup,
   updateCartItemNotesDb,
 } from '../services/cart.service';
+import { sharePickupPoint } from '@/lib/orders/pickup-group';
 
 export function useCart() {
   const { state, dispatch } = useApp();
@@ -21,9 +23,19 @@ export function useCart() {
       return;
     }
 
-    if (state.cart.length > 0) {
+    // Un pedido puede llevar varias tiendas, pero solo las que despachan desde
+    // el mismo punto: de ahí sale un solo domicilio. Si la tienda ya está en la
+    // canasta no hay nada que preguntar; si es nueva, se compara su punto de
+    // recogida con el de lo que ya hay (toda la canasta comparte uno).
+    const yaEnLaCanasta = state.cart.some((i) => String(i.storeId) === String(product.storeId));
+    if (state.cart.length > 0 && !yaEnLaCanasta) {
       const currentItem = state.cart[0];
-      if (String(currentItem.storeId) !== String(product.storeId)) {
+      const [nuevo, actual] = await Promise.all([
+        fetchPickupGroup(String(product.storeId)),
+        fetchPickupGroup(String(currentItem.storeId)),
+      ]);
+
+      if (!sharePickupPoint([actual, nuevo])) {
         dispatch({
           type: 'SET_CART_STORE_CONFLICT',
           currentStoreName: currentItem.storeName || 'la tienda actual',

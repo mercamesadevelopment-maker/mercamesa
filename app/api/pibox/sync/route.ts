@@ -11,8 +11,10 @@ import {
 } from '@/lib/pibox';
 import {
   persistBookingSnapshot,
-  applyOrderStatusFromPibox,
+  applyStatusToOwner,
   noteClosedBooking,
+  ownerOf,
+  storeOrderIdsOf,
 } from '@/lib/pibox/services/sync.service';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
 
     const { data: activeBookings, error } = await supabase
       .from('pibox_bookings')
-      .select('booking_id, store_order_id')
+      .select('booking_id, store_order_id, order_id')
       .eq('is_active', true);
 
     if (error) {
@@ -58,25 +60,26 @@ export async function POST(request: Request) {
     let updated = 0;
 
     for (const row of activeBookings || []) {
-      // Se saltan los pedidos que ya llegaron a un estado final
-      const { data: storeOrder } = await supabase
-        .from('store_orders')
-        .select('status')
-        .eq('id', row.store_order_id)
-        .single();
+      const owner = ownerOf(row);
+      if (!owner) continue;
 
-      if (!storeOrder || TERMINAL_STATUSES.includes(storeOrder.status)) continue;
+      // Se saltan las reservas cuyas partes ya llegaron todas a un estado final.
+      const storeOrderIds = await storeOrderIdsOf(owner);
+      if (storeOrderIds.length === 0) continue;
+
+      const { data: partes } = await supabase.from('store_orders').select('status').in('id', storeOrderIds);
+      if (!partes || partes.every((so) => TERMINAL_STATUSES.includes(so.status))) continue;
 
       try {
         const booking = await getBooking(row.booking_id);
-        await persistBookingSnapshot(row.store_order_id, booking);
+        await persistBookingSnapshot(owner, booking);
         checked++;
 
         // Sin conductor o cancelada: el snapshot ya la dejó inactiva; el pedido
         // se queda en «Listo Recogida» con la nota. (Un relanzamiento no cierra
         // nada: Picap sigue usando la misma reserva.)
         if (piboxBookingIsClosed(booking.status_cd)) {
-          await noteClosedBooking(row.store_order_id, buildBookingStatusNote(booking.status_cd));
+          await noteClosedBooking(owner, buildBookingStatusNote(booking.status_cd));
           continue;
         }
 
@@ -85,8 +88,8 @@ export async function POST(request: Request) {
         const pkg = extractFirstPackage(booking);
 
         const changed = pkg
-          ? await applyOrderStatusFromPibox(
-              row.store_order_id,
+          ? await applyStatusToOwner(
+              owner,
               piboxPackageStatusToOrderStatus(pkg.status_cd) ??
                 piboxBookingStatusToOrderStatus(booking.status_cd),
               pkg
@@ -96,8 +99,8 @@ export async function POST(request: Request) {
                   })
                 : buildBookingStatusNote(booking.status_cd)
             )
-          : await applyOrderStatusFromPibox(
-              row.store_order_id,
+          : await applyStatusToOwner(
+              owner,
               piboxBookingStatusToOrderStatus(booking.status_cd),
               buildBookingStatusNote(booking.status_cd, {
                 driverName: booking.driver?.name,

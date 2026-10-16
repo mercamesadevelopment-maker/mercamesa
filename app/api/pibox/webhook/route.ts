@@ -11,14 +11,18 @@ import {
   PIBOX_BOOKING_STATUS_LABEL,
 } from '@/lib/pibox';
 import {
-  applyOrderStatusFromPibox,
   addBookingAlias,
+  applyStatusToOwner,
   claimBookingEvent,
   noteClosedBooking,
+  ownerOf,
   recordBookingEvent,
   resolveBooking,
   resolvePackage,
+  storeOrderIdsOf,
+  type BookingOwner,
 } from '@/lib/pibox/services/sync.service';
+import { notifyMarketplaceStaffOfOrder } from '@/lib/marketplace-staff/notify';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { createNotification } from '@/lib/notifications/create-notification';
 import type {
@@ -80,6 +84,7 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
   // A la bitácora siempre, incluso si no se puede asociar o llega atrasado.
   await recordBookingEvent({
     storeOrderId: ref?.store_order_id ?? null,
+    orderId: ref?.order_id ?? null,
     bookingId: ref?.booking_id ?? null,
     eventBookingId: payload.booking_id,
     packageId: null,
@@ -98,7 +103,8 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
     return;
   }
 
-  const { booking_id: bookingId, store_order_id: storeOrderId } = ref;
+  const bookingId = ref.booking_id;
+  const owner = ownerOf(ref)!;
 
   // Picap relanza sobre la MISMA reserva: el id nuevo es interno suyo. Se
   // guarda como alias para reconocer los avisos que lleguen con él; no se crea
@@ -145,18 +151,14 @@ async function handleBookingEvent(payload: PiboxBookingWebhookPayload) {
 
   // El pedido no se cancela con el mensajero: se queda en «Listo Recogida».
   if (closed) {
-    await noteClosedBooking(storeOrderId, note);
+    await noteClosedBooking(owner, note);
   } else {
-    await applyOrderStatusFromPibox(
-      storeOrderId,
-      piboxBookingStatusToOrderStatus(payload.status_cd),
-      note
-    );
+    await applyStatusToOwner(owner, piboxBookingStatusToOrderStatus(payload.status_cd), note);
   }
 
   if (piboxBookingStatusNeedsAttention(payload.status_cd)) {
-    await notifyStoreMembers(
-      storeOrderId,
+    await notifyWhoRequested(
+      owner,
       'Problema con el domicilio',
       `${PIBOX_BOOKING_STATUS_LABEL[payload.status_cd] || 'Estado inesperado'}. Revisa el pedido.`
     );
@@ -168,6 +170,7 @@ async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
 
   await recordBookingEvent({
     storeOrderId: ref?.store_order_id ?? null,
+    orderId: ref?.order_id ?? null,
     bookingId: ref?.booking_id ?? null,
     eventBookingId: null,
     packageId: payload.package_id,
@@ -192,11 +195,27 @@ async function handlePackageEvent(payload: PiboxPackageWebhookPayload) {
     .update({ package_status_cd: payload.status_cd })
     .eq('booking_id', ref.booking_id);
 
-  await applyOrderStatusFromPibox(
-    ref.store_order_id,
+  await applyStatusToOwner(
+    ownerOf(ref)!,
     piboxPackageStatusToOrderStatus(payload.status_cd),
     buildPackageStatusNote(payload.status_cd)
   );
+}
+
+/**
+ * Avisa a quien pidió el mensajero cuando el domicilio necesita intervención:
+ * el equipo de la tienda o, si la reserva es de un pedido de varias tiendas, el
+ * equipo de la plaza (patinadores y logística), que es quien la tiene en la
+ * bahía. Las tiendas ya entregaron lo suyo.
+ */
+async function notifyWhoRequested(owner: BookingOwner, title: string, message: string) {
+  if ('orderId' in owner) {
+    await notifyMarketplaceStaffOfOrder(owner.orderId, title, message);
+    return;
+  }
+  for (const storeOrderId of await storeOrderIdsOf(owner)) {
+    await notifyStoreMembers(storeOrderId, title, message);
+  }
 }
 
 /** Avisa a los miembros de la tienda cuando el domicilio necesita intervención. */
