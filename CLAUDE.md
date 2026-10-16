@@ -211,9 +211,9 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
 - **Production**: los valores reales (Supabase de producción, Siigo, Resend, Pibox, Mapbox,
   `CRON_SECRET`).
 - **Preview** (todas las vistas previas: `development` y cada PR): Supabase de staging,
-  `EMAIL_DRY_RUN=true`, `PIBOX_DRY_RUN=true`, `CRON_SECRET` y `PIBOX_WEBHOOK_SECRET`
-  propios, y Pibox y Mapbox con los mismos valores de producción (Pibox solo cotiza). **No
-  llevan** Siigo, Resend ni ZonaPagos.
+  `PIBOX_DRY_RUN=true`, `CRON_SECRET` y `PIBOX_WEBHOOK_SECRET` propios, y Pibox, Mapbox y
+  Resend con los mismos valores de producción (Pibox solo cotiza). **No llevan** Siigo ni
+  ZonaPagos.
 
 Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
 corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada
@@ -227,9 +227,14 @@ panel (pide pasarlas a «Config»); se cambian por la API de Vercel.
 ### Datos de staging
 
 Staging es una **copia completa de producción**: datos personales reales, y las cuentas
-entran con su contraseña de producción. Por eso correo y Pibox están simulados, las tareas
+entran con su contraseña de producción. Por eso Pibox está simulado, las tareas
 programadas que llaman hacia afuera están apagadas (`supabase/seed/post.sql`) y a terceros
 (Meteor) no se les dan llaves de la base de staging.
+
+**El correo sí sale desde staging, a cualquier destinatario** (decisión de octubre de 2026,
+para probar invitaciones y códigos de ingreso). Como los correos de la base son reales, una
+prueba en staging puede escribirle a un cliente: probar con cuentas propias, no con pedidos
+o PQRS de clientes copiados de producción.
 
 ```
 pnpm db:pull-data              # copia reciente de producción
