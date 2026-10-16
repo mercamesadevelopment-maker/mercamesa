@@ -308,6 +308,37 @@ Convención para agregar uno nuevo:
 
 ---
 
+## Pedidos de varias tiendas, patinador y logística
+
+Un comprador puede juntar en un pedido tiendas de una misma plaza que despachan desde
+ella (`stores.pickup_group`). Ese pedido (`orders.fulfillment = 'consolidated'`) tiene una
+parte por tienda y sale con **un solo mensajero** desde la bahía de la plaza.
+
+Cada plaza decide cómo se junta (Plazas → detalle → «Pedidos de varias tiendas»):
+
+| Plaza | Lleva cada parte | La recibe | Se pide el mensajero cuando… |
+|---|---|---|---|
+| patinador + logística | patinador | logística | logística recibió todas |
+| solo logística | el tendero | logística | logística recibió todas |
+| solo patinador | patinador | domiciliario | el patinador marca «Entregado en bahía» |
+| ninguno | el tendero | domiciliario | la última tienda marca «Listo Recogida» |
+
+- Las reglas están en `lib/orders/consolidation.ts` (puras, con pruebas). El pedido **copia** la
+  configuración de la plaza al crearse: cambiarla no afecta a los que están en curso.
+- **Patinador** (rol `runner`, `/runner`) y **logística** (rol `logistics`, solo
+  `/admin/orders`, donde ve la bahía de su plaza) son por plaza: `marketplace_staff`, que
+  no tiene políticas y solo lee el servidor (`lib/marketplace-staff/`). Los invita el admin
+  desde la plaza (`invitation_type = 'marketplace_member'`).
+- Logística solo tiene `read`, `receive` y `dispatch` sobre las órdenes: no el `update`
+  general. Sus rutas (`app/api/logistics`) exigen esos permisos y que el pedido sea de su
+  plaza.
+- La **comisión del patinador** (porcentaje de los productos o valor fijo) es informativa:
+  no se cobra ni entra a dispersiones.
+- El tendero deja **notas de empaque** por parte (`store_orders.packing_notes`); las leen
+  el patinador, logística y el domiciliario, en la indicación del paquete de Pibox.
+- `orders` y `store_orders` **no tienen RLS**: todo lo del equipo de la plaza pasa por el
+  servidor con el cliente de servicio, después de comprobar quién pregunta.
+
 ## Marca
 
 Caso de marca: `docs/cotizacionFase2/MercaMesa_Branding_Case.pdf`.

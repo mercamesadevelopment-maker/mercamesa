@@ -6,11 +6,11 @@ import {
   isPiboxEnabled,
   buildBookingStatusNote,
 } from '@/lib/pibox';
-import { canManageStoreOrder } from '@/lib/pibox/authz';
+import { canManageBooking } from '@/lib/pibox/authz';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import {
   persistBookingSnapshot,
-  findStoreOrderIdByBooking,
+  findBookingOwner,
   noteClosedBooking,
 } from '@/lib/pibox/services/sync.service';
 
@@ -35,17 +35,17 @@ export async function GET(
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const storeOrderId = await findStoreOrderIdByBooking(id);
-    if (!storeOrderId) {
+    const owner = await findBookingOwner(id);
+    if (!owner) {
       return NextResponse.json({ error: 'Domicilio no encontrado' }, { status: 404 });
     }
 
-    if (!(await canManageStoreOrder(supabase, storeOrderId, user.id))) {
+    if (!(await canManageBooking(supabase, owner, user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const booking = await getBooking(id);
-    await persistBookingSnapshot(storeOrderId, booking);
+    await persistBookingSnapshot(owner, booking);
 
     const db = createSupabaseServiceClient();
     const { data } = await db
@@ -88,19 +88,19 @@ export async function PATCH(
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const storeOrderId = await findStoreOrderIdByBooking(id);
-    if (!storeOrderId) {
+    const owner = await findBookingOwner(id);
+    if (!owner) {
       return NextResponse.json({ error: 'Domicilio no encontrado' }, { status: 404 });
     }
 
-    if (!(await canManageStoreOrder(supabase, storeOrderId, user.id))) {
+    if (!(await canManageBooking(supabase, owner, user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const booking = await cancelBooking(id);
-    await persistBookingSnapshot(storeOrderId, booking);
+    await persistBookingSnapshot(owner, booking);
 
-    await noteClosedBooking(storeOrderId, buildBookingStatusNote(booking.status_cd));
+    await noteClosedBooking(owner, buildBookingStatusNote(booking.status_cd));
 
     return NextResponse.json({ data: booking }, { status: 200 });
   } catch (error: unknown) {

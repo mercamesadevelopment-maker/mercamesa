@@ -13,6 +13,7 @@ import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/o
 import { StatusNoteModal } from './StatusNoteModal';
 import { isPaymentApproved, UNPAID_STATUS_CHANGE_WARNING } from '@/src/features/orders/utils/payment-status';
 import { RevertStatusModal } from './RevertStatusModal';
+import { CancelPartModal } from './CancelPartModal';
 import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
 
 interface StoreOption {
@@ -28,6 +29,10 @@ interface OrdersViewProps {
   stats: Record<string, number>;
   updateOrderStatus: (orderId: string, status: OrderStatus, notes?: string) => Promise<void>;
   revertOrderStatus: (orderId: string, status: OrderStatus, notes: string) => Promise<void>;
+  /** Cancela la parte de la tienda en un pedido de varias tiendas. Lanza si no se pudo. */
+  cancelPart: (orderId: string, reason: string) => Promise<void>;
+  /** Guarda cómo va empacada la parte. Solo el tendero: sin ella la nota se lee. */
+  savePackingNotes?: (orderId: string, notes: string) => Promise<void>;
   stores: StoreOption[];
   selectedStoreId: string;
   setSelectedStoreId: (id: string) => void;
@@ -42,6 +47,8 @@ export function OrdersView({
   stats,
   updateOrderStatus,
   revertOrderStatus,
+  cancelPart,
+  savePackingNotes,
   stores,
   selectedStoreId,
   setSelectedStoreId,
@@ -58,6 +65,9 @@ export function OrdersView({
   // Pedido cuyo estado se va a corregir hacia atrás (casos extremos).
   const [revertOrderId, setRevertOrderId] = React.useState<string | null>(null);
   const revertOrder = filteredOrders.find(o => o.id === revertOrderId) || null;
+  // Pedido de varias tiendas del que esta tienda va a cancelar su parte.
+  const [cancelOrderId, setCancelOrderId] = React.useState<string | null>(null);
+  const cancelOrder = filteredOrders.find(o => o.id === cancelOrderId) || null;
   // Pedido sobre el que el tendero radica una PQRS. El admin no radica: resuelve.
   const [reportOrder, setReportOrder] = React.useState<Order | null>(null);
   const [reportedCode, setReportedCode] = React.useState<string | null>(null);
@@ -307,7 +317,7 @@ export function OrdersView({
                       >
                         Ver Detalle
                       </Button>
-                      {config.next && (
+                      {config.next && !(order.fulfillment === 'consolidated' && order.status === 'at_collection') && (
                         <Button
                           size="sm"
                           className="rounded-xl px-5 h-10 shadow-lg shadow-mm-g/10"
@@ -378,6 +388,18 @@ export function OrdersView({
           actionLabel
         })}
         onStartRevert={setRevertOrderId}
+        onSavePackingNotes={
+          savePackingNotes
+            ? async (orderId, notes) => {
+                await savePackingNotes(orderId, notes);
+                setSelectedOrderForDetail((actual) => (actual ? { ...actual, packingNotes: notes || null } : actual));
+              }
+            : undefined
+        }
+        onStartCancelPart={(orderId) => {
+          setSelectedOrderForDetail(null);
+          setCancelOrderId(orderId);
+        }}
         onReportProblem={
           variant === 'seller'
             ? (order) => {
@@ -413,6 +435,19 @@ export function OrdersView({
           </button>
         </div>
       )}
+
+      {/* La tienda no puede cumplir su parte de un pedido compartido */}
+      <CancelPartModal
+        isOpen={!!cancelOrder}
+        onClose={() => setCancelOrderId(null)}
+        onConfirm={async (reason) => {
+          if (!cancelOrderId) return;
+          // Si falla, el error sube al modal; solo se cierra al lograrlo.
+          await cancelPart(cancelOrderId, reason);
+          setCancelOrderId(null);
+        }}
+        subtotal={cancelOrder?.subtotal ?? cancelOrder?.total ?? 0}
+      />
 
       {/* Corrección a un estado anterior */}
       <RevertStatusModal

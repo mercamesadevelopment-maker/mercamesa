@@ -6,6 +6,7 @@ import { Building2, MapPin, Store as StoreIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Badge } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
+import { MarketplaceStaffPanel } from './MarketplaceStaffPanel';
 
 type MarketplaceDetail =
   Database['public']['Views']['marketplaces_detail']['Row'] & {
@@ -189,6 +190,8 @@ export function MarketplaceDetailModal({
                 </div>
               )}
             </div>
+
+            <MarketplaceStaffPanel marketplaceId={data.id} marketplaceName={data.name} enabled={isOpen} />
           </div>
         </div>
       )}

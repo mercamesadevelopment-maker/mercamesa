@@ -287,6 +287,31 @@ export function adminInvitationEmail(
   });
 }
 
+/**
+ * Invitación al equipo de una plaza: patinador o logística.
+ */
+export function marketplaceStaffInvitationEmail(
+  invitadoPor: string,
+  plaza: string,
+  rolEtiqueta: string,
+  url: string,
+  diasParaVencer: number
+) {
+  return plantilla({
+    title: `Te invitaron a ${plaza} en MercaMesa`,
+    heading: `Te invitaron a ${plaza}`,
+    body: `
+      <p class="text"><span class="highlight">${invitadoPor}</span> te invitó a MercaMesa como <span class="highlight">${rolEtiqueta}</span> de <span class="highlight">${plaza}</span>.</p>
+      <p class="text">Para empezar, abre el enlace, define tu contraseña y completa tu nombre y teléfono. La invitación vence en ${diasParaVencer} días.</p>
+      <p class="text">
+        <a href="${url}" style="display:inline-block;background-color:#0E3B2F;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 28px;border-radius:16px;">Aceptar la invitación</a>
+      </p>
+      <p class="text">Si el botón no funciona, copia este enlace en tu navegador:<br><span style="word-break:break-all;">${url}</span></p>
+      <p class="text">Si no esperabas esta invitación, puedes ignorar este correo: sin abrir el enlace no se crea ninguna cuenta.</p>
+    `,
+  });
+}
+
 
 /**
  * Invitación a ser miembro de una tienda, cuando se reenvía.

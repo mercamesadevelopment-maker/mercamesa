@@ -149,6 +149,29 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
   return resultCart;
 }
 
+const pickupGroups = new Map<string, string | null>();
+
+/**
+ * El punto de recogida de una tienda (`stores.pickup_group`), o `null` si no se
+ * pudo saber. Es lo que decide si dos tiendas pueden ir en el mismo pedido.
+ *
+ * Se guarda en memoria: no cambia mientras se compra, y se pregunta cada vez
+ * que se agrega un producto de una tienda distinta.
+ */
+export async function fetchPickupGroup(storeId: string): Promise<string | null> {
+  if (pickupGroups.has(storeId)) return pickupGroups.get(storeId) ?? null;
+
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase.from('stores').select('pickup_group').eq('id', storeId).maybeSingle();
+
+  // Un fallo no se guarda: la próxima vez se vuelve a preguntar.
+  if (error) return null;
+
+  const group = (data as { pickup_group?: string | null } | null)?.pickup_group ?? null;
+  pickupGroups.set(storeId, group);
+  return group;
+}
+
 /**
  * Insert or update a cart item quantity in the database with optional offerId.
  */
@@ -354,11 +377,11 @@ export async function revertCartDb(orderId: string): Promise<void> {
  * «Confirmar y pagar» creaba otro. Vuelven cuando el pedido vence, se cancela o
  * el último pago se rechaza.
  *
- * Ojo: esto puede dejar la canasta con productos de DOS tiendas, si el comprador
- * agregó algo de otra tienda mientras los suyos estaban en `pending` (con la
- * canasta vacía en pantalla, `addToCart` no tiene con qué comparar). Se deja
- * así a propósito —el trabajo de esta función es no perder ítems— y la mezcla se
- * resuelve en el carrito, donde el comprador elige con qué tienda sigue.
+ * Ojo: esto puede dejar la canasta con tiendas que no despachan juntas, si el
+ * comprador agregó algo de otra plaza mientras los suyos estaban en `pending`
+ * (con la canasta vacía en pantalla, `addToCart` no tiene con qué comparar). Se
+ * deja así a propósito —el trabajo de esta función es no perder ítems—: la
+ * cotización lo rechaza con un mensaje claro y el comprador quita lo que sobra.
  */
 export async function recoverAbandonedCartDb(buyerId: string): Promise<void> {
   const supabase = createSupabaseBrowserClient();

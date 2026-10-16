@@ -21,6 +21,9 @@ export const ROLE_ROUTES: Record<RoleKey, string> = {
   wholesale: '/marketplaces',
   provider: '/seller/dashboard',
   delivery: '/delivery',
+  runner: '/runner',
+  // Logística solo entra a las órdenes de su plaza.
+  logistics: '/admin/orders',
   admin: '/admin/marketplaces',
 };
 
