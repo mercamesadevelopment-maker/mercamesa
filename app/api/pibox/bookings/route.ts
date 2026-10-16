@@ -7,7 +7,7 @@ import {
   PiboxDataError,
   isPiboxEnabled,
 } from '@/lib/pibox';
-import { toDeliveryView, type DeliveryViewer } from '@/lib/pibox/delivery-view';
+import { toDeliveryTimeline, toDeliveryView, type DeliveryViewer } from '@/lib/pibox/delivery-view';
 import { canManageStoreOrder } from '@/lib/pibox/authz';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { persistBookingSnapshot } from '@/lib/pibox/services/sync.service';
@@ -50,6 +50,9 @@ export async function POST(request: Request) {
       .select('*')
       .eq('store_order_id', storeOrderId)
       .eq('is_active', true)
+      // La base ya no admite dos activas por pedido (índice único); el
+      // `limit(1)` es por si acaso: `maybeSingle` con dos filas daba error.
+      .limit(1)
       .maybeSingle();
 
     if (existing) {
@@ -100,7 +103,8 @@ export async function POST(request: Request) {
  * admin, y cada uno solo lo suyo (`toDeliveryView`).
  *
  * Responde la reserva vigente o, si no hay, la más reciente; el admin recibe
- * además el historial de reservas del pedido.
+ * además el historial de reservas del pedido. La tienda y el admin reciben la
+ * línea de tiempo del domicilio (`timeline`), armada con la bitácora de avisos.
  */
 export async function GET(request: Request) {
   try {
@@ -147,12 +151,25 @@ export async function GET(request: Request) {
 
     const current = (rows ?? []).find((r) => r.is_active) ?? rows?.[0] ?? null;
 
+    // Al comprador no se le arma: `toDeliveryTimeline` le devolvería vacío.
+    let timeline: ReturnType<typeof toDeliveryTimeline> = [];
+    if (viewer !== 'buyer') {
+      const { data: events } = await db
+        .from('pibox_booking_events')
+        .select('received_at, event_created_at, event_cd, status_cd, driver_name, store_order_id')
+        .eq('store_order_id', storeOrder.id)
+        .order('received_at', { ascending: true })
+        .limit(200);
+      timeline = toDeliveryTimeline(events ?? [], viewer);
+    }
+
     return NextResponse.json(
       {
         data: {
           storeOrderId: storeOrder.id,
           viewer,
           delivery: current ? toDeliveryView(current, viewer) : null,
+          timeline,
           ...(viewer === 'admin'
             ? { history: (rows ?? []).map((r) => toDeliveryView(r, 'admin')) }
             : {}),

@@ -180,6 +180,7 @@ export function OrderDetailModal({
                 loading={tracking.loading}
                 error={tracking.error}
                 history={tracking.data?.history}
+                timeline={tracking.data?.timeline}
                 requesting={tracking.requesting}
                 onRequestAnother={
                   order.storeOrderId
