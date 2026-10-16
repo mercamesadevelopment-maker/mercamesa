@@ -41,7 +41,7 @@ export function PreferencesTab() {
       exit={{ opacity: 0, x: -20 }}
       className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm"
     >
-      <h2 className="text-3xl font-fraunces text-mm-g mb-8">Notificaciones</h2>
+      <h2 className="text-3xl font-display text-mm-g mb-8">Notificaciones</h2>
       <div className="space-y-6 max-w-xl">
         {PREFS.map((pref) => (
           <div

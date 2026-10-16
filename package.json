@@ -21,6 +21,8 @@
     "pibox:hooks": "tsx scripts/pibox-webhooks.ts",
     "lint": "next lint",
     "siigo": "tsx scripts/siigo.ts",
+    "staging:refresh": "tsx scripts/staging-refresh.ts",
+    "staging:sync-storage": "tsx scripts/sync-storage-local.ts --staging",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:db": "supabase test db"

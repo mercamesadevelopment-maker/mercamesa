@@ -1,14 +1,16 @@
 import { Role, Plaza, Product, Store, BuyerProfile, MasterProduct, StoreReview, RoleKey } from './types';
 
+// Paleta de la marca para estilos en línea. Mismos valores que los tokens de
+// `app/globals.css`; en JSX preferir las clases de Tailwind.
 export const C = {
-  g: "#2A4E12", gm: "#3E7023", gl: "#6FA33E", gll: "#C8E6A0", gbg: "#F2F7EC",
-  oro: "#D4920A", orl: "#FBF0D5",
-  blue: "#1A5FA8", bluel: "#DCE9F8",
-  r: "#CF3D2E", rl: "#FDECEA",
-  ok: "#2A7D3E", okl: "#E3F4E8",
-  warn: "#B87000", warnl: "#FDF3DC",
-  cr: "#FAFAF5", crd: "#E8E8DC", bl: "#FFFFFF",
-  tx: "#1A2610", txs: "#5C6B4A", txw: "#9AA88C",
+  g: "#0E3B2F", gm: "#1B5240", gl: "#4C7A5E", gll: "#C3F03F", gbg: "#EEF2E8",
+  oro: "#B9502A", orl: "#FCE7DD",
+  blue: "#2A5A7A", bluel: "#EBF2FA",
+  r: "#B4322A", rl: "#FBDCD6",
+  ok: "#1F6B47", okl: "#DDF3E4",
+  warn: "#9B6A3E", warnl: "#FEFAE0",
+  cr: "#F7F5EE", crd: "#E2E6DD", bl: "#FFFFFF",
+  tx: "#10261E", txs: "#3A5248", txw: "#6A7C74",
 };
 
 export const fmt = (n: number) => "$" + Number(n || 0).toLocaleString("es-CO");
@@ -19,12 +21,15 @@ export const ROLE_ROUTES: Record<RoleKey, string> = {
   wholesale: '/marketplaces',
   provider: '/seller/dashboard',
   delivery: '/delivery',
+  runner: '/runner',
+  // Logística solo entra a las órdenes de su plaza.
+  logistics: '/admin/orders',
   admin: '/admin/marketplaces',
 };
 
 export const ROLES: Role[] = [
   {
-    k: "retail", emoji: "🛒", icon: "ShoppingBag", color: "#2A4210", bg: "#EAF4E0", brd: "#B8DFA8",
+    k: "retail", emoji: "🛒", icon: "ShoppingBag", color: "#0E3B2F", bg: "#EAF4E0", brd: "#B8DFA8",
     title: "Comprador Minorista", sub: "Hogares y familias", tagline: "Fresco cada semana",
     perks: ["Delivery a domicilio", "Precios de plaza", "Historial de pedidos", "PlazaCoins"]
   },
@@ -44,7 +49,7 @@ export const ROLES: Role[] = [
     perks: ["Horario libre", "Pagos semanales", "Seguro de accidentes", "Bonos"]
   },
   {
-    k: "admin", emoji: "⚙️", icon: "Settings", color: "#2A4E12", bg: "#F2F7EC", brd: "#C8E6A0",
+    k: "admin", emoji: "⚙️", icon: "Settings", color: "#0E3B2F", bg: "#EEF2E8", brd: "#C3F03F",
     title: "Administrador", sub: "Gestión de la plataforma", tagline: "Control total",
     perks: ["Gestión global", "Reportes avanzados", "Control de usuarios", "Configuración"]
   },
@@ -169,9 +174,9 @@ export const WEEK_DATA = [
 ];
 
 export const CAT_DATA = [
-  { name: "Verduras", v: 38, color: "#3E7023", image: "https://images.unsplash.com/photo-1566385101042-1a000c1268c4?auto=format&fit=crop&q=80&w=400" },
+  { name: "Verduras", v: 38, color: "#4C7A5E", image: "https://images.unsplash.com/photo-1566385101042-1a000c1268c4?auto=format&fit=crop&q=80&w=400" },
   { name: "Frutas", v: 24, color: "#F59E0B", image: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&q=80&w=400" },
-  { name: "Especias", v: 15, color: "#CF3D2E", image: "https://images.unsplash.com/photo-1532336414038-cf19250c5757?auto=format&fit=crop&q=80&w=400" },
+  { name: "Especias", v: 15, color: "#B4322A", image: "https://images.unsplash.com/photo-1532336414038-cf19250c5757?auto=format&fit=crop&q=80&w=400" },
   { name: "Granos", v: 13, color: "#8B5CF6", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=400" },
   { name: "Carnes", v: 6, color: "#EC4899", image: "https://images.unsplash.com/photo-1432139555190-58524dae6a55?auto=format&fit=crop&q=80&w=400" },
   { name: "Lácteos", v: 4, color: "#06B6D4", image: "https://images.unsplash.com/photo-1550583724-125581cc255b?auto=format&fit=crop&q=80&w=400" },

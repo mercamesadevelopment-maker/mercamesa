@@ -86,7 +86,7 @@ export default function ProductsPage() {
   return (
     <div className="p-4 sm:p-8 space-y-8 pb-32">
       <div>
-        <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todos los Productos</h1>
+        <h1 className="text-4xl font-display text-mm-g mb-2">Todos los Productos</h1>
         <p className="text-mm-txs">Conectamos el sistema alimentario.</p>
       </div>
 

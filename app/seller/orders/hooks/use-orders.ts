@@ -4,6 +4,8 @@ import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/typ
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
 import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
+import { cancelStorePart } from '@/src/features/orders/services/cancel-store-part.service';
+import { savePackingNotes } from '@/src/features/orders/services/packing-notes.service';
 import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
 import { isPaymentApproved } from '@/src/features/orders/utils/payment-status';
 
@@ -170,6 +172,14 @@ export function useOrders() {
           storeOrderId: so.id, // Store Order specific DB ID
           code: so.code,
           parentCode: parentOrder?.code,
+          fulfillment: parentOrder?.fulfillment === 'consolidated' ? 'consolidated' : 'store',
+          consolidation: {
+            runnerRequired: Boolean(parentOrder?.runner_required),
+            logisticsRequired: Boolean(parentOrder?.logistics_required),
+          },
+          packingNotes: so.packing_notes ?? null,
+          collectedAt: so.collected_at ?? null,
+          bayReceivedAt: so.bay_received_at ?? null,
           date: so.created_at || new Date().toISOString(),
           storeId: so.store_id,
           storeName: so.stores?.name || 'Mi Tienda',
@@ -266,6 +276,25 @@ export function useOrders() {
     await fetchStoreOrders();
   };
 
+  // La tienda no puede cumplir su parte de un pedido de varias tiendas. El error
+  // se propaga: el modal muestra por qué no se pudo.
+  const cancelPart = async (orderId: string, reason: string) => {
+    const order = myOrders.find(o => o.id === orderId);
+    if (!order?.storeOrderId) throw new Error('No se encontró el pedido.');
+
+    await cancelStorePart(order.storeOrderId, reason);
+    await fetchStoreOrders();
+  };
+
+  /** Cómo va empacada la parte. Actualiza la lista sin volver a cargarla. */
+  const updatePackingNotes = async (orderId: string, notes: string) => {
+    const order = myOrders.find(o => o.id === orderId);
+    if (!order?.storeOrderId) throw new Error('No se encontró el pedido.');
+
+    const guardada = await savePackingNotes(String(order.storeOrderId), notes);
+    setMyOrders(prev => prev.map(o => (o.id === orderId ? { ...o, packingNotes: guardada } : o)));
+  };
+
   return {
     filteredOrders,
     filterStatus,
@@ -273,6 +302,8 @@ export function useOrders() {
     stats,
     updateOrderStatus,
     revertOrderStatus,
+    cancelPart,
+    updatePackingNotes,
     deliveryError,
     dismissDeliveryError: () => setDeliveryError(null),
     loading: loading || stores.length === 0,

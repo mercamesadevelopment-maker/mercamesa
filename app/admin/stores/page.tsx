@@ -141,7 +141,7 @@ export default function StoresAdmin() {
     <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-fraunces text-mm-g">Gestión de Tiendas</h2>
+          <h2 className="text-2xl font-display text-mm-g">Gestión de Tiendas</h2>
           <p className="text-sm text-mm-txs mt-1">Administra los comercios y tiendas dentro de las plazas.</p>
         </div>
         <Button size="sm" onClick={() => { setEditingStore(null); setIsModalOpen(true); }}>

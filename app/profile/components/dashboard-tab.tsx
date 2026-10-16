@@ -49,7 +49,7 @@ export function DashboardTab() {
           )}
         </div>
         <div className="flex-grow text-center md:text-left">
-          <h2 className="text-4xl font-fraunces text-mm-g mb-1">{profile.name}</h2>
+          <h2 className="text-4xl font-display text-mm-g mb-1">{profile.name}</h2>
           {stats?.memberSince && (
             <p className="text-mm-txs">Miembro desde {fechaCorta(stats.memberSince)}</p>
           )}
@@ -58,7 +58,7 @@ export function DashboardTab() {
 
       {/* Estadísticas */}
       <div className="bg-white p-8 rounded-[32px] border border-mm-crd shadow-sm">
-        <h3 className="text-xl font-fraunces text-mm-g mb-6">Tus pedidos</h3>
+        <h3 className="text-xl font-display text-mm-g mb-6">Tus pedidos</h3>
         <div className="grid grid-cols-2 gap-6">
           <Cifra etiqueta="Pedidos" valor={stats?.totalOrders} cargando={loading} />
 

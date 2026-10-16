@@ -39,7 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [state._hydrated, state.isLoggedIn, isNoLayoutPage, router]);
 
   useEffect(() => {
-    if (state._hydrated && (state.userRole === 'admin' || state.userRole === 'provider')) {
+    if (state._hydrated && ['admin', 'provider', 'runner', 'logistics'].includes(state.userRole)) {
       fetchNotifications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,7 +48,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isNoLayoutPage) return <>{children}</>;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5]">
+    <div className="min-h-screen bg-[#F7F5EE]">
       <Topbar
         onCartOpen={() => setIsCartOpen(true)}
         onToggleSidebar={() =>

@@ -41,7 +41,7 @@ export default function SellerSettingsPage() {
       <div className="p-6 lg:p-10 max-w-2xl mx-auto">
         <div className="rounded-3xl border border-mm-crd bg-white p-8 text-center">
           <Info className="mx-auto mb-4 h-10 w-10 text-mm-txw" />
-          <h1 className="mb-2 text-2xl font-fraunces text-mm-g">Aún no tienes una tienda</h1>
+          <h1 className="mb-2 text-2xl font-display text-mm-g">Aún no tienes una tienda</h1>
           <p className="text-sm text-mm-txs">
             {error ||
               'Tu usuario no está asociado a ninguna tienda. Pídele al equipo de MercaMesa que te asocie a la tuya.'}
@@ -59,7 +59,7 @@ export default function SellerSettingsPage() {
             <Store className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-3xl font-fraunces text-mm-g">Mi Tienda</h1>
+            <h1 className="text-3xl font-display text-mm-g">Mi Tienda</h1>
             <p className="text-sm text-mm-txs">{storeName}</p>
           </div>
         </div>

@@ -10,14 +10,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * minutos, y la tienda veía los 6 como «Pendiente de Pago»). Ahora el reintento
  * cae en el mismo pedido y solo abre un intento de pago nuevo.
  *
- * Tiene que coincidir todo: tienda, dirección, productos, cantidades y notas. Si
+ * Tiene que coincidir todo: tiendas, dirección, productos, cantidades y notas. Si
  * algo cambió es otro pedido; el anterior no se cancela acá porque su primer
  * pago podría estar entrando en la pasarela, y se deja al vencimiento
  * (`public.expire_unpaid_orders`).
  */
 export interface ReusableOrderInput {
   buyerId: string;
-  storeId: string;
+  /** Todas las tiendas del pedido. */
+  storeIds: string[];
   deliveryAddressId: string;
   items: { store_product_id: string; quantity: number; notes?: string | null }[];
 }
@@ -42,18 +43,23 @@ export async function findReusableOrderId(
   if (error || !data) return null;
 
   const firma = firmaDeItems(input.items);
+  const tiendas = firmaDeTiendas(input.storeIds);
   const ahora = Date.now();
 
   const reusable = (data as any[]).find(
     (o) =>
       o.payable_until &&
       new Date(o.payable_until).getTime() > ahora &&
-      (o.store_orders ?? []).length === 1 &&
-      String(o.store_orders[0].store_id) === String(input.storeId) &&
+      firmaDeTiendas((o.store_orders ?? []).map((so: any) => so.store_id)) === tiendas &&
       firmaDeItems(o.order_items ?? []) === firma
   );
 
   return reusable?.id ?? null;
+}
+
+/** Las tiendas como texto comparable, sin depender del orden. */
+function firmaDeTiendas(storeIds: string[]): string {
+  return storeIds.map(String).sort().join('|');
 }
 
 /** Los ítems como texto comparable, sin depender del orden en que llegan. */

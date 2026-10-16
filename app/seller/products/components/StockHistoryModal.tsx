@@ -119,7 +119,7 @@ export function StockHistoryModal({ isOpen, onClose, product }: StockHistoryModa
             <div className="text-right shrink-0">
               <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Stock Actual</p>
               <div className="flex items-baseline gap-1 justify-end">
-                <span className="text-3xl font-fraunces font-bold text-mm-g leading-none">
+                <span className="text-3xl font-display font-bold text-mm-g leading-none">
                   {product.stock}
                 </span>
                 <span className="text-xs font-bold text-mm-txw uppercase">{product.unit}s</span>

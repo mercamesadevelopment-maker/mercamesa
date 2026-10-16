@@ -214,7 +214,7 @@ export function MarketView() {
             exit={{ opacity: 0, y: -20 }}
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-              <div>                <h1 className="text-4xl font-fraunces text-mm-g mb-2">Explora las Plazas</h1>
+              <div>                <h1 className="text-4xl font-display text-mm-g mb-2">Explora las Plazas</h1>
                 <p className="text-mm-txs">Encuentra los mejores productos frescos directamente de la fuente.</p>
               </div>
               <div className="relative w-full max-w-md mx-auto">
@@ -233,7 +233,7 @@ export function MarketView() {
               <div className="mb-12">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-2xl font-fraunces text-mm-g leading-tight">Ofertas del Día 🔥</h2>
+                    <h2 className="text-2xl font-display text-mm-g leading-tight">Ofertas del Día 🔥</h2>
                     <p className="text-sm text-mm-txs">Ahorra con estos descuentos exclusivos de nuestras tiendas.</p>
                   </div>
                   <Button variant="ghost" className="text-mm-g font-bold">Ver todas <ChevronRight className="w-4 h-4" /></Button>
@@ -286,7 +286,7 @@ export function MarketView() {
                 <div className="mb-12">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-fraunces text-mm-g leading-tight flex items-center gap-2">
+                      <h2 className="text-2xl font-display text-mm-g leading-tight flex items-center gap-2">
                         Los más buscados de la semana <Flame className="w-6 h-6 text-mm-oro animate-pulse" />
                       </h2>
                       <p className="text-sm text-mm-txs">Lo que tu comunidad está llevando hoy.</p>
@@ -326,7 +326,7 @@ export function MarketView() {
                 <div className="mb-12">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-fraunces text-mm-g leading-tight flex items-center gap-2">
+                      <h2 className="text-2xl font-display text-mm-g leading-tight flex items-center gap-2">
                         Tiendas mejor calificadas <Trophy className="w-6 h-6 text-mm-oro" />
                       </h2>
                       <p className="text-sm text-mm-txs">Confianza y calidad garantizada por los compradores.</p>
@@ -374,7 +374,7 @@ export function MarketView() {
                 <div className="mb-12">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-fraunces text-mm-g leading-tight flex items-center gap-2">
+                      <h2 className="text-2xl font-display text-mm-g leading-tight flex items-center gap-2">
                         Categorías del Catálogo <Layers className="w-6 h-6 text-mm-g" />
                       </h2>
                       <p className="text-sm text-mm-txs">Explora por tipos de productos.</p>
@@ -404,7 +404,7 @@ export function MarketView() {
                   <div className="absolute top-0 right-0 w-64 h-64 bg-mm-oro/10 rounded-full blur-3xl -mr-32 -mt-32" />
                   <div className="flex items-center justify-between mb-8 relative z-10">
                     <div>
-                      <h2 className="text-2xl font-fraunces text-mm-g leading-tight flex items-center gap-2">
+                      <h2 className="text-2xl font-display text-mm-g leading-tight flex items-center gap-2">
                         Productos de Temporada <Calendar className="w-6 h-6 text-mm-oro" />
                       </h2>
                       <p className="text-sm text-mm-txs">Aprovecha la cosecha actual con los mejores precios.</p>
@@ -443,7 +443,7 @@ export function MarketView() {
             )}
 
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-fraunces text-mm-g">Explore las Plazas Cercanas</h2>
+              <h2 className="text-2xl font-display text-mm-g">Explore las Plazas Cercanas</h2>
               <p className="text-xs text-mm-txw">Mostrando {filteredPlazas.length} resultados</p>
             </div>
 
@@ -464,7 +464,7 @@ export function MarketView() {
                   </div>
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-xl font-bold text-mm-g font-fraunces">{plaza.name}</h3>
+                      <h3 className="text-xl font-bold text-mm-g font-display">{plaza.name}</h3>
                       <div className="flex items-center gap-1 text-mm-oro font-bold text-sm">
                         <Star className="w-4 h-4 fill-mm-oro" /> {plaza.rating}
                       </div>
@@ -516,7 +516,7 @@ export function MarketView() {
               </div>
               <div className="flex-grow">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-4xl font-fraunces text-mm-g">{selectedPlaza.name}</h1>
+                  <h1 className="text-4xl font-display text-mm-g">{selectedPlaza.name}</h1>
                   <Badge variant={selectedPlaza.open ? 'success' : 'error'}>
                     {selectedPlaza.open ? 'Abierta ahora' : 'Cerrada'}
                   </Badge>
@@ -607,7 +607,7 @@ export function MarketView() {
                     <Zap className="w-6 h-6 text-mm-oro" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-fraunces text-mm-g">Ofertas Imperdibles</h2>
+                    <h2 className="text-2xl font-display text-mm-g">Ofertas Imperdibles</h2>
                     <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">Descuentos especiales hoy en {selectedPlaza.name}</p>
                   </div>
                 </div>
@@ -715,7 +715,7 @@ export function MarketView() {
                     </div>
                     <div className="flex-grow">
                       <div className="flex justify-between items-start">
-                        <h3 className="text-xl font-bold text-mm-g font-fraunces">{store.name}</h3>
+                        <h3 className="text-xl font-bold text-mm-g font-display">{store.name}</h3>
                         <div className="flex items-center gap-1 text-mm-oro font-bold text-sm">
                           <Star className="w-4 h-4 fill-mm-oro" /> {store.rating}
                         </div>
@@ -770,7 +770,7 @@ export function MarketView() {
               </div>
               <div className="flex-grow">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-fraunces text-mm-g">{selectedStore.name}</h1>
+                  <h1 className="text-3xl font-display text-mm-g">{selectedStore.name}</h1>
                   <Badge variant={selectedStore.open ? 'success' : 'error'}>
                     {selectedStore.open ? 'Abierta ahora' : 'Cerrada'}
                   </Badge>
@@ -953,7 +953,7 @@ export function MarketView() {
               <div className="space-y-8">
                 <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
                   <div>
-                    <h3 className="text-2xl font-fraunces text-mm-g mb-2">Opiniones de Clientes</h3>
+                    <h3 className="text-2xl font-display text-mm-g mb-2">Opiniones de Clientes</h3>
                     <p className="text-mm-txs">Basado en {storeReviews.length} reseñas verificadas.</p>
                   </div>
                   {hasPurchased && !alreadyRated && (
@@ -1005,7 +1005,7 @@ export function MarketView() {
 
                 {hasPurchased && !alreadyRated && (
                   <div className="bg-mm-g/5 p-8 rounded-[40px] border border-mm-g/10 text-center">
-                    <h4 className="text-xl font-fraunces text-mm-g mb-2">¿Cómo fue tu experiencia?</h4>
+                    <h4 className="text-xl font-display text-mm-g mb-2">¿Cómo fue tu experiencia?</h4>
                     <p className="text-sm text-mm-txs mb-6">Como ya has comprado aquí, tu opinión es muy valiosa.</p>
                     <Button onClick={() => setIsRatingModalOpen(true)}>Escribir Reseña</Button>
                   </div>
@@ -1013,7 +1013,7 @@ export function MarketView() {
 
                 {!hasPurchased && (
                   <div className="bg-mm-gbg/30 p-8 rounded-[40px] border border-mm-crd/50 text-center">
-                    <h4 className="text-lg font-fraunces text-mm-g mb-2">Calificaciones Verificadas</h4>
+                    <h4 className="text-lg font-display text-mm-g mb-2">Calificaciones Verificadas</h4>
                     <p className="text-sm text-mm-txs">Para garantizar la autenticidad, solo los clientes que han realizado un pedido entregado pueden calificar esta tienda.</p>
                   </div>
                 )}
@@ -1051,7 +1051,7 @@ export function MarketView() {
                 {selectedStore.emoji}
               </div>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-2">
+              <h2 className="text-3xl font-display text-mm-g mb-2">
                 ¿Qué tal tu compra?
               </h2>
               <p className="text-mm-txs mb-8 font-medium">Califica a <span className="text-mm-g font-bold">{selectedStore.name}</span></p>
@@ -1129,7 +1129,7 @@ export function MarketView() {
 
               <div className="w-full md:w-1/2 p-10 overflow-y-auto">
                 <Badge variant="oro" className="mb-4">{selectedProduct.cat}</Badge>
-                <h2 className="text-4xl font-fraunces text-mm-g mb-2">{selectedProduct.name}</h2>
+                <h2 className="text-4xl font-display text-mm-g mb-2">{selectedProduct.name}</h2>
                 <p className="text-mm-txs mb-6 leading-relaxed">{selectedProduct.desc}</p>
 
                 <div className="space-y-6 mb-8">
@@ -1291,7 +1291,7 @@ export function MarketView() {
 
               <div className="p-8">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-fraunces text-mm-g mb-2">{selectedOffer.title}</h3>
+                  <h3 className="text-2xl font-display text-mm-g mb-2">{selectedOffer.title}</h3>
                   <p className="text-mm-txs">{selectedOffer.desc}</p>
                 </div>
 
@@ -1380,7 +1380,7 @@ export function AllPlazasView() {
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todas las Plazas</h1>
+        <h1 className="text-4xl font-display text-mm-g mb-2">Todas las Plazas</h1>
         <p className="text-mm-txs">Explora los centros de abastecimiento más frescos de la región.</p>
       </div>
 
@@ -1433,7 +1433,7 @@ export function AllPlazasView() {
             </div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-mm-g font-fraunces">{plaza.name}</h3>
+                <h3 className="text-xl font-bold text-mm-g font-display">{plaza.name}</h3>
                 <div className="flex items-center gap-1 text-mm-oro font-bold text-sm">
                   <Star className="w-4 h-4 fill-mm-oro" /> {plaza.rating}
                 </div>
@@ -1457,7 +1457,7 @@ export function AllPlazasView() {
       {filtered.length === 0 && (
         <div className="text-center py-20">
           <div className="w-20 h-20 bg-mm-gbg rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">🔎</div>
-          <h3 className="text-xl font-bold text-mm-g font-fraunces">No encontramos plazas</h3>
+          <h3 className="text-xl font-bold text-mm-g font-display">No encontramos plazas</h3>
           <p className="text-mm-txs">Intenta con otros términos de búsqueda o filtros.</p>
         </div>
       )}
@@ -1485,7 +1485,7 @@ export function AllStoresView() {
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todas las Tiendas</h1>
+        <h1 className="text-4xl font-display text-mm-g mb-2">Todas las Tiendas</h1>
         <p className="text-mm-txs">Nuestros expertos tenderos listos para servirte.</p>
       </div>
 
@@ -1618,7 +1618,7 @@ export function AllProductsView() {
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div>
-        <h1 className="text-4xl font-fraunces text-mm-g mb-2">Todos los Productos</h1>
+        <h1 className="text-4xl font-display text-mm-g mb-2">Todos los Productos</h1>
         <p className="text-mm-txs">Conectamos el sistema alimentario”, .</p>
       </div>
 
@@ -1789,7 +1789,7 @@ export function AllOffersView() {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Promociones y Ofertas 🔥</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Promociones y Ofertas 🔥</h1>
           <p className="text-mm-txs">Ahorra con los mejores descuentos de nuestras plazas asociadas.</p>
         </div>
       </div>
@@ -1889,7 +1889,7 @@ export function AllOffersView() {
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
             <Tag className="w-10 h-10 text-mm-txw" />
           </div>
-          <h3 className="text-2xl font-bold text-mm-g font-fraunces mb-2">No hay ofertas actuales</h3>
+          <h3 className="text-2xl font-bold text-mm-g font-display mb-2">No hay ofertas actuales</h3>
           <p className="text-mm-txs max-w-xs mx-auto text-center">Intenta ajustando tus filtros para encontrar los mejores descuentos.</p>
           <Button
             variant="ghost"
@@ -1938,7 +1938,7 @@ export function AllOffersView() {
 
               <div className="p-8">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-fraunces text-mm-g mb-2">{selectedOffer.title}</h3>
+                  <h3 className="text-2xl font-display text-mm-g mb-2">{selectedOffer.title}</h3>
                   <p className="text-mm-txs">{selectedOffer.desc}</p>
                 </div>
 

@@ -212,7 +212,7 @@ export function ProductsView() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Productos</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Productos</h1>
           <p className="text-mm-txs">Gestiona tus productos, precios y existencias.</p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -280,7 +280,7 @@ export function ProductsView() {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm h-[400px] flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-fraunces text-mm-g flex items-center gap-2">
+            <h3 className="text-xl font-display text-mm-g flex items-center gap-2">
               Niveles de Stock <Activity className="w-5 h-5 text-mm-txw" />
             </h3>
             <div className="flex gap-4">
@@ -302,20 +302,20 @@ export function ProductsView() {
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 9, fill: '#9AA88C', fontWeight: 600 }}
+                  tick={{ fontSize: 9, fill: '#6A7C74', fontWeight: 600 }}
                   angle={-45}
                   textAnchor="end"
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#9AA88C' }}
+                  tick={{ fontSize: 10, fill: '#6A7C74' }}
                 />
                 <Tooltip 
-                  cursor={{ fill: '#F2F7EC', radius: 12 }}
+                  cursor={{ fill: '#EEF2E8', radius: 12 }}
                   contentStyle={{ 
                     borderRadius: '24px', 
-                    border: '1px solid #E8E8DC', 
+                    border: '1px solid #E2E6DD', 
                     boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)',
                     padding: '16px'
                   }}
@@ -328,7 +328,7 @@ export function ProductsView() {
                   {filteredProducts.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={entry.stock <= 0 ? '#CF3D2E' : '#2A4E12'}
+                      fill={entry.stock <= 0 ? '#B4322A' : '#0E3B2F'}
                     />
                   ))}
                 </Bar>
@@ -347,11 +347,11 @@ export function ProductsView() {
               <p className="text-[10px] font-black uppercase opacity-60 tracking-widest mb-1">Stock más Bajo</p>
               {lowestStockItem ? (
                 <>
-                  <h4 className="text-2xl font-fraunces mb-4 truncate pr-12">
+                  <h4 className="text-2xl font-display mb-4 truncate pr-12">
                     {lowestStockItem.name}
                   </h4>
                   <div className="flex items-end gap-2">
-                    <span className="text-5xl font-bold font-fraunces tabular-nums">
+                    <span className="text-5xl font-bold font-display tabular-nums">
                       {lowestStockItem.stock}
                     </span>
                     <span className="text-sm font-bold opacity-80 mb-2 uppercase tracking-widest">

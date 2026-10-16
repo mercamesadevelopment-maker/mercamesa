@@ -1,4 +1,4 @@
-export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'admin';
+export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'runner' | 'logistics' | 'admin';
 
 export interface Role {
   k: RoleKey;
@@ -173,6 +173,20 @@ export interface Order {
   code?: string;
   /** Código de la compra completa, comun a todas las tiendas del carrito: MM-2026-001017 */
   parentCode?: string;
+  /**
+   * Cómo sale hacia el mensajero. `consolidated`: es un pedido de varias
+   * tiendas; se junta en la bahía de la plaza y sale un solo mensajero, así que
+   * la tienda no pide el domicilio.
+   */
+  fulfillment?: 'store' | 'consolidated';
+  /** En un pedido de varias tiendas, cómo operaba la plaza al comprarlo. */
+  consolidation?: { runnerRequired: boolean; logisticsRequired: boolean };
+  /** Cómo va empacada la parte de la tienda, escrito por el tendero. */
+  packingNotes?: string | null;
+  /** Cuándo el patinador la recogió en el local. */
+  collectedAt?: string | null;
+  /** Cuándo logística la recibió en la bahía. */
+  bayReceivedAt?: string | null;
   date: string;
   storeId: number | string;
   storeName: string;

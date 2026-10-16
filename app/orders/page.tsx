@@ -55,7 +55,7 @@ export default function OrdersPage() {
     <div className="p-4 sm:p-6 lg:p-10 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 sm:mb-10">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">Mis Órdenes</h1>
+          <h1 className="text-3xl sm:text-4xl font-display text-mm-g mb-1 sm:mb-2">Mis Órdenes</h1>
           <p className="text-sm sm:text-base text-mm-txs">Sigue el estado de tus compras en tiempo real.</p>
         </div>
 
@@ -86,7 +86,7 @@ export default function OrdersPage() {
         {orders.length === 0 && !loading ? (
           <div className="bg-white p-8 sm:p-12 rounded-3xl sm:rounded-[32px] border border-mm-crd text-center opacity-40 flex flex-col items-center">
             <ClipboardList className="w-14 h-14 sm:w-20 sm:h-20 text-mm-txw mb-4" />
-            <p className="text-lg sm:text-xl font-fraunces">
+            <p className="text-lg sm:text-xl font-display">
               No se encontraron pedidos con los filtros seleccionados
             </p>
           </div>

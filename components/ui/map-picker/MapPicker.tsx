@@ -38,7 +38,7 @@ const MIN_QUERY_LENGTH = 4;
 const DEBOUNCE_MS = 400;
 
 const MARKER_HTML =
-  '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#1B4332;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>';
+  '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#0E3B2F;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>';
 
 /**
  * Selector de ubicación sobre teselas de Mapbox.

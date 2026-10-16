@@ -14,16 +14,16 @@ export function CartStoreConflictModal() {
       isOpen={conflict !== null}
       onClose={handleClose}
       onConfirm={handleClose}
-      title="Solo puedes comprar productos de una tienda a la vez."
+      title="Estas tiendas no despachan juntas."
       message={
         <>
-          Tu carrito contiene productos de{' '}
+          Tu carrito tiene productos de{' '}
           <strong className="font-bold text-mm-g">
             {conflict?.currentStoreName ?? 'otra tienda'}
           </strong>
-          . Para seguir comprando, agrega más productos de esa tienda. Si
-          prefieres comprar en otra tienda, vacía el carrito y crea un nuevo
-          pedido.
+          . En un mismo pedido puedes juntar tiendas de la misma plaza, porque
+          salen en una sola entrega; esta tienda despacha desde otro lugar.
+          Termina tu pedido o vacía el carrito para comprar acá.
         </>
       }
       confirmText="Entendido"

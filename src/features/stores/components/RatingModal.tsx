@@ -66,7 +66,7 @@ export function RatingModal({
               🏪
             </div>
 
-            <h2 className="text-3xl font-fraunces text-mm-g mb-2">
+            <h2 className="text-3xl font-display text-mm-g mb-2">
               ¿Qué tal tu compra?
             </h2>
             <p className="text-mm-txs mb-8 font-medium">

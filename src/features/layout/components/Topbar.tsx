@@ -9,9 +9,9 @@ import {
   LayoutDashboard,
   MessageSquare,
   ChevronDown,
-  Leaf,
   Bell,
 } from 'lucide-react';
+import { BrandLogo } from '@/components/ui/brand-logo';
 import { cn } from '@/src/components/Shared';
 import { useTopbar } from '../hooks/useTopbar';
 
@@ -32,7 +32,8 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
     handleLogout,
   } = useTopbar();
 
-  const isStaff = state.userRole === 'admin' || state.userRole === 'provider';
+  // El equipo de la plaza tampoco compra: no ve la canasta.
+  const isStaff = ['admin', 'provider', 'runner', 'logistics'].includes(state.userRole);
 
   return (
     <header className="fixed top-0 left-0 w-full h-16 bg-mm-g text-white z-[60] flex items-center justify-between px-4 lg:px-8 shadow-lg">
@@ -44,15 +45,9 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
           <LayoutDashboard className="w-6 h-6" />
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-mm-oro rounded-lg flex items-center justify-center shadow-inner">
-            <Leaf className="w-5 h-5 text-white" />
-          </div>
-
-          <span className="text-xl font-bold font-fraunces hidden sm:block">
-            MercaMesa
-          </span>
-        </div>
+        {/* En celular solo el símbolo: la barra no tiene espacio para la palabra. */}
+        <BrandLogo tono="oscuro" className="text-xl hidden sm:inline-flex" />
+        <BrandLogo tono="oscuro" soloSimbolo className="text-xl sm:hidden" />
       </div>
 
       <div className="flex-grow max-w-xl mx-8 hidden lg:block text-mm-gll font-medium text-sm tracking-wide">
@@ -62,6 +57,10 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
           ? 'GESTIÓN DE PROVEEDOR'
           : state.userRole === 'delivery'
           ? 'CENTRO DE REPARTO'
+          : state.userRole === 'runner'
+          ? 'PEDIDOS POR RECOGER'
+          : state.userRole === 'logistics'
+          ? 'LOGÍSTICA DE LA PLAZA'
           : 'MARKETPLACE MERCAMESA'}
       </div>
 

@@ -235,7 +235,7 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-[#D8F3DC] text-[#1B4332] rounded-full flex items-center gap-1">
+                    <span className="text-xs font-semibold px-2.5 py-1 bg-[#D8F3DC] text-[#0E3B2F] rounded-full flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5" /> {member.roles?.label || 'Tendero'}
                     </span>
                     <button 
@@ -253,7 +253,7 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
               {invitations.map((invite) => (
                 <div 
                   key={invite.id} 
-                  className="flex justify-between items-center bg-[#FAFAF5] border border-dashed border-mm-crd rounded-xl p-3.5"
+                  className="flex justify-between items-center bg-[#F7F5EE] border border-dashed border-mm-crd rounded-xl p-3.5"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-yellow-50 rounded-lg flex items-center justify-center shrink-0 border border-yellow-200 text-yellow-600">

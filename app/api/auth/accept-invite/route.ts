@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     // plataforma, y el formulario que se muestra depende de cuál de las dos es.
     const { data: invite } = await serviceSupabase
       .from('invitations')
-      .select('id, store_id, invitation_type, role, expires_at, stores(name)')
+      .select('id, store_id, invitation_type, role, expires_at, stores(name), marketplaces(name)')
       .eq('email', user.email)
       .is('accepted_at', null)
       .order('created_at', { ascending: false })
@@ -52,7 +52,8 @@ export async function GET(request: Request) {
       expired: vencida,
       invitationType: invite?.invitation_type ?? null,
       roleLabel,
-      storeName: (invite as any)?.stores?.name || 'su tienda asignada'
+      storeName: (invite as any)?.stores?.name || 'su tienda asignada',
+      marketplaceName: (invite as any)?.marketplaces?.name ?? null,
     }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
@@ -117,6 +118,8 @@ export async function POST(request: Request) {
     }
 
     const esAdmin = invite.invitation_type === 'admin';
+    // Patinador o logística de una plaza: mismo formulario corto que el admin.
+    const esEquipoDePlaza = invite.invitation_type === 'marketplace_member';
 
     // El teléfono se guarda en E.164 en los dos caminos; lo que no sea un
     // número se rechaza acá y no llega a la base.
@@ -126,12 +129,12 @@ export async function POST(request: Request) {
     }
 
     // ------------------------------------------------------------------
-    // Invitación a administrar la plataforma
+    // Invitación a administrar la plataforma, o al equipo de una plaza
     //
     // Camino corto: nombre, teléfono y contraseña. No hay tienda que asociar ni
     // datos de facturación que pedir.
     // ------------------------------------------------------------------
-    if (esAdmin) {
+    if (esAdmin || esEquipoDePlaza) {
       if (!fullName || !String(fullName).trim()) {
         return NextResponse.json({ error: 'El nombre completo es un campo obligatorio.' }, { status: 400 });
       }
@@ -169,6 +172,34 @@ export async function POST(request: Request) {
 
       if (perfilError) {
         return NextResponse.json({ error: `Error al crear perfil: ${perfilError.message}` }, { status: 400 });
+      }
+
+      if (esEquipoDePlaza) {
+        // La plaza y el rol salen de la invitación, igual que el perfil.
+        const { data: rol } = await serviceSupabase.from('roles').select('name').eq('id', invite.role).maybeSingle();
+        if (!invite.marketplace_id || !rol || !['runner', 'logistics'].includes(rol.name)) {
+          return NextResponse.json({ error: 'La invitación no indica una plaza o un rol válido.' }, { status: 400 });
+        }
+
+        const { error: equipoError } = await serviceSupabase.from('marketplace_staff').upsert(
+          {
+            marketplace_id: invite.marketplace_id,
+            user_id: user.id,
+            role: rol.name,
+            is_active: true,
+            created_by: invite.invited_by,
+          },
+          { onConflict: 'marketplace_id,user_id,role' }
+        );
+        if (equipoError) {
+          return NextResponse.json({ error: `Error al asignar la plaza: ${equipoError.message}` }, { status: 400 });
+        }
+
+        await serviceSupabase.from('invitations').delete().eq('id', invite.id);
+        return NextResponse.json(
+          { success: true, redirectUrl: rol.name === 'runner' ? '/runner' : '/admin/orders' },
+          { status: 200 }
+        );
       }
 
       await serviceSupabase.from('invitations').delete().eq('id', invite.id);

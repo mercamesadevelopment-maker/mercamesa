@@ -52,7 +52,7 @@ export function DeliveryView() {
     return (
       <div className="p-6 lg:p-10 max-w-7xl mx-auto h-[calc(100vh-120px)] flex flex-col items-center justify-center bg-white rounded-[40px] border border-mm-crd shadow-sm">
         <div className="text-8xl mb-6">📦</div>
-        <h2 className="text-3xl font-fraunces text-mm-g mb-2">No hay pedidos pendientes</h2>
+        <h2 className="text-3xl font-display text-mm-g mb-2">No hay pedidos pendientes</h2>
         <p className="text-mm-txs text-center max-w-md">
           ¡Buen trabajo! Has completado todas tus entregas por hoy. Vuelve pronto para ver nuevos pedidos.
         </p>
@@ -138,7 +138,7 @@ export function DeliveryView() {
 
         <div className="flex-grow bg-white rounded-[40px] border border-mm-crd shadow-sm flex flex-col overflow-hidden">
           <div className="p-6 border-b border-mm-crd">
-            <h3 className="text-xl font-fraunces text-mm-g">Lista de Entregas</h3>
+            <h3 className="text-xl font-display text-mm-g">Lista de Entregas</h3>
           </div>
           <div className="flex-grow overflow-y-auto p-4 space-y-3 scrollbar-hide">
             {deliveries.map((d, i) => (
@@ -208,38 +208,38 @@ export function EarningsView() {
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-4xl font-fraunces text-mm-g mb-2">Mis Ganancias</h1>
+        <h1 className="text-4xl font-display text-mm-g mb-2">Mis Ganancias</h1>
         <p className="text-mm-txs">Resumen de tus ingresos por entregas realizadas.</p>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[32px] border border-mm-crd shadow-sm">
           <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2">Balance Total</p>
-          <p className="text-4xl font-fraunces text-mm-g">{fmt(totalEarnings + tips)}</p>
+          <p className="text-4xl font-display text-mm-g">{fmt(totalEarnings + tips)}</p>
           <p className="text-xs text-ok font-bold mt-2">↑ 12% vs semana pasada</p>
         </div>
         <div className="bg-white p-8 rounded-[32px] border border-mm-crd shadow-sm">
           <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2">Entregas</p>
-          <p className="text-4xl font-fraunces text-mm-g">{deliveredOrders.length}</p>
+          <p className="text-4xl font-display text-mm-g">{deliveredOrders.length}</p>
           <p className="text-xs text-mm-txw mt-2">Promedio: 8.5/día</p>
         </div>
         <div className="bg-white p-8 rounded-[32px] border border-mm-crd shadow-sm">
           <p className="text-xs text-mm-txw font-bold uppercase tracking-widest mb-2">Propinas</p>
-          <p className="text-4xl font-fraunces text-mm-g">{fmt(tips)}</p>
+          <p className="text-4xl font-display text-mm-g">{fmt(tips)}</p>
           <p className="text-xs text-mm-txw mt-2">Agradecimiento de clientes</p>
         </div>
       </div>
 
       <div className="bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm">
-        <h3 className="text-xl font-fraunces text-mm-g mb-8">Ingresos Diarios</h3>
+        <h3 className="text-xl font-display text-mm-g mb-8">Ingresos Diarios</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={earningsData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E8DC" />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#5C6B4A', fontSize: 12 }} tickFormatter={(v) => `$${v/1000}k`} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E6DD" />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3A5248', fontSize: 12 }} tickFormatter={(v) => `$${v/1000}k`} />
               <Tooltip />
-              <Bar dataKey="e" fill="#3E7023" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="e" fill="#4C7A5E" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -281,7 +281,7 @@ export function NotifsView() {
     <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-fraunces text-mm-g mb-2">Notificaciones</h1>
+          <h1 className="text-4xl font-display text-mm-g mb-2">Notificaciones</h1>
           <p className="text-mm-txs">Mantente al día con lo que pasa en tu cuenta.</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => markAllRead()}>
@@ -293,7 +293,7 @@ export function NotifsView() {
         {state.notifs.length === 0 ? (
           <div className="bg-white p-12 rounded-[32px] border border-mm-crd text-center opacity-40">
             <div className="text-7xl mb-4">🔔</div>
-            <p className="text-xl font-fraunces">No tienes notificaciones</p>
+            <p className="text-xl font-display">No tienes notificaciones</p>
           </div>
         ) : (
           state.notifs.map(notif => {

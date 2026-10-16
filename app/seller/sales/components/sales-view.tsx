@@ -70,7 +70,7 @@ export function SalesView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div>
-            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Ventas en Sitio</h1>
+            <h1 className="text-4xl font-display text-mm-g mb-2">Ventas en Sitio</h1>
             <p className="text-mm-txs">Registra ventas rápidas desde tu local físico.</p>
           </div>
           {stores.length > 1 && (
@@ -193,7 +193,7 @@ export function SalesView() {
         <div className="lg:col-span-5 space-y-6">
           <form onSubmit={handleCheckout} className="bg-white rounded-[40px] border border-mm-crd shadow-xl overflow-hidden flex flex-col min-h-[600px]">
             <div className="p-8 border-b border-mm-crd flex items-center justify-between bg-mm-gbg/10">
-              <h3 className="text-xl font-fraunces text-mm-g flex items-center gap-2">
+              <h3 className="text-xl font-display text-mm-g flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5" /> Nueva Venta
               </h3>
               {cart.length > 0 && (
@@ -214,7 +214,7 @@ export function SalesView() {
                   <div className="w-20 h-20 bg-mm-gbg rounded-[32px] flex items-center justify-center mb-6">
                     <ShoppingCart className="w-10 h-10 text-mm-txw" />
                   </div>
-                  <p className="text-xl font-fraunces text-mm-g mb-2">Comienza tu venta</p>
+                  <p className="text-xl font-display text-mm-g mb-2">Comienza tu venta</p>
                   <p className="text-sm px-10">Agrega productos del inventario para iniciar el cobro</p>
                 </div>
               ) : (
@@ -275,7 +275,7 @@ export function SalesView() {
               <div className="space-y-3 pt-4 border-t border-mm-crd/50">
                 <div className="flex justify-between items-center text-mm-g">
                   <span className="text-sm font-bold">Total a Cobrar</span>
-                  <span className="text-3xl font-fraunces tabular-nums">{fmt(total)}</span>
+                  <span className="text-3xl font-display tabular-nums">{fmt(total)}</span>
                 </div>
               </div>
 

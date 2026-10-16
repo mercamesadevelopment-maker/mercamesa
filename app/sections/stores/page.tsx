@@ -64,7 +64,7 @@ export default function StoresSectionPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fade-up pb-24">
       <div>
-        <h1 className="text-3xl sm:text-4xl font-fraunces text-mm-g mb-1 sm:mb-2">Todas las Tiendas</h1>
+        <h1 className="text-3xl sm:text-4xl font-display text-mm-g mb-1 sm:mb-2">Todas las Tiendas</h1>
         <p className="text-sm sm:text-base text-mm-txs">Nuestros expertos tenderos listos para servirte.</p>
       </div>
 

@@ -8,6 +8,7 @@ import { Button, Input, Select } from '@/src/components/Shared';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 export default function AcceptInvite() {
   const router = useRouter();
@@ -20,6 +21,9 @@ export default function AcceptInvite() {
   // facturación de una tienda, porque no va a facturar nada.
   const [esAdmin, setEsAdmin] = useState(false);
   const [roleLabel, setRoleLabel] = useState<string | null>(null);
+  /** Invitación al equipo de una plaza (patinador o logística): su plaza. */
+  const [plaza, setPlaza] = useState<string | null>(null);
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
   const { personTypes, loading: loadingTypes } = useIdentificationTypes();
@@ -82,7 +86,9 @@ export default function AcceptInvite() {
           if (result.hasInvite) {
             setHasInvite(true);
             setStoreName(result.storeName);
-            setEsAdmin(result.invitationType === 'admin');
+            // El equipo de una plaza usa el mismo formulario corto del admin.
+            setEsAdmin(result.invitationType === 'admin' || result.invitationType === 'marketplace_member');
+            setPlaza(result.invitationType === 'marketplace_member' ? result.marketplaceName ?? 'la plaza' : null);
             setRoleLabel(result.roleLabel ?? null);
           }
         } else {
@@ -182,6 +188,7 @@ export default function AcceptInvite() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
+      setRedirectUrl(result.redirectUrl ?? null);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Error al completar el registro.');
@@ -192,7 +199,7 @@ export default function AcceptInvite() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-[#FAFAF5] flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F7F5EE] flex flex-col items-center justify-center p-4">
         <div className="w-12 h-12 border-4 border-mm-gll border-t-mm-g rounded-full animate-spin mb-4" />
         <p className="text-sm font-semibold text-mm-txs">Verificando invitación...</p>
       </div>
@@ -200,7 +207,7 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5] flex flex-col items-center justify-center p-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F7F5EE] flex flex-col items-center justify-center p-4 py-12 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-mm-gbg rounded-full blur-3xl opacity-60 pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-mm-gbg rounded-full blur-3xl opacity-60 pointer-events-none" />
@@ -212,11 +219,7 @@ export default function AcceptInvite() {
         className="w-full max-w-md bg-white border border-mm-crd rounded-[32px] shadow-2xl p-8 relative z-10 flex flex-col items-center"
       >
         {/* System logo */}
-        <img
-          src="/logo_MercaMesa_Ful.svg"
-          alt="Mercamesa Logo"
-          className="object-contain mb-8 h-12 w-auto"
-        />
+        <BrandLogo className="text-3xl mb-8" />
 
         <AnimatePresence mode="wait">
           {!authenticated || !hasInvite ? (
@@ -230,7 +233,7 @@ export default function AcceptInvite() {
               <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-full flex items-center justify-center text-r mx-auto mb-4">
                 <Mail className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-fraunces text-mm-g mb-3">Enlace Inválido o Expirado</h2>
+              <h2 className="text-2xl font-display text-mm-g mb-3">Enlace Inválido o Expirado</h2>
               <p className="text-sm text-mm-txw leading-relaxed mb-6">
                 Este enlace de invitación no es válido, ya ha sido utilizado o ha expirado.
                 Por favor, solicita al administrador de tu plaza que te envíe una nueva invitación.
@@ -246,12 +249,17 @@ export default function AcceptInvite() {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center w-full"
             >
-              <div className="w-16 h-16 bg-[#D8F3DC] border border-[#1B4332]/20 rounded-full flex items-center justify-center text-[#1B4332] mx-auto mb-4 animate-pop-in">
+              <div className="w-16 h-16 bg-[#D8F3DC] border border-[#0E3B2F]/20 rounded-full flex items-center justify-center text-[#0E3B2F] mx-auto mb-4 animate-pop-in">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h2 className="text-2xl font-fraunces text-mm-g mb-3">¡Registro Completado! 🎉</h2>
+              <h2 className="text-2xl font-display text-mm-g mb-3">¡Registro Completado! 🎉</h2>
               <p className="text-sm text-mm-txw leading-relaxed mb-8">
-                {esAdmin ? (
+                {plaza ? (
+                  <>
+                    Tu cuenta quedó lista: ya eres parte del equipo de{' '}
+                    <span className="font-bold text-mm-g">{plaza}</span>.
+                  </>
+                ) : esAdmin ? (
                   <>
                     Tu cuenta de administrador quedó lista. De ahora en adelante, al ingresar
                     te pediremos además un código de 6 dígitos que te llegará al correo.
@@ -264,7 +272,7 @@ export default function AcceptInvite() {
                 )}
               </p>
               <Button
-                onClick={() => router.push(esAdmin ? '/admin' : '/seller/onboarding')}
+                onClick={() => router.push(redirectUrl ?? (esAdmin ? '/admin' : '/seller/onboarding'))}
                 size="lg"
                 className="w-full"
               >
@@ -279,9 +287,17 @@ export default function AcceptInvite() {
               className="w-full"
             >
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-fraunces text-mm-g mb-2">Completar Registro</h2>
+                <h2 className="text-2xl font-display text-mm-g mb-2">Completar Registro</h2>
                 <p className="text-xs text-mm-txw">
-                  {esAdmin ? (
+                  {plaza ? (
+                    <>
+                      Te invitaron al equipo de <span className="font-bold text-mm-g">{plaza}</span>
+                      {roleLabel && (
+                        <> como <span className="font-bold text-mm-g">{roleLabel}</span></>
+                      )}
+                      .
+                    </>
+                  ) : esAdmin ? (
                     <>
                       Has sido invitado a administrar MercaMesa
                       {roleLabel && (

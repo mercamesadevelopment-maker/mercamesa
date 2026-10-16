@@ -249,7 +249,7 @@ export function LegalDocumentsTab() {
               className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-white shadow-2xl"
             >
               <form onSubmit={publicar} className="space-y-5 p-8">
-                <h3 className="font-fraunces text-2xl text-mm-g">
+                <h3 className="font-display text-2xl text-mm-g">
                   {DOCUMENTOS.find((d) => d.kind === abierto)?.label}
                 </h3>
 

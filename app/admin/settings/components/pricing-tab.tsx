@@ -196,7 +196,7 @@ export function PricingTab() {
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-mm-txw">Tarifas vigentes</p>
-              <p className="text-3xl font-fraunces text-mm-g">
+              <p className="text-3xl font-display text-mm-g">
                 {current ? `${pct(current.service_commission_rate)} + ${pct(current.platform_commission_rate)}` : 'Sin configurar'}
               </p>
               {current && (
