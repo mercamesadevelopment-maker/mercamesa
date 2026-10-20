@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
 export async function GET(
   request: Request,
@@ -33,7 +34,10 @@ export async function GET(
       return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
     }
 
-    const { data: history, error: historyError } = await supabase
+    // Ya se comprobó que el pedido es suyo. El historial trae el nombre de quien
+    // cambió cada estado (gente de la tienda), que el comprador no lee directo en
+    // la base: va con el cliente de servicio.
+    const { data: history, error: historyError } = await createSupabaseServiceClient()
       .from('store_order_status_history')
       .select('id, status, notes, is_reversal, created_at, profiles:changed_by ( full_name )')
       .eq('store_order_id', storeOrder.id)

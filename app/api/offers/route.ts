@@ -4,6 +4,7 @@ import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/supabase-image';
 import { createNotification } from '../../../lib/notifications/create-notification';
 import { canManageStore } from '@/lib/auth/can-manage-store';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { parseAmount, validateOffer } from '@/lib/offers/validate-offer';
 import { findOverlappingOffer } from '@/lib/offers/find-overlapping-offer';
 
@@ -140,7 +141,9 @@ export async function POST(request: Request) {
     }
 
     try {
-      const { data: admins } = await supabase
+      // A quién avisar: los administradores. Sus perfiles no los lee un tendero,
+      // así que va con el cliente de servicio.
+      const { data: admins } = await createSupabaseServiceClient()
         .from('profiles')
         .select('id, roles!inner ( name )')
         .in('roles.name', ['admin', 'superadmin']);

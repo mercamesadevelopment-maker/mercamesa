@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 
 export async function GET(
   request: Request,
@@ -7,9 +8,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
 
-    const { data, error } = await supabase
+    // Las reseñas son públicas, con el nombre de quien la escribió. Ese nombre
+    // está en `profiles`, que no se lee sin sesión: va con el cliente de servicio.
+    const { data, error } = await createSupabaseServiceClient()
       .from('store_reviews')
       .select('*, profiles ( full_name )')
       .eq('store_id', id)
