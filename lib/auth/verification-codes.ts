@@ -10,16 +10,20 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * de administradores serían cinco copias de las mismas reglas, y basta con que
  * una se quede atrás para que sea la que se pueda forzar.
  *
- * Las cuatro tablas tienen la misma forma a propósito; lo único que cambia es si
- * el código se le atribuye a un usuario o a un correo (en el registro todavía no
- * hay usuario, que es justamente el punto).
+ * Todos viven en una sola tabla, `verification_codes`, separados por `purpose`.
+ * Antes eran cinco tablas con la misma forma. Lo único que cambia entre
+ * propósitos es si el código se le atribuye a un usuario o a un correo (en el
+ * registro todavía no hay usuario, que es justamente el punto).
  */
 
-export type CodeTable =
-  | 'email_change_codes'
-  | 'password_change_codes'
-  | 'signup_email_codes'
-  | 'admin_login_codes';
+export const CODES_TABLE = 'verification_codes';
+
+export type CodePurpose =
+  | 'admin_login'
+  | 'password_change'
+  | 'email_change'
+  | 'password_reset'
+  | 'signup_email';
 
 export type CodeKey = { column: 'user_id' | 'email'; value: string };
 
@@ -66,20 +70,21 @@ export type CodeRateLimit = {
  */
 export async function checkCodeRateLimit({
   service,
-  table,
+  purpose,
   key,
   ip,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
+  purpose: CodePurpose;
   key: CodeKey;
   ip: string | null;
 }): Promise<CodeRateLimit | null> {
   const now = Date.now();
 
   const { data: ultimo } = await service
-    .from(table)
+    .from(CODES_TABLE)
     .select('created_at')
+    .eq('purpose', purpose)
     .eq(key.column, key.value)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -97,8 +102,9 @@ export async function checkCodeRateLimit({
   }
 
   const { count: porClave } = await service
-    .from(table)
+    .from(CODES_TABLE)
     .select('id', { count: 'exact', head: true })
+    .eq('purpose', purpose)
     .eq(key.column, key.value)
     .gte('created_at', new Date(now - KEY_WINDOW_MINUTES * 60_000).toISOString());
 
@@ -111,8 +117,9 @@ export async function checkCodeRateLimit({
 
   if (ip) {
     const { count: porIp } = await service
-      .from(table)
+      .from(CODES_TABLE)
       .select('id', { count: 'exact', head: true })
+      .eq('purpose', purpose)
       .eq('request_ip', ip)
       .gte('created_at', new Date(now - IP_WINDOW_MINUTES * 60_000).toISOString());
 
@@ -134,29 +141,31 @@ export async function checkCodeRateLimit({
  */
 export async function issueCode({
   service,
-  table,
+  purpose,
   key,
   ip,
   extra,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
+  purpose: CodePurpose;
   key: CodeKey;
   ip: string | null;
-  /** Columnas propias de la tabla, p. ej. el `email` junto al `user_id`. */
+  /** Columnas propias del propósito, p. ej. el `email` junto al `user_id`. */
   extra?: Record<string, unknown>;
 }): Promise<string> {
   // Si quedara vivo el código anterior, pedir uno nuevo no invalidaría el que
   // ya se hubiera filtrado.
   await service
-    .from(table)
+    .from(CODES_TABLE)
     .update({ consumed_at: new Date().toISOString() })
+    .eq('purpose', purpose)
     .eq(key.column, key.value)
     .is('consumed_at', null);
 
   const code = generateCode();
 
-  const { error } = await service.from(table).insert({
+  const { error } = await service.from(CODES_TABLE).insert({
+    purpose,
     [key.column]: key.value,
     ...extra,
     code_hash: hashCode(code),
@@ -185,17 +194,18 @@ export async function issueCode({
  */
 export async function recordRequestWithoutCode({
   service,
-  table,
+  purpose,
   key,
   ip,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
+  purpose: CodePurpose;
   key: CodeKey;
   ip: string | null;
 }): Promise<void> {
   const ahora = new Date().toISOString();
-  const { error } = await service.from(table).insert({
+  const { error } = await service.from(CODES_TABLE).insert({
+    purpose,
     [key.column]: key.value,
     code_hash: hashCode(crypto.randomBytes(32).toString('hex')),
     consumed_at: ahora,
@@ -205,12 +215,8 @@ export async function recordRequestWithoutCode({
 
   // No cambia la respuesta: si esta rama fallara distinto que la que emite, el
   // estado de la respuesta delataría qué pasó.
-  if (error) console.error(`[auth] ${table}: no se registró la solicitud sin código`, error);
+  if (error) console.error(`[auth] ${purpose}: no se registró la solicitud sin código`, error);
 }
-
-/** `password_reset_codes` tiene la misma forma, pero su emisión todavía vive en
- *  `forgot-password` y no en `issueCode`; para cobrar intentos basta la forma. */
-export type AttemptTable = CodeTable | 'password_reset_codes';
 
 /** Cuántas veces se reintenta cobrar cuando otra petición cobró primero. Solo
  *  acota el trabajo: el tope real lo pone `max_attempts`. */
@@ -234,11 +240,9 @@ const MAX_CHARGE_RETRIES = 10;
  */
 export async function chargeAttempt({
   service,
-  table,
   row,
 }: {
   service: SupabaseClient<any>;
-  table: AttemptTable;
   row: { id: string; attempts: number; max_attempts: number };
 }): Promise<boolean> {
   let attempts = row.attempts;
@@ -247,7 +251,7 @@ export async function chargeAttempt({
     if (attempts >= row.max_attempts) return false;
 
     const { data: cobrado } = await service
-      .from(table)
+      .from(CODES_TABLE)
       .update({ attempts: attempts + 1 })
       .eq('id', row.id)
       .eq('attempts', attempts)
@@ -258,7 +262,7 @@ export async function chargeAttempt({
     if (cobrado) return true;
 
     const { data: actual } = await service
-      .from(table)
+      .from(CODES_TABLE)
       .select('attempts, consumed_at')
       .eq('id', row.id)
       .maybeSingle();
@@ -287,18 +291,19 @@ type ConsumeResult =
  */
 export async function consumeCode({
   service,
-  table,
+  purpose,
   key,
   code,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
+  purpose: CodePurpose;
   key: CodeKey;
   code: string;
 }): Promise<ConsumeResult> {
   const { data: row } = await service
-    .from(table)
+    .from(CODES_TABLE)
     .select('*')
+    .eq('purpose', purpose)
     .eq(key.column, key.value)
     .is('consumed_at', null)
     .gt('expires_at', new Date().toISOString())
@@ -310,7 +315,7 @@ export async function consumeCode({
 
   // El intento se cobra antes de comparar: es lo que impide probar el millón de
   // combinaciones de seis dígitos, también con peticiones simultáneas.
-  if (!(await chargeAttempt({ service, table, row }))) return { ok: false };
+  if (!(await chargeAttempt({ service, row }))) return { ok: false };
 
   if (hashCode(code) !== row.code_hash) return { ok: false };
 
@@ -343,18 +348,19 @@ export type ClaimResult =
  */
 export async function claimCode({
   service,
-  table,
+  purpose,
   key,
   code,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
+  purpose: CodePurpose;
   key: CodeKey;
   code: string;
 }): Promise<ClaimResult> {
   const { data: row } = await service
-    .from(table)
+    .from(CODES_TABLE)
     .select('*')
+    .eq('purpose', purpose)
     .eq(key.column, key.value)
     .is('consumed_at', null)
     .gt('expires_at', new Date().toISOString())
@@ -365,13 +371,13 @@ export async function claimCode({
   // Si no se puede cobrar el intento no se compara, pero tampoco se responde
   // todavía: puede ser la segunda mitad de un doble clic cuyo gemelo ya reclamó
   // el código, y eso lo resuelve la búsqueda de abajo.
-  if (row && (await chargeAttempt({ service, table, row }))) {
+  if (row && (await chargeAttempt({ service, row }))) {
     // Ojo: con un código equivocado NO se reclama nada, o dejaría inservible al
     // bueno. El intento ya quedó cobrado.
     if (hashCode(code) !== row.code_hash) return { ok: false };
 
     const { data: reclamada } = await service
-      .from(table)
+      .from(CODES_TABLE)
       .update({ consumed_at: new Date().toISOString() })
       .eq('id', row.id)
       .is('consumed_at', null)
@@ -391,8 +397,9 @@ export async function claimCode({
    * sino alguien reusando un código quemado.
    */
   const { data: reciente } = await service
-    .from(table)
+    .from(CODES_TABLE)
     .select('*')
+    .eq('purpose', purpose)
     .eq(key.column, key.value)
     .eq('code_hash', hashCode(code))
     .not('consumed_at', 'is', null)
@@ -412,27 +419,23 @@ export async function claimCode({
  */
 export async function releaseCode({
   service,
-  table,
   id,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
   id: string;
 }): Promise<void> {
-  await service.from(table).update({ consumed_at: null }).eq('id', id);
+  await service.from(CODES_TABLE).update({ consumed_at: null }).eq('id', id);
 }
 
 export async function markCodeConsumed({
   service,
-  table,
   id,
 }: {
   service: SupabaseClient<any>;
-  table: CodeTable;
   id: string;
 }): Promise<void> {
   await service
-    .from(table)
+    .from(CODES_TABLE)
     .update({ consumed_at: new Date().toISOString() })
     .eq('id', id);
 }
