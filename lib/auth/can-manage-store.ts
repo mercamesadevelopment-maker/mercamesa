@@ -25,6 +25,27 @@ export async function canManageStore(
 
   if (membership) return true;
 
+  return isPlatformAdmin(supabase, userId);
+}
+
+/**
+ * Si el usuario trabaja en alguna tienda, o es admin. Para lo que no es de una
+ * tienda en particular, como buscar al cliente de una venta de mostrador.
+ */
+export async function managesAnyStore(supabase: SupabaseClient<any>, userId: string): Promise<boolean> {
+  const { data: membership } = await supabase
+    .from('store_members')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (membership) return true;
+
+  return isPlatformAdmin(supabase, userId);
+}
+
+async function isPlatformAdmin(supabase: SupabaseClient<any>, userId: string): Promise<boolean> {
   const { data: profile } = await supabase
     .from('profiles')
     .select('roles ( name )')

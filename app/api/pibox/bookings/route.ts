@@ -107,7 +107,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: existing, already_exists: true }, { status: 200 });
     }
 
-    const context = await loadBookingContext(supabase, storeOrderId);
+    // Con el cliente de servicio: el contexto trae el nombre, el teléfono y la
+    // dirección del comprador, que la tienda no lee directo en la base. El permiso
+    // sobre la parte ya se comprobó arriba.
+    const context = await loadBookingContext(createSupabaseServiceClient() as any, storeOrderId);
 
     // Solo se despacha lo que está pagado: ya no hay contraentrega. El
     // cotizador de la canasta usa el mismo armador del payload con el pago

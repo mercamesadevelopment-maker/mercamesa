@@ -91,8 +91,9 @@ export async function buildOrderDraft(
   }
 
   // Tipo de comprador desde la base, nunca desde el navegador: define si aplica
-  // el precio mayorista.
-  const { data: profile } = await supabase
+  // el precio mayorista. Con el cliente de servicio: en una venta de mostrador es
+  // el perfil de otra persona, que la tienda no lee directo en la base.
+  const { data: profile } = await service
     .from('profiles')
     .select('buyer_type')
     .eq('id', options.buyerProfileId)
