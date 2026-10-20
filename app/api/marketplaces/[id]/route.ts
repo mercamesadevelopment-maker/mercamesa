@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { requirePermission } from '@/lib/auth/require-permission'
 import { Database } from '../../../../types/database_generated'
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../../lib/supabase/supabase-image'
 import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate'
@@ -53,6 +54,8 @@ export async function PUT(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const denied = await requirePermission(supabase, 'marketplace', 'update', 'No tienes permisos para editar plazas')
+    if (denied) return denied
 
     const body = await request.json()
 
@@ -159,6 +162,8 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const denied = await requirePermission(supabase, 'marketplace', 'delete', 'No tienes permisos para borrar plazas')
+    if (denied) return denied
 
     // Get current marketplace to delete images
     const { data: currentMarketplace } = await supabase

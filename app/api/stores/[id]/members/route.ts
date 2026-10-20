@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
+import { canManageStore } from '@/lib/auth/can-manage-store';
 import { sendEmail, storeInvitationEmail } from '@/lib/email/resend';
 
 /** Días que dura una invitación de miembro de tienda, al crearla y al reenviarla. */
@@ -18,6 +19,11 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // El equipo y las invitaciones de una tienda son de su gente (o de un admin).
+    // Antes bastaba con tener sesión para ver, invitar o sacar a cualquiera.
+    if (!(await canManageStore(supabase, id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
     }
 
     const { data: members, error } = await supabase
@@ -101,6 +107,11 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // El equipo y las invitaciones de una tienda son de su gente (o de un admin).
+    // Antes bastaba con tener sesión para ver, invitar o sacar a cualquiera.
+    if (!(await canManageStore(supabase, id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
     }
 
     const { email, role_id } = await request.json();
@@ -239,6 +250,11 @@ export async function DELETE(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // El equipo y las invitaciones de una tienda son de su gente (o de un admin).
+    // Antes bastaba con tener sesión para ver, invitar o sacar a cualquiera.
+    if (!(await canManageStore(supabase, id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
