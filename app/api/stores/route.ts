@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { requirePermission } from '@/lib/auth/require-permission';
 import { Database } from '../../../types/database_generated';
 import { uploadVariants } from '../../../lib/images/generate';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
@@ -143,6 +144,8 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const denied = await requirePermission(supabase, 'stores', 'create', 'No tienes permisos para crear tiendas');
+    if (denied) return denied;
 
     const body = await request.json();
     const storeId = (body.id as string) || crypto.randomUUID();

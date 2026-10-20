@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
+import { requirePermission } from '@/lib/auth/require-permission'
 import { Database } from '../../../types/database_generated'
 import { getSupabaseImageUrl, PRESET_COVER, PRESET_LOGO } from '../../../lib/supabase/supabase-image'
 import { uploadVariants } from '../../../lib/images/generate'
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const denied = await requirePermission(supabase, 'marketplace', 'create', 'No tienes permisos para crear plazas')
+    if (denied) return denied
 
     const body = await request.json()
 

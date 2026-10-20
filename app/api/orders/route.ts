@@ -14,29 +14,6 @@ import { canManageStore } from '@/lib/auth/can-manage-store';
 import { findReusableOrderId } from '@/lib/orders/find-reusable-order';
 import { assertMinimumPurchase, buildOrderDraft, OrderDraftError } from '@/lib/orders/build-order-draft';
 
-export async function GET(request: Request) {
-  const supabase = await createClient();
-  const { searchParams } = new URL(request.url);
-  const buyerId = searchParams.get('buyer_id');
-
-  let query = supabase.from('orders').select(`
-    *,
-    order_items (*)
-  `);
-
-  if (buyerId) {
-    query = query.eq('buyer_id', buyerId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  return NextResponse.json({ data }, { status: 200 });
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -293,8 +270,12 @@ export async function POST(request: Request) {
       buyer_id: isInStore ? order.buyer_id || null : user.id,
       client_id: (order as any).client_id || null,
       buyer_type: isWS ? 'wholesale' : 'retail',
-      status: order.status,
-      payment_status: order.payment_status,
+      // Un pedido del marketplace nace pendiente y sin pagar: lo pagado lo
+      // decide ZonaPagos (o el saldo a favor, más abajo). Antes se tomaba del
+      // cuerpo, y un comprador podía crear su pedido ya «aprobado». La venta de
+      // mostrador sí trae su estado: la registra la tienda, ya comprobada arriba.
+      status: isInStore ? order.status : 'pending',
+      payment_status: isInStore ? order.payment_status : 'pending',
       subtotal: finalPricing.productsSubtotal,
       service_commission_amount: finalPricing.serviceCommission,
       messages_amount: finalPricing.messagesAmount,
@@ -316,7 +297,10 @@ export async function POST(request: Request) {
       client_idempotency_key: order.client_idempotency_key,
     };
 
-    const { data: newOrder, error: orderError } = await supabase
+    // Las escrituras van con el cliente de servicio: quien llama ya pasó por las
+    // comprobaciones de arriba, y la base no le da permiso de escribir pedidos a
+    // una sesión (cualquiera podría cambiar uno ajeno desde el navegador).
+    const { data: newOrder, error: orderError } = await service
       .from('orders')
       .insert(orderInsertData)
       .select()
@@ -332,12 +316,12 @@ export async function POST(request: Request) {
         order_id: newOrder.id,
       }));
 
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await service
         .from('order_items')
         .insert(itemsWithOrderId);
 
       if (itemsError) {
-        await supabase.from('orders').delete().eq('id', newOrder.id);
+        await service.from('orders').delete().eq('id', newOrder.id);
         return NextResponse.json({ error: itemsError.message }, { status: 400 });
       }
     }
@@ -348,12 +332,12 @@ export async function POST(request: Request) {
         order_id: newOrder.id,
       }));
 
-      const { error: storeOrdersError } = await supabase
+      const { error: storeOrdersError } = await service
         .from('store_orders')
         .insert(storeOrdersWithOrderId);
 
       if (storeOrdersError) {
-        await supabase.from('orders').delete().eq('id', newOrder.id);
+        await service.from('orders').delete().eq('id', newOrder.id);
         return NextResponse.json({ error: storeOrdersError.message }, { status: 400 });
       }
     }
@@ -371,7 +355,7 @@ export async function POST(request: Request) {
         // Un pedido que el comprador creyó pagar con saldo y quedó por el total
         // es peor que ninguno: se deshace y reintenta.
         console.error('orders: no se pudo apartar el saldo a favor', creditError);
-        await supabase.from('orders').delete().eq('id', newOrder.id);
+        await service.from('orders').delete().eq('id', newOrder.id);
         return NextResponse.json(
           { error: 'No pudimos usar tu saldo a favor en este momento. Intenta de nuevo.' },
           { status: 503 }
