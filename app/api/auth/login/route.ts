@@ -110,7 +110,7 @@ export async function POST(request: Request) {
 
       const limite = await checkCodeRateLimit({
         service,
-        table: 'admin_login_codes',
+        purpose: 'admin_login',
         key,
         ip,
       })
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
 
       const code = await issueCode({
         service,
-        table: 'admin_login_codes',
+        purpose: 'admin_login',
         key,
         ip,
         extra: { email: destino },

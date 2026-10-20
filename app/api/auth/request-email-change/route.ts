@@ -62,8 +62,9 @@ export async function POST(request: Request) {
     const now = Date.now()
 
     const { data: lastRow } = await service
-      .from('email_change_codes')
+      .from('verification_codes')
       .select('created_at')
+      .eq('purpose', 'email_change')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -82,8 +83,9 @@ export async function POST(request: Request) {
 
     const userWindowStart = new Date(now - USER_WINDOW_MINUTES * 60_000).toISOString()
     const { count: userCount } = await service
-      .from('email_change_codes')
+      .from('verification_codes')
       .select('id', { count: 'exact', head: true })
+      .eq('purpose', 'email_change')
       .eq('user_id', user.id)
       .gte('created_at', userWindowStart)
 
@@ -94,8 +96,9 @@ export async function POST(request: Request) {
     if (ip) {
       const ipWindowStart = new Date(now - IP_WINDOW_MINUTES * 60_000).toISOString()
       const { count: ipCount } = await service
-        .from('email_change_codes')
+        .from('verification_codes')
         .select('id', { count: 'exact', head: true })
+        .eq('purpose', 'email_change')
         .eq('request_ip', ip)
         .gte('created_at', ipWindowStart)
 
@@ -116,17 +119,19 @@ export async function POST(request: Request) {
 
     // Invalida cualquier código pendiente anterior: solo el más reciente debe ser válido.
     await service
-      .from('email_change_codes')
+      .from('verification_codes')
       .update({ expires_at: new Date(now).toISOString() })
+      .eq('purpose', 'email_change')
       .eq('user_id', user.id)
       .is('consumed_at', null)
       .gt('expires_at', new Date(now).toISOString())
 
     const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, '0')
 
-    const { error: insertError } = await service.from('email_change_codes').insert({
+    const { error: insertError } = await service.from('verification_codes').insert({
+      purpose: 'email_change',
       user_id: user.id,
-      current_email: user.email,
+      email: user.email,
       new_email: newEmail,
       code_hash: hashCode(code),
       expires_at: new Date(now + CODE_EXPIRES_MINUTES * 60_000).toISOString(),

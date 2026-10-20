@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
     const limite = await checkCodeRateLimit({
       service,
-      table: 'password_change_codes',
+      purpose: 'password_change',
       key,
       ip,
     })
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
     const code = await issueCode({
       service,
-      table: 'password_change_codes',
+      purpose: 'password_change',
       key,
       ip,
       extra: { email: user.email },

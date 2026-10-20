@@ -36,8 +36,9 @@ export async function POST(request: Request) {
 
     const emailWindowStart = new Date(now - EMAIL_WINDOW_MINUTES * 60_000).toISOString()
     const { count: emailCount } = await supabase
-      .from('password_reset_codes')
+      .from('verification_codes')
       .select('id', { count: 'exact', head: true })
+      .eq('purpose', 'password_reset')
       .eq('email', email)
       .gte('created_at', emailWindowStart)
 
@@ -48,8 +49,9 @@ export async function POST(request: Request) {
     if (ip) {
       const ipWindowStart = new Date(now - IP_WINDOW_MINUTES * 60_000).toISOString()
       const { count: ipCount } = await supabase
-        .from('password_reset_codes')
+        .from('verification_codes')
         .select('id', { count: 'exact', head: true })
+        .eq('purpose', 'password_reset')
         .eq('request_ip', ip)
         .gte('created_at', ipWindowStart)
 
@@ -73,7 +75,8 @@ export async function POST(request: Request) {
     // Cualquier falla de aquí en adelante se registra en logs pero responde
     // igual que el caso feliz, para no filtrar si el correo existe.
     try {
-      const { error: insertError } = await supabase.from('password_reset_codes').insert({
+      const { error: insertError } = await supabase.from('verification_codes').insert({
+        purpose: 'password_reset',
         email,
         code_hash: hashCode(code),
         expires_at: new Date(now + CODE_EXPIRES_MINUTES * 60_000).toISOString(),

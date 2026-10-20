@@ -4085,6 +4085,57 @@ export type Database = {
           },
         ]
       }
+      verification_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          new_email: string | null
+          purpose: string
+          request_ip: string | null
+          reset_token: string | null
+          reset_token_expires_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          new_email?: string | null
+          purpose: string
+          request_ip?: string | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          new_email?: string | null
+          purpose?: string
+          request_ip?: string | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       marketplaces_detail: {
