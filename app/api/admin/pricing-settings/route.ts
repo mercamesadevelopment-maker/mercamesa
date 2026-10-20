@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { loadLatestPricingRow } from '@/lib/pricing/settings';
 
 /**
  * Tarifas y comisiones de la plataforma.
  *
- * Append-only, igual que el precio mínimo de orden: cada ajuste es una fila
- * nueva y la más reciente es la que aplica. Los pedidos guardan a qué fila
- * corresponden, así que cambiar una tarifa nunca reescribe lo ya cobrado.
+ * Append-only: cada ajuste es una fila nueva y la más reciente es la que aplica.
+ * Los pedidos guardan a qué fila corresponden, así que cambiar una tarifa nunca
+ * reescribe lo ya cobrado. La tabla también guarda el precio mínimo de compra
+ * (`app/api/admin/order-min-price`): cada fila repite lo que no se ajustó, y
+ * `change_type` separa los dos historiales.
  */
 export async function GET() {
   try {
@@ -15,6 +18,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('pricing_settings_history')
       .select('*, profiles ( full_name )')
+      .eq('change_type', 'rates')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -108,6 +112,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La observación del ajuste es requerida' }, { status: 400 });
     }
 
+    const vigente = await loadLatestPricingRow(supabase);
+
     const { data, error } = await supabase
       .from('pricing_settings_history')
       .insert({
@@ -117,6 +123,8 @@ export async function POST(request: Request) {
         platform_commission_rate: Number(platform_commission_rate),
         siigo_delivery_product_code: siigo_delivery_product_code.trim(),
         siigo_platform_product_code: siigo_platform_product_code.trim(),
+        order_min_price: vigente?.order_min_price ?? null,
+        change_type: 'rates',
         notes: notes.trim(),
         changed_by: user.id,
       })
