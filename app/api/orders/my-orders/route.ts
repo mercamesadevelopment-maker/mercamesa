@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
 export async function GET(request: Request) {
   try {
@@ -19,7 +20,11 @@ export async function GET(request: Request) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase
+    // La vista se lee con el cliente de servicio, siempre filtrada por el
+    // comprador de la sesión. Una sesión no la consulta directo: la vista une
+    // tiendas y productos, y con la RLS de esas tablas un pedido de una tienda o
+    // un producto ya desactivados desaparecería del historial.
+    let query = createSupabaseServiceClient()
       .from('orders_detail_view')
       .select('*', { count: 'exact' })
       .eq('buyer_id', user.id);

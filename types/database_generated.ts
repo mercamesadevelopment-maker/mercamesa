@@ -4235,6 +4235,7 @@ export type Database = {
       call_edge_cron: { Args: { fn: string }; Returns: number }
       create_order_refund: { Args: { p: Json }; Returns: string }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
+      es_lector_de_plataforma: { Args: never; Returns: boolean }
       escalate_overdue_pqrs: { Args: never; Returns: number }
       expire_unpaid_orders: { Args: never; Returns: number }
       fn_is_store_image_of_member: {
@@ -4253,6 +4254,15 @@ export type Database = {
         Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
         Returns: string
       }
+      puede_ver_cliente: { Args: { p_client: string }; Returns: boolean }
+      puede_ver_direccion: { Args: { p_address: string }; Returns: boolean }
+      puede_ver_parte: { Args: { p_store_order: string }; Returns: boolean }
+      puede_ver_pedido: { Args: { p_order: string }; Returns: boolean }
+      puede_ver_perfil: { Args: { p_profile: string }; Returns: boolean }
+      puede_ver_producto_de_pedido: {
+        Args: { p_order: string; p_store_product: string }
+        Returns: boolean
+      }
       refund_to_money: {
         Args: { p_by: string; p_refund: string }
         Returns: undefined
@@ -4269,6 +4279,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      tienda_de_producto: { Args: { p_store_product: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       vitrina_categorias: {
         Args: { p_store_id?: string }
