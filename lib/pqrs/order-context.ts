@@ -4,8 +4,9 @@ import type { PqrsOrderContext, PqrsOrderOption } from './types';
 /**
  * El pedido del que habla una PQRS, con lo que las reglas necesitan saber de él.
  *
- * Cada pedido es de una sola tienda (el carrito crea uno por tienda), así que
- * los productos del pedido son los de esa tienda.
+ * Lo que acá se llama «pedido» es la parte de una tienda (`store_orders`): un
+ * pedido puede llevar varias tiendas, y un reclamo siempre es contra una. Por
+ * eso los productos que se pueden reclamar son solo los de esa tienda.
  */
 
 const SELECT_PEDIDO = `
@@ -81,8 +82,9 @@ export async function loadOrderContext(
   const [{ data: items }, { data: entrega }] = await Promise.all([
     service
       .from('order_items')
-      .select('id, catalog_name, unit_name, quantity, unit_price')
+      .select('id, catalog_name, unit_name, quantity, unit_price, store_products!inner ( store_id )')
       .eq('order_id', base.orderId)
+      .eq('store_products.store_id', base.storeId)
       .order('created_at', { ascending: true }),
     // `store_orders.updated_at` se mueve con cualquier cambio; la fecha real de
     // la entrega es la del registro del cambio de estado (lo mismo que usa la

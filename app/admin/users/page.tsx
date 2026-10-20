@@ -368,7 +368,7 @@ export default function AdminUsersPage() {
             <Users className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-3xl font-fraunces text-mm-g">Usuarios</h1>
+            <h1 className="text-3xl font-display text-mm-g">Usuarios</h1>
             <p className="text-sm text-mm-txs">
               Todos los usuarios de la plataforma, sin importar su rol.
             </p>

@@ -88,14 +88,3 @@ export interface CreateOrderResponse {
   idempotent: boolean
 }
 
-export interface ZonapagosCallbackData {
-  str_id_pago: string
-  str_estado: string
-  str_autorizacion: string
-  str_tarjeta: string
-  str_referencia: string
-  str_fr_respuesta: string
-  str_email?: string
-  flt_total_con_iva?: number
-  [key: string]: string | number | undefined
-}

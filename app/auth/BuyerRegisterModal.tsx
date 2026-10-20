@@ -267,7 +267,7 @@ export function BuyerRegisterModal({
             <div className="py-8 text-center">
               <div className="mb-6 inline-block animate-pop-in text-8xl">🛒</div>
 
-              <h2 className="mb-4 font-fraunces text-4xl text-mm-g">¡Listo, bienvenido! 🎉</h2>
+              <h2 className="mb-4 font-display text-4xl text-mm-g">¡Listo, bienvenido! 🎉</h2>
 
               <p className="mx-auto mb-10 max-w-md text-mm-txs">
                 Tu cuenta de comprador ha sido creada con éxito. Ya puedes empezar a comprar en MercaMesa.
@@ -286,7 +286,7 @@ export function BuyerRegisterModal({
           ) : (
             <>
               <div className="mb-8 text-center">
-                <h2 className="mb-2 font-fraunces text-3xl text-mm-g">
+                <h2 className="mb-2 font-display text-3xl text-mm-g">
                   {paso === 1 ? 'Confirma tu correo' : 'Crea tu cuenta de comprador'}
                 </h2>
                 <p className="text-mm-txs">

@@ -145,7 +145,7 @@ export function SalesHistoryView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div>
-            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Historial de Ventas</h1>
+            <h1 className="text-4xl font-display text-mm-g mb-2">Historial de Ventas</h1>
             <p className="text-mm-txs">Consulta y gestiona todos los registros de ventas directas e indirectas.</p>
           </div>
           {stores.length > 1 && (
@@ -181,7 +181,7 @@ export function SalesHistoryView() {
              <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
                <History className="w-5 h-5" />
              </div>
-             <h3 className="text-xl font-fraunces text-mm-g">Registros Consolidados</h3>
+             <h3 className="text-xl font-display text-mm-g">Registros Consolidados</h3>
           </div>
           <Badge variant="default" className="text-xs px-4 py-1.5 uppercase tracking-tighter shadow-inner">
             {unifiedHistory.length} transacciones
@@ -210,7 +210,7 @@ export function SalesHistoryView() {
                   <Receipt className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-fraunces text-mm-g">{selectedItem.id}</h2>
+                  <h2 className="text-2xl font-display text-mm-g">{selectedItem.id}</h2>
                   <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">
                     {new Date(selectedItem.date).toLocaleString()}
                   </p>
@@ -284,7 +284,7 @@ export function SalesHistoryView() {
             <div className="p-8 bg-mm-gbg/10 border-t border-mm-crd space-y-3">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-lg font-bold text-mm-txw">Total Facturado</span>
-                <span className="text-3xl font-fraunces text-mm-g">{fmt(selectedItem.total)}</span>
+                <span className="text-3xl font-display text-mm-g">{fmt(selectedItem.total)}</span>
               </div>
               
               <div className="grid grid-cols-2 gap-3">

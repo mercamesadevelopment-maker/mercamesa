@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { requirePermission } from '@/lib/auth/require-permission';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { Database } from '../../../types/database_generated';
 import { uploadVariants } from '../../../lib/images/generate';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
@@ -143,6 +145,8 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const denied = await requirePermission(supabase, 'stores', 'create', 'No tienes permisos para crear tiendas');
+    if (denied) return denied;
 
     const body = await request.json();
     const storeId = (body.id as string) || crypto.randomUUID();
@@ -281,7 +285,11 @@ export async function POST(request: Request) {
 
     // Auto-assign or invite contact email as store_owner
     if (contact_email) {
-      const { data: profile } = await supabase
+      // Buscar a otra persona por correo e invitarla es cosa del servidor: un
+      // usuario no lee perfiles ajenos ni invitaciones. El permiso para crear
+      // tiendas ya se comprobó arriba.
+      const service = createSupabaseServiceClient();
+      const { data: profile } = await service
         .from('profiles')
         .select('id')
         .eq('email', contact_email)
@@ -322,15 +330,8 @@ export async function POST(request: Request) {
       } else {
         // Invite new user and record invitation
         try {
-          // We need a service role client to run inviteUserByEmail. We will import/create it here.
-          const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-          const serviceSupabase = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
-
           const origin = request.headers.get('origin') || '';
-          const { error: inviteError } = await serviceSupabase.auth.admin.inviteUserByEmail(contact_email, {
+          const { error: inviteError } = await service.auth.admin.inviteUserByEmail(contact_email, {
             redirectTo: `${origin}/accept-invite`
           });
 
@@ -339,7 +340,7 @@ export async function POST(request: Request) {
             const expires = new Date();
             expires.setDate(expires.getDate() + 7);
 
-            await supabase.from('invitations').insert({
+            await service.from('invitations').insert({
               email: contact_email,
               store_id: storeId,
               role: storeOwnerRoleId,

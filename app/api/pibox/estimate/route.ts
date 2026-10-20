@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/lib/supabase/server';
 import {
   estimateBooking,
@@ -38,7 +39,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const context = await loadBookingContext(supabase, storeOrderId);
+    // Con el cliente de servicio: el contexto trae el nombre, el teléfono y la
+    // dirección del comprador, que la tienda no lee directo en la base. El permiso
+    // sobre la parte ya se comprobó arriba.
+    const context = await loadBookingContext(createSupabaseServiceClient() as any, storeOrderId);
     // Para cotizar no se exige teléfono: nadie va a llamar a nadie todavía.
     const payload = buildBookingPayload(context, { requireCustomerPhone: false });
 

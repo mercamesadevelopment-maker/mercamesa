@@ -11,11 +11,20 @@ import { toDeliveryTimeline, toDeliveryView, type DeliveryViewer } from '@/lib/p
 import { canManageStoreOrder } from '@/lib/pibox/authz';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { persistBookingSnapshot } from '@/lib/pibox/services/sync.service';
+import { requestCourierIfReady } from '@/lib/orders/consolidated-order';
+import { carrierOf, receiverOf } from '@/lib/orders/consolidation';
+import { notifyMarketplaceStaffOfOrder } from '@/lib/marketplace-staff/notify';
+import { canWorkMarketplace, loadStaffActor, StaffError } from '@/lib/marketplace-staff/actor';
 
 /**
  * Solicita el domicilio a Pibox para un pedido de tienda.
  * Se dispara cuando el pedido pasa a "at_collection" (Listo Recogida), y desde
  * «Solicitar otro domiciliario» cuando el anterior se cerró sin entregar.
+ *
+ * En un pedido de varias tiendas ninguna pide su propio mensajero: sale uno
+ * solo desde la bahía (`lib/orders/consolidation.ts`). Acá se avisa al equipo
+ * de la plaza que la parte está lista y, si la plaza no tiene ni patinador ni
+ * logística, se pide el mensajero cuando la última tienda queda lista.
  */
 export async function POST(request: Request) {
   try {
@@ -41,10 +50,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const db = createSupabaseServiceClient();
+
+    const { data: parte } = await db
+      .from('store_orders')
+      .select('order_id, code, stores ( name ), orders ( fulfillment, runner_required, logistics_required )')
+      .eq('id', storeOrderId)
+      .maybeSingle();
+    const pedido = (parte as any)?.orders;
+
+    if (pedido?.fulfillment === 'consolidated') {
+      const cfg = { runnerRequired: Boolean(pedido.runner_required), logisticsRequired: Boolean(pedido.logistics_required) };
+      const tienda = (parte as any).stores?.name ?? 'Una tienda';
+
+      if (carrierOf(cfg) === 'runner') {
+        await notifyMarketplaceStaffOfOrder(
+          parte!.order_id,
+          'Pedido listo para recoger',
+          `${tienda} ya tiene lista su parte del pedido ${parte!.code}.`,
+          ['runner']
+        );
+      } else if (receiverOf(cfg) === 'logistics') {
+        await notifyMarketplaceStaffOfOrder(
+          parte!.order_id,
+          'Una tienda lleva su parte a la bahía',
+          `${tienda} tiene lista su parte del pedido ${parte!.code} y la lleva a la bahía.`,
+          ['logistics']
+        );
+      }
+
+      const { data: perfil } = await db.from('profiles').select('phone').eq('id', user.id).maybeSingle();
+      const outcome = await requestCourierIfReady(db as any, parte!.order_id, perfil?.phone ?? null, user.id);
+      if (outcome.error) {
+        return NextResponse.json({ error: outcome.error, consolidated: true }, { status: 502 });
+      }
+      return NextResponse.json(
+        { data: null, consolidated: true, requested: outcome.requested },
+        { status: 200 }
+      );
+    }
+
     // Idempotencia: si ya hay un domicilio vigente para este pedido, se devuelve
     // ese en vez de despachar un segundo mensajero. Una reserva sin conductor o
     // cancelada ya no es vigente (`is_active = false`), así que no bloquea.
-    const db = createSupabaseServiceClient();
     const { data: existing } = await db
       .from('pibox_bookings')
       .select('*')
@@ -59,7 +107,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: existing, already_exists: true }, { status: 200 });
     }
 
-    const context = await loadBookingContext(supabase, storeOrderId);
+    // Con el cliente de servicio: el contexto trae el nombre, el teléfono y la
+    // dirección del comprador, que la tienda no lee directo en la base. El permiso
+    // sobre la parte ya se comprobó arriba.
+    const context = await loadBookingContext(createSupabaseServiceClient() as any, storeOrderId);
 
     // Solo se despacha lo que está pagado: ya no hay contraentrega. El
     // cotizador de la canasta usa el mismo armador del payload con el pago
@@ -73,7 +124,7 @@ export async function POST(request: Request) {
     const payload = buildBookingPayload(context);
 
     const booking = await createBooking(payload);
-    await persistBookingSnapshot(storeOrderId, booking);
+    await persistBookingSnapshot({ storeOrderId }, booking);
 
     const { data: saved } = await db
       .from('pibox_bookings')
@@ -105,6 +156,10 @@ export async function POST(request: Request) {
  * Responde la reserva vigente o, si no hay, la más reciente; el admin recibe
  * además el historial de reservas del pedido. La tienda y el admin reciben la
  * línea de tiempo del domicilio (`timeline`), armada con la bitácora de avisos.
+ *
+ * En un pedido de varias tiendas la reserva es del pedido entero: cada parte
+ * muestra esa. El equipo de la plaza (patinador y logística) la ve como la
+ * tienda, con el código de recogida.
  */
 export async function GET(request: Request) {
   try {
@@ -117,7 +172,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const db = createSupabaseServiceClient();
 
-    let query = db.from('store_orders').select('id, store_id, orders!inner ( buyer_id )');
+    let query = db
+      .from('store_orders')
+      .select('id, order_id, store_id, orders!inner ( buyer_id, fulfillment ), stores ( marketplace_id )');
     const storeOrderIdParam = searchParams.get('store_order_id');
     const orderId = searchParams.get('order_id');
     const storeId = searchParams.get('store_id');
@@ -141,10 +198,15 @@ export async function GET(request: Request) {
     const viewer = await resolveViewer(storeOrder as any, user.id);
     if (!viewer) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    const delPedido = (storeOrder as any).orders?.fulfillment === 'consolidated';
+    const dueno = (delPedido
+      ? { column: 'order_id', value: (storeOrder as any).order_id }
+      : { column: 'store_order_id', value: storeOrder.id }) as { column: 'order_id' | 'store_order_id'; value: string };
+
     const { data: rows, error } = await db
       .from('pibox_bookings')
       .select('*')
-      .eq('store_order_id', storeOrder.id)
+      .eq(dueno.column, dueno.value)
       .order('created_at', { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -157,7 +219,7 @@ export async function GET(request: Request) {
       const { data: events } = await db
         .from('pibox_booking_events')
         .select('received_at, event_created_at, event_cd, status_cd, driver_name, store_order_id')
-        .eq('store_order_id', storeOrder.id)
+        .eq(dueno.column, dueno.value)
         .order('received_at', { ascending: true })
         .limit(200);
       timeline = toDeliveryTimeline(events ?? [], viewer);
@@ -185,10 +247,16 @@ export async function GET(request: Request) {
 
 /**
  * Quién mira, con el mismo criterio que la política de lectura de la tabla:
- * admin, miembro de la tienda o el comprador del pedido. Si ninguno, null.
+ * admin, miembro de la tienda o el comprador del pedido. Además el equipo de la
+ * plaza, que ve lo mismo que la tienda: es quien entrega el pedido al
+ * mensajero. Si ninguno, null.
  */
 async function resolveViewer(
-  storeOrder: { store_id: string; orders: { buyer_id: string } | null },
+  storeOrder: {
+    store_id: string;
+    orders: { buyer_id: string } | null;
+    stores: { marketplace_id: string | null } | null;
+  },
   userId: string
 ): Promise<DeliveryViewer | null> {
   const db = createSupabaseServiceClient();
@@ -211,5 +279,14 @@ async function resolveViewer(
 
   if (membership) return 'store';
   if (storeOrder.orders?.buyer_id === userId) return 'buyer';
+
+  if (role === 'runner' || role === 'logistics') {
+    try {
+      const actor = await loadStaffActor(db as any, userId, ['runner', 'logistics']);
+      if (canWorkMarketplace(actor, storeOrder.stores?.marketplace_id)) return 'store';
+    } catch (error) {
+      if (!(error instanceof StaffError)) throw error;
+    }
+  }
   return null;
 }

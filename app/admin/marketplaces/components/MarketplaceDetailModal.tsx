@@ -6,6 +6,7 @@ import { Building2, MapPin, Store as StoreIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Badge } from '@/src/components/Shared';
 import { Database } from '../../../../types/database_generated';
+import { MarketplaceStaffPanel } from './MarketplaceStaffPanel';
 
 type MarketplaceDetail =
   Database['public']['Views']['marketplaces_detail']['Row'] & {
@@ -113,7 +114,7 @@ export function MarketplaceDetailModal({
           <div className="px-6 pt-16 pb-8 space-y-8">
             <div className="flex justify-between items-start gap-4">
               <div>
-                <h2 className="text-3xl font-fraunces text-mm-g mb-2">
+                <h2 className="text-3xl font-display text-mm-g mb-2">
                   {data.name}
                 </h2>
 
@@ -189,6 +190,8 @@ export function MarketplaceDetailModal({
                 </div>
               )}
             </div>
+
+            <MarketplaceStaffPanel marketplaceId={data.id} marketplaceName={data.name} enabled={isOpen} />
           </div>
         </div>
       )}

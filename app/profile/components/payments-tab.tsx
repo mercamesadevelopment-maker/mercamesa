@@ -33,7 +33,7 @@ export function PaymentsTab() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-fraunces text-mm-g">Medios de Pago</h2>
+            <h2 className="text-3xl font-display text-mm-g">Medios de Pago</h2>
             <p className="text-sm text-mm-txw mt-1">
               {CARD_TOKENIZATION_ENABLED
                 ? 'Se guardan automáticamente cuando marcas "Guardar esta tarjeta" al pagar un pedido.'

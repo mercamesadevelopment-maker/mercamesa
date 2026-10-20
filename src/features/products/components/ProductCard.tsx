@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
-import { ShoppingCart } from 'lucide-react';
-import { Badge, cn } from '@/src/components/Shared';
+import { Plus } from 'lucide-react';
+import { cn } from '@/src/components/Shared';
+import { Stamp } from '@/components/ui/stamp';
 import { fmt } from '@/src/constants';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { discountPct } from '@/src/features/cart/utils/cart-savings';
@@ -92,23 +92,25 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
     );
   };
 
+  const unit = product.measurement_units?.abbreviation || 'und';
+
   return (
-    <motion.div
+    // Caso de marca, lámina 16: foto sobre fondo hueso, nombre, unidad en mono,
+    // tienda, precio grande y el botón sobre una base curva. El movimiento es
+    // solo CSS (`mm-rise` al entrar en pantalla, `mm-lift` al pasar el mouse):
+    // en un listado de cien tarjetas no hay nada corriendo en bucle.
+    <div
       ref={cardRef}
-      whileHover={{ y: -5 }}
       className={cn(
-        'bg-white rounded-[28px] border border-mm-crd shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col group border-b-4 border-b-mm-crd hover:border-b-mm-g duration-200',
-        highlighted && 'ring-4 ring-mm-oro ring-offset-2'
+        'mm-rise mm-lift group flex flex-col overflow-hidden rounded-[28px] bg-white',
+        'shadow-[0_10px_30px_-18px_rgba(14,59,47,0.35)] hover:shadow-[0_22px_40px_-20px_rgba(14,59,47,0.45)]',
+        highlighted && 'ring-4 ring-arcilla ring-offset-2'
       )}
     >
-      <div className="h-40 bg-mm-gbg flex items-center justify-center text-5xl relative overflow-hidden">
+      <div className="relative m-2 mb-0 aspect-[5/4] overflow-hidden rounded-[22px] bg-hueso">
         <div className="absolute top-2 left-2 z-10 flex flex-col items-start gap-1">
-          {(product as any).is_featured && <Badge variant="oro">Destacado</Badge>}
-          {hasDiscount && (
-            <Badge variant="error" className="font-bold">
-              -{pct}%
-            </Badge>
-          )}
+          {hasDiscount && <Stamp>-{pct}%</Stamp>}
+          {(product as any).is_featured && <Stamp tono="tinta">Destacado</Stamp>}
         </div>
         {product.stores?.slug && (
           <ShareLinkButton
@@ -116,7 +118,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
             title={product.catalog_products?.name}
             label="Compartir este producto"
             wrapperClassName="absolute top-2 right-2 z-10"
-            className="w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-mm-g transition-colors"
+            className="w-8 h-8 rounded-full bg-white/90 hover:bg-white shadow-sm flex items-center justify-center text-tinta transition-colors"
             iconClassName="w-3.5 h-3.5"
           />
         )}
@@ -124,83 +126,72 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           <img
             src={imgSrc}
             alt={product.catalog_products?.name || 'Producto'}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="mm-lift-img absolute inset-0 h-full w-full object-cover"
             loading="lazy"
+            decoding="async"
+            width={320}
+            height={256}
             onError={handleImageError}
           />
         ) : (
-          <span className="group-hover:scale-125 transition-transform duration-500">📦</span>
+          <span className="absolute inset-0 flex items-center justify-center text-5xl">📦</span>
         )}
       </div>
-      <div className="p-4 flex flex-col flex-grow">
-        <div className="flex-grow">
-          {product.stores?.name && (
-            <p className="text-[10px] text-mm-txw font-bold uppercase tracking-tighter mb-1 line-clamp-1">
-              {product.stores.name}
-            </p>
-          )}
-          <h3 className="font-bold text-mm-g mb-0.5 line-clamp-1 group-hover:text-mm-oro transition-colors text-sm sm:text-base">
-            {product.catalog_products?.name}
-          </h3>
-          <p className="text-[10px] text-mm-txw mb-1 font-medium uppercase tracking-widest">
-            {product.catalog_products?.categories?.name}
-          </p>
-          <p
-            className={cn(
-              'text-[10px] font-bold uppercase tracking-widest mb-3',
-              product.stock > 0 ? 'text-mm-g/70' : 'text-r'
-            )}
-          >
-            {product.stock > 0 ? `Inventario Disponible: ${product.stock} ${product.measurement_units?.abbreviation || 'und'}` : 'Sin stock'}
-          </p>
-        </div>
 
-        {/* `flex-wrap`: en dos columnas de celular el precio y el contador no
-            caben en la misma línea. Cuando no caben, el contador baja y ocupa
-            el ancho de la tarjeta en vez de aplastarse contra el precio. */}
-        <div className="flex flex-wrap items-center justify-between pt-1 border-t border-mm-crd/50 gap-2">
-          <div className="flex flex-col shrink-0">
-            {hasDiscount && (
-              <p className="text-[11px] text-mm-txw line-through leading-none mb-1">{fmt(listPrice)}</p>
-            )}
-            <p
-              className={cn(
-                'font-bold text-lg sm:text-xl tracking-tight leading-none',
-                hasDiscount ? 'text-r' : 'text-mm-g'
-              )}
-            >
-              {fmt(price)}
-            </p>
-            <p className="text-[9px] text-mm-txs font-bold uppercase tracking-wider mt-0.5">
-              / {product.measurement_units?.abbreviation}
-            </p>
-          </div>
-          {/* Sin stock no hay nada que agregar; con el producto ya en la canasta
-              el botón cede el puesto al contador, que es lo que permite llevar
-              más de uno sin abrir el carrito. */}
-          {stock <= 0 ? null : qty > 0 ? (
-            <QuantityStepper
-              qty={qty}
-              max={stock}
-              onChange={(next) => updateCartQty(product.id, next)}
-              // Bajar de 1 saca el producto de la canasta.
-              min={1}
-              onBelowMin={() => updateCartQty(product.id, 0)}
-              // Crece hasta un tope: llena la tarjeta angosta y no se vuelve
-              // una barra larga en la ancha.
-              className="ml-auto grow max-w-36 justify-between"
-            />
-          ) : (
-            <button
-              onClick={handleAddToCart}
-              aria-label="Agregar a la canasta"
-              className="w-10 h-10 sm:w-12 sm:h-12 bg-mm-g text-white rounded-2xl flex items-center justify-center hover:bg-mm-oro hover:-translate-y-1 hover:shadow-lg transition-all active:scale-95 shrink-0"
-            >
-              <ShoppingCart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
-            </button>
-          )}
+      <div className="flex flex-grow flex-col items-center px-3 pt-3 pb-2 text-center">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-tinta sm:text-base">
+          {product.catalog_products?.name}
+        </h3>
+        <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-mm-txw">{unit}</p>
+        {product.stores?.name && (
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-mm-txs">{product.stores.name}</p>
+        )}
+
+        <div className="mt-auto flex items-baseline justify-center gap-1.5 pt-2">
+          <p className={cn('text-lg font-extrabold tracking-tight sm:text-xl', hasDiscount ? 'text-arcilla-oscura' : 'text-tinta')}>
+            {fmt(price)}
+          </p>
+          {hasDiscount && <p className="font-mono text-[11px] text-mm-txw line-through">{fmt(listPrice)}</p>}
         </div>
+        {stock > 0 && (
+          <p className="font-mono text-[10px] text-mm-txw">
+            {stock} {unit} disponibles
+          </p>
+        )}
       </div>
-    </motion.div>
+
+      {/* La base curva: el borde superior es un arco, como en la lámina 16. Sin
+          stock no hay nada que agregar; con el producto en la canasta el botón
+          cede el puesto al contador, en lima. */}
+      <div
+        className={cn(
+          'mt-1 flex h-12 items-center justify-center px-2 transition-colors',
+          stock <= 0 ? 'bg-hueso' : qty > 0 ? 'bg-lima' : 'bg-lima-clara group-hover:bg-lima'
+        )}
+        style={{ borderTopLeftRadius: '50% 16px', borderTopRightRadius: '50% 16px' }}
+      >
+        {stock <= 0 ? (
+          <span className="font-mono text-[11px] uppercase tracking-widest text-r">Agotado</span>
+        ) : qty > 0 ? (
+          <QuantityStepper
+            qty={qty}
+            max={stock}
+            onChange={(next) => updateCartQty(product.id, next)}
+            // Bajar de 1 saca el producto de la canasta.
+            min={1}
+            onBelowMin={() => updateCartQty(product.id, 0)}
+            className="w-full max-w-40 justify-between bg-transparent"
+          />
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            aria-label="Agregar a la canasta"
+            className="flex h-full w-full items-center justify-center text-tinta active:scale-95 transition-transform"
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

@@ -83,7 +83,7 @@ export function LegalGate({ enabled }: { enabled: boolean }) {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-mm-gbg text-mm-g">
               <FileText className="h-7 w-7" />
             </div>
-            <h2 className="mb-2 font-fraunces text-3xl text-mm-g">
+            <h2 className="mb-2 font-display text-3xl text-mm-g">
               {esPlural ? 'Actualizamos nuestros documentos' : 'Actualizamos un documento'}
             </h2>
             <p className="text-sm text-mm-txs">

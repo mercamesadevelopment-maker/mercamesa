@@ -55,3 +55,11 @@ begin
   reset role;
   perform set_config('request.jwt.claims', '', true);
 end $$;
+
+-- Actuar como alguien sin sesión: lo que puede hacer cualquiera con la llave
+-- pública del navegador.
+create function pg_temp.como_anon() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  execute 'set local role anon';
+end $$;

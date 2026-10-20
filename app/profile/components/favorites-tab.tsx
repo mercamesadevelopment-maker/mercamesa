@@ -45,7 +45,7 @@ export function FavoritesTab() {
       exit={{ opacity: 0, x: -20 }}
       className="@container space-y-4 sm:space-y-6"
     >
-      <h2 className="text-2xl sm:text-3xl font-fraunces text-mm-g">Tiendas Favoritas</h2>
+      <h2 className="text-2xl sm:text-3xl font-display text-mm-g">Tiendas Favoritas</h2>
 
       {error && (
         <div className="bg-rl text-r text-sm font-medium px-4 py-3 rounded-2xl">

@@ -1,4 +1,3 @@
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderStatus } from '@/src/types';
 
 /** Lo que pasó con el domicilio al cambiar el estado, para poder avisarlo. */
@@ -13,6 +12,8 @@ export interface DeliveryRequestOutcome {
  *
  * Estaba duplicada byte a byte en los hooks de admin y seller; se centraliza acá
  * para que el disparo del domicilio ocurra una sola vez y no se desincronicen.
+ * El cambio lo hace el servidor (`/api/store-orders/[id]/status`), que comprueba
+ * que la persona gestione esa tienda y que el paso sea válido.
  *
  * Devuelve el resultado de la solicitud del domicilio: el cambio de estado nunca
  * se revierte por un fallo de Pibox, pero quien llama debe poder avisarle al
@@ -23,38 +24,28 @@ export async function updateStoreOrderStatus(
   status: OrderStatus,
   notes?: string
 ): Promise<DeliveryRequestOutcome> {
-  const supabase = createSupabaseBrowserClient();
-
-  const { error: updateError } = await supabase
-    .from('store_orders')
-    .update({ status })
-    .eq('id', storeOrderId);
-
-  if (updateError) throw updateError;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { error: historyError } = await supabase
-    .from('store_order_status_history')
-    .insert({
-      store_order_id: storeOrderId,
-      status,
-      notes: notes || null,
-      changed_by: user?.id || null,
-    });
-
-  if (historyError) throw historyError;
+  await postStatus(storeOrderId, status, notes);
 
   // Al marcar "Listo Recogida" el paquete ya existe físicamente: es el momento
   // de pedir el mensajero. Va por el servidor porque el token de Pibox es
   // secreto y no puede viajar al navegador.
   if (status === 'at_collection') {
-    return requestPiboxDelivery(storeOrderId, user?.id ?? null);
+    return requestPiboxDelivery(storeOrderId);
   }
 
   return { requested: false };
+}
+
+async function postStatus(storeOrderId: string, status: OrderStatus, notes?: string): Promise<void> {
+  const response = await fetch(`/api/store-orders/${storeOrderId}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, notes: notes || null }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result?.error || 'No se pudo cambiar el estado del pedido.');
+  }
 }
 
 /**
@@ -65,10 +56,7 @@ export async function updateStoreOrderStatus(
  * pedido pasar a "Listo Recogida" sin que existiera ningún mensajero en camino.
  * El motivo queda en el histórico del pedido y se devuelve para mostrarlo.
  */
-async function requestPiboxDelivery(
-  storeOrderId: string,
-  userId: string | null
-): Promise<DeliveryRequestOutcome> {
+async function requestPiboxDelivery(storeOrderId: string): Promise<DeliveryRequestOutcome> {
   let message: string;
 
   try {
@@ -78,9 +66,11 @@ async function requestPiboxDelivery(
       body: JSON.stringify({ store_order_id: storeOrderId }),
     });
 
-    if (response.ok) return { requested: true };
-
     const result = await response.json().catch(() => ({}));
+
+    // Pedido de varias tiendas: no se pide mensajero acá, lo recoge el
+    // patinador. No es un fallo ni hay nada que avisar.
+    if (response.ok) return { requested: !result?.runner };
 
     // 503 es el kill-switch (PIBOX_ENABLED=false): la integración está apagada a
     // propósito, no es una falla que el vendedor deba reportar.
@@ -94,25 +84,18 @@ async function requestPiboxDelivery(
         : 'No se pudo contactar el servicio de domicilios.';
   }
 
-  await logDeliveryFailure(storeOrderId, userId, message);
+  await logDeliveryFailure(storeOrderId, message);
 
   return { requested: false, error: message };
 }
 
-/** Deja el motivo en el histórico del pedido, que es donde se audita. */
-async function logDeliveryFailure(
-  storeOrderId: string,
-  userId: string | null,
-  message: string
-): Promise<void> {
+/**
+ * Deja el motivo en el histórico del pedido, que es donde se audita. La parte ya
+ * está en «Listo Recogida», así que el servidor solo agrega la nota.
+ */
+async function logDeliveryFailure(storeOrderId: string, message: string): Promise<void> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.from('store_order_status_history').insert({
-      store_order_id: storeOrderId,
-      status: 'at_collection',
-      notes: `No se pudo solicitar el domicilio: ${message}`,
-      changed_by: userId,
-    });
+    await postStatus(storeOrderId, 'at_collection', `No se pudo solicitar el domicilio: ${message}`);
   } catch (err) {
     // Si ni siquiera se puede registrar, no vale la pena tumbar el flujo: el
     // mensaje igual se le devuelve al vendedor.

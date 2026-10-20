@@ -11,6 +11,7 @@ import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
 import { ROLE_ROUTES } from '@/src/constants';
 import { useLegalLinks } from './hooks/use-legal-links';
+import { BrandLogo } from '@/components/ui/brand-logo';
 
 export default function Page() {
   const { state } = useApp();
@@ -70,15 +71,11 @@ export default function Page() {
 
   // Show landing page (not logged in)
   return (
-    <div className="min-h-screen bg-[#FAFAF5] overflow-x-hidden font-dm-sans">
+    <div className="min-h-screen bg-[#F7F5EE] overflow-x-hidden font-sans">
       {/* Header */}
       <header className="fixed top-0 left-0 w-full h-20 bg-white/90 backdrop-blur-md z-50 border-b border-mm-gbg flex items-center justify-between px-6 lg:px-12">
         <div className="flex items-center gap-2">
-          <img
-            src="/logo_MercaMesa_Ful.svg"
-            alt="Mercamesa"
-            className="h-12 w-auto"
-          />
+          <BrandLogo className="text-2xl" />
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -124,7 +121,7 @@ export default function Page() {
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl lg:text-7xl font-fraunces font-black text-white leading-tight mb-6 drop-shadow-2xl"
+            className="text-4xl lg:text-7xl font-display font-black text-white leading-tight mb-6 drop-shadow-2xl"
           >
             MercaMesa: Plataforma de Integración Agroalimentaria. <br />
             <span className="text-mm-gll drop-shadow-md">Del campo a tu mesa, con dignidad.</span>
@@ -146,7 +143,8 @@ export default function Page() {
             <Button
               onClick={() => setIsLoginOpen(true)}
               size="lg"
-              className="px-8 bg-mm-oro hover:bg-mm-oro/90 text-white border-none shadow-xl"
+              variant="secondary"
+              className="px-8 border-none shadow-xl"
             >
               Iniciar sesión
             </Button>
@@ -171,7 +169,7 @@ export default function Page() {
               alt="Reconocimiento"
               className="w-24 h-24 object-contain"
             />
-            <p className="text-xl font-fraunces text-mm-g font-bold">Aquí, cada transacción es un acto de reconocimiento.</p>
+            <p className="text-xl font-display text-mm-g font-bold">Aquí, cada transacción es un acto de reconocimiento.</p>
           </div>
           <div className="flex items-center gap-6 bg-white p-6 rounded-3xl shadow-sm">
             <img
@@ -179,7 +177,7 @@ export default function Page() {
               alt="Comunicación"
               className="w-24 h-24 object-contain"
             />
-            <p className="text-xl font-fraunces text-mm-g font-bold">Cada producto, una historia que merece ser contada.</p>
+            <p className="text-xl font-display text-mm-g font-bold">Cada producto, una historia que merece ser contada.</p>
           </div>
         </div>
       </section>
@@ -187,7 +185,7 @@ export default function Page() {
       {/* Why Mercamesa */}
       <section id="descubre" className="py-24 px-6 lg:px-12 max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-fraunces text-mm-g mb-6">¿Por qué Mercamesa?</h2>
+          <h2 className="text-4xl lg:text-5xl font-display text-mm-g mb-6">¿Por qué Mercamesa?</h2>
           <p className="text-lg text-mm-txs max-w-2xl mx-auto">
             Porque digitaliza sin deshumanizar. Organiza sin apagar la emoción. Y revela lo que siempre fue valioso: el trabajo digno, la trazabilidad consciente y el comercio justo.
           </p>
@@ -226,7 +224,7 @@ export default function Page() {
       {/* Steps Section */}
       <section className="py-24 bg-white px-6 lg:px-12">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-fraunces text-mm-g text-center mb-16">¿Qué puedes hacer hoy?</h2>
+          <h2 className="text-4xl font-display text-mm-g text-center mb-16">¿Qué puedes hacer hoy?</h2>
           <div className="grid md:grid-cols-4 gap-12 relative">
             {[
               { icon: <User className="w-10 h-10" />, title: "Registro", desc: "Crear tu cuenta de comprador. Las tiendas se suman por invitación", onClick: () => setIsBuyerRegisterOpen(true) },
@@ -257,7 +255,7 @@ export default function Page() {
       <section className="py-24 bg-mm-gbg px-6 lg:px-12">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
-            <h2 className="text-4xl lg:text-5xl font-fraunces text-mm-g">MKM: El altar de la memoria campesina</h2>
+            <h2 className="text-4xl lg:text-5xl font-display text-mm-g">MKM: El altar de la memoria campesina</h2>
             <p className="text-lg text-mm-txs">
               Dentro de MercaMesa vive MKM, un espacio simbólico donde cada producto lleva consigo la historia de quienes lo cultivan.
             </p>
@@ -283,7 +281,7 @@ export default function Page() {
       {/* Final CTA */}
       <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
         <div>
-          <h2 className="text-4xl lg:text-5xl font-fraunces text-mm-g mb-8">Mercamesa es más que una herramienta</h2>
+          <h2 className="text-4xl lg:text-5xl font-display text-mm-g mb-8">Mercamesa es más que una herramienta</h2>
           <div className="space-y-6 text-lg text-mm-txs mb-10">
             <p>Es el conjuro digital que convierte la logística en poesía, la plaza en ritual, y la compra en acto de reconocimiento.</p>
             <p>Úsalo. Habítalo. Hazlo tuyo. Porque aquí, la dignidad se practica. Y el futuro, se cultiva.</p>
@@ -304,11 +302,7 @@ export default function Page() {
       <footer className="bg-mm-g text-white py-16 px-6 lg:px-12">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
-            <img
-              src="/logo_MercaMesa_Ful.svg"
-              alt="Mercamesa"
-              className="h-10 w-auto brightness-0 invert"
-            />
+            <BrandLogo tono="oscuro" className="text-2xl" />
           </div>
           {/* Antes esto era un `href="#"`: el enlace estaba, el documento no.
               Ahora sale del PDF publicado desde Parametrización, y si todavía no

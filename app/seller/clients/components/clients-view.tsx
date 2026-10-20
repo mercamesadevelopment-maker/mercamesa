@@ -39,7 +39,7 @@ export function ClientsView() {
       label: 'Cliente',
       render: (item: ClientWithMetrics) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-mm-gbg flex items-center justify-center text-mm-g font-bold font-fraunces border border-mm-crd shrink-0">
+          <div className="w-10 h-10 rounded-full bg-mm-gbg flex items-center justify-center text-mm-g font-bold font-display border border-mm-crd shrink-0">
             {item.full_name.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -125,7 +125,7 @@ export function ClientsView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div>
-            <h1 className="text-4xl font-fraunces text-mm-g mb-2">Clientes</h1>
+            <h1 className="text-4xl font-display text-mm-g mb-2">Clientes</h1>
             <p className="text-mm-txs">Consulta y administra la base de clientes y sus historiales de compra.</p>
           </div>
           {stores.length > 1 && (
@@ -204,7 +204,7 @@ export function ClientsView() {
             <div className="w-10 h-10 bg-mm-gbg rounded-xl flex items-center justify-center text-mm-g">
               <Users className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-fraunces text-mm-g">Cartera de Clientes</h3>
+            <h3 className="text-xl font-display text-mm-g">Cartera de Clientes</h3>
           </div>
           <Badge variant="default" className="text-xs px-4 py-1.5 uppercase tracking-tighter shadow-inner">
             {clients.length} registros
@@ -233,11 +233,11 @@ export function ClientsView() {
             {/* Header info */}
             <div className="p-8 border-b border-mm-crd bg-mm-gbg/15">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-mm-g text-white flex items-center justify-center font-bold font-fraunces text-2xl shadow-sm border border-mm-crd">
+                <div className="w-14 h-14 rounded-2xl bg-mm-g text-white flex items-center justify-center font-bold font-display text-2xl shadow-sm border border-mm-crd">
                   {selectedClient.full_name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-fraunces text-mm-g leading-tight">{selectedClient.full_name}</h2>
+                  <h2 className="text-2xl font-display text-mm-g leading-tight">{selectedClient.full_name}</h2>
                   <p className="text-xs text-mm-txw mt-1 font-bold">
                     {selectedClient.identification_code || 'Documento'}: <span className="font-mono text-mm-g">{selectedClient.document_number}</span>
                   </p>

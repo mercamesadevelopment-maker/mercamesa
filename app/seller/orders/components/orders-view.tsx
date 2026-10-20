@@ -10,6 +10,8 @@ export function OrdersView() {
     stats,
     updateOrderStatus,
     revertOrderStatus,
+    cancelPart,
+    updatePackingNotes,
     stores,
     selectedStoreId,
     setSelectedStoreId,
@@ -27,6 +29,8 @@ export function OrdersView() {
         stats={stats}
         updateOrderStatus={updateOrderStatus}
         revertOrderStatus={revertOrderStatus}
+        cancelPart={cancelPart}
+        savePackingNotes={updatePackingNotes}
         stores={stores}
         selectedStoreId={selectedStoreId}
         setSelectedStoreId={setSelectedStoreId}

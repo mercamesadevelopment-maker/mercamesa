@@ -26,7 +26,7 @@ interface AppState {
   selectedStoreId?: number | string;
   // Flag para saber si ya intentamos hidratar desde Supabase
   _hydrated: boolean;
-  // Aviso de "solo una tienda por pedido" al intentar mezclar tiendas en el carrito
+  // Aviso al intentar juntar en el carrito tiendas que no despachan desde el mismo punto
   cartStoreConflict: { currentStoreName: string } | null;
 }
 
@@ -81,6 +81,8 @@ const roleNameToKey: Record<string, RoleKey> = {
   store_owner: 'provider',
   provider: 'provider',
   delivery: 'delivery',
+  runner: 'runner',
+  logistics: 'logistics',
   wholesale: 'wholesale',
   retail: 'retail',
 };

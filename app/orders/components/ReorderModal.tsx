@@ -6,6 +6,8 @@ import { X, Loader2, AlertTriangle, CheckCircle2, Image as ImageIcon, RotateCcw 
 import { Button } from '@/src/components/Shared';
 import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { fetchPickupGroup } from '@/src/features/cart/services/cart.service';
+import { sharePickupPoint } from '@/lib/orders/pickup-group';
 
 type ReorderStatus = 'available' | 'partial' | 'out_of_stock' | 'unavailable';
 
@@ -78,10 +80,26 @@ export function ReorderModal({
   const addable = lines.filter((l) => l.status === 'available' || l.status === 'partial');
   const blocked = lines.filter((l) => l.status === 'out_of_stock' || l.status === 'unavailable');
 
-  // El carrito admite una sola tienda a la vez, así que si ya tiene productos de
-  // otra hay que avisar antes en vez de dejar que falle ítem por ítem.
+  // El carrito solo junta tiendas que despachan desde el mismo punto, así que si
+  // ya tiene productos de otra plaza hay que avisar antes en vez de dejar que
+  // falle ítem por ítem.
   const currentCartStoreId = cart.length > 0 ? String(cart[0].storeId) : null;
-  const conflict = currentCartStoreId !== null && storeId !== null && currentCartStoreId !== String(storeId);
+  const [conflict, setConflict] = useState(false);
+
+  useEffect(() => {
+    if (currentCartStoreId === null || storeId === null || currentCartStoreId === String(storeId)) {
+      setConflict(false);
+      return;
+    }
+
+    let cancelled = false;
+    Promise.all([fetchPickupGroup(currentCartStoreId), fetchPickupGroup(String(storeId))]).then((grupos) => {
+      if (!cancelled) setConflict(!sharePickupPoint(grupos));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentCartStoreId, storeId]);
 
   const total = addable.reduce((sum, l) => sum + (l.price ?? 0) * l.availableQty, 0);
 
@@ -178,7 +196,7 @@ export function ReorderModal({
         <div className="flex items-center justify-between border-b border-mm-crd p-6">
           <div className="flex items-center gap-3">
             <RotateCcw className="h-5 w-5 text-mm-g" />
-            <h3 className="font-fraunces text-xl text-mm-g">Recomprar este pedido</h3>
+            <h3 className="font-display text-xl text-mm-g">Recomprar este pedido</h3>
           </div>
           <button onClick={onClose} className="rounded-full p-2 transition-colors hover:bg-mm-gbg">
             <X className="h-5 w-5 text-mm-txs" />
@@ -197,10 +215,10 @@ export function ReorderModal({
               {conflict && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   <div className="mb-1 flex items-center gap-2 font-bold">
-                    <AlertTriangle className="h-4 w-4" /> Tu carrito es de otra tienda
+                    <AlertTriangle className="h-4 w-4" /> Tu carrito es de otra plaza
                   </div>
-                  Solo puedes comprar en una tienda a la vez. Si continúas, se vaciará tu carrito
-                  actual y quedarán solo los productos de {storeName || 'esta tienda'}.
+                  En un pedido solo se juntan tiendas de la misma plaza. Si continúas, se vaciará tu
+                  carrito actual y quedarán solo los productos de {storeName || 'esta tienda'}.
                 </div>
               )}
 
@@ -238,7 +256,7 @@ export function ReorderModal({
                 <span className="text-xs font-bold uppercase tracking-widest text-mm-txw">
                   Subtotal
                 </span>
-                <span className="font-fraunces text-2xl text-mm-g">{fmt(total)}</span>
+                <span className="font-display text-2xl text-mm-g">{fmt(total)}</span>
               </div>
             )}
 

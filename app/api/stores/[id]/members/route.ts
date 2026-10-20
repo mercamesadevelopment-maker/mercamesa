@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
+import { canManageStore } from '@/lib/auth/can-manage-store';
 import { sendEmail, storeInvitationEmail } from '@/lib/email/resend';
 
 /** Días que dura una invitación de miembro de tienda, al crearla y al reenviarla. */
@@ -19,8 +20,17 @@ export async function GET(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // El equipo y las invitaciones de una tienda son de su gente (o de un admin).
+    // Antes bastaba con tener sesión para ver, invitar o sacar a cualquiera.
+    if (!(await canManageStore(supabase, id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
+    }
 
-    const { data: members, error } = await supabase
+    // Ya se comprobó que gestiona la tienda. Los nombres y correos del equipo y
+    // las invitaciones se leen con el cliente de servicio: un usuario no lee
+    // perfiles ajenos ni la tabla de invitaciones.
+    const service = createSupabaseServiceClient();
+    const { data: members, error } = await service
       .from('store_members')
       .select(`
         id,
@@ -46,7 +56,7 @@ export async function GET(
     }
 
     // Also fetch pending invitations for this store
-    const { data: invitations } = await supabase
+    const { data: invitations } = await service
       .from('invitations')
       .select(`
         id,
@@ -102,6 +112,11 @@ export async function POST(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // El equipo y las invitaciones de una tienda son de su gente (o de un admin).
+    // Antes bastaba con tener sesión para ver, invitar o sacar a cualquiera.
+    if (!(await canManageStore(supabase, id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
+    }
 
     const { email, role_id } = await request.json();
 
@@ -109,8 +124,10 @@ export async function POST(
       return NextResponse.json({ error: 'Email y Rol son requeridos.' }, { status: 400 });
     }
 
+    const service = createSupabaseServiceClient();
+
     // 1. Check if user exists in profiles table
-    const { data: profile } = await supabase
+    const { data: profile } = await service
       .from('profiles')
       .select('id, full_name')
       .eq('email', email.trim().toLowerCase())
@@ -173,7 +190,7 @@ export async function POST(
       return NextResponse.json({ success: true, memberAdded: true }, { status: 201 });
     } else {
       // 2. New user: check if already invited to this store
-      const { data: existingInvite } = await supabase
+      const { data: existingInvite } = await service
         .from('invitations')
         .select('id')
         .eq('store_id', id)
@@ -185,14 +202,8 @@ export async function POST(
       }
 
       // 2.1 Call inviteUserByEmail with service role Supabase client
-      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-      const serviceSupabase = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
-
       const origin = request.headers.get('origin') || '';
-      const { error: inviteError } = await serviceSupabase.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
+      const { error: inviteError } = await service.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
         redirectTo: `${origin}/accept-invite`
       });
 
@@ -204,7 +215,7 @@ export async function POST(
       const expires = new Date();
       expires.setDate(expires.getDate() + DIAS_VIGENCIA);
 
-      const { error: inviteDbError } = await supabase
+      const { error: inviteDbError } = await service
         .from('invitations')
         .insert({
           email: email.trim().toLowerCase(),
@@ -240,6 +251,11 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // El equipo y las invitaciones de una tienda son de su gente (o de un admin).
+    // Antes bastaba con tener sesión para ver, invitar o sacar a cualquiera.
+    if (!(await canManageStore(supabase, id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre esta tienda.' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const memberId = searchParams.get('memberId');
@@ -259,7 +275,7 @@ export async function DELETE(
       return NextResponse.json({ success: true, message: 'Miembro eliminado correctamente' }, { status: 200 });
     } else if (inviteId) {
       // Delete pending invitation
-      const { error } = await supabase
+      const { error } = await createSupabaseServiceClient()
         .from('invitations')
         .delete()
         .eq('id', inviteId)

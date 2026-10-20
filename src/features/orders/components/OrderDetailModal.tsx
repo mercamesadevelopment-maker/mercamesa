@@ -8,6 +8,9 @@ import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/o
 import { OrderStatusTimeline } from './OrderStatusTimeline';
 import { DeliveryTracking } from './DeliveryTracking';
 import { useDeliveryTracking } from '../hooks/use-delivery-tracking';
+import { PackingNotesCard } from './PackingNotesCard';
+import { ConsolidatedNotice } from './ConsolidatedNotice';
+import { packingNotesEditable } from '@/lib/orders/packing-notes';
 
 /** Estados en los que el pedido ya tiene (o tuvo) domiciliario. */
 const DELIVERY_STATUSES: OrderStatus[] = ['at_collection', 'dispatched', 'delivered', 'returned'];
@@ -26,7 +29,14 @@ interface OrderDetailModalProps {
   onStartRevert?: (orderId: string) => void;
   /** Abre el formulario de PQRS del tendero sobre este pedido. Sin esta prop no se ofrece. */
   onReportProblem?: (order: Order) => void;
+  /** La tienda no puede cumplir su parte de un pedido de varias tiendas. */
+  onStartCancelPart?: (orderId: string) => void;
+  /** Guarda cómo va empacada la parte. Sin esta prop la nota solo se lee. */
+  onSavePackingNotes?: (orderId: string, notes: string) => Promise<void>;
 }
+
+/** Estados desde los que la tienda todavía puede decir que no cumple su parte. */
+const PARTE_CANCELABLE: OrderStatus[] = ['confirmed', 'paid', 'packing', 'at_collection'];
 
 export function OrderDetailModal({
   isOpen,
@@ -35,6 +45,8 @@ export function OrderDetailModal({
   onStartStatusChange,
   onStartRevert,
   onReportProblem,
+  onStartCancelPart,
+  onSavePackingNotes,
 }: OrderDetailModalProps) {
   // Los hooks van antes del `return` temprano.
   const hasDelivery = !!order && DELIVERY_STATUSES.includes(order.status);
@@ -57,8 +69,27 @@ export function OrderDetailModal({
     minute: '2-digit',
   });
 
+  // En un pedido de varias tiendas, después de «Listo Recogida» el estado ya no
+  // lo mueve la tienda: lo despacha logística o el mensajero desde la bahía.
+  const compartido = order.fulfillment === 'consolidated';
+  const esperaAlPatinador = compartido && order.status === 'at_collection';
+
+  // Solo en pedidos compartidos: ahí cancelar una parte no tumba lo de las
+  // demás tiendas. En un pedido de una sola tienda sería anular la venta. Y
+  // solo mientras la parte siga en el local.
+  const puedeCancelarParte =
+    !!onStartCancelPart &&
+    compartido &&
+    PARTE_CANCELABLE.includes(order.status) &&
+    !order.collectedAt &&
+    !order.bayReceivedAt;
+
+  const notasEditables =
+    !!onSavePackingNotes &&
+    packingNotesEditable({ status: order.status, collectedAt: order.collectedAt, bayReceivedAt: order.bayReceivedAt });
+
   const handleAction = () => {
-    if (statusConfig.next) {
+    if (statusConfig.next && !esperaAlPatinador) {
       onStartStatusChange(
         order.id,
         statusConfig.next,
@@ -109,6 +140,8 @@ export function OrderDetailModal({
             </span>
           </div>
         </div>
+
+        {compartido && order.consolidation && <ConsolidatedNotice config={order.consolidation} />}
 
         {/* Two Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -189,6 +222,11 @@ export function OrderDetailModal({
                 }
               />
             )}
+
+            <PackingNotesCard
+              notes={order.packingNotes ?? null}
+              onSave={notasEditables ? (notes) => onSavePackingNotes!(order.id, notes) : undefined}
+            />
 
             {/* Notes Card */}
             {order.notes && (
@@ -424,6 +462,17 @@ export function OrderDetailModal({
             </Button>
           )}
 
+          {puedeCancelarParte && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => onStartCancelPart?.(order.id)}
+              className="w-full sm:w-auto rounded-2xl h-12 text-sm border-red-200 text-red-700 hover:bg-red-50 transition-colors font-bold"
+            >
+              No puedo cumplir mi parte
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="md"
@@ -433,7 +482,7 @@ export function OrderDetailModal({
             Cerrar Detalle
           </Button>
 
-          {statusConfig.next && (
+          {statusConfig.next && !esperaAlPatinador && (
             <Button
               variant="primary"
               size="md"

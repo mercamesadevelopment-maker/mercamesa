@@ -75,7 +75,7 @@ export default function PlazaDetailPage() {
         
         <div className="flex-grow">
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h1 className="text-4xl font-fraunces text-mm-g">{plaza.name}</h1>
+            <h1 className="text-4xl font-display text-mm-g">{plaza.name}</h1>
             <Badge variant={plaza.is_active ? 'success' : 'error'}>
               {plaza.is_active ? 'Abierta' : 'Inactiva'}
             </Badge>
@@ -120,7 +120,7 @@ export default function PlazaDetailPage() {
       {/* Stores List */}
       <div className="mb-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <h2 className="text-2xl font-fraunces text-mm-g">
+          <h2 className="text-2xl font-display text-mm-g">
             Tiendas ({salesType === 'all' ? plaza.stores_count || 0 : filteredStores.length})
           </h2>
           {plaza.stores && plaza.stores.length > 0 && (

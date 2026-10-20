@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase/server';
+import { canManageStore } from '@/lib/auth/can-manage-store';
+
+/** La tienda del producto, para comprobar que quien pregunta la gestiona. */
+async function storeOfProduct(supabase: Awaited<ReturnType<typeof createClient>>, productId: string) {
+  const { data } = await supabase.from('store_products').select('store_id').eq('id', productId).maybeSingle();
+  return data?.store_id as string | undefined;
+}
 
 export async function GET(
   request: Request,
@@ -12,6 +19,12 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // El inventario de una tienda es de su gente (o de un admin).
+    const storeId = await storeOfProduct(supabase, id);
+    if (!storeId || !(await canManageStore(supabase, storeId, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre este producto.' }, { status: 403 });
     }
 
     const { data, error } = await supabase
@@ -74,6 +87,11 @@ export async function POST(
 
     if (fetchError || !existingProduct) {
       return NextResponse.json({ error: fetchError?.message || 'Product not found' }, { status: 404 });
+    }
+
+    // Antes bastaba con tener sesión para registrar movimientos en cualquier tienda.
+    if (!(await canManageStore(supabase, existingProduct.store_id, user.id))) {
+      return NextResponse.json({ error: 'No tienes permisos sobre este producto.' }, { status: 403 });
     }
 
     const oldStock = Number(existingProduct.stock || 0);

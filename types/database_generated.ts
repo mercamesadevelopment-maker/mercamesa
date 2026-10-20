@@ -956,6 +956,58 @@ export type Database = {
           },
         ]
       }
+      marketplace_staff: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          marketplace_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          marketplace_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          marketplace_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_staff_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_staff_marketplace_id_fkey"
+            columns: ["marketplace_id"]
+            isOneToOne: false
+            referencedRelation: "marketplaces_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplaces: {
         Row: {
           address: string | null
@@ -969,9 +1021,13 @@ export type Database = {
           id: string
           is_active: boolean
           latitude: number | null
+          logistics_enabled: boolean
           logo_url: string | null
           longitude: number | null
           name: string
+          runner_commission_type: string | null
+          runner_commission_value: number | null
+          runner_enabled: boolean
           siigo_cost_center_id: number | null
           slug: string
           updated_at: string
@@ -988,9 +1044,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           latitude?: number | null
+          logistics_enabled?: boolean
           logo_url?: string | null
           longitude?: number | null
           name: string
+          runner_commission_type?: string | null
+          runner_commission_value?: number | null
+          runner_enabled?: boolean
           siigo_cost_center_id?: number | null
           slug: string
           updated_at?: string
@@ -1007,9 +1067,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           latitude?: number | null
+          logistics_enabled?: boolean
           logo_url?: string | null
           longitude?: number | null
           name?: string
+          runner_commission_type?: string | null
+          runner_commission_value?: number | null
+          runner_enabled?: boolean
           siigo_cost_center_id?: number | null
           slug?: string
           updated_at?: string
@@ -1328,8 +1392,9 @@ export type Database = {
           money_paid_by: string | null
           money_reference: string | null
           order_id: string
+          origin: string
           platform_commission_amount: number
-          pqrs_id: string
+          pqrs_id: string | null
           products_amount: number
           scope: string
           service_commission_amount: number
@@ -1351,8 +1416,9 @@ export type Database = {
           money_paid_by?: string | null
           money_reference?: string | null
           order_id: string
+          origin?: string
           platform_commission_amount?: number
-          pqrs_id: string
+          pqrs_id?: string | null
           products_amount: number
           scope: string
           service_commission_amount?: number
@@ -1374,8 +1440,9 @@ export type Database = {
           money_paid_by?: string | null
           money_reference?: string | null
           order_id?: string
+          origin?: string
           platform_commission_amount?: number
-          pqrs_id?: string
+          pqrs_id?: string | null
           products_amount?: number
           scope?: string
           service_commission_amount?: number
@@ -1438,6 +1505,13 @@ export type Database = {
             foreignKeyName: "order_refunds_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "order_refunds_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -1446,6 +1520,8 @@ export type Database = {
       orders: {
         Row: {
           address_change_fee: number
+          bay_ready_at: string | null
+          bay_ready_by: string | null
           buyer_id: string | null
           buyer_type: Database["public"]["Enums"]["buyer_type"]
           client_id: string | null
@@ -1460,12 +1536,18 @@ export type Database = {
           delivery_fee: number
           discount: number
           expired_at: string | null
+          fulfillment: string
           id: string
+          logistics_required: boolean
           messages_amount: number
           notes: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           platform_commission_amount: number
           pricing_settings_id: string | null
+          runner_commission_amount: number | null
+          runner_commission_type: string | null
+          runner_commission_value: number | null
+          runner_required: boolean
           service_commission_amount: number
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
@@ -1474,6 +1556,8 @@ export type Database = {
         }
         Insert: {
           address_change_fee?: number
+          bay_ready_at?: string | null
+          bay_ready_by?: string | null
           buyer_id?: string | null
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
           client_id?: string | null
@@ -1488,12 +1572,18 @@ export type Database = {
           delivery_fee?: number
           discount?: number
           expired_at?: string | null
+          fulfillment?: string
           id?: string
+          logistics_required?: boolean
           messages_amount?: number
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           platform_commission_amount?: number
           pricing_settings_id?: string | null
+          runner_commission_amount?: number | null
+          runner_commission_type?: string | null
+          runner_commission_value?: number | null
+          runner_required?: boolean
           service_commission_amount?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
@@ -1502,6 +1592,8 @@ export type Database = {
         }
         Update: {
           address_change_fee?: number
+          bay_ready_at?: string | null
+          bay_ready_by?: string | null
           buyer_id?: string | null
           buyer_type?: Database["public"]["Enums"]["buyer_type"]
           client_id?: string | null
@@ -1516,12 +1608,18 @@ export type Database = {
           delivery_fee?: number
           discount?: number
           expired_at?: string | null
+          fulfillment?: string
           id?: string
+          logistics_required?: boolean
           messages_amount?: number
           notes?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           platform_commission_amount?: number
           pricing_settings_id?: string | null
+          runner_commission_amount?: number | null
+          runner_commission_type?: string | null
+          runner_commission_value?: number | null
+          runner_required?: boolean
           service_commission_amount?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
@@ -1774,6 +1872,13 @@ export type Database = {
             foreignKeyName: "payout_items_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "payout_items_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -1975,6 +2080,7 @@ export type Database = {
           event_cd: number
           event_created_at: string | null
           id: number
+          order_id: string | null
           package_id: string | null
           payload: Json
           received_at: string
@@ -1991,6 +2097,7 @@ export type Database = {
           event_cd: number
           event_created_at?: string | null
           id?: never
+          order_id?: string | null
           package_id?: string | null
           payload: Json
           received_at?: string
@@ -2007,6 +2114,7 @@ export type Database = {
           event_cd?: number
           event_created_at?: string | null
           id?: never
+          order_id?: string | null
           package_id?: string | null
           payload?: Json
           received_at?: string
@@ -2016,6 +2124,27 @@ export type Database = {
           vehicle_plates?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pibox_booking_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pibox_booking_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "pibox_booking_events_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
           {
             foreignKeyName: "pibox_booking_events_store_order_id_fkey"
             columns: ["store_order_id"]
@@ -2040,13 +2169,14 @@ export type Database = {
           is_active: boolean
           last_event_at: string | null
           not_received_reason_cd: number | null
+          order_id: string | null
           package_id: string | null
           package_status_cd: number | null
           pickup_validation_code: string | null
           raw: Json | null
           relaunched_to_booking_id: string | null
           status_cd: number | null
-          store_order_id: string
+          store_order_id: string | null
           tracking_link: string | null
           updated_at: string
           validation_code: string | null
@@ -2066,13 +2196,14 @@ export type Database = {
           is_active?: boolean
           last_event_at?: string | null
           not_received_reason_cd?: number | null
+          order_id?: string | null
           package_id?: string | null
           package_status_cd?: number | null
           pickup_validation_code?: string | null
           raw?: Json | null
           relaunched_to_booking_id?: string | null
           status_cd?: number | null
-          store_order_id: string
+          store_order_id?: string | null
           tracking_link?: string | null
           updated_at?: string
           validation_code?: string | null
@@ -2092,19 +2223,41 @@ export type Database = {
           is_active?: boolean
           last_event_at?: string | null
           not_received_reason_cd?: number | null
+          order_id?: string | null
           package_id?: string | null
           package_status_cd?: number | null
           pickup_validation_code?: string | null
           raw?: Json | null
           relaunched_to_booking_id?: string | null
           status_cd?: number | null
-          store_order_id?: string
+          store_order_id?: string | null
           tracking_link?: string | null
           updated_at?: string
           validation_code?: string | null
           vehicle_plates?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pibox_bookings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pibox_bookings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "pibox_bookings_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
           {
             foreignKeyName: "pibox_bookings_store_order_id_fkey"
             columns: ["store_order_id"]
@@ -2248,6 +2401,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pqrs_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
           },
           {
             foreignKeyName: "pqrs_store_order_id_fkey"
@@ -3189,6 +3349,13 @@ export type Database = {
             foreignKeyName: "store_charges_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "store_charges_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -3520,6 +3687,13 @@ export type Database = {
             foreignKeyName: "store_order_status_history_store_order_id_fkey"
             columns: ["store_order_id"]
             isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "store_order_status_history_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
             referencedRelation: "store_orders"
             referencedColumns: ["id"]
           },
@@ -3527,12 +3701,17 @@ export type Database = {
       }
       store_orders: {
         Row: {
+          bay_received_at: string | null
+          bay_received_by: string | null
           code: string
+          collected_at: string | null
+          collected_by: string | null
           created_at: string
           has_refrigerated: boolean
           id: string
           notes: string | null
           order_id: string
+          packing_notes: string | null
           split_index: number
           status: Database["public"]["Enums"]["order_status"]
           store_id: string
@@ -3540,12 +3719,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bay_received_at?: string | null
+          bay_received_by?: string | null
           code?: string
+          collected_at?: string | null
+          collected_by?: string | null
           created_at?: string
           has_refrigerated?: boolean
           id?: string
           notes?: string | null
           order_id: string
+          packing_notes?: string | null
           split_index?: number
           status?: Database["public"]["Enums"]["order_status"]
           store_id: string
@@ -3553,12 +3737,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bay_received_at?: string | null
+          bay_received_by?: string | null
           code?: string
+          collected_at?: string | null
+          collected_by?: string | null
           created_at?: string
           has_refrigerated?: boolean
           id?: string
           notes?: string | null
           order_id?: string
+          packing_notes?: string | null
           split_index?: number
           status?: Database["public"]["Enums"]["order_status"]
           store_id?: string
@@ -3740,6 +3929,7 @@ export type Database = {
           marketplace_id: string
           name: string
           phone: string | null
+          pickup_group: string | null
           reputation_score: number | null
           slug: string
           store_group_id: string | null
@@ -3769,6 +3959,7 @@ export type Database = {
           marketplace_id: string
           name: string
           phone?: string | null
+          pickup_group?: string | null
           reputation_score?: number | null
           slug: string
           store_group_id?: string | null
@@ -3798,6 +3989,7 @@ export type Database = {
           marketplace_id?: string
           name?: string
           phone?: string | null
+          pickup_group?: string | null
           reputation_score?: number | null
           slug?: string
           store_group_id?: string | null
@@ -3951,9 +4143,12 @@ export type Database = {
           platform_commission_amount: number | null
           products: Json | null
           service_commission_amount: number | null
+          split_index: number | null
           status: Database["public"]["Enums"]["order_status"] | null
+          store_count: number | null
           store_id: string | null
           store_name: string | null
+          store_order_id: string | null
           total: number | null
         }
         Relationships: [
@@ -4040,6 +4235,7 @@ export type Database = {
       call_edge_cron: { Args: { fn: string }; Returns: number }
       create_order_refund: { Args: { p: Json }; Returns: string }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
+      es_lector_de_plataforma: { Args: never; Returns: boolean }
       escalate_overdue_pqrs: { Args: never; Returns: number }
       expire_unpaid_orders: { Args: never; Returns: number }
       fn_is_store_image_of_member: {
@@ -4058,6 +4254,15 @@ export type Database = {
         Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
         Returns: string
       }
+      puede_ver_cliente: { Args: { p_client: string }; Returns: boolean }
+      puede_ver_direccion: { Args: { p_address: string }; Returns: boolean }
+      puede_ver_parte: { Args: { p_store_order: string }; Returns: boolean }
+      puede_ver_pedido: { Args: { p_order: string }; Returns: boolean }
+      puede_ver_perfil: { Args: { p_profile: string }; Returns: boolean }
+      puede_ver_producto_de_pedido: {
+        Args: { p_order: string; p_store_product: string }
+        Returns: boolean
+      }
       refund_to_money: {
         Args: { p_by: string; p_refund: string }
         Returns: undefined
@@ -4074,6 +4279,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      tienda_de_producto: { Args: { p_store_product: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       vitrina_categorias: {
         Args: { p_store_id?: string }

@@ -61,8 +61,8 @@ export function Button({
     secondary: "bg-mm-gll text-mm-g hover:bg-mm-gl hover:text-white",
     outline: "border-1.5 border-mm-g text-mm-g hover:bg-mm-gbg",
     ghost: "text-mm-g hover:bg-mm-gbg",
-    danger: "bg-r text-white hover:bg-red-700",
-    oro: "bg-mm-oro text-white hover:bg-amber-600",
+    danger: "bg-r text-white hover:brightness-90",
+    oro: "bg-arcilla text-white hover:bg-arcilla-oscura",
   };
   const sizes = {
     sm: "px-3 py-1.5 text-sm",
@@ -78,7 +78,7 @@ export function Button({
   return (
     <button 
       className={cn(
-        "rounded-full font-medium transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2",
+        "rounded-full font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2",
         variants[variant],
         sizes[size],
         className
@@ -166,7 +166,7 @@ export function Textarea({ label, error, hint, className, ...props }: React.Text
   );
 }
 
-export function StepBar({ step, total, color = "#2A4E12" }: { step: number; total: number; color?: string }) {
+export function StepBar({ step, total, color = "#0E3B2F" }: { step: number; total: number; color?: string }) {
   return (
     <div className="flex items-center justify-between w-full max-w-xs mx-auto mb-8 relative">
       <div className="absolute top-1/2 left-0 w-full h-0.5 bg-mm-crd -translate-y-1/2 z-0" />

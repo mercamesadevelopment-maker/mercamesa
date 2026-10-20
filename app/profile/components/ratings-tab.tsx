@@ -80,7 +80,7 @@ export function RatingsTab() {
         className="space-y-8"
       >
         <div>
-          <h2 className="text-3xl font-fraunces text-mm-g mb-2">Calificaciones</h2>
+          <h2 className="text-3xl font-display text-mm-g mb-2">Calificaciones</h2>
           <p className="text-mm-txs">Tu opinión ayuda a mejorar la comunidad de MercaMesa.</p>
         </div>
 
@@ -195,7 +195,7 @@ export function RatingsTab() {
                 {state.stores.find((s) => String(s.id) === String(ratingStoreId))?.emoji}
               </div>
 
-              <h2 className="text-3xl font-fraunces text-mm-g mb-2">¿Qué tal tu experiencia?</h2>
+              <h2 className="text-3xl font-display text-mm-g mb-2">¿Qué tal tu experiencia?</h2>
               <p className="text-mm-txs mb-8 font-medium">
                 Califica a{' '}
                 <span className="text-mm-g font-bold">

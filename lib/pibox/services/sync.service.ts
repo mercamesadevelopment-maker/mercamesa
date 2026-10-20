@@ -7,6 +7,33 @@ import { isForwardOrderStatus, piboxBookingIsClosed, type OrderStatus } from '..
 import type { PiboxBookingResponse } from '../types';
 
 /**
+ * De quién es una reserva de Pibox.
+ *
+ * Lo normal es que sea de la parte de una tienda (`storeOrderId`): la tienda
+ * marca «Listo Recogida» y se pide su mensajero. En un pedido de varias tiendas
+ * la reserva es del pedido entero (`orderId`): sale un solo mensajero desde la
+ * bahía, y lo que le pase les pasa a todas las partes.
+ */
+export type BookingOwner = { storeOrderId: string } | { orderId: string };
+
+/** Las columnas de `pibox_bookings` que dicen de quién es la reserva. */
+function ownerColumns(owner: BookingOwner): { store_order_id: string | null; order_id: string | null } {
+  return 'orderId' in owner
+    ? { store_order_id: null, order_id: owner.orderId }
+    : { store_order_id: owner.storeOrderId, order_id: null };
+}
+
+/** El dueño de una fila de `pibox_bookings`. */
+export function ownerOf(
+  row: { store_order_id: string | null; order_id: string | null } | null
+): BookingOwner | null {
+  if (!row) return null;
+  if (row.order_id) return { orderId: row.order_id };
+  if (row.store_order_id) return { storeOrderId: row.store_order_id };
+  return null;
+}
+
+/**
  * Guarda/actualiza el snapshot de un booking de Pibox.
  * Se llama al crear el domicilio, al recibir un webhook y desde el cron.
  *
@@ -14,7 +41,7 @@ import type { PiboxBookingResponse } from '../types';
  * guarda sobre la reserva principal: nunca se crea una fila por relanzamiento.
  */
 export async function persistBookingSnapshot(
-  storeOrderId: string,
+  owner: BookingOwner,
   booking: PiboxBookingResponse
 ): Promise<void> {
   const db = createSupabaseServiceClient();
@@ -22,7 +49,7 @@ export async function persistBookingSnapshot(
   const known = await findBookingRow(booking._id);
 
   const snapshot = {
-    store_order_id: storeOrderId,
+    ...ownerColumns(owner),
     booking_id: known?.booking_id ?? booking._id,
     package_id: pkg?._id ?? null,
     status_cd: booking.status_cd ?? null,
@@ -117,7 +144,8 @@ export async function applyOrderStatusFromPibox(
 
 export interface BookingRef {
   booking_id: string;
-  store_order_id: string;
+  store_order_id: string | null;
+  order_id: string | null;
 }
 
 /** La reserva cuyo id o alias es `bookingId`. */
@@ -125,23 +153,60 @@ async function findBookingRow(bookingId: string): Promise<BookingRef | null> {
   const db = createSupabaseServiceClient();
   const { data } = await db
     .from('pibox_bookings')
-    .select('booking_id, store_order_id')
+    .select('booking_id, store_order_id, order_id')
     .or(`booking_id.eq.${bookingId},alias_booking_ids.cs.{${bookingId}}`)
     .limit(1)
     .maybeSingle();
   return data ?? null;
 }
 
-/** El pedido de una reserva, por su id o un alias. Sin reintentos. */
-export async function findStoreOrderIdByBooking(bookingId: string): Promise<string | null> {
-  return (await findBookingRow(bookingId))?.store_order_id ?? null;
+/** De quién es una reserva, por su id o un alias. Sin reintentos. */
+export async function findBookingOwner(bookingId: string): Promise<BookingOwner | null> {
+  return ownerOf(await findBookingRow(bookingId));
+}
+
+/** Estados en los que una parte ya no viaja con el pedido. */
+const FUERA_DEL_DESPACHO: OrderStatus[] = ['cancelled', 'returned'];
+
+/**
+ * Las partes de tienda a las que les aplica lo que pase con la reserva.
+ *
+ * En una reserva de pedido son todas las que siguen en él: una tienda que
+ * canceló su parte no viaja, así que el mensajero no puede «entregarla».
+ */
+export async function storeOrderIdsOf(owner: BookingOwner): Promise<string[]> {
+  if ('storeOrderId' in owner) return [owner.storeOrderId];
+
+  const db = createSupabaseServiceClient();
+  const { data } = await db.from('store_orders').select('id, status').eq('order_id', owner.orderId);
+
+  return (data ?? [])
+    .filter((so) => !FUERA_DEL_DESPACHO.includes(so.status as OrderStatus))
+    .map((so) => so.id);
+}
+
+/**
+ * Aplica un estado de Pibox a todo lo que cubre la reserva.
+ *
+ * @returns true si cambió el estado de al menos una parte
+ */
+export async function applyStatusToOwner(
+  owner: BookingOwner,
+  nextStatus: OrderStatus | null,
+  note: string
+): Promise<boolean> {
+  let changed = false;
+  for (const storeOrderId of await storeOrderIdsOf(owner)) {
+    if (await applyOrderStatusFromPibox(storeOrderId, nextStatus, note)) changed = true;
+  }
+  return changed;
 }
 
 async function findPackageRow(packageId: string): Promise<BookingRef | null> {
   const db = createSupabaseServiceClient();
   const { data } = await db
     .from('pibox_bookings')
-    .select('booking_id, store_order_id')
+    .select('booking_id, store_order_id, order_id')
     .eq('package_id', packageId)
     .limit(1)
     .maybeSingle();
@@ -235,6 +300,7 @@ export async function addBookingAlias(bookingId: string, alias: string): Promise
 
 export interface BookingEventRecord {
   storeOrderId: string | null;
+  orderId?: string | null;
   bookingId: string | null;
   eventBookingId: string | null;
   packageId: string | null;
@@ -259,6 +325,7 @@ export async function recordBookingEvent(e: BookingEventRecord): Promise<void> {
 
   const { error } = await db.from('pibox_booking_events').insert({
     store_order_id: e.storeOrderId,
+    order_id: e.orderId ?? null,
     booking_id: e.bookingId,
     event_booking_id: e.eventBookingId,
     package_id: e.packageId,
@@ -279,25 +346,27 @@ export async function recordBookingEvent(e: BookingEventRecord): Promise<void> {
  * cancelado), sin cambiar el estado del pedido: sigue en «Listo Recogida» y la
  * tienda puede pedir otro domiciliario.
  */
-export async function noteClosedBooking(storeOrderId: string, note: string): Promise<void> {
+export async function noteClosedBooking(owner: BookingOwner, note: string): Promise<void> {
   const supabase = createSupabaseServiceClient();
 
-  const { data: storeOrder } = await supabase
-    .from('store_orders')
-    .select('status')
-    .eq('id', storeOrderId)
-    .maybeSingle();
+  for (const storeOrderId of await storeOrderIdsOf(owner)) {
+    const { data: storeOrder } = await supabase
+      .from('store_orders')
+      .select('status')
+      .eq('id', storeOrderId)
+      .maybeSingle();
 
-  if (!storeOrder) return;
+    if (!storeOrder) continue;
 
-  const { error } = await supabase.from('store_order_status_history').insert({
-    store_order_id: storeOrderId,
-    status: storeOrder.status,
-    notes: `${note}. Se puede solicitar otro domiciliario.`,
-    changed_by: null,
-  });
+    const { error } = await supabase.from('store_order_status_history').insert({
+      store_order_id: storeOrderId,
+      status: storeOrder.status,
+      notes: `${note}. Se puede solicitar otro domiciliario.`,
+      changed_by: null,
+    });
 
-  if (error) console.error('Error registrando el cierre del domicilio:', error.message);
+    if (error) console.error('Error registrando el cierre del domicilio:', error.message);
+  }
 }
 
 /**
