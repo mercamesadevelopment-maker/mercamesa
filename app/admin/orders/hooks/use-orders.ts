@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
+import { Order, OrderStatus } from '@/src/types';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
 import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
 import { cancelStorePart } from '@/src/features/orders/services/cancel-store-part.service';
-import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
+import { toStoreOrderCard } from '@/src/features/orders/utils/store-order-card';
 
 export function useOrders() {
   const [stores, setStores] = useState<Array<{ id: string; name: string }>>([]);
@@ -122,84 +122,8 @@ export function useOrders() {
       if (itemsError) throw itemsError;
 
       // 3. Combine details
-      const mappedOrders: Order[] = storeOrdersData.map((so: any) => {
-        const parentOrder = so.orders;
-        const buyer = parentOrder?.profiles;
-        const addressStr = formatDeliveryAddress(
-          parentOrder?.delivery_address_snapshot,
-          parentOrder?.delivery_addresses
-        );
-        const deliveryInstructions = getDeliveryInstructions(
-          parentOrder?.delivery_address_snapshot,
-          parentOrder?.delivery_addresses
-        );
-
-        // Filter and map items belonging to this order's store
-        const storeItems: OrderItem[] = (itemsData || [])
-          .filter((item: any) => item.order_id === so.order_id && item.store_products?.store_id === so.store_id)
-          .map((item: any) => ({
-            id: item.id,
-            name: item.catalog_name || 'Producto',
-            qty: Number(item.quantity),
-            price: Number(item.unit_price),
-            unit: item.unit_name || 'unid',
-            emoji: getEmojiForName(item.catalog_name),
-          }));
-
-        const client = (buyer?.clients && Array.isArray(buyer.clients) && buyer.clients.length > 0)
-          ? buyer.clients[0]
-          : null;
-
-        const historyData: OrderStatusHistoryItem[] = (so.store_order_status_history || [])
-          .map((h: any) => ({
-            id: h.id,
-            status: h.status as OrderStatus,
-            notes: h.notes,
-            createdAt: h.created_at,
-            changedByName: h.profiles?.full_name || null,
-            isReversal: !!h.is_reversal,
-          }))
-          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-        return {
-          id: so.order_id,
-          storeOrderId: so.id, // Store Order specific DB ID
-          code: so.code,
-          parentCode: parentOrder?.code,
-          fulfillment: parentOrder?.fulfillment === 'consolidated' ? 'consolidated' : 'store',
-          consolidation: {
-            runnerRequired: Boolean(parentOrder?.runner_required),
-            logisticsRequired: Boolean(parentOrder?.logistics_required),
-          },
-          packingNotes: so.packing_notes ?? null,
-          collectedAt: so.collected_at ?? null,
-          bayReceivedAt: so.bay_received_at ?? null,
-          date: so.created_at || new Date().toISOString(),
-          storeId: so.store_id,
-          storeName: so.stores?.name || 'Mi Tienda',
-          storeEmoji: '🏪',
-          items: storeItems,
-          total: Number(so.subtotal),
-          status: so.status as OrderStatus,
-          buyerId: buyer?.full_name || parentOrder?.buyer_id || 'Cliente',
-          address: addressStr,
-          deliveryInstructions,
-          paymentMethod: parentOrder?.payment_status === 'approved' ? 'Tarjeta (Aprobado)' : 'Pendiente de Pago',
-          buyerName: client?.full_name || buyer?.full_name || 'Cliente',
-          buyerPhone: client?.phone || buyer?.phone || null,
-          buyerEmail: client?.email || buyer?.email || null,
-          buyerDocument: client?.document_number || buyer?.document_number || null,
-          notes: so.notes || parentOrder?.notes || null,
-          paymentStatus: parentOrder?.payment_status || 'pending',
-          discount: parentOrder?.discount ? Number(parentOrder.discount) : 0,
-          deliveryFee: parentOrder?.delivery_fee ? Number(parentOrder.delivery_fee) : 0,
-          serviceCommission: Number(parentOrder?.service_commission_amount ?? 0),
-          messagesAmount: Number(parentOrder?.messages_amount ?? 0),
-          platformCommission: Number(parentOrder?.platform_commission_amount ?? 0),
-          subtotal: Number(so.subtotal),
-          history: historyData,
-        };
-      });
+      // Una tarjeta por parte, con su propio id (ver toStoreOrderCard).
+      const mappedOrders: Order[] = storeOrdersData.map((so: any) => toStoreOrderCard(so, itemsData || []));
 
       setMyOrders(mappedOrders);
     } catch (err) {
@@ -287,22 +211,4 @@ export function useOrders() {
     selectedStoreId,
     setSelectedStoreId,
   };
-}
-
-function getEmojiForName(name?: string): string {
-  if (!name) return '📦';
-  const n = name.toLowerCase();
-  if (n.includes('tomate')) return '🍅';
-  if (n.includes('limón') || n.includes('limon')) return '🍋';
-  if (n.includes('zanahoria')) return '🥕';
-  if (n.includes('papa')) return '🥔';
-  if (n.includes('maíz') || n.includes('maiz')) return '🌽';
-  if (n.includes('ají') || n.includes('aji')) return '🌶️';
-  if (n.includes('ajo')) return '🧄';
-  if (n.includes('cebolla')) return '🧅';
-  if (n.includes('carne') || n.includes('res') || n.includes('punta')) return '🥩';
-  if (n.includes('banano') || n.includes('plátano')) return '🍌';
-  if (n.includes('manzana')) return '🍎';
-  if (n.includes('cilantro')) return '🥬';
-  return '📦';
 }

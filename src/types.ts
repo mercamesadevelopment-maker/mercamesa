@@ -167,6 +167,11 @@ export interface OrderStatusHistoryItem {
 }
 
 export interface Order {
+  /**
+   * En el panel de pedidos de la tienda y del admin es el id de la parte
+   * (`store_orders.id`), no el del pedido: un pedido de varias tiendas tiene una
+   * tarjeta por tienda y cada una necesita su propio id (ver `toStoreOrderCard`).
+   */
   id: string;
   storeOrderId?: string;
   /** Código visible del pedido de esta tienda: MM-2026-001017-1 */
