@@ -91,6 +91,8 @@ export interface Product {
   unit: string;
   unitId?: string;
   isFeatured?: boolean;
+  /** Producto nuevo que propuso la tienda y el admin todavía no revisa. */
+  inReview?: boolean;
   retailPrice: number;
   wsPrice: number;
   ws20: number;

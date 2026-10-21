@@ -353,6 +353,8 @@ export type Database = {
           is_non_food: boolean
           name: string
           owner_group_id: string | null
+          proposed_by_store_id: string | null
+          review_status: string
           search_text: string | null
           siigo_id: string
           siigo_synced_at: string | null
@@ -375,6 +377,8 @@ export type Database = {
           is_non_food?: boolean
           name: string
           owner_group_id?: string | null
+          proposed_by_store_id?: string | null
+          review_status?: string
           search_text?: string | null
           siigo_id: string
           siigo_synced_at?: string | null
@@ -397,6 +401,8 @@ export type Database = {
           is_non_food?: boolean
           name?: string
           owner_group_id?: string | null
+          proposed_by_store_id?: string | null
+          review_status?: string
           search_text?: string | null
           siigo_id?: string
           siigo_synced_at?: string | null
@@ -430,6 +436,13 @@ export type Database = {
             columns: ["owner_group_id"]
             isOneToOne: false
             referencedRelation: "store_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_proposed_by_store_id_fkey"
+            columns: ["proposed_by_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -4196,6 +4209,10 @@ export type Database = {
       immutable_unaccent: { Args: { texto: string }; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      merge_catalog_product: {
+        Args: { p_pending: string; p_target: string }
+        Returns: number
+      }
       payable_until: {
         Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
         Returns: string
