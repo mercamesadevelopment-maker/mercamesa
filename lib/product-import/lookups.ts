@@ -3,6 +3,7 @@ import { normalizeText } from '@/src/components/Shared';
 import { productCodeKey } from '@/lib/products/product-code';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { canStoreUseCatalogProduct, getStoreGroupId } from '@/lib/catalog/visibility';
+import { loadCategoryOptions } from '@/lib/catalog-import/lookups';
 import type { CatalogEntry, ImportLookups } from './types';
 
 interface CatalogRow {
@@ -10,7 +11,10 @@ interface CatalogRow {
   name: string;
   slug: string;
   default_unit_id: string | null;
+  is_active: boolean;
   owner_group_id: string | null;
+  review_status: string | null;
+  proposed_by_store_id: string | null;
 }
 
 interface UnitRow {
@@ -37,16 +41,16 @@ export async function loadImportLookups(
   supabase: SupabaseClient<any>,
   storeId: string
 ): Promise<ImportLookups> {
-  const [storeGroupId, catalog, units, published] = await Promise.all([
+  const [storeGroupId, fullCatalog, units, published, { categoryIdsByText }] = await Promise.all([
     getStoreGroupId(supabase, storeId),
     // Se carga el catálogo completo, no solo el visible: así una fila con el
     // slug de un producto ajeno se rechaza diciendo que es exclusivo de otra
-    // tienda, en vez del engañoso "no existe en el catálogo".
+    // tienda, en vez del engañoso "no existe en el catálogo". Incluye los
+    // inactivos solo para no repetir su slug al crear un producto nuevo.
     fetchAllRows<CatalogRow>((from, to) =>
       supabase
         .from('catalog_products')
-        .select('id, name, slug, default_unit_id, owner_group_id')
-        .eq('is_active', true)
+        .select('id, name, slug, default_unit_id, is_active, owner_group_id, review_status, proposed_by_store_id')
         .order('id')
         .range(from, to)
     ),
@@ -66,15 +70,29 @@ export async function loadImportLookups(
         .order('catalog_product_id')
         .range(from, to)
     ),
+    loadCategoryOptions(supabase),
   ]);
 
+  const catalog = fullCatalog.filter((product) => product.is_active);
+  const existingSlugs = new Set(fullCatalog.map((product) => product.slug));
+
   const catalogBySlug = new Map<string, CatalogEntry>();
+  const visibleNames = new Map<string, string>();
   for (const product of catalog) {
+    const usable = canStoreUseCatalogProduct(
+      {
+        ownerGroupId: product.owner_group_id,
+        reviewStatus: product.review_status,
+        proposedByStoreId: product.proposed_by_store_id,
+      },
+      { id: storeId, groupId: storeGroupId }
+    );
+    if (usable) visibleNames.set(normalizeText(product.name).replace(/\s+/g, ' ').trim(), product.name);
     catalogBySlug.set(normalizeText(product.slug).trim(), {
       id: product.id,
       name: product.name,
       defaultUnitId: product.default_unit_id,
-      usable: canStoreUseCatalogProduct(product.owner_group_id, storeGroupId),
+      usable,
     });
   }
 
@@ -100,6 +118,10 @@ export async function loadImportLookups(
 
   return {
     catalogBySlug,
+    visibleNames,
+    existingSlugs,
+    categoryIdsByText,
+    storeGroupId,
     unitIdsByText,
     existingCatalogProductIds,
     existingProductCodes,

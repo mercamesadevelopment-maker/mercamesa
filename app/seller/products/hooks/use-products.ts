@@ -78,6 +78,7 @@ export function useProducts() {
         unit: item.measurement_units?.abbreviation || 'kg',
         unitId: item.unit_id || '',
         isFeatured: Boolean(item.is_featured),
+        inReview: item.catalog_products?.review_status === 'pending',
         retailPrice: Number(item.price_per_unit),
         wsPrice: Number(item.wholesale_price || item.price_per_unit * 0.8),
         ws20: Number(item.price_per_unit * 0.75),

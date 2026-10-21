@@ -90,3 +90,56 @@ export const TEMPLATE_COLUMN_WIDTHS: Record<TemplateField, number> = {
 
 /** La primera fila de datos en Excel es la 2: la 1 es el encabezado. */
 export const HEADER_ROW_OFFSET = 2;
+
+/** Nombres de las hojas de datos de la plantilla. */
+export const SHEET_NAMES = {
+  catalog: 'Productos',
+  newProducts: 'Productos nuevos',
+} as const;
+
+/**
+ * Hoja «Productos nuevos»: lo que el tendero vende y no está en el catálogo.
+ * Cada fila crea un producto del catálogo en revisión y lo publica en la tienda.
+ */
+export const NEW_PRODUCT_HEADERS = {
+  name: 'Producto',
+  category: 'Categoría',
+  unit: 'Unidad',
+  productCode: TEMPLATE_HEADERS.productCode,
+  retailPrice: TEMPLATE_HEADERS.retailPrice,
+  stock: TEMPLATE_HEADERS.stock,
+  wholesalePrice: TEMPLATE_HEADERS.wholesalePrice,
+  wholesaleMinQty: TEMPLATE_HEADERS.wholesaleMinQty,
+  minOrderQty: TEMPLATE_HEADERS.minOrderQty,
+  description: 'Descripción',
+} as const;
+
+export type NewProductField = keyof typeof NEW_PRODUCT_HEADERS;
+
+export const NEW_PRODUCT_SCHEMA = {
+  headers: NEW_PRODUCT_HEADERS,
+  required: ['name', 'category', 'unit', 'productCode', 'retailPrice', 'stock'] as NewProductField[],
+};
+
+export const NEW_PRODUCT_COLUMN_WIDTHS: Record<NewProductField, number> = {
+  name: 38,
+  category: 40,
+  unit: 14,
+  productCode: 22,
+  retailPrice: 18,
+  stock: 12,
+  wholesalePrice: 18,
+  wholesaleMinQty: 24,
+  minOrderQty: 16,
+  description: 40,
+};
+
+/** Filas vacías de la hoja de productos nuevos, con desplegables y formato. */
+export const NEW_PRODUCT_BLANK_ROWS = 300;
+
+/**
+ * Tope de productos nuevos por carga. Cada uno entra a la revisión del admin:
+ * más que esto en un solo archivo casi seguro es el catálogo de otro lado pegado
+ * entero, y conviene hablarlo antes que revisarlo fila por fila.
+ */
+export const MAX_NEW_PRODUCTS = 500;

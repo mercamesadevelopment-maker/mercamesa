@@ -80,7 +80,7 @@ function cellToString(value: ExcelJS.CellValue): string {
  * esquema. Las columnas que no reconozca se ignoran, así el usuario puede
  * agregar notas propias al archivo sin romper la carga.
  */
-function mapRows<TField extends string>(
+export function mapRows<TField extends string>(
   matrix: string[][],
   schema: SpreadsheetSchema<TField>
 ): RawRow<TField>[] {
@@ -128,7 +128,7 @@ function mapRows<TField extends string>(
   return rows;
 }
 
-async function parseXlsx(buffer: Buffer): Promise<string[][]> {
+async function loadXlsx(buffer: Buffer): Promise<ExcelJS.Workbook> {
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
@@ -137,10 +137,18 @@ async function parseXlsx(buffer: Buffer): Promise<string[][]> {
       'No se pudo leer el archivo. Verifica que sea un Excel (.xlsx) válido y no esté dañado.'
     );
   }
+  if (workbook.worksheets.length === 0) {
+    throw new SpreadsheetError('El archivo no tiene ninguna hoja con datos.');
+  }
+  return workbook;
+}
 
-  const sheet = workbook.worksheets[0];
-  if (!sheet) throw new SpreadsheetError('El archivo no tiene ninguna hoja con datos.');
+async function parseXlsx(buffer: Buffer): Promise<string[][]> {
+  const workbook = await loadXlsx(buffer);
+  return sheetToMatrix(workbook.worksheets[0]);
+}
 
+function sheetToMatrix(sheet: ExcelJS.Worksheet): string[][] {
   const columnCount = sheet.columnCount;
   const matrix: string[][] = [];
 
@@ -182,6 +190,40 @@ function parseCsv(buffer: Buffer): string[][] {
   }
 
   return result.data.map((row) => (Array.isArray(row) ? row.map(String) : []));
+}
+
+/** Las hojas de un archivo, leídas una sola vez, para buscarlas por nombre. */
+export interface SheetMatrices {
+  /** La primera hoja (en un CSV, la única). */
+  first: { name: string; matrix: string[][] };
+  /** La hoja con ese nombre, sin distinguir mayúsculas ni tildes. En un CSV no hay. */
+  byName(name: string): string[][] | undefined;
+}
+
+/**
+ * Lee todas las hojas de un archivo. Para plantillas con más de una hoja de
+ * datos: `parseSpreadsheet` solo mira la primera.
+ */
+export async function readSheets(buffer: Buffer, fileName: string): Promise<SheetMatrices> {
+  if (fileName.toLowerCase().endsWith('.csv')) {
+    const matrix = parseCsv(buffer);
+    return { first: { name: '', matrix }, byName: () => undefined };
+  }
+
+  const workbook = await loadXlsx(buffer);
+  const cache = new Map<string, string[][]>();
+  const matrixOf = (sheet: ExcelJS.Worksheet) => {
+    if (!cache.has(sheet.name)) cache.set(sheet.name, sheetToMatrix(sheet));
+    return cache.get(sheet.name)!;
+  };
+
+  return {
+    first: { name: workbook.worksheets[0].name, matrix: matrixOf(workbook.worksheets[0]) },
+    byName: (name) => {
+      const sheet = workbook.worksheets.find((s) => normalizeHeader(s.name) === normalizeHeader(name));
+      return sheet ? matrixOf(sheet) : undefined;
+    },
+  };
 }
 
 export async function parseSpreadsheet<TField extends string>(
