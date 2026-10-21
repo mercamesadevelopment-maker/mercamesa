@@ -1,7 +1,10 @@
 import ExcelJS from 'exceljs';
 import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 import {
+  addListValidation,
   buildInstructionsSheet,
+  buildListsSheet,
+  styleEditableColumn,
   styleHeaderRow,
   styleReferenceCell,
 } from '@/lib/spreadsheet/workbook';
@@ -27,9 +30,10 @@ export interface TemplateInput {
 
 /** El orden de las columnas en la hoja. */
 const FIELDS = Object.keys(TEMPLATE_HEADERS) as TemplateField[];
+const columnOf = (field: TemplateField) => FIELDS.indexOf(field) + 1;
 
 /** Columnas que el seller llena; las demás son referencia del catálogo. */
-const EDITABLE_FIELDS: TemplateField[] = [
+export const EDITABLE_FIELDS: TemplateField[] = [
   'unit',
   'productCode',
   'retailPrice',
@@ -38,6 +42,8 @@ const EDITABLE_FIELDS: TemplateField[] = [
   'wholesaleMinQty',
   'minOrderQty',
 ];
+
+const UNITS_LIST = 'Unidades de medida';
 
 export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
@@ -52,7 +58,11 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
 
   styleHeaderRow(sheet, FIELDS.length);
 
-  const editableColumns = new Set(EDITABLE_FIELDS.map((field) => FIELDS.indexOf(field) + 1));
+  // El código del catálogo identifica el producto al volver a subir el archivo,
+  // pero al tendero no le dice nada: va oculto, no borrado.
+  sheet.getColumn(columnOf('catalogCode')).hidden = true;
+
+  const editableColumns = new Set(EDITABLE_FIELDS.map(columnOf));
 
   for (const product of input.products) {
     const row = sheet.addRow({
@@ -63,36 +73,49 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
       unit: product.unit,
     });
 
-    // Las de referencia van en gris para que se note cuáles hay que llenar.
+    // Las de referencia van en gris; las que se llenan, en lima (abajo).
     FIELDS.forEach((_, index) => {
       if (!editableColumns.has(index + 1)) styleReferenceCell(row.getCell(index + 1));
     });
 
-    row.getCell(FIELDS.indexOf('retailPrice') + 1).numFmt = '#,##0';
-    row.getCell(FIELDS.indexOf('wholesalePrice') + 1).numFmt = '#,##0';
+    row.getCell(columnOf('retailPrice')).numFmt = '#,##0';
+    row.getCell(columnOf('wholesalePrice')).numFmt = '#,##0';
     // Como texto: si no, Excel convierte un código largo como 7702004003508 a
     // notación científica y se come los ceros a la izquierda.
-    row.getCell(FIELDS.indexOf('productCode') + 1).numFmt = '@';
+    row.getCell(columnOf('productCode')).numFmt = '@';
   }
 
-  const instructions = buildInstructionsSheet(
+  for (const column of editableColumns) {
+    styleEditableColumn(sheet, column, input.products.length);
+  }
+
+  // Orden de las hojas: Productos (la primera, que es la que se lee al subir el
+  // archivo), Instrucciones y Listas.
+  buildInstructionsSheet(
     workbook,
     `Carga masiva de productos — ${input.storeName}`,
     [
-      '1. En la hoja "Productos" está todo el catálogo que aún no publicas.',
-      `2. Llena "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" SOLO en los productos que vendes. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
-      `3. Ojo con las dos columnas de código: "${TEMPLATE_HEADERS.catalogCode}" ya viene llena y NO se debe modificar (es la que identifica el producto), mientras que "${TEMPLATE_HEADERS.productCode}" la escribes tú: es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
-      `4. Puedes llenar todas las filas que necesites, hasta las ${input.products.length} de esta plantilla, y subirla de una sola vez.`,
-      `5. "${TEMPLATE_HEADERS.wholesalePrice}", "${TEMPLATE_HEADERS.wholesaleMinQty}" y "${TEMPLATE_HEADERS.minOrderQty}" son opcionales. El mayorista no puede superar al minorista.`,
-      `6. "${TEMPLATE_HEADERS.unit}" ya viene sugerida; cámbiala solo si vendes en otra. Debe ser una de la lista de abajo.`,
-      '7. Guarda el archivo como Excel (.xlsx) o CSV y súbelo desde Productos → Carga masiva.',
+      '1. En la hoja "Productos" están los productos del catálogo que puedes vender y aún no publicas.',
+      `2. Llena las columnas en verde claro SOLO en los productos que vendes: "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" son obligatorias. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
+      `3. "${TEMPLATE_HEADERS.productCode}" es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
+      `4. "${TEMPLATE_HEADERS.wholesalePrice}", "${TEMPLATE_HEADERS.wholesaleMinQty}" y "${TEMPLATE_HEADERS.minOrderQty}" son opcionales. El mayorista no puede superar al minorista.`,
+      `5. "${TEMPLATE_HEADERS.unit}" ya viene sugerida; cámbiala solo si vendes en otra, eligiéndola de la lista.`,
+      '6. Las columnas en gris son del catálogo y no se cambian.',
+      `7. Están los productos del catálogo público y los de tu grupo de tiendas, si tienes uno; los que ya publicaste no se repiten. Puedes llenar todas las filas que necesites, hasta las ${input.products.length} de esta plantilla, y subirla de una sola vez.`,
+      '8. Guarda el archivo como Excel (.xlsx) o CSV y súbelo desde Productos → Carga masiva.',
     ]
   );
 
-  const unitsTitle = instructions.addRow(['Unidades de medida válidas']);
-  unitsTitle.font = { bold: true };
-  for (const unit of input.units) {
-    instructions.addRow([`   • ${unit.abbreviation} — ${unit.name}`]);
+  // La unidad se elige de la lista. Se ofrece la abreviatura, que es lo que la
+  // plantilla trae sugerido; el servidor acepta también el nombre.
+  const unitOptions = Array.from(new Set(input.units.map((unit) => unit.abbreviation).filter(Boolean)));
+  const ranges = buildListsSheet(workbook, { [UNITS_LIST]: unitOptions });
+  if (input.products.length > 0 && unitOptions.length > 0) {
+    addListValidation(sheet, columnOf('unit'), ranges[UNITS_LIST], {
+      rows: input.products.length,
+      allowBlank: false,
+      message: 'Elige una unidad de la lista. Están todas en la hoja "Listas".',
+    });
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
