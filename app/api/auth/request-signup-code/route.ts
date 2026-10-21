@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     const limite = await checkCodeRateLimit({
       service,
-      table: 'signup_email_codes',
+      purpose: 'signup_email',
       key,
       ip,
     })
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     })
 
     if (conflicto) {
-      await recordRequestWithoutCode({ service, table: 'signup_email_codes', key, ip })
+      await recordRequestWithoutCode({ service, purpose: 'signup_email', key, ip })
       return NextResponse.json({ error: conflicto.message, code: conflicto.code }, { status: 409 })
     }
 
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     if (yaExiste) {
       // Sin esto el aviso de abajo no contaba en ningún límite: se podía pedir
       // una y otra vez, y a cada pedido le llegaba un correo real al dueño.
-      await recordRequestWithoutCode({ service, table: 'signup_email_codes', key, ip })
+      await recordRequestWithoutCode({ service, purpose: 'signup_email', key, ip })
 
       /**
        * El aviso que rompe el callejón sin salida.
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
 
     const code = await issueCode({
       service,
-      table: 'signup_email_codes',
+      purpose: 'signup_email',
       key,
       ip,
     })

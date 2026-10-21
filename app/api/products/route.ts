@@ -62,9 +62,10 @@ export async function GET(request: Request) {
         // le sirve a nadie en el cliente. El resto es exactamente lo que `*`
         // devolvía antes.
         `
-          id, category_id, default_unit_id, name, slug, description, image_url, is_ancestral_food, is_medicinal_plant, is_non_food, is_active, created_by, created_at, updated_at, dane_unit_code, dane_unit_name, siigo_id, owner_group_id, siigo_synced_at,
+          id, category_id, default_unit_id, name, slug, description, image_url, is_ancestral_food, is_medicinal_plant, is_non_food, is_active, created_by, created_at, updated_at, dane_unit_code, dane_unit_name, siigo_id, owner_group_id, siigo_synced_at, review_status, proposed_by_store_id,
           categories ( name ),
-          measurement_units ( abbreviation )
+          measurement_units ( abbreviation ),
+          proposed_by:stores!proposed_by_store_id ( name )
         `,
         // El total sirve para las flechas del listado: es el número de filas que
         // pasan el filtro, no las de esta página.
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
       )
       .range(from, to);
 
-    if (storeId) query = applyCatalogVisibility(query, storeGroupId) as typeof query;
+    if (storeId) query = applyCatalogVisibility(query, storeGroupId, storeId) as typeof query;
 
     if (paginado) {
       // El término llega ya en minúscula y sin tildes desde `normalizeText`;
@@ -82,6 +83,11 @@ export async function GET(request: Request) {
 
       const categoryIds = (params.get('category_ids') || '').split(',').filter(Boolean);
       if (categoryIds.length > 0) query = query.in('category_id', categoryIds);
+
+      // Productos propuestos por tenderos: `pending` para revisarlos y
+      // `approved` para elegir con cuál unir uno.
+      const review = params.get('review');
+      if (review === 'pending' || review === 'approved') query = query.eq('review_status', review);
 
       const group = params.get('group');
       if (group === '__public__') query = query.is('owner_group_id', null);

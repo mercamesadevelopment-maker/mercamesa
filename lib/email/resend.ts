@@ -314,11 +314,8 @@ export function marketplaceStaffInvitationEmail(
 
 
 /**
- * Invitación a ser miembro de una tienda, cuando se reenvía.
- *
- * La primera sale con el correo de Supabase (`inviteUserByEmail`), pero ese no
- * sirve para reenviar: la cuenta ya quedó creada y Supabase rechaza invitarla
- * otra vez. El enlace nuevo se genera con `generateLink` y se manda acá.
+ * Invitación a ser miembro de una tienda, al invitar y al reenviar. El enlace
+ * sale de `generateInviteLink` (`lib/auth/invite-link.ts`).
  */
 export function storeInvitationEmail(
   storeName: string,

@@ -24,8 +24,9 @@ export async function POST(request: Request) {
     const now = new Date().toISOString()
 
     const { data: row } = await supabase
-      .from('password_reset_codes')
+      .from('verification_codes')
       .select('*')
+      .eq('purpose', 'password_reset')
       .eq('email', email)
       .is('consumed_at', null)
       .gt('expires_at', now)
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
     // El intento se cobra antes de comparar y de forma atómica: leer, comparar y
     // escribir `attempts + 1` por separado dejaba que 30 peticiones simultáneas
     // contaran como 2 o 3 intentos, y acertar aquí es fijar la contraseña ajena.
-    if (!row || !(await chargeAttempt({ service: supabase, table: 'password_reset_codes', row }))) {
+    if (!row || !(await chargeAttempt({ service: supabase, row }))) {
       return NextResponse.json(GENERIC_ERROR, { status: 400 })
     }
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     // `consumed_at IS NULL` y exigir la fila de vuelta: dos aciertos simultáneos
     // no emiten dos `reset_token`, solo el primero en marcarlo.
     const { data: marcada, error: updateError } = await supabase
-      .from('password_reset_codes')
+      .from('verification_codes')
       .update({
         consumed_at: new Date().toISOString(),
         reset_token: resetToken,

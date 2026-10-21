@@ -20,8 +20,9 @@ export async function POST(request: Request) {
     const now = new Date().toISOString()
 
     const { data: row } = await supabase
-      .from('password_reset_codes')
+      .from('verification_codes')
       .select('id')
+      .eq('purpose', 'password_reset')
       .eq('email', email)
       .eq('reset_token', resetToken)
       .not('consumed_at', 'is', null)
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
 
     // El token es de un solo uso: se invalida aunque el reseteo haya fallado antes de llegar aquí.
     await supabase
-      .from('password_reset_codes')
+      .from('verification_codes')
       .update({ reset_token: null, reset_token_expires_at: null })
       .eq('id', row.id)
 

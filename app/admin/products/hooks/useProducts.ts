@@ -5,6 +5,8 @@ type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
   categories?: { name: string } | null;
   measurement_units?: { abbreviation: string } | null;
+  /** La tienda que lo propuso, si está en revisión o vino de una. */
+  proposed_by?: { name: string } | null;
 };
 
 /** Lo que decide qué página del catálogo se pide al servidor. */
@@ -17,6 +19,8 @@ export interface CatalogQuery {
   categoryIds: string[];
   /** Un id de grupo, `__public__`, o vacío para todas. */
   group: string;
+  /** `pending` para ver solo los propuestos por tenderos que esperan revisión. */
+  review: '' | 'pending';
   sort: string | null;
   dir: 'asc' | 'desc';
 }
@@ -48,6 +52,7 @@ export function useProducts() {
       if (query.search) params.set('search', query.search);
       if (query.categoryIds.length > 0) params.set('category_ids', query.categoryIds.join(','));
       if (query.group) params.set('group', query.group);
+      if (query.review) params.set('review', query.review);
       if (query.sort) {
         params.set('sort', query.sort);
         params.set('dir', query.dir);

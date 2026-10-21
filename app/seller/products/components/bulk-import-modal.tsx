@@ -90,13 +90,18 @@ export function BulkImportModal({
             <div className="bg-mm-gbg/20 border border-mm-crd rounded-2xl p-5 space-y-3">
               <p className="text-sm text-mm-txs leading-relaxed">
                 Descarga la plantilla{storeName ? ` de ${storeName}` : ''}: trae el catálogo con los
-                productos que aún no publicas. Llena <strong>tu código</strong>,{' '}
-                <strong>precio</strong> y <strong>stock</strong> solo en los que vendes —las filas
-                vacías se ignoran— y súbela.
+                productos que aún no publicas. Llena las <strong>columnas en verde</strong>{' '}
+                —tu código, precio y stock— solo en los que vendes (las filas vacías se ignoran) y
+                súbela.
+              </p>
+              <p className="text-sm text-mm-txs leading-relaxed">
+                ¿Vendes algo que no está en el catálogo? Agrégalo en la hoja{' '}
+                <strong>Productos nuevos</strong>. Se publica en tu tienda de una vez, sin foto, y
+                queda en revisión hasta que el equipo de MercaMesa lo sume al catálogo.
               </p>
               <p className="text-xs text-mm-txw">
-                Puedes publicar todo el catálogo de una sola vez (.xlsx o .csv). Si alguna fila tiene
-                un problema, se publican las demás y te decimos cuál corregir.
+                Puedes publicar todo de una sola vez (.xlsx; un .csv solo trae la hoja Productos).
+                Si alguna fila tiene un problema, se publican las demás y te decimos cuál corregir.
               </p>
               <Button
                 type="button"
@@ -214,7 +219,7 @@ export function BulkImportModal({
 }
 
 function ReportSummary({ report }: { report: ImportReport }) {
-  const { created, skipped, failed, notProcessed } = report.summary;
+  const { created, createdNew, skipped, failed, notProcessed } = report.summary;
 
   const cards = [
     {
@@ -250,16 +255,26 @@ function ReportSummary({ report }: { report: ImportReport }) {
   ];
 
   return (
-    <div className={cn('grid gap-4', cards.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
-      {cards.map((card) => (
-        <div key={card.label} className={`${card.className} rounded-2xl p-4 text-center`}>
-          <div className="flex items-center justify-center gap-2 mb-1">
-            {card.icon}
-            <span className="text-3xl font-bold font-display tabular-nums">{card.value}</span>
+    <div className="space-y-2">
+      <div className={cn('grid gap-4', cards.length === 4 ? 'grid-cols-4' : 'grid-cols-3')}>
+        {cards.map((card) => (
+          <div key={card.label} className={`${card.className} rounded-2xl p-4 text-center`}>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              {card.icon}
+              <span className="text-3xl font-bold font-display tabular-nums">{card.value}</span>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{card.label}</p>
-        </div>
-      ))}
+        ))}
+      </div>
+      {/* Los nuevos van dentro de los publicados: aparte se dice cuántos, porque
+          son los que quedan en revisión. */}
+      {createdNew > 0 && (
+        <p className="text-xs text-mm-txs text-center">
+          {createdNew === created ? 'Todos' : `${createdNew} de ellos`} son productos nuevos: quedan
+          en revisión hasta que el equipo de MercaMesa los sume al catálogo.
+        </p>
+      )}
     </div>
   );
 }
@@ -297,9 +312,9 @@ function ProblemRows({ rows }: { rows: ImportRowResult[] }) {
       </h3>
       <div className="max-h-72 overflow-y-auto custom-scrollbar border border-mm-crd rounded-2xl divide-y divide-mm-gbg">
         {problems.map((row) => (
-          <div key={`${row.row}-${row.code}`} className="p-4 flex gap-4 items-start">
+          <div key={`${row.sheet ?? ''}-${row.row}-${row.code}`} className="p-4 flex gap-4 items-start">
             <span className="text-xs font-black text-mm-txw shrink-0 pt-0.5 tabular-nums">
-              Fila {row.row}
+              {row.sheet === 'new' ? `Nuevos · Fila ${row.row}` : `Fila ${row.row}`}
             </span>
             <div className="flex-grow min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">

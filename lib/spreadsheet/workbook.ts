@@ -28,6 +28,30 @@ export function styleReferenceCell(cell: ExcelJS.Cell) {
   cell.font = { color: { argb: REFERENCE_GRAY } };
 }
 
+// Lima y lima clara de la marca (`app/globals.css`), con texto en tinta: la lima
+// no se lee como texto sobre fondo claro.
+const EDITABLE_HEADER_LIMA = 'FFC3F03F';
+const EDITABLE_FILL_LIMA_CLARA = 'FFEDF8D2';
+const TINTA = 'FF0E3B2F';
+
+/**
+ * Columna que llena el usuario: encabezado en lima y celdas en lima clara, para
+ * que se distinga de un vistazo de las de referencia.
+ */
+export function styleEditableColumn(sheet: ExcelJS.Worksheet, column: number, rows: number) {
+  const header = sheet.getRow(1).getCell(column);
+  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EDITABLE_HEADER_LIMA } };
+  header.font = { bold: true, color: { argb: TINTA } };
+
+  for (let row = 2; row <= rows + 1; row++) {
+    sheet.getRow(row).getCell(column).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: EDITABLE_FILL_LIMA_CLARA },
+    };
+  }
+}
+
 /**
  * Hoja de instrucciones. Va aparte a propósito: cualquier texto suelto en la
  * hoja de datos rompería la lectura del encabezado al volver a subir el archivo.

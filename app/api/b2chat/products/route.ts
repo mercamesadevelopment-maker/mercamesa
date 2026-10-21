@@ -22,7 +22,9 @@ export async function GET(request: Request) {
       *,
       categories ( name ),
       measurement_units ( abbreviation )
-    `);
+    `)
+      // Los propuestos por un tendero no son catálogo hasta que el admin los apruebe.
+      .eq('review_status', 'approved');
 
     if (categoryId) {
       query = query.eq('category_id', categoryId);

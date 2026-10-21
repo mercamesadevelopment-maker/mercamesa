@@ -126,6 +126,8 @@ export function ProductsView() {
             {item.status === 'active' ? 'Activo' : 'Inactivo'}
           </Badge>
           {item.isFeatured && <Badge variant="oro">Destacado</Badge>}
+          {/* Producto nuevo: ya se vende, pero el catálogo todavía no lo aprueba. */}
+          {item.inReview && <Badge variant="warning">En revisión</Badge>}
         </div>
       )
     }

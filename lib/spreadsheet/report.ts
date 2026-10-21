@@ -20,6 +20,11 @@ export interface ImportRowResult {
   name: string;
   status: ImportRowStatus;
   message?: string;
+  /**
+   * De qué hoja viene, en las plantillas que tienen más de una. Sin él, de la
+   * única (o la principal). `new` es «Productos nuevos» del tendero.
+   */
+  sheet?: 'new';
 }
 
 export interface ImportSummary {
@@ -28,6 +33,8 @@ export interface ImportSummary {
   skipped: number;
   failed: number;
   notProcessed: number;
+  /** De `created`, cuántos son productos nuevos (hoja «Productos nuevos»). */
+  createdNew: number;
 }
 
 export interface ImportReport {
@@ -38,7 +45,10 @@ export interface ImportReport {
 }
 
 export function buildReport(rows: ImportRowResult[], dryRun: boolean): ImportReport {
-  const ordered = [...rows].sort((a, b) => a.row - b.row);
+  // Primero la hoja principal y después la de productos nuevos, cada una en orden de fila.
+  const ordered = [...rows].sort(
+    (a, b) => Number(a.sheet === 'new') - Number(b.sheet === 'new') || a.row - b.row
+  );
   const countOf = (status: ImportRowStatus) =>
     ordered.filter((row) => row.status === status).length;
 
@@ -51,6 +61,7 @@ export function buildReport(rows: ImportRowResult[], dryRun: boolean): ImportRep
       skipped: countOf('skipped'),
       failed: countOf('failed'),
       notProcessed: countOf('not_processed'),
+      createdNew: ordered.filter((row) => row.status === 'created' && row.sheet === 'new').length,
     },
   };
 }

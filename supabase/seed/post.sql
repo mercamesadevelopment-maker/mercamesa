@@ -32,3 +32,8 @@ comment on constraint store_offers_discount_xor_price on public.store_offers is
 -- menú antes de que su código esté desplegado. En local y en staging el código
 -- nuevo siempre está: se activan todos, o las pantallas nuevas no se verían.
 update public.modules set is_active = true where not is_active;
+
+-- El precio mínimo de compra pasó a `pricing_settings_history`, pero las
+-- migraciones corren antes de cargar los datos: lo que traiga la copia en
+-- `order_min_price_history` se pasa acá. Se quita cuando se borre esa tabla.
+select public.copiar_precio_minimo_al_historial();

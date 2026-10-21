@@ -4,6 +4,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { sendEmail, storeInvitationEmail } from '@/lib/email/resend';
+import { generateInviteLink } from '@/lib/auth/invite-link';
 
 /** Días que dura una invitación de miembro de tienda, al crearla y al reenviarla. */
 const DIAS_VIGENCIA = 7;
@@ -201,21 +202,21 @@ export async function POST(
         return NextResponse.json({ error: 'Ya existe una invitación pendiente para este correo en esta tienda.' }, { status: 400 });
       }
 
-      // 2.1 Call inviteUserByEmail with service role Supabase client
-      const origin = request.headers.get('origin') || '';
-      const { error: inviteError } = await service.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
-        redirectTo: `${origin}/accept-invite`
-      });
+      // 2.1 El enlace, sin enviar correo. Antes era `inviteUserByEmail`, que
+      // falla si una invitación anterior (cancelada o vencida) ya creó la cuenta.
+      const origin = request.headers.get('origin') || new URL(request.url).origin;
+      const actionLink = await generateInviteLink(service, email.trim().toLowerCase(), `${origin}/accept-invite`);
 
-      if (inviteError) {
-        return NextResponse.json({ error: inviteError.message }, { status: 400 });
+      if (!actionLink) {
+        return NextResponse.json({ error: 'No se pudo crear la invitación. Vuelve a intentarlo.' }, { status: 500 });
       }
 
-      // 2.2 Record invitation in database
+      // 2.2 La fila va antes del correo: sin ella, la cuenta que crea el enlace
+      // quedaría sin invitación que la respalde.
       const expires = new Date();
       expires.setDate(expires.getDate() + DIAS_VIGENCIA);
 
-      const { error: inviteDbError } = await service
+      const { data: invitacion, error: inviteDbError } = await service
         .from('invitations')
         .insert({
           email: email.trim().toLowerCase(),
@@ -225,10 +226,36 @@ export async function POST(
           invited_by: user.id,
           token: crypto.randomUUID(),
           expires_at: expires.toISOString()
-        });
+        })
+        .select('id')
+        .single();
 
       if (inviteDbError) {
         return NextResponse.json({ error: inviteDbError.message }, { status: 400 });
+      }
+
+      // 2.3 El correo, con la plantilla de la plataforma (la misma del reenvío).
+      const { data: storeData } = await service.from('stores').select('name').eq('id', id).maybeSingle();
+      const { data: roleData } = await service.from('roles').select('label').eq('id', role_id).maybeSingle();
+      try {
+        await sendEmail({
+          to: email.trim().toLowerCase(),
+          subject: 'Te invitaron a una tienda en MercaMesa',
+          html: storeInvitationEmail(
+            storeData?.name || 'una tienda',
+            roleData?.label || 'Miembro',
+            actionLink,
+            DIAS_VIGENCIA
+          ),
+        });
+      } catch (err) {
+        // Sin correo nadie tiene el enlace: se deshace para poder reintentar.
+        console.error('stores/members: no se pudo enviar el correo', err);
+        await service.from('invitations').delete().eq('id', invitacion.id);
+        return NextResponse.json(
+          { error: 'No pudimos enviar la invitación por correo. Intenta de nuevo en unos minutos.' },
+          { status: 502 }
+        );
       }
 
       return NextResponse.json({ success: true, invited: true }, { status: 201 });
@@ -298,9 +325,8 @@ export async function DELETE(
  * Reenvía una invitación de miembro de tienda: renueva la vigencia y manda un
  * enlace nuevo.
  *
- * No se puede repetir `inviteUserByEmail`: la primera invitación ya creó la
- * cuenta en `auth.users` y Supabase rechaza invitarla otra vez. Por eso el
- * enlace sale de `generateLink` y el correo se manda con la plantilla propia.
+ * La primera invitación ya creó la cuenta en `auth.users`: `generateInviteLink`
+ * lo resuelve con el enlace de acceso.
  */
 export async function PATCH(
   request: Request,
@@ -342,25 +368,9 @@ export async function PATCH(
     const origin = request.headers.get('origin') || new URL(request.url).origin;
     const redirectTo = `${origin}/accept-invite`;
 
-    // `invite` sirve mientras la persona no haya confirmado su cuenta; si ya la
-    // confirmó (abrió el primer enlace y no terminó el registro), Supabase lo
-    // rechaza y el enlace de acceso la lleva al mismo formulario.
-    let { data: link, error: linkError } = await service.auth.admin.generateLink({
-      type: 'invite',
-      email: invite.email,
-      options: { redirectTo },
-    });
+    const actionLink = await generateInviteLink(service, invite.email, redirectTo);
 
-    if (linkError || !link?.properties?.action_link) {
-      ({ data: link, error: linkError } = await service.auth.admin.generateLink({
-        type: 'magiclink',
-        email: invite.email,
-        options: { redirectTo },
-      }));
-    }
-
-    if (linkError || !link?.properties?.action_link) {
-      console.error('stores/members: no se pudo generar el enlace', linkError);
+    if (!actionLink) {
       return NextResponse.json(
         { error: 'No se pudo generar el enlace de la invitación. Vuelve a intentarlo.' },
         { status: 500 }
@@ -380,7 +390,7 @@ export async function PATCH(
         html: storeInvitationEmail(
           (invite as any).stores?.name || 'una tienda',
           rol?.label || 'Miembro',
-          link.properties.action_link,
+          actionLink,
           DIAS_VIGENCIA
         ),
       });

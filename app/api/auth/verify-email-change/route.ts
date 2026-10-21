@@ -32,8 +32,9 @@ export async function POST(request: Request) {
     const now = new Date().toISOString()
 
     const { data: row } = await service
-      .from('email_change_codes')
+      .from('verification_codes')
       .select('*')
+      .eq('purpose', 'email_change')
       .eq('user_id', user.id)
       .is('consumed_at', null)
       .gt('expires_at', now)
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     // El intento se cobra antes de comparar y de forma atómica; ver `chargeAttempt`.
-    if (!row || !(await chargeAttempt({ service, table: 'email_change_codes', row }))) {
+    if (!row || !(await chargeAttempt({ service, row }))) {
       return NextResponse.json(GENERIC_ERROR, { status: 400 })
     }
 
@@ -75,13 +76,13 @@ export async function POST(request: Request) {
     }
 
     await service
-      .from('email_change_codes')
+      .from('verification_codes')
       .update({ consumed_at: new Date().toISOString() })
       .eq('id', row.id)
 
     try {
       await sendEmail({
-        to: row.current_email,
+        to: row.email,
         subject: 'Tu correo fue actualizado - MercaMesa',
         html: emailChangeConfirmedEmail(row.new_email),
       })

@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { loadLatestPricingRow } from '@/lib/pricing/settings';
+
+/**
+ * Precio mínimo de compra.
+ *
+ * Vive en `pricing_settings_history`: cada fila es la configuración completa de
+ * un momento. Un ajuste del mínimo es una fila nueva que repite las tarifas
+ * vigentes, marcada con `change_type = 'order_min_price'`.
+ */
+const AJUSTE_DEL_MINIMO = 'id, min_price:order_min_price, notes, changed_by, created_at, profiles ( full_name )';
 
 export async function GET() {
   try {
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from('order_min_price_history')
-      .select('*, profiles ( full_name )')
+      .from('pricing_settings_history')
+      .select(AJUSTE_DEL_MINIMO)
+      .eq('change_type', 'order_min_price')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -50,14 +61,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'La observación del ajuste es requerida' }, { status: 400 });
     }
 
+    const vigente = await loadLatestPricingRow(supabase);
+    if (!vigente) {
+      return NextResponse.json(
+        { error: 'Primero registra las tarifas en «Tarifas y Comisiones»: el mínimo se guarda junto con ellas' },
+        { status: 409 }
+      );
+    }
+
     const { data, error } = await supabase
-      .from('order_min_price_history')
+      .from('pricing_settings_history')
       .insert({
-        min_price: Number(min_price),
+        service_commission_rate: vigente.service_commission_rate,
+        message_unit_price: vigente.message_unit_price,
+        messages_per_order: vigente.messages_per_order,
+        platform_commission_rate: vigente.platform_commission_rate,
+        siigo_delivery_product_code: vigente.siigo_delivery_product_code,
+        siigo_platform_product_code: vigente.siigo_platform_product_code,
+        order_min_price: Number(min_price),
+        change_type: 'order_min_price',
         notes,
         changed_by: user.id,
       })
-      .select('*, profiles ( full_name )')
+      .select(AJUSTE_DEL_MINIMO)
       .single();
 
     if (error) {

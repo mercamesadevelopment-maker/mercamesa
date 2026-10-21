@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
 import { isBuyerBlocked } from '@/lib/stores/buyer-blocks';
+import { loadOrderMinPrice } from '@/lib/pricing/settings';
 import { MIXED_PICKUP_MESSAGE, sharePickupPoint } from './pickup-group';
 
 /**
@@ -223,17 +224,8 @@ export async function buildOrderDraft(
  * y el domicilio es uno por pedido. Lanza si no se alcanza.
  */
 export async function assertMinimumPurchase(supabase: SupabaseClient<any>, draft: OrderDraft): Promise<void> {
-  const { data: minPriceRow } = await supabase
-    .from('order_min_price_history')
-    .select('min_price')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!minPriceRow) return;
-
-  const minimo = Number(minPriceRow.min_price);
-  if (draft.productsSubtotal >= minimo) return;
+  const minimo = await loadOrderMinPrice(supabase);
+  if (minimo === null || draft.productsSubtotal >= minimo) return;
 
   const faltante = minimo - draft.productsSubtotal;
   throw new OrderDraftError(

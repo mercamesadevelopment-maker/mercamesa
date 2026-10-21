@@ -35,47 +35,27 @@ function addMatch(map: Map<string, string[]>, text: string, id: string) {
 }
 
 /**
- * Carga categorías, unidades y el catálogo existente, todo paginado: PostgREST
- * corta en 1.000 filas sin avisar y el catálogo ya ronda las 634.
+ * Las categorías activas con su ruta «Padre > Hija», y cómo encontrarlas por
+ * texto. La usan la carga del catálogo maestro y la hoja de productos nuevos
+ * del tendero.
  */
-export async function loadCatalogLookups(
-  supabase: SupabaseClient<any>
-): Promise<CatalogLookups> {
-  const [categoryRows, unitRows, productRows, groupRows] = await Promise.all([
-    fetchAllRows<CategoryRow>((from, to) =>
-      supabase
-        .from('categories')
-        .select('id, name, parent_id')
-        .eq('is_active', true)
-        .order('id')
-        .range(from, to)
-    ),
-    fetchAllRows<UnitRow>((from, to) =>
-      supabase
-        .from('measurement_units')
-        .select('id, name, abbreviation')
-        .eq('is_active', true)
-        .order('id')
-        .range(from, to)
-    ),
-    fetchAllRows<ProductRow>((from, to) =>
-      supabase.from('catalog_products').select('name, slug, category_id').order('slug').range(from, to)
-    ),
-    // Los grupos son pocos (uno por comerciante con productos propios), pero se
-    // pagina igual por consistencia con el resto.
-    fetchAllRows<StoreGroupOption>((from, to) =>
-      supabase.from('store_groups').select('id, name').order('name').range(from, to)
-    ),
-  ]);
+export async function loadCategoryOptions(supabase: SupabaseClient<any>): Promise<{
+  categories: CategoryOption[];
+  categoryIdsByText: Map<string, string[]>;
+  pathById: Map<string, string>;
+}> {
+  const categoryRows = await fetchAllRows<CategoryRow>((from, to) =>
+    supabase
+      .from('categories')
+      .select('id, name, parent_id')
+      .eq('is_active', true)
+      .order('id')
+      .range(from, to)
+  );
 
-  // Sin categorías o sin unidades no hay nada contra qué validar: la plantilla
-  // saldría con desplegables vacíos y la carga rechazaría todas las filas
-  // diciendo "la categoría no existe". Pasa, por ejemplo, si la sesión no llega
-  // al servidor: `categories` y `measurement_units` tienen RLS que solo permite
-  // leer a `authenticated`. Mejor fallar de una y con un motivo claro.
-  if (categoryRows.length === 0 || unitRows.length === 0) {
+  if (categoryRows.length === 0) {
     throw new Error(
-      'No se pudieron cargar las categorías o las unidades de medida. Vuelve a iniciar sesión e inténtalo de nuevo.'
+      'No se pudieron cargar las categorías. Vuelve a iniciar sesión e inténtalo de nuevo.'
     );
   }
 
@@ -102,6 +82,46 @@ export async function loadCatalogLookups(
   }
   for (const category of categoryRows) {
     addMatch(categoryIdsByText, category.name, category.id);
+  }
+
+  return { categories, categoryIdsByText, pathById };
+}
+
+/**
+ * Carga categorías, unidades y el catálogo existente, todo paginado: PostgREST
+ * corta en 1.000 filas sin avisar y el catálogo ya ronda las 634.
+ */
+export async function loadCatalogLookups(
+  supabase: SupabaseClient<any>
+): Promise<CatalogLookups> {
+  const [{ categories, categoryIdsByText, pathById }, unitRows, productRows, groupRows] = await Promise.all([
+    loadCategoryOptions(supabase),
+    fetchAllRows<UnitRow>((from, to) =>
+      supabase
+        .from('measurement_units')
+        .select('id, name, abbreviation')
+        .eq('is_active', true)
+        .order('id')
+        .range(from, to)
+    ),
+    fetchAllRows<ProductRow>((from, to) =>
+      supabase.from('catalog_products').select('name, slug, category_id').order('slug').range(from, to)
+    ),
+    // Los grupos son pocos (uno por comerciante con productos propios), pero se
+    // pagina igual por consistencia con el resto.
+    fetchAllRows<StoreGroupOption>((from, to) =>
+      supabase.from('store_groups').select('id, name').order('name').range(from, to)
+    ),
+  ]);
+
+  // Sin unidades no hay nada contra qué validar: la plantilla saldría con el
+  // desplegable vacío y la carga rechazaría todas las filas. Pasa, por ejemplo,
+  // si la sesión no llega al servidor: `measurement_units` tiene RLS que solo
+  // permite leer a `authenticated`. Mejor fallar de una y con un motivo claro.
+  if (unitRows.length === 0) {
+    throw new Error(
+      'No se pudieron cargar las unidades de medida. Vuelve a iniciar sesión e inténtalo de nuevo.'
+    );
   }
 
   const units: UnitOption[] = unitRows

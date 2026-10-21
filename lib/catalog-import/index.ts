@@ -4,7 +4,7 @@ import { CATALOG_SCHEMA, type CatalogField } from './constants';
 export * from './constants';
 export * from './types';
 export { slugify, uniqueSlug } from './slug';
-export { loadCatalogLookups, normalizeLookupKey } from './lookups';
+export { loadCatalogLookups, loadCategoryOptions, normalizeLookupKey } from './lookups';
 export { validateCatalogRows, type CatalogRow, type CatalogValidationResult } from './validate-rows';
 export { buildCatalogTemplate, type CatalogTemplateInput } from './template';
 export { SpreadsheetError } from '@/lib/spreadsheet/parse';
