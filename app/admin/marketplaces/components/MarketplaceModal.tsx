@@ -16,6 +16,9 @@ import { toCoordinate, validateColombiaCoordinates } from '@/lib/geocoding/mapbo
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
+/** Tope del GIF: se descarga en el listado público de plazas. */
+const MAX_GIF_BYTES = 5 * 1024 * 1024;
+
 interface MarketplaceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,6 +49,9 @@ export function MarketplaceModal({
   const [logoImage, setLogoImage] = useState<File | null>(null);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
   const [previewCover, setPreviewCover] = useState<string | null>(null);
+  const [gifFile, setGifFile] = useState<File | null>(null);
+  const [previewGif, setPreviewGif] = useState<string | null>(null);
+  const [removeGif, setRemoveGif] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -74,6 +80,7 @@ export function MarketplaceModal({
       const initialCover = (initialData as any).coverSignedUrl || getStoragePublicUrl('plazas', initialData.cover_image_url);
       setPreviewLogo(initialLogo);
       setPreviewCover(initialCover);
+      setPreviewGif(getStoragePublicUrl('plazas', initialData.hover_gif_url));
     } else {
       setFormData({
         name: '',
@@ -89,10 +96,13 @@ export function MarketplaceModal({
       setBusinessHours(createDefaultBusinessHours());
       setPreviewLogo(null);
       setPreviewCover(null);
+      setPreviewGif(null);
     }
 
     setCoverImage(null);
     setLogoImage(null);
+    setGifFile(null);
+    setRemoveGif(false);
     setErrors({});
   }, [initialData, isOpen]);
 
@@ -145,6 +155,29 @@ export function MarketplaceModal({
     } else {
       setPreviewCover(null);
     }
+  };
+
+  const handleGifChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    e.target.value = '';
+    if (!file) return;
+
+    let error = '';
+    if (file.type !== 'image/gif') error = 'El archivo tiene que ser un GIF.';
+    else if (file.size > MAX_GIF_BYTES) error = 'El GIF pesa más de 5 MB: redúcelo para que la lista de plazas cargue rápido.';
+    setErrors((prev) => ({ ...prev, hover_gif: error }));
+    if (error) return;
+
+    setGifFile(file);
+    setRemoveGif(false);
+    setPreviewGif(URL.createObjectURL(file));
+  };
+
+  const handleGifRemove = () => {
+    setGifFile(null);
+    setRemoveGif(true);
+    setPreviewGif(null);
+    setErrors((prev) => ({ ...prev, hover_gif: '' }));
   };
 
   /** El mapa devuelve números; el formulario los guarda como texto. */
@@ -208,6 +241,15 @@ export function MarketplaceModal({
       await uploadImageDirect('plazas', path, logoImage);
       data.id = marketplaceId;
       data.logo_url = path;
+    }
+
+    if (gifFile) {
+      const path = `imgs/${marketplaceId}/gif-${Date.now()}.gif`;
+      await uploadImageDirect('plazas', path, gifFile);
+      data.id = marketplaceId;
+      data.hover_gif_url = path;
+    } else if (removeGif) {
+      data.hover_gif_url = null;
     }
 
     const success = await onSave(data, initialData?.id);
@@ -373,6 +415,39 @@ export function MarketplaceModal({
               onChange={handleCoverChange}
               className="w-full bg-mm-gbg border-none rounded-2xl py-2 px-4 text-mm-g font-medium focus:ring-2 ring-mm-g/20 transition-all outline-none"
             />
+          </div>
+
+          {/* GIF que se reproduce en el listado de plazas al pasar el mouse */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-mm-txs ml-1">
+              GIF de la plaza
+            </label>
+            <p className="ml-1 text-xs text-mm-txw">
+              Se reproduce en el listado de plazas al pasar el mouse. Si no hay GIF, se ve la portada. Máximo 5 MB.
+            </p>
+
+            {previewGif && (
+              <div className="w-full h-32 rounded-2xl overflow-hidden border border-mm-crd mb-2 relative">
+                <img src={previewGif} alt="Vista previa del GIF" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={handleGifRemove}
+                  className="absolute top-2 right-2 rounded-xl bg-white/90 px-3 py-1 text-xs font-bold text-arcilla-oscura shadow-sm"
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/gif"
+              onChange={handleGifChange}
+              className="w-full bg-mm-gbg border-none rounded-2xl py-2 px-4 text-mm-g font-medium focus:ring-2 ring-mm-g/20 transition-all outline-none"
+            />
+            {errors.hover_gif && (
+              <p className="ml-1 text-xs font-medium text-r">{errors.hover_gif}</p>
+            )}
           </div>
 
           {/* Is Active */}
