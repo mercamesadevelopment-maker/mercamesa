@@ -9,6 +9,8 @@
  * El admin sí, marcado como borrador.
  */
 
+import { safeHttpsUrl } from './safe-url';
+
 export type InvoiceViewer = 'buyer' | 'platform';
 
 export interface OrderInvoiceLink {
@@ -36,7 +38,7 @@ export function invoiceLinkFor(row: SiigoInvoiceRow | null | undefined, viewer: 
   if (!row || row.status === 'skipped' || row.status === 'failed') return null;
 
   const payload = (row.response_payload ?? {}) as { public_url?: unknown; name?: unknown };
-  const url = safeUrl(payload.public_url);
+  const url = safeHttpsUrl(payload.public_url);
   const number = typeof payload.name === 'string' && payload.name ? payload.name : row.siigo_number;
   const processing: OrderInvoiceLink = { state: 'processing', number: null, url: null, draft: false };
 
@@ -44,14 +46,4 @@ export function invoiceLinkFor(row: SiigoInvoiceRow | null | undefined, viewer: 
   if (!row.stamped && viewer === 'buyer') return processing;
 
   return { state: 'available', number, url, draft: !row.stamped };
-}
-
-/** Solo un enlace `https`: no se pinta en la página cualquier cosa que venga en la respuesta. */
-function safeUrl(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  try {
-    return new URL(value).protocol === 'https:' ? value : null;
-  } catch {
-    return null;
-  }
 }

@@ -3,8 +3,8 @@
 import { useCallback, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-export type AccountingTab = 'payments' | 'credit-notes' | 'payouts' | 'refunds';
-const TABS: AccountingTab[] = ['payments', 'credit-notes', 'payouts', 'refunds'];
+export type AccountingTab = 'payments' | 'credit-notes' | 'payouts' | 'refunds' | 'balance';
+const TABS: AccountingTab[] = ['payments', 'credit-notes', 'payouts', 'refunds', 'balance'];
 export const PAGE_SIZES = [25, 50, 100];
 
 export interface AccountingFilterValues {
