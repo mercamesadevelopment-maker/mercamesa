@@ -31,21 +31,21 @@ function persona(id: string, nombre: string, over: Partial<ClientPerson> = {}): 
 }
 
 describe('groupStoreClients', () => {
-  it('un pedido en línea, sin client_id, aparece con su comprador (caso Daniel Santamaría)', () => {
+  it('un pedido en línea, sin client_id, aparece con su comprador', () => {
     const [cliente] = groupStoreClients({
       parts: [
         parte({
           status: 'at_collection',
-          orders: { buyer_id: 'perfil-daniel', client_id: null, payment_status: 'approved' },
+          orders: { buyer_id: 'perfil-comprador', client_id: null, payment_status: 'approved' },
         }),
       ],
       items: [],
       clients: [],
-      profiles: [persona('perfil-daniel', 'Daniel Santamaría')],
+      profiles: [persona('perfil-comprador', 'Comprador en línea')],
       storeNames,
     });
 
-    expect(cliente.full_name).toBe('Daniel Santamaría');
+    expect(cliente.full_name).toBe('Comprador en línea');
     expect(cliente.totalOrders).toBe(1);
     expect(cliente.orders[0]).toMatchObject({
       id: 'MM-2026-000001-1',
