@@ -10,8 +10,8 @@ import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Modal } from '@/components/ui/modal/modal';
 import { fmt } from '@/src/constants';
 import { fechaCorta, fechaCompleta } from '@/lib/dates/relative-time';
-import { usePayouts } from '../hooks/use-payouts';
-import type { Payout, PayoutDetalle, Elegibles } from '../types';
+import { usePayouts } from '../../hooks/use-payouts';
+import type { Payout, PayoutDetalle, Elegibles } from '../../types/payouts';
 
 const ESTADO: Record<Payout['status'], { label: string; clase: string }> = {
   draft: { label: 'Borrador', clase: 'bg-amber-100 text-amber-800' },
@@ -26,11 +26,11 @@ const ESTADO: Record<Payout['status'], { label: string; clase: string }> = {
  * archivo. Se avisa en el diálogo: a partir de ahí existe un .txt que alguien
  * puede subir al banco, y el banco no deshace transferencias.
  */
-export function PayoutsTab() {
+export function PayoutsTab({ query = '' }: { query?: string }) {
   const {
     payouts, loading, error, fetchPayouts, fetchElegibles, fetchDetalle,
     crearBorrador, aprobar, cancelar, descargar,
-  } = usePayouts();
+  } = usePayouts(query);
 
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<{ title: string; message: string } | null>(null);
@@ -174,7 +174,7 @@ export function PayoutsTab() {
           data={payouts}
           columns={columns}
           getRowKey={(p) => p.id}
-          emptyMessage="Todavía no hay liquidaciones."
+          emptyMessage={query ? 'Ninguna liquidación cumple los filtros.' : 'Todavía no hay liquidaciones.'}
           actions={(p: Payout) => (
             <div className="flex flex-wrap gap-2">
               <Button
@@ -382,12 +382,29 @@ function DetalleModal({ detalle, onClose }: { detalle: PayoutDetalle | null; onC
                   </div>
                   <span className="shrink-0 font-bold text-mm-g">{fmt(s.amount)}</span>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                {/* Por qué se le paga: cada pedido con su cliente, y los
+                    descuentos por devolución como líneas negativas. */}
+                <div className="mt-3 divide-y divide-mm-crd/40 rounded-xl border border-mm-crd/60">
                   {s.orders.map((o) => (
-                    <Badge key={o.id} variant={o.isCharge ? 'error' : 'default'} className="text-[10px]">
-                      {o.isCharge ? 'Devolución ' : ''}
-                      {o.code} · {fmt(o.amount)}
-                    </Badge>
+                    <div key={o.id} className="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="font-mono font-bold text-mm-g">
+                          {o.isCharge && (
+                            <Badge variant="error" className="mr-1.5 text-[10px]">Devolución</Badge>
+                          )}
+                          {o.code}
+                        </p>
+                        {!o.isCharge && (
+                          <p className="truncate text-mm-txw">
+                            {o.buyerName ?? 'Cliente'}
+                            {o.orderedAt && ` · ${fechaCorta(o.orderedAt)}`}
+                          </p>
+                        )}
+                      </div>
+                      <span className={cn('shrink-0 font-bold', o.isCharge ? 'text-r' : 'text-mm-g')}>
+                        {fmt(o.amount)}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>

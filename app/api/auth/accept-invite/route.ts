@@ -204,7 +204,12 @@ export async function POST(request: Request) {
 
       await serviceSupabase.from('invitations').delete().eq('id', invite.id);
 
-      return NextResponse.json({ success: true, redirectUrl: '/admin' }, { status: 200 });
+      // El auxiliar contable solo tiene Contabilidad: `/admin` lo rebotaría.
+      const { data: rolAdmin } = await serviceSupabase.from('roles').select('name').eq('id', invite.role).maybeSingle();
+      return NextResponse.json(
+        { success: true, redirectUrl: rolAdmin?.name === 'accountant' ? '/admin/accounting' : '/admin' },
+        { status: 200 }
+      );
     }
 
     // ------------------------------------------------------------------

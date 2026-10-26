@@ -25,6 +25,9 @@ export interface PedidoDeTienda {
   amount: number;
   /** Línea negativa: un descuento por una devolución, rotulado con su pedido. */
   isCharge?: boolean;
+  /** De quién es el pedido: el concepto por el que se le paga a la tienda. */
+  buyerName?: string | null;
+  orderedAt?: string | null;
 }
 
 export interface TiendaEnPayout {

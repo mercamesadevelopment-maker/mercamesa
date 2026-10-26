@@ -13,13 +13,13 @@ import { generateInviteLink } from '@/lib/auth/invite-link';
  * sumar un administrador se hacía a mano contra la base. El enum
  * `invitation_type` ya traía el valor `'admin'` sin que nadie lo usara.
  *
- * Solo el superadmin invita, y puede invitar a los dos roles. Se exige
+ * Solo el superadmin invita, a administrar o a llevar la contabilidad. Se exige
  * `users:create`, que hoy únicamente él tiene. La lista de roles invitables es
  * cerrada a propósito: si llegara del navegador, esto sería una forma de
  * asignarse cualquier rol.
  */
 
-const ROLES_INVITABLES = ['admin', 'superadmin'] as const;
+const ROLES_INVITABLES = ['admin', 'superadmin', 'accountant'] as const;
 type RolInvitable = (typeof ROLES_INVITABLES)[number];
 
 const DIAS_VIGENCIA = 7;
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     if (!ROLES_INVITABLES.includes(roleName)) {
       return NextResponse.json(
-        { error: 'Solo puedes invitar con el rol de administrador o super administrador.' },
+        { error: 'Solo puedes invitar con el rol de administrador, super administrador o auxiliar contable.' },
         { status: 400 }
       );
     }

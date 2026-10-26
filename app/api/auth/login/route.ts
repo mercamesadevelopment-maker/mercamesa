@@ -12,8 +12,11 @@ import {
 import { sendEmail, adminLoginCodeEmail } from '@/lib/email/resend'
 import { bloqueoPorInactividad } from '@/lib/auth/deactivation'
 
-/** Roles que deben verificar además con un código al correo. */
-const ROLES_CON_CODIGO = ['admin', 'superadmin']
+/**
+ * Roles que deben verificar además con un código al correo. El auxiliar
+ * contable aprueba las dispersiones de dinero a las tiendas.
+ */
+const ROLES_CON_CODIGO = ['admin', 'superadmin', 'accountant']
 
 export async function POST(request: Request) {
   try {

@@ -24,6 +24,8 @@ export const ROLE_ROUTES: Record<RoleKey, string> = {
   runner: '/runner',
   // Logística solo entra a las órdenes de su plaza.
   logistics: '/admin/orders',
+  // El auxiliar contable solo tiene Contabilidad.
+  accountant: '/admin/accounting',
   admin: '/admin/marketplaces',
 };
 

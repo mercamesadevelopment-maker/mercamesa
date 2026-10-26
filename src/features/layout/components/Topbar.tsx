@@ -33,7 +33,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
   } = useTopbar();
 
   // El equipo de la plaza tampoco compra: no ve la canasta.
-  const isStaff = ['admin', 'provider', 'runner', 'logistics'].includes(state.userRole);
+  const isStaff = ['admin', 'provider', 'runner', 'logistics', 'accountant'].includes(state.userRole);
 
   return (
     <header className="fixed top-0 left-0 w-full h-16 bg-mm-g text-white z-[60] flex items-center justify-between px-4 lg:px-8 shadow-lg">
@@ -61,6 +61,8 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
           ? 'PEDIDOS POR RECOGER'
           : state.userRole === 'logistics'
           ? 'LOGÍSTICA DE LA PLAZA'
+          : state.userRole === 'accountant'
+          ? 'CONTABILIDAD'
           : 'MARKETPLACE MERCAMESA'}
       </div>
 

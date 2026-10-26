@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Plus, Info } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
-import { useBanks } from '../hooks/use-bank-accounts';
+import { useBanks } from '../../hooks/use-bank-accounts';
 
 /**
  * El catálogo de bancos.
