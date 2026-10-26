@@ -12,7 +12,9 @@ import {
   ShoppingBag,
   Image as ImageIcon,
   ShieldCheck,
+  FileText,
 } from 'lucide-react';
+import { InvoiceLink } from '@/src/features/orders/components/InvoiceLink';
 
 import {
   DELIVERY_CODE_NOTICE,
@@ -193,6 +195,16 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
               </div>
             </div>
           </div>
+
+          {order.invoice && (
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-mm-txw shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">Factura</p>
+                <InvoiceLink invoice={order.invoice} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Status history */}

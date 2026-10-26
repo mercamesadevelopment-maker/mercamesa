@@ -1,4 +1,5 @@
 import { Database } from '@/types/database_generated';
+import type { OrderInvoiceLink } from '@/lib/siigo/invoice-link';
 
 export type OrderDetailRow = Database['public']['Views']['orders_detail_view']['Row'];
 
@@ -40,6 +41,8 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 
 export interface OrderDetail extends Omit<OrderDetailRow, 'products'> {
   products: OrderProduct[] | null;
+  /** La factura de Siigo del pedido, como la ve el comprador (`/api/orders/my-orders`). */
+  invoice?: OrderInvoiceLink | null;
 }
 
 export interface OrderStatusHistoryItem {
