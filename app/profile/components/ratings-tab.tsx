@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '@/src/store';
 import { Button } from '@/src/components/Shared';
 import { cn } from '@/src/components/Shared';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 import { Star, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 export function RatingsTab() {

@@ -1,18 +1,9 @@
 import React from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils/cn';
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-export function normalizeText(str: string | null | undefined): string {
-  if (!str) return '';
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
+// `cn` y `normalizeText` viven en lib/utils; se reexportan para los imports de siempre.
+export { cn } from '@/lib/utils/cn';
+export { normalizeText } from '@/lib/utils/text';
 
 export function Spinner({ className }: { className?: string }) {
   return (

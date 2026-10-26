@@ -1,4 +1,4 @@
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 import {
   duplicateProductCodeMessage,
   normalizeProductCode,

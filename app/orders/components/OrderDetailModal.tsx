@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, cn } from '@/src/components/Shared';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { OrderStatusTimeline } from '@/src/features/orders/components/OrderStatusTimeline';
 import {

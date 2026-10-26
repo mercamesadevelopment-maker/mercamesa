@@ -3,13 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useApp } from '../store';
 import { Order, StoreReview } from '../types';
 import { fmt } from '../constants';
-import { formatOrderCode } from '../features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 import { Button, cn } from './Shared';
 import {
-  ClipboardList, Package, Truck, CheckCircle2, XCircle,
-  Clock, MapPin, CreditCard, Star,
-  Send, Smile, Paperclip, MoreVertical,
-  Image as ImageIcon, X
+  ClipboardList, Package, Truck, CheckCircle2, XCircle, Clock, MapPin, CreditCard, Star, Image as ImageIcon, X
 } from 'lucide-react';
 
 export function OrdersView() {
@@ -294,97 +291,3 @@ export function OrdersView() {
     </div>
   );
 }
-
-
-export function SupportChatView() {
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Â¡Hola! Bienvenido al soporte de MercaMesa. ðŸŒ¿", sender: 'bot', time: '10:00 AM' },
-    { id: 2, text: "Â¿En quÃ© podemos ayudarte hoy?", sender: 'bot', time: '10:00 AM' },
-  ]);
-  const [input, setInput] = useState('');
-
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const userMsg = { id: Date.now(), text: input, sender: 'user', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-    setMessages([...messages, userMsg]);
-    setInput('');
-
-    setTimeout(() => {
-      const botMsg = { id: Date.now() + 1, text: "Estamos revisando tu solicitud. Un agente se conectarÃ¡ pronto.", sender: 'bot', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-      setMessages(prev => [...prev, botMsg]);
-    }, 1000);
-  };
-
-  return (
-    <div className="p-6 lg:p-10 max-w-4xl mx-auto h-[calc(100vh-120px)] flex flex-col">
-      <div className="bg-white p-6 rounded-t-[32px] border-x border-t border-mm-crd shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-mm-g rounded-full flex items-center justify-center text-2xl">ðŸŒ¿</div>
-          <div>
-            <h2 className="font-bold text-mm-g">Soporte MercaMesa</h2>
-            <p className="text-xs text-ok font-bold flex items-center gap-1">
-              <span className="w-2 h-2 bg-ok rounded-full animate-pulse" /> En lÃ­nea ahora
-            </p>
-          </div>
-        </div>
-        <button className="p-2 hover:bg-mm-gbg rounded-full transition-colors">
-          <MoreVertical className="w-6 h-6 text-mm-txs" />
-        </button>
-      </div>
-
-      <div className="flex-grow bg-[#F0F2F5] border-x border-mm-crd overflow-y-auto p-6 space-y-4 scrollbar-hide">
-        {messages.map(msg => (
-          <motion.div
-            key={msg.id}
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={cn(
-              "max-w-[80%] p-4 rounded-2xl text-sm shadow-sm relative",
-              msg.sender === 'user'
-                ? "bg-mm-gll text-mm-g ml-auto rounded-tr-none"
-                : "bg-white text-mm-txs mr-auto rounded-tl-none"
-            )}
-          >
-            {msg.text}
-            <span className="block text-[10px] mt-1 opacity-50 text-right">{msg.time}</span>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="bg-white p-6 rounded-b-[32px] border-x border-b border-mm-crd shadow-sm">
-        <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
-          {["Â¿CÃ³mo va mi pedido?", "Problema con entrega", "Cambiar direcciÃ³n", "Cancelar pedido"].map(chip => (
-            <button
-              key={chip}
-              onClick={() => setInput(chip)}
-              className="px-4 py-1.5 bg-mm-gbg text-mm-g text-xs font-bold rounded-full whitespace-nowrap hover:bg-mm-gll transition-colors"
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
-        <form onSubmit={handleSend} className="flex gap-3">
-          <button type="button" className="p-3 text-mm-txw hover:text-mm-g transition-colors"><Smile className="w-6 h-6" /></button>
-          <button type="button" className="p-3 text-mm-txw hover:text-mm-g transition-colors"><Paperclip className="w-6 h-6" /></button>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Escribe un mensaje..."
-            className="flex-grow bg-[#F0F2F5] rounded-full px-6 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-mm-gll transition-all"
-          />
-          <button
-            type="submit"
-            className="w-12 h-12 bg-mm-g text-white rounded-full flex items-center justify-center hover:bg-mm-gm transition-all shadow-md"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-
