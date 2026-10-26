@@ -919,6 +919,7 @@ export type Database = {
           created_by: string | null
           department: string
           description: string | null
+          hover_gif_url: string | null
           id: string
           is_active: boolean
           latitude: number | null
@@ -942,6 +943,7 @@ export type Database = {
           created_by?: string | null
           department?: string
           description?: string | null
+          hover_gif_url?: string | null
           id?: string
           is_active?: boolean
           latitude?: number | null
@@ -965,6 +967,7 @@ export type Database = {
           created_by?: string | null
           department?: string
           description?: string | null
+          hover_gif_url?: string | null
           id?: string
           is_active?: boolean
           latitude?: number | null
