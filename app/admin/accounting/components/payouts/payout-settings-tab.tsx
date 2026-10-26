@@ -5,7 +5,7 @@ import { Loader2, Info, Plus } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
 import { fechaCompleta } from '@/lib/dates/relative-time';
-import { usePayoutSettings } from '../hooks/use-bank-accounts';
+import { usePayoutSettings } from '../../hooks/use-bank-accounts';
 
 /** El ancho del campo Concepto 1 en el archivo del banco. */
 const MAX_CONCEPTO = 40;

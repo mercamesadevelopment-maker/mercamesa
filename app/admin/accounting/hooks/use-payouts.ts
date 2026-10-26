@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { Payout, PayoutDetalle, Elegibles } from '../types';
+import type { Payout, PayoutDetalle, Elegibles } from '../types/payouts';
 
 async function handle<T>(res: Response): Promise<T> {
   const json = await res.json();
@@ -17,7 +17,7 @@ async function handle<T>(res: Response): Promise<T> {
  * descarga desde el blob, así el archivo nunca queda en una URL que alguien
  * pueda reenviar.
  */
-export function usePayouts() {
+export function usePayouts(query = '') {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +26,14 @@ export function usePayouts() {
     try {
       setLoading(true);
       setError(null);
-      const { data } = await handle<{ data: Payout[] }>(await fetch('/api/admin/payouts'));
+      const { data } = await handle<{ data: Payout[] }>(await fetch(`/api/admin/payouts${query}`));
       setPayouts(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error cargando las liquidaciones');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [query]);
 
   const fetchElegibles = useCallback(async (): Promise<Elegibles> => {
     const { data } = await handle<{ data: Elegibles }>(

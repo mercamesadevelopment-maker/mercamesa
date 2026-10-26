@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { loadPeopleNames } from '@/lib/accounting/context';
 
 /** El detalle de una liquidación, agrupado por tienda como sale en el archivo. */
 export async function GET(
@@ -39,12 +41,20 @@ export async function GET(
         .select(
           `id, store_id, amount,
            stores!inner ( name ),
-           store_orders ( code ),
+           store_orders ( code, created_at, orders ( buyer_id, client_id ) ),
            store_charges ( store_orders ( code ) ),
            store_bank_accounts!inner ( payment_method, breb_key, bank_code, account_kind, account_number, holder_name )`
         )
         .eq('payout_id', id)
         .range(from, to)
+    );
+
+    // De quién es cada pedido: es el concepto por el que se le paga a la tienda.
+    const pedidoDe = (item: any) => item.store_orders?.orders ?? null;
+    const nombres = await loadPeopleNames(
+      service as unknown as SupabaseClient<any>,
+      items.map((i) => pedidoDe(i)?.buyer_id),
+      items.map((i) => pedidoDe(i)?.client_id)
     );
 
     // Un beneficiario por tienda, con sus pedidos debajo: el archivo paga una
@@ -68,7 +78,14 @@ export async function GET(
             (cuenta?.payment_method === 'breb' ? cuenta?.breb_key : cuenta?.account_number) ?? ''
           ).slice(-4),
           amount: 0,
-          orders: [] as { id: string; code: string | null; amount: number; isCharge: boolean }[],
+          orders: [] as {
+            id: string;
+            code: string | null;
+            amount: number;
+            isCharge: boolean;
+            buyerName: string | null;
+            orderedAt: string | null;
+          }[],
         };
         porTienda.set(item.store_id, tienda);
       }
@@ -81,6 +98,11 @@ export async function GET(
         code: esDescuento ? item.store_charges?.store_orders?.code ?? null : item.store_orders.code,
         amount: Number(item.amount),
         isCharge: esDescuento,
+        buyerName: (() => {
+          const persona = pedidoDe(item)?.client_id ?? pedidoDe(item)?.buyer_id;
+          return persona ? nombres.get(persona) ?? null : null;
+        })(),
+        orderedAt: item.store_orders?.created_at ?? null,
       });
     }
 

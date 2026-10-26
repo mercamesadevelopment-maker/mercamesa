@@ -5,13 +5,18 @@ import { ShieldAlert } from 'lucide-react';
 import { Button, Input, cn } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
 
-/** Los dos únicos roles invitables. La lista también está cerrada en el servidor. */
+/** Los únicos roles invitables desde aquí. La lista también está cerrada en el servidor. */
 const ROLES = [
   { name: 'admin' as const, label: 'Administrador', hint: 'Gestiona tiendas, catálogo y pedidos.' },
   {
     name: 'superadmin' as const,
     label: 'Super administrador',
     hint: 'Además administra usuarios, parámetros y datos personales.',
+  },
+  {
+    name: 'accountant' as const,
+    label: 'Auxiliar contable',
+    hint: 'Solo Contabilidad: pagos, notas crédito, dispersiones y devoluciones.',
   },
 ];
 

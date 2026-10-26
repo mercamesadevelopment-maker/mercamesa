@@ -4,14 +4,16 @@ import type { OrderInvoiceLink } from '@/lib/siigo/invoice-link';
 
 interface InvoiceLinkProps {
   invoice: OrderInvoiceLink | null | undefined;
+  /** Qué documento es: la factura del pedido o una nota crédito. */
+  label?: string;
 }
 
-/** La factura de Siigo del pedido: el enlace, «en proceso», o nada si el pedido no se factura. */
-export function InvoiceLink({ invoice }: InvoiceLinkProps) {
+/** Un documento de Siigo: el enlace, «en proceso», o nada si no aplica. */
+export function InvoiceLink({ invoice, label = 'Factura' }: InvoiceLinkProps) {
   if (!invoice) return null;
 
   if (invoice.state === 'processing' || !invoice.url) {
-    return <p className="text-sm text-mm-txs">Factura en proceso</p>;
+    return <p className="text-sm text-mm-txs">{label} en proceso</p>;
   }
 
   return (
@@ -23,7 +25,7 @@ export function InvoiceLink({ invoice }: InvoiceLinkProps) {
         className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-bold text-mm-g underline underline-offset-2 hover:text-mm-gm"
       >
         <FileText className="w-4 h-4" />
-        Factura {invoice.number ?? ''}
+        {label} {invoice.number ?? ''}
         <ExternalLink className="w-3.5 h-3.5" />
       </a>
       {invoice.draft && (

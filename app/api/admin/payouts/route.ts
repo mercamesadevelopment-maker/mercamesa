@@ -4,6 +4,10 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { construirBorrador, SinPedidosError } from '@/lib/payouts/build-draft';
 import { PayoutConfigError } from '@/lib/payouts/settings';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { parseAccountingFilters, periodDates } from '@/lib/accounting/filters';
+import { resolveAccountingScope } from '@/lib/accounting/scope';
+import { payoutIdsInScope } from '@/lib/accounting/payouts-filter';
 
 /**
  * Las liquidaciones de pago a las tiendas.
@@ -12,7 +16,7 @@ import { PayoutConfigError } from '@/lib/payouts/settings';
  * produce al aprobarlo, y es lo que se sube al portal del banco.
  */
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
 
@@ -21,15 +25,28 @@ export async function GET() {
 
     const service = createSupabaseServiceClient();
 
-    const { data, error } = await service
+    // Los filtros de Contabilidad: el mes por la fecha de pago, y la tienda, la
+    // plaza o el cliente por las líneas de la liquidación.
+    const filters = parseAccountingFilters(new URL(request.url).searchParams);
+    const periodo = periodDates(filters);
+    const payoutIds = await payoutIdsInScope(
+      service as unknown as SupabaseClient<any>,
+      await resolveAccountingScope(service as unknown as SupabaseClient<any>, filters)
+    );
+    if (payoutIds?.length === 0) return NextResponse.json({ data: [] }, { status: 200 });
+
+    let query = service
       .from('payouts')
       .select(
         `id, consecutive, file_name, status, scheduled_for, total_amount, items_count,
          file_path, generated_at, approved_at, cancelled_at, notes,
          generado:profiles!payouts_generated_by_fkey ( full_name ),
          aprobado:profiles!payouts_approved_by_fkey ( full_name )`
-      )
-      .order('created_at', { ascending: false });
+      );
+    if (periodo) query = query.gte('scheduled_for', periodo.from).lt('scheduled_for', periodo.to);
+    if (payoutIds) query = query.in('id', payoutIds);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('admin/payouts: no se pudieron listar', error);

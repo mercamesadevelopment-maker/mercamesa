@@ -5,8 +5,8 @@ import { Loader2, ShieldCheck, ShieldX, Clock, AlertTriangle, FileText } from 'l
 import { Button, cn } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
 import { fechaCorta } from '@/lib/dates/relative-time';
-import { useBankAccounts } from '../hooks/use-bank-accounts';
-import type { CuentaBancaria } from '../types';
+import { useBankAccounts } from '../../hooks/use-bank-accounts';
+import type { CuentaBancaria } from '../../types/payouts';
 
 const ESTADO: Record<CuentaBancaria['status'], { label: string; icon: React.ElementType; clase: string }> = {
   pending: { label: 'Por verificar', icon: Clock, clase: 'border-amber-200 bg-amber-50' },

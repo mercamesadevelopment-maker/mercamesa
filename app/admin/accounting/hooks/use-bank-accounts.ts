@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { CuentaBancaria, Banco, ParametrosDispersion } from '../types';
+import type { CuentaBancaria, Banco, ParametrosDispersion } from '../types/payouts';
 
 async function handle<T>(res: Response): Promise<T> {
   const json = await res.json();
