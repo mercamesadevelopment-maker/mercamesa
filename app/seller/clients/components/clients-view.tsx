@@ -3,7 +3,7 @@ import {
   Users, Search, DollarSign, ShoppingBag, User2, Eye, Mail, Phone, 
   CreditCard, Calendar, ChevronDown, ChevronUp, Clock, Receipt, Package 
 } from 'lucide-react';
-import { useClients, ClientWithMetrics, ClientOrder } from '../hooks/use-clients';
+import { useClients, ClientWithMetrics, ClientOrder, ALL_STORES } from '../hooks/use-clients';
 import { Table } from '@/components/ui/table/components/Table';
 import { Modal } from '@/components/ui/modal/modal';
 import { Badge, Button, cn } from '@/src/components/Shared';
@@ -13,15 +13,16 @@ export function ClientsView() {
   const {
     clients,
     loading,
+    error,
     searchTerm,
     setSearchTerm,
     selectedClient,
     setSelectedClient,
     stats,
-    storeName,
     stores,
-    storeId,
-    selectStore,
+    scope,
+    isAllStores,
+    selectScope,
   } = useClients();
 
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
@@ -68,6 +69,20 @@ export function ClientsView() {
         </div>
       )
     },
+    ...(isAllStores
+      ? [
+          {
+            key: 'storeNames',
+            label: 'Tiendas',
+            render: (item: ClientWithMetrics) =>
+              item.storeNames.length > 0 ? (
+                <span className="text-xs text-mm-txs">{item.storeNames.join(', ')}</span>
+              ) : (
+                <span className="text-xs text-mm-txw italic">Ninguna</span>
+              ),
+          },
+        ]
+      : []),
     {
       key: 'totalOrders',
       label: 'Compras',
@@ -130,12 +145,13 @@ export function ClientsView() {
           </div>
           {stores.length > 1 && (
             <div className="flex flex-col gap-1 min-w-[200px]">
-              <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Tienda Activa</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-mm-txw">Tienda</label>
               <select
-                value={storeId || ''}
-                onChange={(e) => selectStore(e.target.value)}
+                value={scope || ''}
+                onChange={(e) => selectScope(e.target.value)}
                 className="bg-white text-mm-g font-semibold text-sm border border-mm-crd rounded-xl px-4 py-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-mm-g/20 cursor-pointer"
               >
+                <option value={ALL_STORES}>Todas las tiendas</option>
                 {stores.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -215,7 +231,9 @@ export function ClientsView() {
           data={clients}
           columns={columns}
           actions={actions}
-          emptyMessage="No se encontraron clientes registrados."
+          emptyMessage={
+            loading ? 'Cargando clientes...' : error ? error : 'No se encontraron clientes registrados.'
+          }
         />
       </div>
 
@@ -276,7 +294,11 @@ export function ClientsView() {
 
               {selectedClient.orders.length === 0 ? (
                 <div className="text-center py-10 bg-mm-gbg/10 rounded-2xl border border-dashed border-mm-crd">
-                  <p className="text-sm text-mm-txw italic">Este cliente no registra compras en esta tienda.</p>
+                  <p className="text-sm text-mm-txw italic">
+                    {isAllStores
+                      ? 'Este cliente no registra compras.'
+                      : 'Este cliente no registra compras en esta tienda.'}
+                  </p>
                 </div>
               ) : (
                 selectedClient.orders.map((order: ClientOrder) => {
@@ -302,6 +324,12 @@ export function ClientsView() {
                             <p className="font-mono font-bold text-sm text-mm-g">{order.id}</p>
                             <span className="text-[9px] font-bold text-mm-txw uppercase tracking-widest flex items-center gap-1 mt-0.5">
                               <Calendar className="w-3 h-3" /> {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-[10px] text-mm-txs flex items-center gap-1.5 mt-1">
+                              {order.storeName}
+                              <Badge variant="default" className="text-[8px] py-0 px-2 leading-tight">
+                                {order.type === 'online' ? 'En línea' : 'Mostrador'}
+                              </Badge>
                             </span>
                           </div>
                         </div>
