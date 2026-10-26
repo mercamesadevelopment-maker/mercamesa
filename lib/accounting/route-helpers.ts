@@ -26,6 +26,21 @@ export async function accountingRequest(
   request: Request,
   action: PermissionAction = 'read'
 ): Promise<{ error: NextResponse } | { ctx: AccountingRequest }> {
+  const auth = await accountingAuth(action);
+  if ('error' in auth) return auth;
+  const { service, userId } = auth;
+
+  const params = new URL(request.url).searchParams;
+  const filters = parseAccountingFilters(params);
+  const [scope, stores] = await Promise.all([resolveAccountingScope(service, filters), loadStoresContext(service)]);
+
+  return { ctx: { service, userId, filters, scope, stores, page: pageParams(params) } };
+}
+
+/** Solo el permiso del módulo y la sesión, para las rutas que no usan los filtros. */
+export async function accountingAuth(
+  action: PermissionAction = 'read'
+): Promise<{ error: NextResponse } | { service: SupabaseClient<any>; userId: string }> {
   const supabase = await createClient();
   const denied = await requirePermission(supabase, 'accounting', action, 'No tienes acceso a Contabilidad.');
   if (denied) return { error: denied };
@@ -35,12 +50,7 @@ export async function accountingRequest(
   } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: 'No autorizado' }, { status: 401 }) };
 
-  const params = new URL(request.url).searchParams;
-  const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
-  const filters = parseAccountingFilters(params);
-  const [scope, stores] = await Promise.all([resolveAccountingScope(service, filters), loadStoresContext(service)]);
-
-  return { ctx: { service, userId: user.id, filters, scope, stores, page: pageParams(params) } };
+  return { service: createSupabaseServiceClient() as unknown as SupabaseClient<any>, userId: user.id };
 }
 
 export function serverError(where: string, error: unknown): NextResponse {

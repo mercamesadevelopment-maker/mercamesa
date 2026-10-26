@@ -134,6 +134,29 @@ export interface SiigoInvoiceResponse {
   public_url?: string;
 }
 
+// ── Balance de prueba ───────────────────────────────────────────────────────
+
+/** POST /v1/test-balance-report y /v1/test-balance-report-by-thirdparty. */
+export interface SiigoTestBalancePayload {
+  /** Sin enviar, Siigo usa la primera cuenta creada. */
+  account_start?: string;
+  /** Sin enviar, Siigo usa la última cuenta creada. */
+  account_end?: string;
+  year: number;
+  /** De 1 a 13: el 13 es el periodo de cierre. */
+  month_start: number;
+  month_end: number;
+  includes_tax_difference: boolean;
+  /** Solo en el balance por tercero. Identificación sin dígito de verificación. */
+  customer?: { identification: string; branch_office: number };
+}
+
+export interface SiigoTestBalanceResponse {
+  file_id: string;
+  /** El Excel generado. */
+  file_url: string;
+}
+
 // ── Notas crédito ───────────────────────────────────────────────────────────
 
 export interface SiigoCreditNoteItem {

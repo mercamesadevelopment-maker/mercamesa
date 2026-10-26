@@ -2851,6 +2851,68 @@ export type Database = {
         }
         Relationships: []
       }
+      siigo_balance_reports: {
+        Row: {
+          account_end: string | null
+          account_start: string | null
+          branch_office: number | null
+          created_at: string
+          created_by: string | null
+          file_id: string
+          file_url: string
+          id: string
+          identification: string | null
+          includes_tax_difference: boolean
+          kind: string
+          month_end: number
+          month_start: number
+          third_party_name: string | null
+          year: number
+        }
+        Insert: {
+          account_end?: string | null
+          account_start?: string | null
+          branch_office?: number | null
+          created_at?: string
+          created_by?: string | null
+          file_id: string
+          file_url: string
+          id?: string
+          identification?: string | null
+          includes_tax_difference: boolean
+          kind: string
+          month_end: number
+          month_start: number
+          third_party_name?: string | null
+          year: number
+        }
+        Update: {
+          account_end?: string | null
+          account_start?: string | null
+          branch_office?: number | null
+          created_at?: string
+          created_by?: string | null
+          file_id?: string
+          file_url?: string
+          id?: string
+          identification?: string | null
+          includes_tax_difference?: boolean
+          kind?: string
+          month_end?: number
+          month_start?: number
+          third_party_name?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siigo_balance_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       siigo_credit_notes: {
         Row: {
           attempts: number

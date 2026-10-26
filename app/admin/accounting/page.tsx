@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { Calculator, CreditCard, FileMinus, Banknote, Undo2 } from 'lucide-react';
+import { Calculator, CreditCard, FileMinus, Banknote, Undo2, Scale } from 'lucide-react';
 import { cn } from '@/src/components/Shared';
 import { PAGE_SIZES, useAccountingFilters, type AccountingTab } from './hooks/use-accounting-filters';
 import { useAccountingOptions } from './hooks/use-accounting-options';
@@ -10,12 +10,14 @@ import { PaymentsTab } from './components/payments-tab';
 import { CreditNotesTab } from './components/credit-notes-tab';
 import { RefundsTab } from './components/refunds-tab';
 import { PayoutsSection } from './components/payouts/payouts-section';
+import { BalanceTab } from './components/balance/balance-tab';
 
 const TABS: { key: AccountingTab; label: string; icon: React.ElementType }[] = [
   { key: 'payments', label: 'Pagos', icon: CreditCard },
   { key: 'credit-notes', label: 'Notas crédito', icon: FileMinus },
   { key: 'payouts', label: 'Dispersiones', icon: Banknote },
   { key: 'refunds', label: 'Devoluciones de dinero', icon: Undo2 },
+  { key: 'balance', label: 'Balance de prueba', icon: Scale },
 ];
 
 export default function AccountingPage() {
@@ -76,17 +78,22 @@ function Accounting() {
         })}
       </div>
 
-      <AccountingFilters
-        values={f.values}
-        options={options}
-        hasFilters={f.hasFilters}
-        onChange={f.setFilters}
-        onClear={f.clearFilters}
-      />
+      {/* El balance de prueba tiene su propio formulario: los filtros de
+          cliente, tienda y plaza no aplican a un reporte de Siigo. */}
+      {f.tab !== 'balance' && (
+        <AccountingFilters
+          values={f.values}
+          options={options}
+          hasFilters={f.hasFilters}
+          onChange={f.setFilters}
+          onClear={f.clearFilters}
+        />
+      )}
 
       {f.tab === 'payments' && <PaymentsTab {...tabProps} />}
       {f.tab === 'credit-notes' && <CreditNotesTab {...tabProps} />}
       {f.tab === 'refunds' && <RefundsTab {...tabProps} />}
+      {f.tab === 'balance' && <BalanceTab />}
       {f.tab === 'payouts' && (
         <div className="rounded-3xl border border-mm-crd bg-white p-6">
           <PayoutsSection query={f.filterQuery} />
