@@ -45,7 +45,8 @@ export async function managesAnyStore(supabase: SupabaseClient<any>, userId: str
   return isPlatformAdmin(supabase, userId);
 }
 
-async function isPlatformAdmin(supabase: SupabaseClient<any>, userId: string): Promise<boolean> {
+/** Si el usuario es admin o superadmin: ve todas las tiendas. */
+export async function isPlatformAdmin(supabase: SupabaseClient<any>, userId: string): Promise<boolean> {
   const { data: profile } = await supabase
     .from('profiles')
     .select('roles ( name )')
