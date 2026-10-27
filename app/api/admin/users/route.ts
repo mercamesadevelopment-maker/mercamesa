@@ -114,6 +114,24 @@ export async function GET(request: Request) {
       legalPorUsuario.set(a.user_id, actual);
     }
 
+    // Cierre por inactividad: a quién se le avisó (y cuándo se cierra), y cuáles
+    // de las cuentas anonimizadas las cerró la plataforma y no una persona.
+    const anonimizados = (data || []).filter((p) => p.anonymized_at).map((p) => p.id);
+    const [{ data: avisos }, { data: cierres }] = await Promise.all([
+      ids.length
+        ? service.from('account_inactivity_notices').select('user_id, closes_at').in('user_id', ids)
+        : Promise.resolve({ data: [] as { user_id: string; closes_at: string }[] }),
+      anonimizados.length
+        ? service
+            .from('admin_user_actions')
+            .select('target_user_id')
+            .eq('action', 'closed_inactive')
+            .in('target_user_id', anonimizados)
+        : Promise.resolve({ data: [] as { target_user_id: string }[] }),
+    ]);
+    const cierraEl = new Map((avisos ?? []).map((a) => [a.user_id, a.closes_at as string]));
+    const cerradosPorInactividad = new Set((cierres ?? []).map((c) => c.target_user_id));
+
     const users = (data || []).map((p) => ({
       id: p.id,
       fullName: p.full_name,
@@ -124,6 +142,8 @@ export async function GET(request: Request) {
       lastSignInAt: actividad.get(p.id)?.lastSignInAt ?? null,
       emailVerifiedAt: actividad.get(p.id)?.emailVerifiedAt ?? null,
       anonymizedAt: p.anonymized_at,
+      closedForInactivity: cerradosPorInactividad.has(p.id),
+      inactivityClosesAt: cierraEl.get(p.id) ?? null,
       isActive: p.is_active !== false,
       deactivation: porUsuario.has(p.id)
         ? {

@@ -40,6 +40,10 @@ export interface AdminUser {
   emailVerifiedAt: string | null;
   /** Cuándo se suprimieron sus datos. La fila existe solo para sostener pedidos. */
   anonymizedAt: string | null;
+  /** La cerró la tarea de cierre por inactividad, no una persona. */
+  closedForInactivity: boolean;
+  /** Se le avisó que se cerrará por inactividad: cuándo, si no vuelve. */
+  inactivityClosesAt: string | null;
   isActive: boolean;
   deactivation: Inactivacion | null;
   role: { id: string; name: string; label: string } | null;
