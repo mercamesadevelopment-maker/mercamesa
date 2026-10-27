@@ -70,8 +70,8 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
   styleHeaderRow(sheet, FIELDS.length);
 
   // El código del catálogo identifica el producto al volver a subir el archivo,
-  // pero al tendero no le dice nada: va oculto, no borrado.
-  sheet.getColumn(columnOf('catalogCode')).hidden = true;
+  // y es el nombre con el que se guardan las fotos para cargarlas en lote: va a
+  // la vista, en gris como las demás columnas de referencia.
 
   const editableColumns = new Set(EDITABLE_FIELDS.map(columnOf));
 
@@ -132,6 +132,7 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
       `8. ¿Vendes algo que no está en "${SHEET_NAMES.catalog}"? Búscalo primero ahí (Ctrl + B). Si no está, agrégalo en la hoja "${SHEET_NAMES.newProducts}": una fila por producto, con "${NEW_PRODUCT_HEADERS.category}" y "${NEW_PRODUCT_HEADERS.unit}" elegidas de la lista.`,
       '9. Los productos nuevos se publican en tu tienda de una vez, sin foto, y quedan en revisión: el equipo de MercaMesa los revisa antes de sumarlos al catálogo de todas las tiendas. La foto la puedes agregar después desde Productos.',
       '10. Guarda el archivo como Excel (.xlsx) y súbelo desde Productos → Carga masiva. Si lo guardas como CSV, solo se lee la hoja "Productos".',
+      `11. Fotos: si tu tienda tiene productos propios (de tu grupo de tiendas o propuestos por ti), nombra cada foto con su "${TEMPLATE_HEADERS.catalogCode}", por ejemplo papa-criolla.jpg, y súbelas todas juntas desde Productos → Cargar imágenes.`,
     ]
   );
 
