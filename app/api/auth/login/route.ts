@@ -11,6 +11,8 @@ import {
 } from '@/lib/auth/verification-codes'
 import { sendEmail, adminLoginCodeEmail } from '@/lib/email/resend'
 import { bloqueoPorInactividad } from '@/lib/auth/deactivation'
+import { wasClosedForInactivity } from '@/lib/accounts/closed-emails'
+import { clearInactivityNotice } from '@/lib/accounts/process-inactive'
 
 /**
  * Roles que deben verificar además con un código al correo. El auxiliar
@@ -57,10 +59,35 @@ export async function POST(request: Request) {
         'No pudimos iniciar sesión. Intenta de nuevo.',
         'login'
       )
+
+      // Una cuenta cerrada por inactividad ya no tiene ese correo, así que la
+      // contraseña siempre falla. Si la huella del correo coincide, se le
+      // explica qué pasó y que puede crear una cuenta nueva con él.
+      if (code === 'invalid_credentials' && email) {
+        const closedAt = await wasClosedForInactivity(service, email)
+        if (closedAt) {
+          const fecha = new Date(closedAt).toLocaleDateString('es-CO', {
+            timeZone: 'America/Bogota',
+            dateStyle: 'long',
+          })
+          return NextResponse.json(
+            {
+              error: `Tu cuenta se cerró por inactividad el ${fecha} y sus datos se eliminaron. Puedes crear una cuenta nueva con este correo.`,
+              code: 'account_closed',
+            },
+            { status: 400 }
+          )
+        }
+      }
+
       return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
     const userId = data.user?.id
+
+    // La contraseña es correcta: la persona volvió. Si tenía un aviso de cierre
+    // por inactividad, ya no aplica.
+    if (userId) await clearInactivityNotice(service, userId)
 
     /**
      * Deshace la sesión que el cliente con cookies ya dejó puesta.

@@ -21,6 +21,7 @@ import {
 } from '@/lib/auth/verification-codes'
 import { getCurrentLegalDocuments } from '@/lib/legal/current-documents'
 import { findSignupConflict } from '@/lib/auth/signup-conflicts'
+import { forgetClosedEmail } from '@/lib/accounts/closed-emails'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 
@@ -332,6 +333,11 @@ export async function POST(request: Request) {
         console.error('[auth] register-buyer: no se registró la aceptación', aceptacionError)
       }
     }
+
+    // Si este correo tuvo una cuenta cerrada por inactividad, la huella sobra:
+    // con ella, una contraseña mal escrita en la cuenta nueva diría que la
+    // cuenta está cerrada.
+    await forgetClosedEmail(service, emailNormalizado)
 
     return NextResponse.json({ user: authData.user, profile: profileData }, { status: 201 })
   } catch (error: unknown) {

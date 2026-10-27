@@ -232,13 +232,19 @@ export default function AdminUsersPage() {
           <div>
             <p className="font-bold text-mm-txw italic">Usuario eliminado</p>
             <p className="text-xs text-mm-txw" title={fechaCompleta(u.anonymizedAt)}>
-              Datos suprimidos {timeAgo(u.anonymizedAt).toLowerCase()}
+              {u.closedForInactivity ? 'Cerrada por inactividad' : 'Datos suprimidos'}{' '}
+              {timeAgo(u.anonymizedAt).toLowerCase()}
             </p>
           </div>
         ) : (
           <div>
             <p className="font-bold text-mm-g">{u.fullName || 'Sin nombre'}</p>
             <p className="text-xs text-mm-txw">{u.email}</p>
+            {u.inactivityClosesAt && (
+              <p className="text-[11px] font-bold text-amber-700" title={fechaCompleta(u.inactivityClosesAt)}>
+                Aviso de cierre: se cierra el {fechaCorta(u.inactivityClosesAt)} si no vuelve
+              </p>
+            )}
           </div>
         ),
     },

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { X, Eye, EyeOff, ArrowRight, Info } from 'lucide-react';
 
 import { Button, Input, StepBar } from '@/src/components/Shared';
 import { ROLE_ROUTES } from '@/src/constants';
@@ -19,7 +19,8 @@ export function LoginModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onRegisterClick?: () => void;
+  /** Recibe el correo escrito cuando la cuenta se cerró por inactividad, para no teclearlo otra vez. */
+  onRegisterClick?: (email?: string) => void;
   onForgotPasswordClick?: () => void;
   /** Correo con el que llega la persona; p. ej. desde el registro, cuando ya tenía cuenta. */
   defaultEmail?: string;
@@ -30,7 +31,11 @@ export function LoginModal({
    */
   redirectTo?: string | null;
 }) {
-  const { login, verifyLoginCode, loading, error, cooldownSeconds } = useAuthHooks();
+  const { login, verifyLoginCode, loading, error, errorCode, cooldownSeconds } = useAuthHooks();
+  // El correo del último intento, para abrir el registro con él si la cuenta se
+  // cerró por inactividad.
+  const [intentado, setIntentado] = useState('');
+  const cuentaCerrada = errorCode === 'account_closed';
 
   const [showPass, setShowPass] = useState(false);
   // Admin y superadmin verifican además con un código al correo. Para el resto
@@ -62,6 +67,7 @@ export function LoginModal({
 
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    setIntentado(email);
 
     try {
       const result = await login(email, password);
@@ -165,8 +171,24 @@ export function LoginModal({
 
           {pasoCodigo && <StepBar step={1} total={2} />}
 
+          {/* La cuenta se cerró por inactividad: no es un error de la persona,
+              y lo que sigue es crear una cuenta nueva con el mismo correo. */}
+          {error && cuentaCerrada && (
+            <div className="mb-5 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="flex items-start gap-2">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </p>
+              {onRegisterClick && (
+                <Button type="button" variant="outline" size="sm" onClick={() => onRegisterClick(intentado)}>
+                  Crear una cuenta nueva
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Error */}
-          {error && (
+          {error && !cuentaCerrada && (
             <div className="mb-5 rounded-2xl bg-red-100 p-4 text-sm text-red-600">
               {error}
             </div>
@@ -281,7 +303,7 @@ export function LoginModal({
               ¿No tienes cuenta?{' '}
               <button
                 type="button"
-                onClick={onRegisterClick}
+                onClick={() => onRegisterClick()}
                 className="font-medium text-mm-g hover:underline"
               >
                 Regístrate como comprador

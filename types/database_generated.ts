@@ -9,6 +9,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_inactivity_notices: {
+        Row: {
+          closes_at: string
+          notified_at: string
+          user_id: string
+        }
+        Insert: {
+          closes_at: string
+          notified_at?: string
+          user_id: string
+        }
+        Update: {
+          closes_at?: string
+          notified_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_inactivity_notices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       actions: {
         Row: {
           id: string
@@ -69,7 +95,7 @@ export type Database = {
       admin_user_actions: {
         Row: {
           action: string
-          actor_id: string
+          actor_id: string | null
           created_at: string
           id: string
           request_ip: string | null
@@ -77,7 +103,7 @@ export type Database = {
         }
         Insert: {
           action: string
-          actor_id: string
+          actor_id?: string | null
           created_at?: string
           id?: string
           request_ip?: string | null
@@ -85,7 +111,7 @@ export type Database = {
         }
         Update: {
           action?: string
-          actor_id?: string
+          actor_id?: string | null
           created_at?: string
           id?: string
           request_ip?: string | null
@@ -541,6 +567,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      closed_account_emails: {
+        Row: {
+          closed_at: string
+          email_hash: string
+        }
+        Insert: {
+          closed_at?: string
+          email_hash: string
+        }
+        Update: {
+          closed_at?: string
+          email_hash?: string
+        }
+        Relationships: []
       }
       delivery_addresses: {
         Row: {
@@ -4278,8 +4319,19 @@ export type Database = {
         Returns: boolean
       }
       immutable_unaccent: { Args: { texto: string }; Returns: string }
+      inactive_accounts: {
+        Args: { p_before: string; p_limit?: number }
+        Returns: {
+          email: string
+          full_name: string
+          last_activity: string
+          role_name: string
+          user_id: string
+        }[]
+      }
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      last_account_activity: { Args: { p_user: string }; Returns: string }
       merge_catalog_product: {
         Args: { p_pending: string; p_target: string }
         Returns: number
