@@ -3,7 +3,7 @@ import { useApp } from '@/src/store';
 import { Product, Sale, OrderItem, SaleStatus } from '@/src/types';
 import { CustomerState } from '../components/customer-autocomplete';
 import { saveClient } from '../services/sales.service';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatOrderCode } from '@/lib/orders/order-code';
@@ -307,7 +307,7 @@ export function useSales() {
           id: `sale-${Date.now()}`,
           type: 'order_new',
           title: 'Venta Registrada',
-          msg: `Venta física por ${fmt(total)} registrada con éxito en la base de datos.`,
+          msg: `Venta física por ${formatCOP(total)} registrada con éxito en la base de datos.`,
           time: new Date().toISOString(),
           read: false
         }

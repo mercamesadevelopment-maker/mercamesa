@@ -2,7 +2,7 @@
 
 import { Bike, Loader2, MapPinned, Phone, RotateCw, Search, AlertTriangle, CheckCircle2, KeyRound } from 'lucide-react';
 import { Button, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import type {
   DeliveryStage,
   DeliveryTimelineEntry,
@@ -206,7 +206,7 @@ function DeliveryBody({
 
       {delivery.cost !== undefined && delivery.cost !== null && (
         <p className="text-xs text-mm-txs">
-          Costo del domicilio: <span className="font-bold text-mm-g">{fmt(delivery.cost)}</span>
+          Costo del domicilio: <span className="font-bold text-mm-g">{formatCOP(delivery.cost)}</span>
         </p>
       )}
     </div>

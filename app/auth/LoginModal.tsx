@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, Info } from 'lucide-react';
 
 import { Button, Input, StepBar } from '@/src/components/Shared';
-import { ROLE_ROUTES } from '@/src/constants';
+import { ROLE_ROUTES } from '@/lib/auth/roles';
 import { useAuthHooks } from '../hooks/useAuth';
 import { BrandLogo } from '@/components/ui/brand-logo';
 

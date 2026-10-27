@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ApiError, authService } from '../services/auth.service';
-import { useApp, resolveRoleKey } from '@/src/store';
+import { useApp } from '@/src/store';
+import { resolveRoleKey } from '@/lib/auth/roles';
 import { useResendCooldown } from './use-resend-cooldown';
 
 export function useAuthHooks() {

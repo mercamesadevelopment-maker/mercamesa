@@ -1,5 +1,5 @@
 import { Badge, cn } from "@/src/components/Shared";
-import { fmt } from "@/src/constants";
+import { formatCOP } from '@/lib/utils/format';
 import { LINE_SAVINGS_LABEL } from "@/lib/copy/discount-notice";
 import { discountPct } from "../utils/cart-savings";
 
@@ -31,18 +31,18 @@ export function CartItemPrice({ price, unit, listPrice, savings = 0 }: CartItemP
             -{discountPct(listPrice, price)}%
           </Badge>
           <span className="text-[11px] font-bold text-mm-txw line-through decoration-r">
-            {fmt(listPrice)}
+            {formatCOP(listPrice)}
           </span>
         </div>
       )}
       <div className="flex items-baseline gap-1">
         <p className={cn("text-sm font-bold", hasDiscount ? "text-r" : "text-mm-g")}>
-          {fmt(price)}
+          {formatCOP(price)}
         </p>
         <span className="text-[10px] text-mm-txw">/ {unit}</span>
       </div>
       {hasDiscount && savings > 0 && (
-        <p className="mt-0.5 text-[10px] font-bold text-ok">{LINE_SAVINGS_LABEL(fmt(savings))}</p>
+        <p className="mt-0.5 text-[10px] font-bold text-ok">{LINE_SAVINGS_LABEL(formatCOP(savings))}</p>
       )}
     </div>
   );

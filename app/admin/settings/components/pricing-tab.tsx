@@ -7,7 +7,7 @@ import { PricingSettingsRow, EnsureSiigoProductResult } from '../types/settings.
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Input, Badge } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { Modal } from '@/components/ui/modal/modal';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
@@ -102,31 +102,31 @@ export function PricingTab() {
     <div className="space-y-1.5 text-sm">
       <div className="flex justify-between text-mm-txs">
         <span>Productos (los recibe el tendero)</span>
-        <span className="font-bold">{fmt(preview.productsSubtotal)}</span>
+        <span className="font-bold">{formatCOP(preview.productsSubtotal)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
         <span>+ comisión de servicio</span>
-        <span>{fmt(preview.serviceCommission)}</span>
+        <span>{formatCOP(preview.serviceCommission)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
         <span>+ mensajes</span>
-        <span>{fmt(preview.messagesAmount)}</span>
+        <span>{formatCOP(preview.messagesAmount)}</span>
       </div>
       <div className="flex justify-between text-mm-txs pt-1.5 border-t border-mm-crd/50">
         <span className="font-bold">= Valor neto de compra</span>
-        <span className="font-bold">{fmt(preview.netPurchase)}</span>
+        <span className="font-bold">{formatCOP(preview.netPurchase)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
         <span>+ servicio MercaMesa</span>
-        <span>{fmt(preview.platformCommission)}</span>
+        <span>{formatCOP(preview.platformCommission)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
         <span>+ domicilio (ejemplo)</span>
-        <span>{fmt(preview.deliveryFee)}</span>
+        <span>{formatCOP(preview.deliveryFee)}</span>
       </div>
       <div className="flex justify-between pt-1.5 border-t border-mm-crd/50">
         <span className="font-bold text-mm-g">Total a pagar</span>
-        <span className="font-bold text-mm-g">{fmt(preview.total)}</span>
+        <span className="font-bold text-mm-g">{formatCOP(preview.total)}</span>
       </div>
     </div>
   );
@@ -163,7 +163,7 @@ export function PricingTab() {
       label: 'Mensajes',
       render: (item: PricingSettingsRow) => (
         <span className="text-sm text-mm-txs">
-          {item.messages_per_order} × {fmt(item.message_unit_price)}
+          {item.messages_per_order} × {formatCOP(item.message_unit_price)}
         </span>
       ),
     },
@@ -201,7 +201,7 @@ export function PricingTab() {
               </p>
               {current && (
                 <p className="text-xs text-mm-txs mt-1 flex flex-wrap items-center gap-3">
-                  <span>{current.messages_per_order} mensajes × {fmt(current.message_unit_price)}</span>
+                  <span>{current.messages_per_order} mensajes × {formatCOP(current.message_unit_price)}</span>
                   <span className="flex items-center gap-1"><User className="w-3 h-3" /> {current.profiles?.full_name || 'Sistema'}</span>
                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(current.created_at).toLocaleString('es-CO')}</span>
                 </p>
@@ -217,7 +217,7 @@ export function PricingTab() {
           <div className="grid md:grid-cols-2 gap-5 pt-5 border-t border-mm-crd/50">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-mm-txw mb-3">
-                Ejemplo con {fmt(EXAMPLE_SUBTOTAL)} en productos
+                Ejemplo con {formatCOP(EXAMPLE_SUBTOTAL)} en productos
               </p>
               {previewRows}
             </div>
@@ -332,7 +332,7 @@ export function PricingTab() {
 
             <div className="bg-mm-gbg/40 border border-mm-crd rounded-2xl p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-mm-txw mb-3">
-                Así quedaría un pedido de {fmt(EXAMPLE_SUBTOTAL)}
+                Así quedaría un pedido de {formatCOP(EXAMPLE_SUBTOTAL)}
               </p>
               {previewRows}
             </div>

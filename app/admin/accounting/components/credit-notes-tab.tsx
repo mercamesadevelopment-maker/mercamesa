@@ -2,7 +2,7 @@
 
 import { Table } from '@/components/ui/table/components/Table';
 import { cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta, fechaCorta } from '@/lib/dates/relative-time';
 import { InvoiceLink } from '@/src/features/orders/components/InvoiceLink';
 import type { CreditNoteRow } from '@/lib/accounting/types';
@@ -82,7 +82,7 @@ export function CreditNotesTab({ query, pagination }: AccountingTabProps) {
       label: 'Monto',
       render: (n: CreditNoteRow) => (
         <div>
-          <p className="font-bold text-mm-g">{fmt(n.amount)}</p>
+          <p className="font-bold text-mm-g">{formatCOP(n.amount)}</p>
           <p className="text-xs text-mm-txw">Asume: {ASUME[n.liable] ?? n.liable}</p>
         </div>
       ),
@@ -94,7 +94,7 @@ export function CreditNotesTab({ query, pagination }: AccountingTabProps) {
       {data && (
         <TotalsCards
           cards={[
-            { label: 'Monto en notas', value: fmt(data.totals.amount), hint: `${data.total} ${data.total === 1 ? 'nota crédito' : 'notas crédito'}` },
+            { label: 'Monto en notas', value: formatCOP(data.totals.amount), hint: `${data.total} ${data.total === 1 ? 'nota crédito' : 'notas crédito'}` },
             { label: 'Enviadas a Siigo', value: String(data.totals.sent), tone: 'ok' },
             { label: 'Por enviar', value: String(data.totals.pending), tone: data.totals.pending ? 'warn' : 'default' },
             { label: 'Fallidas', value: String(data.totals.failed), tone: data.totals.failed ? 'warn' : 'default' },

@@ -2,28 +2,16 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { createSupabaseBrowserClient } from '../lib/supabase/client'; // ajusta la ruta a tu cliente browser
 import { fetchCart, recoverAbandonedCartDb } from './features/cart/services/cart.service';
-import { 
-  Plaza, Store, Product, CartItem, Order, AppNotification, BuyerProfile, RoleKey, Offer, MasterProduct, StoreReview, Sale, SaleStatus 
-} from './types';
-import { SEED_PLAZAS, SEED_STORES, SEED_PRODUCTS, DEFAULT_BUYER_PROFILE, SEED_CATALOG, SEED_REVIEWS } from './constants';
+import { CartItem, AppNotification, BuyerProfile, Product, RoleKey } from './types';
+import { resolveRoleKey } from '@/lib/auth/roles';
 
 interface AppState {
-  plazas: Plaza[];
-  stores: Store[];
-  products: Product[];
   cart: CartItem[];
-  orders: Order[];
   notifs: AppNotification[];
   buyerProfile: BuyerProfile;
   userRole: RoleKey;
   isLoggedIn: boolean;
   currentSection: string;
-  offers: Offer[];
-  catalog: MasterProduct[];
-  reviews: StoreReview[];
-  sales: Sale[];
-  selectedPlazaId?: number;
-  selectedStoreId?: number | string;
   // Flag para saber si ya intentamos hidratar desde Supabase
   _hydrated: boolean;
   // Aviso al intentar juntar en el carrito tiendas que no despachan desde el mismo punto
@@ -31,7 +19,6 @@ interface AppState {
 }
 
 type AppAction =
-  | { type: 'SET_ROLE'; role: RoleKey }
   | { type: 'LOGIN'; role: RoleKey; profile?: Partial<BuyerProfile> }
   | { type: 'LOGOUT' }
   | { type: 'HYDRATE'; role: RoleKey; profile: Partial<BuyerProfile>; cart?: CartItem[] }
@@ -42,137 +29,23 @@ type AppAction =
   | { type: 'UPDATE_CART_ITEM_NOTES'; productId: number | string; notes: string }
   | { type: 'CLEAR_CART' }
   | { type: 'HYDRATE_CART'; cart: CartItem[] }
-  | { type: 'PLACE_ORDER'; orders: Order[] }
-  | { type: 'UPDATE_ORDER_STATUS'; orderId: string; status: Order['status'] }
   | { type: 'ADD_NOTIF'; notif: AppNotification }
   | { type: 'SET_NOTIFS'; notifs: AppNotification[] }
   | { type: 'READ_NOTIF'; notifId: string }
   | { type: 'READ_ALL_NOTIFS' }
   | { type: 'UPDATE_BUYER_PROFILE'; profile: Partial<BuyerProfile> }
-  | { type: 'ADD_PRODUCT'; product: Product }
-  | { type: 'UPDATE_PRODUCT'; product: Product }
-  | { type: 'DELETE_PRODUCT'; productId: number | string }
-  | { type: 'ADD_PLAZA'; plaza: Plaza }
-  | { type: 'UPDATE_PLAZA'; plaza: Plaza }
-  | { type: 'DELETE_PLAZA'; plazaId: number }
-  | { type: 'ADD_STORE'; store: Store }
-  | { type: 'UPDATE_STORE'; store: Store }
-  | { type: 'DELETE_STORE'; storeId: number | string }
-  | { type: 'ADD_OFFER'; offer: Offer }
-  | { type: 'UPDATE_OFFER'; offer: Offer }
-  | { type: 'DELETE_OFFER'; offerId: number | string }
-  | { type: 'ADD_CATALOG_ITEM'; item: MasterProduct }
-  | { type: 'UPDATE_CATALOG_ITEM'; item: MasterProduct }
-  | { type: 'DELETE_CATALOG_ITEM'; id: number }
-  | { type: 'ADD_REVIEW'; review: StoreReview }
-  | { type: 'ADD_SALE'; sale: Sale }
-  | { type: 'UPDATE_SALE_STATUS'; saleId: number | string; status: SaleStatus }
-  | { type: 'SELECT_STORE'; plazaId: number; storeId?: number | string }
-  | { type: 'CLEAR_STORE_SELECTION' }
   | { type: 'SET_CART_STORE_CONFLICT'; currentStoreName: string }
   | { type: 'CLEAR_CART_STORE_CONFLICT' };
 
-// Mapea el nombre de rol real de la BD (roles.name) al RoleKey interno de la app.
-// 'buyer' no tiene una entrada fija: se resuelve con buyer_type (retail/wholesale).
-const roleNameToKey: Record<string, RoleKey> = {
-  admin: 'admin',
-  superadmin: 'admin',
-  seller: 'provider',
-  store_owner: 'provider',
-  provider: 'provider',
-  runner: 'runner',
-  logistics: 'logistics',
-  accountant: 'accountant',
-  wholesale: 'wholesale',
-  retail: 'retail',
-};
-
-export function resolveRoleKey(
-  roleName: string | null | undefined,
-  buyerType?: string | null
-): RoleKey {
-  if (roleName === 'buyer') {
-    return buyerType === 'wholesale' ? 'wholesale' : 'retail';
-  }
-  return roleNameToKey[roleName ?? ''] ?? 'retail';
-}
+const EMPTY_PROFILE: BuyerProfile = { id: '', name: '', email: '', avatar: '' };
 
 const initialState: AppState = {
-  plazas: SEED_PLAZAS,
-  stores: SEED_STORES,
-  products: SEED_PRODUCTS,
   cart: [],
-  orders: [
-    {
-      id: "MM-102938",
-      code: "MM-2026-000001-1",
-      date: new Date().toISOString(),
-      storeId: 1,
-      storeName: "Frutería Don Chucho",
-      storeEmoji: "🍎",
-      items: [
-        { id: 1, name: "Manzana Roja", qty: 5, price: 2500, unit: "und", emoji: "🍎" },
-        { id: 2, name: "Banano Maduro", qty: 12, price: 800, unit: "und", emoji: "🍌" }
-      ],
-      total: 22100,
-      status: 'on_the_way',
-      buyerId: 'user-1',
-      address: 'Cra 70 #45-12, Laureles',
-      paymentMethod: 'Efectivo'
-    },
-    {
-      id: "MM-485721",
-      code: "MM-2026-000002-1",
-      date: "2024-05-08T13:00:00.000Z",
-      storeId: 2,
-      storeName: "Carnes El Novillo",
-      storeEmoji: "🥩",
-      items: [
-        { id: 5, name: "Punta de Anca", qty: 2, price: 35000, unit: "kg", emoji: "🥩" }
-      ],
-      total: 70000,
-      status: 'preparing',
-      buyerId: 'user-1',
-      address: 'Cl 10 #43-01, El Poblado',
-      paymentMethod: 'Tarjeta **** 4422'
-    }
-  ],
   notifs: [],
-  buyerProfile: DEFAULT_BUYER_PROFILE,
+  buyerProfile: EMPTY_PROFILE,
   userRole: 'retail',
   isLoggedIn: false,
   currentSection: 'home',
-  catalog: SEED_CATALOG,
-  reviews: SEED_REVIEWS,
-  sales: [],
-  offers: [
-    {
-      id: 1,
-      storeId: 1,
-      plazaId: 1,
-      title: 'Festival del Tomate',
-      desc: '30% de descuento en todos los tomates',
-      type: 'percentage',
-      value: 30,
-      productIds: [3],
-      status: 'active',
-      endDate: '2026-04-30',
-      emoji: '🍅'
-    },
-    {
-      id: 2,
-      storeId: 2,
-      plazaId: 1,
-      title: 'Combo Asado',
-      desc: '$10,000 de descuento en Punta de Anca',
-      type: 'fixed',
-      value: 10000,
-      productIds: [5],
-      status: 'active',
-      endDate: '2026-04-28',
-      emoji: '🥩'
-    }
-  ],
   _hydrated: false,
   cartStoreConflict: null,
 };
@@ -190,18 +63,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
         _hydrated: true,
       };
 
-    case 'SET_ROLE': {
-      const defaultSection = action.role === 'admin' ? 'admin_analytics' : 
-                            action.role === 'provider' ? 'dashboard' : 'home';
-      return { ...state, userRole: action.role, currentSection: defaultSection };
-    }
-
     case 'LOGIN':
       return { 
         ...state, 
         isLoggedIn: true, 
         userRole: action.role, 
-        currentSection: action.role === 'admin' ? 'admin_analytics' : 'home',
+        currentSection: 'home',
         buyerProfile: action.profile ? { ...state.buyerProfile, ...action.profile } : state.buyerProfile,
         _hydrated: true,
       };
@@ -212,7 +79,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         isLoggedIn: false, 
         cart: [], 
         currentSection: 'home',
-        buyerProfile: DEFAULT_BUYER_PROFILE,
+        buyerProfile: EMPTY_PROFILE,
         _hydrated: true, // ya sabemos que no hay sesión
       };
 
@@ -252,15 +119,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'HYDRATE_CART':
       return { ...state, cart: action.cart };
 
-    case 'PLACE_ORDER':
-      return { ...state, orders: [...state.orders, ...action.orders], cart: [] };
-
-    case 'UPDATE_ORDER_STATUS':
-      return {
-        ...state,
-        orders: state.orders.map(o => o.id === action.orderId ? { ...o, status: action.status } : o)
-      };
-
     case 'ADD_NOTIF':
       return { ...state, notifs: [action.notif, ...state.notifs] };
 
@@ -278,101 +136,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'UPDATE_BUYER_PROFILE':
       return { ...state, buyerProfile: { ...state.buyerProfile, ...action.profile } };
-
-    case 'ADD_PRODUCT':
-      return { ...state, products: [...state.products, action.product] };
-
-    case 'UPDATE_PRODUCT':
-      return {
-        ...state,
-        products: state.products.map(p => p.id === action.product.id ? action.product : p)
-      };
-
-    case 'DELETE_PRODUCT':
-      return { ...state, products: state.products.filter(p => p.id !== action.productId) };
-
-    case 'ADD_PLAZA':
-      return { ...state, plazas: [...state.plazas, action.plaza] };
-
-    case 'UPDATE_PLAZA':
-      return {
-        ...state,
-        plazas: state.plazas.map(p => p.id === action.plaza.id ? action.plaza : p)
-      };
-
-    case 'DELETE_PLAZA':
-      return { ...state, plazas: state.plazas.filter(p => p.id !== action.plazaId) };
-
-    case 'ADD_STORE':
-      return { ...state, stores: [...state.stores, action.store] };
-
-    case 'UPDATE_STORE':
-      return {
-        ...state,
-        stores: state.stores.map(s => s.id === action.store.id ? action.store : s)
-      };
-
-    case 'DELETE_STORE':
-      return { ...state, stores: state.stores.filter(s => s.id !== action.storeId) };
-
-    case 'ADD_OFFER':
-      return { ...state, offers: [...state.offers, action.offer] };
-
-    case 'UPDATE_OFFER':
-      return {
-        ...state,
-        offers: state.offers.map(o => o.id === action.offer.id ? action.offer : o)
-      };
-
-    case 'DELETE_OFFER':
-      return { ...state, offers: state.offers.filter(o => o.id !== action.offerId) };
-
-    case 'ADD_CATALOG_ITEM':
-      return { ...state, catalog: [...state.catalog, action.item] };
-
-    case 'UPDATE_CATALOG_ITEM':
-      return {
-        ...state,
-        catalog: state.catalog.map(i => i.id === action.item.id ? action.item : i)
-      };
-
-    case 'DELETE_CATALOG_ITEM':
-      return { ...state, catalog: state.catalog.filter(i => i.id !== action.id) };
-
-    case 'ADD_REVIEW': {
-      const newReviews = [...state.reviews, action.review];
-      const storeReviews = newReviews.filter(r => r.storeId === action.review.storeId);
-      const avg = storeReviews.reduce((acc, r) => acc + r.stars, 0) / storeReviews.length;
-      return {
-        ...state,
-        reviews: newReviews,
-        stores: state.stores.map(s => s.id === action.review.storeId ? { 
-          ...s, 
-          rating: Number(avg.toFixed(1)), 
-          reviewCount: storeReviews.length 
-        } : s)
-      };
-    }
-
-    case 'ADD_SALE':
-      return { ...state, sales: [action.sale, ...state.sales] };
-
-    case 'UPDATE_SALE_STATUS':
-      return {
-        ...state,
-        sales: state.sales.map(s => s.id === action.saleId ? { ...s, status: action.status } : s)
-      };
-
-    case 'SELECT_STORE':
-      return { 
-        ...state, 
-        selectedPlazaId: action.plazaId, 
-        selectedStoreId: action.storeId || undefined,
-        currentSection: 'home'
-      };
-
-    case 'CLEAR_STORE_SELECTION':
-      return { ...state, selectedPlazaId: undefined, selectedStoreId: undefined };
 
     case 'SET_CART_STORE_CONFLICT':
       return { ...state, cartStoreConflict: { currentStoreName: action.currentStoreName } };

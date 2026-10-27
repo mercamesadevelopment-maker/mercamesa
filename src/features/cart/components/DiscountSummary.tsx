@@ -1,7 +1,7 @@
 "use client";
 
 import { Tag } from "lucide-react";
-import { fmt } from "@/src/constants";
+import { formatCOP } from '@/lib/utils/format';
 import {
   DISCOUNT_NOTICE_TITLE,
   DISCOUNT_NOTICE_BODY,
@@ -50,19 +50,19 @@ export function DiscountSummary({ lines, discountTotal }: DiscountSummaryProps) 
             <div className="min-w-0">
               <p className="truncate font-bold text-mm-g">{item.name}</p>
               <p className="text-mm-txw">
-                <span className="font-bold line-through decoration-r">{fmt(listPrice)}</span>{" "}
-                <span className="font-bold text-mm-g">{fmt(price)}</span>
+                <span className="font-bold line-through decoration-r">{formatCOP(listPrice)}</span>{" "}
+                <span className="font-bold text-mm-g">{formatCOP(price)}</span>
                 {item.qty > 1 && <span> × {item.qty}</span>}
               </p>
             </div>
-            <span className="shrink-0 font-bold text-mm-g">{LINE_SAVINGS_LABEL(fmt(savings))}</span>
+            <span className="shrink-0 font-bold text-mm-g">{LINE_SAVINGS_LABEL(formatCOP(savings))}</span>
           </li>
         ))}
       </ul>
 
       <div className="mt-3 flex items-center justify-between border-t border-mm-g/20 pt-3">
         <span className="text-sm font-bold text-mm-g">{DISCOUNT_NOTICE_TOTAL_LABEL}</span>
-        <span className="text-lg font-bold text-mm-g">{fmt(discountTotal)}</span>
+        <span className="text-lg font-bold text-mm-g">{formatCOP(discountTotal)}</span>
       </div>
     </div>
   );

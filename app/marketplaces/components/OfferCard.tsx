@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { Floating } from '@/components/ui/floating';
 import { StoreOffer } from '@/src/features/offers/types/offer.types';
 
@@ -46,7 +46,7 @@ export function OfferCard({ offer, onClick, destacada = false, index = 0 }: Offe
   const [fotoRota, setFotoRota] = useState(false);
 
   const kicker = offer.label || (offer.discount_pct ? 'Descuento' : 'Precio especial');
-  const cifra = offer.discount_pct ? `${offer.discount_pct}%` : fmt(Number(offer.special_price ?? 0));
+  const cifra = offer.discount_pct ? `${offer.discount_pct}%` : formatCOP(Number(offer.special_price ?? 0));
 
   const foto = offer.imageSignedUrl && !fotoRota ? (
     <img

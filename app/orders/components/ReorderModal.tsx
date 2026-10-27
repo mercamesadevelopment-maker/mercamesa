@@ -8,6 +8,7 @@ import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { fetchPickupGroup } from '@/src/features/cart/services/cart.service';
 import { sharePickupPoint } from '@/lib/orders/pickup-group';
+import { formatCOP } from '@/lib/utils/format';
 
 type ReorderStatus = 'available' | 'partial' | 'out_of_stock' | 'unavailable';
 
@@ -30,8 +31,6 @@ interface ReorderLine {
 const hasDiscount = (line: ReorderLine) =>
   line.price !== null && line.listPrice !== null && line.listPrice > line.price;
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(n);
 
 export function ReorderModal({
   isOpen,
@@ -160,7 +159,7 @@ export function ReorderModal({
           {line.status === 'partial' &&
             `Solo quedan ${line.availableQty} ${line.unit || ''} de los ${line.requestedQty} que pediste`}
           {line.status === 'available' &&
-            `${line.availableQty} ${line.unit || ''} · ${line.price !== null ? fmt(line.price) : ''}`}
+            `${line.availableQty} ${line.unit || ''} · ${line.price !== null ? formatCOP(line.price) : ''}`}
         </p>
       </div>
 
@@ -168,11 +167,11 @@ export function ReorderModal({
         <span className="shrink-0 whitespace-nowrap text-right">
           {hasDiscount(line) && (
             <span className="mr-1.5 text-xs text-mm-txw line-through decoration-r">
-              {fmt(Number(line.listPrice) * line.availableQty)}
+              {formatCOP(Number(line.listPrice) * line.availableQty)}
             </span>
           )}
           <span className="text-sm font-bold text-mm-g">
-            {fmt(line.price * line.availableQty)}
+            {formatCOP(line.price * line.availableQty)}
           </span>
         </span>
       )}
@@ -256,7 +255,7 @@ export function ReorderModal({
                 <span className="text-xs font-bold uppercase tracking-widest text-mm-txw">
                   Subtotal
                 </span>
-                <span className="font-display text-2xl text-mm-g">{fmt(total)}</span>
+                <span className="font-display text-2xl text-mm-g">{formatCOP(total)}</span>
               </div>
             )}
 

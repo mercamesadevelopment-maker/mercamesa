@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, MessageSquare, XCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { MIN_CANCEL_REASON } from '@/lib/orders/cancel-part-rules';
 
 interface CancelPartModalProps {
@@ -55,7 +55,7 @@ export function CancelPartModal({ isOpen, onClose, onConfirm, subtotal }: Cancel
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-amber-900 font-semibold leading-relaxed space-y-1.5">
             <p>
-              Se cancela solo lo de tu tienda ({fmt(subtotal)}). El resto del pedido sale con las demás tiendas y al
+              Se cancela solo lo de tu tienda ({formatCOP(subtotal)}). El resto del pedido sale con las demás tiendas y al
               comprador se le devuelve el valor de tus productos como saldo a favor.
             </p>
             <p>No se puede deshacer: el inventario vuelve a tu tienda y esta venta no se te paga.</p>

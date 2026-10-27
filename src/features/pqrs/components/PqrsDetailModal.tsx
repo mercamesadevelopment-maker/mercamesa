@@ -3,7 +3,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { PQRS_KIND_LABELS, PQRS_LIABLE_LABELS } from '@/lib/pqrs/reasons';
 import { usePqrsDetail } from '../hooks/use-pqrs-detail';
@@ -97,7 +97,7 @@ export function PqrsDetailModal({ pqrsId, onClose, onChanged }: PqrsDetailModalP
                     <span className="text-mm-txs break-words min-w-0">
                       {item.quantity} {item.unit ?? ''} · {item.name}
                     </span>
-                    <span className="font-bold text-mm-g shrink-0">{fmt(item.unitPrice * item.quantity)}</span>
+                    <span className="font-bold text-mm-g shrink-0">{formatCOP(item.unitPrice * item.quantity)}</span>
                   </li>
                 ))}
               </ul>
