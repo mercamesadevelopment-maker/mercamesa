@@ -80,7 +80,6 @@ const roleNameToKey: Record<string, RoleKey> = {
   seller: 'provider',
   store_owner: 'provider',
   provider: 'provider',
-  delivery: 'delivery',
   runner: 'runner',
   logistics: 'logistics',
   accountant: 'accountant',
@@ -193,8 +192,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'SET_ROLE': {
       const defaultSection = action.role === 'admin' ? 'admin_analytics' : 
-                            action.role === 'provider' ? 'dashboard' :
-                            action.role === 'delivery' ? 'routes' : 'home';
+                            action.role === 'provider' ? 'dashboard' : 'home';
       return { ...state, userRole: action.role, currentSection: defaultSection };
     }
 

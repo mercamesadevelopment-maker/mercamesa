@@ -1,4 +1,4 @@
-export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'runner' | 'logistics' | 'accountant' | 'admin';
+export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'runner' | 'logistics' | 'accountant' | 'admin';
 
 export interface Role {
   k: RoleKey;
