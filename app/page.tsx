@@ -9,7 +9,7 @@ import { LoginModal } from './auth/LoginModal';
 import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
 import { useApp } from '@/src/store';
-import { ROLE_ROUTES } from '@/src/constants';
+import { ROLE_ROUTES } from '@/lib/auth/roles';
 import { useLegalLinks } from './hooks/use-legal-links';
 import { BrandLogo } from '@/components/ui/brand-logo';
 

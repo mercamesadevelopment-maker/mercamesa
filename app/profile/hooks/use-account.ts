@@ -35,7 +35,6 @@ export function useAccount() {
         type: 'UPDATE_BUYER_PROFILE',
         profile: {
           name: data.full_name,
-          phone: data.phone || '',
           avatar: data.avatarSignedUrl || '',
         },
       });

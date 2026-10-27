@@ -1,70 +1,6 @@
-export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'runner' | 'logistics' | 'accountant' | 'admin';
+import type { RoleKey } from '@/lib/auth/roles';
+export type { RoleKey };
 
-export interface Role {
-  k: RoleKey;
-  emoji: string;
-  icon: string;
-  color: string;
-  bg: string;
-  brd: string;
-  title: string;
-  sub: string;
-  tagline: string;
-  perks: string[];
-}
-
-export interface Plaza {
-  id: number;
-  emoji: string;
-  name: string;
-  city: string;
-  address: string;
-  stores: number;
-  open: boolean;
-  rating: number;
-  bg: string;
-  image?: string;
-  tags: string[];
-  status: 'active' | 'maintenance';
-  openTime: string;
-  closeTime: string;
-  phone: string;
-  location: { lat: number; lng: number };
-  website?: string;
-  email: string;
-}
-
-export interface StoreReview {
-  id: string;
-  storeId: number | string;
-  buyerId: string;
-  buyerName: string;
-  stars: number;
-  comment: string;
-  date: string;
-}
-
-export interface Store {
-  id: number | string;
-  plazaId: number;
-  emoji: string;
-  name: string;
-  image?: string;
-  ownerName: string;
-  cat: string;
-  phone: string;
-  desc: string;
-  open: boolean;
-  rating: number;
-  reviewCount: number;
-  local: string;
-  status: 'active' | 'inactive';
-  openTime: string;
-  closeTime: string;
-  location: { lat: number; lng: number };
-  website?: string;
-  email: string;
-}
 
 export interface MasterProduct {
   id: number;
@@ -218,49 +154,13 @@ export interface Order {
   history?: OrderStatusHistoryItem[];
 }
 
-export interface Address {
-  id: string;
-  label: string;
-  street: string;
-  neighborhood: string;
-  city: string;
-  notes: string;
-  isDefault: boolean;
-  icon: string;
-}
-
-export interface PaymentMethod {
-  id: string;
-  type: 'card' | 'nequi' | 'daviplata';
-  label: string;
-  brand?: string;
-  last4?: string;
-  exp?: string;
-  isDefault: boolean;
-}
-
+/** Lo que la interfaz sabe de quien tiene la sesión. Lo demás de su perfil lo pide cada pantalla. */
 export interface BuyerProfile {
   id: string;
   role_id?: string;
   name: string;
-  phone: string;
   email: string;
   avatar: string;
-  memberSince: string;
-  rating: number;
-  totalOrders: number;
-  totalSpent: number;
-  loyaltyPoints: number;
-  addresses: Address[];
-  payments: PaymentMethod[];
-  storeRatings: Record<string | number, { stars: number; comment: string; date: string }>;
-  favoriteStores: (number | string)[];
-  prefs: {
-    orderNotif: boolean;
-    promoNotif: boolean;
-    stockNotif: boolean;
-    whatsappNotif: boolean;
-  };
 }
 
 export interface AppNotification {
@@ -274,19 +174,3 @@ export interface AppNotification {
   entityId?: string | null;
 }
 
-export interface Offer {
-  id: number | string;
-  storeId: number | string;
-  plazaId: number;
-  title: string;
-  desc: string;
-  type: 'percentage' | 'fixed';
-  value: number; 
-  productIds: (number | string)[];
-  status: 'active' | 'expired';
-  approvalStatus?: 'pending' | 'verified' | 'active' | 'inactive';
-  isFeatured?: boolean;
-  endDate: string;
-  image?: string;
-  emoji: string;
-}

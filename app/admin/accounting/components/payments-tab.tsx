@@ -2,7 +2,7 @@
 
 import { Table } from '@/components/ui/table/components/Table';
 import { cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta, fechaCorta } from '@/lib/dates/relative-time';
 import type { PaymentRow } from '@/lib/accounting/types';
 import { useAccountingList } from '../hooks/use-accounting-list';
@@ -75,7 +75,7 @@ export function PaymentsTab({ query, pagination }: AccountingTabProps) {
     {
       key: 'amount',
       label: 'Monto',
-      render: (p: PaymentRow) => <span className="font-bold text-mm-g">{fmt(p.amount)}</span>,
+      render: (p: PaymentRow) => <span className="font-bold text-mm-g">{formatCOP(p.amount)}</span>,
     },
   ];
 
@@ -86,13 +86,13 @@ export function PaymentsTab({ query, pagination }: AccountingTabProps) {
           cards={[
             {
               label: 'Pagos aprobados',
-              value: fmt(data.totals.approved),
+              value: formatCOP(data.totals.approved),
               hint: `${data.totals.approvedCount} ${data.totals.approvedCount === 1 ? 'pago' : 'pagos'}`,
               tone: 'ok',
             },
             {
               label: 'Sin aprobar',
-              value: fmt(data.totals.notApproved),
+              value: formatCOP(data.totals.notApproved),
               hint: `${data.totals.notApprovedCount} intentos rechazados, pendientes o reembolsados`,
             },
           ]}

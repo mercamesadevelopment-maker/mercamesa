@@ -7,7 +7,7 @@ import { useClients, ClientWithMetrics, ClientOrder, ALL_STORES } from '../hooks
 import { Table } from '@/components/ui/table/components/Table';
 import { Modal } from '@/components/ui/modal/modal';
 import { Badge, Button, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 
 export function ClientsView() {
   const {
@@ -97,7 +97,7 @@ export function ClientsView() {
       label: 'Total Facturado',
       render: (item: ClientWithMetrics) => (
         <span className="font-mono font-bold text-mm-g text-sm tabular-nums">
-          {fmt(item.totalSpent)}
+          {formatCOP(item.totalSpent)}
         </span>
       )
     },
@@ -196,7 +196,7 @@ export function ClientsView() {
           </div>
           <div>
             <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Facturación Clientes</p>
-            <p className="text-2xl font-bold text-mm-g leading-tight">{fmt(stats.totalSpentInStore)}</p>
+            <p className="text-2xl font-bold text-mm-g leading-tight">{formatCOP(stats.totalSpentInStore)}</p>
           </div>
         </div>
       </div>
@@ -279,7 +279,7 @@ export function ClientsView() {
                     Total Compras: <span className="font-bold text-mm-g">{selectedClient.totalOrders}</span>
                   </p>
                   <p className="font-semibold">
-                    Total Gastado: <span className="font-bold text-mm-oro">{fmt(selectedClient.totalSpent)}</span>
+                    Total Gastado: <span className="font-bold text-mm-oro">{formatCOP(selectedClient.totalSpent)}</span>
                   </p>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export function ClientsView() {
                           </div>
                         </div>
                         <div className="text-right flex flex-col items-end gap-1.5">
-                          <p className="font-mono font-bold text-mm-g">{fmt(order.total)}</p>
+                          <p className="font-mono font-bold text-mm-g">{formatCOP(order.total)}</p>
                           <div className="flex gap-1.5">
                             <Badge variant={
                               order.status === 'Entregado' ? 'success' : 
@@ -374,14 +374,14 @@ export function ClientsView() {
                                 <span className="text-xl shrink-0">{item.emoji}</span>
                                 <div>
                                   <p className="text-xs font-bold text-mm-g leading-tight">{item.name}</p>
-                                  <p className="text-[9px] text-mm-txw mt-0.5 font-semibold">{fmt(item.price)} / {item.unit}</p>
+                                  <p className="text-[9px] text-mm-txw mt-0.5 font-semibold">{formatCOP(item.price)} / {item.unit}</p>
                                 </div>
                               </div>
                               <div className="text-right">
                                 <p className="text-xs font-bold text-mm-g">
                                   {item.unit === 'kg' && item.qty < 1 ? `${Math.round(item.qty * 1000)} g` : `${item.qty.toLocaleString()} ${item.unit}`}
                                 </p>
-                                <p className="text-[9px] text-blue font-bold tracking-tight">{fmt(item.price * item.qty)}</p>
+                                <p className="text-[9px] text-blue font-bold tracking-tight">{formatCOP(item.price * item.qty)}</p>
                               </div>
                             </div>
                           ))}

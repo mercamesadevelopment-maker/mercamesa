@@ -380,6 +380,8 @@ lo mismo y reúsalo. En particular:
 - Cliente Supabase → los helpers de `lib/supabase/`, no `createClient(...)` inline.
 - Clases condicionales → `cn()` de `lib/utils/cn.ts`, no template strings a mano.
 - Comparar o buscar texto sin tildes → `normalizeText()` de `lib/utils/text.ts`.
+- Mostrar pesos → `formatCOP()` de `lib/utils/format.ts`, no otro `toLocaleString('es-CO')`.
+- Rol de la interfaz y a dónde va al entrar → `resolveRoleKey()` y `ROLE_ROUTES` de `lib/auth/roles.ts`.
 - Modales/confirmaciones/tablas/selects → los componentes de `components/ui/`, no
   reimplementar un `<div>` con `position: fixed` de cero.
 - URLs de imágenes/storage → `getStoragePublicUrl` / `getSupabaseImageUrl`, no construir
@@ -412,7 +414,7 @@ Ningún archivo debe crecer indefinidamente mezclando responsabilidades. Si un a
 supera unos pocos cientos de líneas o junta varias vistas/entidades, se divide siguiendo
 la estructura de feature de AGENTS.md (`components/`, `hooks/`, `services/`, `types/`).
 
-Lo que queda de la app de Vite (`src/store.tsx`, `src/constants.ts`, `src/types.ts`,
+Lo que queda de la app de Vite (`src/store.tsx`, `src/types.ts`,
 `src/components/Shared.tsx`) es **deuda técnica heredada, no un ejemplo a seguir**: no se le
 agrega código nuevo, y lo que se toque ahí se pasa a su feature o a `lib/`.
 

@@ -14,7 +14,7 @@ import {
   PERFIL_SIN_EMAIL,
 } from '@/src/features/payment/services/payment.service';
 import { CartItem } from '@/src/types';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { checkoutCartDb, clearCartDb, fetchOrderMinPrice } from '../services/cart.service';
 import { quoteCheckout, type CheckoutQuote } from '../services/checkout-quote.service';
 import { cartSavings, NO_SAVINGS } from '../utils/cart-savings';
@@ -36,7 +36,7 @@ export interface FaltanteDelMinimo {
  * con varias tiendas en la canasta basta con que entre todas lleguen.
  */
 export function mensajeMinimo(faltante: FaltanteDelMinimo, minPrice: number): string {
-  return `Te faltan ${fmt(faltante.shortfall)} para el mínimo de compra de ${fmt(minPrice)}.`;
+  return `Te faltan ${formatCOP(faltante.shortfall)} para el mínimo de compra de ${formatCOP(minPrice)}.`;
 }
 
 export function useCheckout() {
@@ -85,28 +85,10 @@ export function useCheckout() {
   const storesInCart = Array.from(new Set(state.cart.map((i) => i.storeId)));
 
   const cartByStore = storesInCart.map((storeId) => {
-    const storeFromState = state.stores.find((s) => s.id === storeId);
+    const items = state.cart.filter((i) => i.storeId === storeId);
     return {
-      store: storeFromState || {
-        id: storeId,
-        plazaId: 0,
-        emoji: '🏪',
-        name: 'Tienda',
-        ownerName: '',
-        cat: '',
-        phone: '',
-        desc: '',
-        open: true,
-        rating: 0,
-        reviewCount: 0,
-        local: '',
-        status: 'active',
-        openTime: '',
-        closeTime: '',
-        location: { lat: 0, lng: 0 },
-        email: '',
-      },
-      items: state.cart.filter((i) => i.storeId === storeId),
+      store: { id: storeId, name: items[0]?.storeName || 'Tienda', emoji: '🏪' },
+      items,
     };
   });
 

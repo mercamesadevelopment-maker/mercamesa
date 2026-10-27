@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { Button, Badge, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { Order, OrderStatus } from '@/src/types';
 import { formatOrderCode } from '@/lib/orders/order-code';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
@@ -178,12 +178,12 @@ export function OrderDetailModal({
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-mm-g truncate">{item.name}</p>
                         <p className="text-[11px] text-mm-txs font-semibold">
-                          {item.qty} {item.unit} x {fmt(item.price)}
+                          {item.qty} {item.unit} x {formatCOP(item.price)}
                         </p>
                       </div>
                     </div>
                     <div className="text-sm font-black text-mm-g ml-4">
-                      {fmt(item.price * item.qty)}
+                      {formatCOP(item.price * item.qty)}
                     </div>
                   </div>
                   {/* La indicación del comprador para este producto. Va en
@@ -395,13 +395,13 @@ export function OrderDetailModal({
               <div className="space-y-3 border-t border-mm-crd/40 pt-4 text-xs font-semibold text-mm-txw">
                 <div className="flex justify-between">
                   <span>Subtotal Tienda</span>
-                  <span className="text-mm-g font-bold">{fmt(order.subtotal || order.total)}</span>
+                  <span className="text-mm-g font-bold">{formatCOP(order.subtotal || order.total)}</span>
                 </div>
 
                 {order.discount !== undefined && order.discount > 0 && (
                   <div className="flex justify-between text-red-500 font-bold">
                     <span>Descuento Aplicado</span>
-                    <span>-{fmt(order.discount)}</span>
+                    <span>-{formatCOP(order.discount)}</span>
                   </div>
                 )}
 
@@ -410,34 +410,34 @@ export function OrderDetailModal({
                 {order.serviceCommission !== undefined && order.serviceCommission > 0 && (
                   <div className="flex justify-between">
                     <span>Comisión de Servicio</span>
-                    <span className="text-mm-g font-bold">{fmt(order.serviceCommission)}</span>
+                    <span className="text-mm-g font-bold">{formatCOP(order.serviceCommission)}</span>
                   </div>
                 )}
 
                 {order.messagesAmount !== undefined && order.messagesAmount > 0 && (
                   <div className="flex justify-between">
                     <span>Mensajes de Seguimiento</span>
-                    <span className="text-mm-g font-bold">{fmt(order.messagesAmount)}</span>
+                    <span className="text-mm-g font-bold">{formatCOP(order.messagesAmount)}</span>
                   </div>
                 )}
 
                 {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
                   <div className="flex justify-between">
                     <span>Costo de Envío</span>
-                    <span className="text-mm-g font-bold">{fmt(order.deliveryFee)}</span>
+                    <span className="text-mm-g font-bold">{formatCOP(order.deliveryFee)}</span>
                   </div>
                 )}
 
                 {order.platformCommission !== undefined && order.platformCommission > 0 && (
                   <div className="flex justify-between">
                     <span>Servicio MercaMesa</span>
-                    <span className="text-mm-g font-bold">{fmt(order.platformCommission)}</span>
+                    <span className="text-mm-g font-bold">{formatCOP(order.platformCommission)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center text-mm-g border-t border-mm-crd/40 pt-4">
                   <span className="text-sm font-bold">Total a Cobrar</span>
-                  <span className="text-2xl font-black">{fmt(order.total)}</span>
+                  <span className="text-2xl font-black">{formatCOP(order.total)}</span>
                 </div>
               </div>
             </div>

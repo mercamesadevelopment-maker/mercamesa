@@ -4,7 +4,7 @@ import React from 'react';
 import { CheckCircle2, Clock, KeyRound, MapPin, Package, Truck } from 'lucide-react';
 import { Badge, Button, cn } from '@/src/components/Shared';
 import { fechaCompleta } from '@/lib/dates/relative-time';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import type { LogisticsOrder, LogisticsPart } from '@/lib/logistics/orders';
 
 const ETAPA: Record<LogisticsOrder['stage'], { label: string; variant: 'default' | 'success' | 'warning' | 'info' | 'oro' }> = {
@@ -57,7 +57,7 @@ export function LogisticsOrderCard({ order, busyId, onReceive, onDispatch }: Log
             {order.consolidated
               ? `${order.parts.length} tiendas · ${order.carrier === 'runner' ? 'las trae el patinador' : 'las trae cada tendero'}`
               : 'Una tienda'}
-            {order.commissionAmount != null && <> · comisión del patinador {fmt(order.commissionAmount)}</>}
+            {order.commissionAmount != null && <> · comisión del patinador {formatCOP(order.commissionAmount)}</>}
           </p>
         </div>
         <Badge variant={etapa.variant}>{etapa.label}</Badge>

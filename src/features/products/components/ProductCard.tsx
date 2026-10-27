@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { cn } from '@/src/components/Shared';
 import { Stamp } from '@/components/ui/stamp';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { discountPct } from '@/src/features/cart/utils/cart-savings';
 import { useApp } from '@/src/store';
@@ -149,9 +149,9 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
 
         <div className="mt-auto flex items-baseline justify-center gap-1.5 pt-2">
           <p className={cn('text-lg font-extrabold tracking-tight sm:text-xl', hasDiscount ? 'text-arcilla-oscura' : 'text-tinta')}>
-            {fmt(price)}
+            {formatCOP(price)}
           </p>
-          {hasDiscount && <p className="font-mono text-[11px] text-mm-txw line-through">{fmt(listPrice)}</p>}
+          {hasDiscount && <p className="font-mono text-[11px] text-mm-txw line-through">{formatCOP(listPrice)}</p>}
         </div>
         {stock > 0 && (
           <p className="font-mono text-[10px] text-mm-txw">
