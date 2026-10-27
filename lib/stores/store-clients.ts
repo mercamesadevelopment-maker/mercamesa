@@ -1,5 +1,5 @@
-import type { OrderItem } from '@/src/types';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import type { OrderItem } from '@/lib/orders/types';
+import { formatOrderCode } from '@/lib/orders/order-code';
 
 /**
  * Los clientes de una o varias tiendas, armados desde sus pedidos.

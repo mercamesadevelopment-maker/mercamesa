@@ -1,4 +1,4 @@
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 import { generateSiigoCode } from '@/lib/siigo';
 import { isBlank } from '@/lib/spreadsheet/parse';
 import type { ImportRowResult } from '@/lib/spreadsheet/report';

@@ -37,6 +37,10 @@ export function DocumentTypesTab() {
     page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
   } = useTable({ initialData: filteredTypes });
 
+  // Si este es el último requerido, cambia la regla de qué tienda está
+  // verificada (lib/stores/verification.ts): se avisa antes de guardar.
+  const quedanOtrosRequeridos = documentTypes.some((d) => d.is_required && d.id !== editingType?.id);
+
   const handleOpenAdd = () => {
     setEditingType(null);
     setFormData({
@@ -246,6 +250,13 @@ export function DocumentTypesTab() {
                   />
                   <span className="text-sm font-bold text-mm-g">Requerido para verificación de tienda</span>
                 </label>
+
+                {!formData.is_required && !quedanOtrosRequeridos && (
+                  <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+                    Ningún documento quedará como requerido. Una tienda contará como verificada
+                    cuando tenga aprobado todo lo que subió, sin importar qué documentos sean.
+                  </p>
+                )}
 
                 <div className="pt-4 flex gap-3">
                   <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>

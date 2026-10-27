@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import {
   Package,

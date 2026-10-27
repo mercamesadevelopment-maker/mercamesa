@@ -3,7 +3,7 @@ import { fulfillmentSnapshot } from '@/lib/orders/consolidated-order';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '../../../lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { CreateOrderPayload } from '@/src/features/payment/types/payment.types';
+import type { CreateOrderPayload } from '@/lib/orders/types';
 import { computeOrderPricing } from '@/lib/pricing/compute-order-pricing';
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
 import {

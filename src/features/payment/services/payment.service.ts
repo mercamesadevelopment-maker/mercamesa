@@ -1,9 +1,9 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getPublicSupabaseUrl } from '@/lib/env'
+import type { CreateOrderPayload } from '@/lib/orders/types'
 import {
   ZonapagosPayload,
   ZonapagosResponse,
-  CreateOrderPayload,
   CreateOrderResponse,
 } from '@/src/features/payment/types/payment.types'
 

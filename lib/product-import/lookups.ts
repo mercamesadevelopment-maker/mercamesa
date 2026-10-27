@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 import { productCodeKey } from '@/lib/products/product-code';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { canStoreUseCatalogProduct, getStoreGroupId } from '@/lib/catalog/visibility';

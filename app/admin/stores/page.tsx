@@ -12,6 +12,7 @@ import { Button, Badge } from '@/src/components/Shared';
 import { AnimatePresence } from 'motion/react';
 import { Database } from '../../../types/database_generated';
 import { SALES_TYPE_OPTIONS, matchesSalesType, salesTypeLabel, type SalesTypeFilter } from '@/lib/stores/sales-type';
+import { isStoreVerified as isStoreVerifiedRule } from '@/lib/stores/verification';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'];
 
@@ -55,17 +56,8 @@ export default function StoresAdmin() {
     setPage(1);
   }, [searchTerm, selectedMarketplace, salesType, setPage]);
 
-  const isStoreVerified = (store: Store) => {
-    const requiredIds = requiredDocumentTypes.map((t) => t.id);
-    if (requiredIds.length === 0) return false;
-
-    const storeDocs = store.store_documents || [];
-    const approvedTypeIds = storeDocs
-      .filter((d) => d.status === 'approved')
-      .map((d) => d.document_type_id);
-
-    return requiredIds.every((id) => approvedTypeIds.includes(id));
-  };
+  const requiredTypeIds = requiredDocumentTypes.map((t) => t.id);
+  const isStoreVerified = (store: Store) => isStoreVerifiedRule(store.store_documents, requiredTypeIds);
 
   const columns = [
     {

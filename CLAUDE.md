@@ -259,8 +259,9 @@ correr si alguna URL apunta a producción.
 ## Componentes compartidos (`components/ui`)
 
 `components/ui/` es la librería de UI compartida entre features. Antes de crear un
-componente nuevo, **revisa si ya existe algo reutilizable ahí** (o en `src/components/Shared.tsx`,
-que expone `cn()` para mezclar clases de Tailwind — úsalo en vez de concatenar strings).
+componente nuevo, **revisa si ya existe algo reutilizable ahí**. Para mezclar clases de
+Tailwind está `cn()` en `lib/utils/cn.ts`: úsalo en vez de concatenar strings.
+`src/components/Shared.tsx` la reexporta mientras se termina de mover `src/`.
 
 Inventario actual:
 
@@ -377,7 +378,8 @@ lo mismo y reúsalo. En particular:
 
 - Paginación de más de 1000 filas → `fetchAllRows`, no `.range()` manual repetido.
 - Cliente Supabase → los helpers de `lib/supabase/`, no `createClient(...)` inline.
-- Clases condicionales → `cn()` de `src/components/Shared.tsx`, no template strings a mano.
+- Clases condicionales → `cn()` de `lib/utils/cn.ts`, no template strings a mano.
+- Comparar o buscar texto sin tildes → `normalizeText()` de `lib/utils/text.ts`.
 - Modales/confirmaciones/tablas/selects → los componentes de `components/ui/`, no
   reimplementar un `<div>` con `position: fixed` de cero.
 - URLs de imágenes/storage → `getStoragePublicUrl` / `getSupabaseImageUrl`, no construir
@@ -387,6 +389,11 @@ lo mismo y reúsalo. En particular:
 
 Si dos features necesitan la misma lógica, esa lógica sube a `lib/`, `components/ui/`,
 `hooks/` o `types/` (ver "Shared global" en AGENTS.md) — no se copia y pega.
+
+**Dirección de las dependencias:** la interfaz (`src/`, `app/`, `components/`) importa de
+`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `src/`, de `components/` ni de
+`app/` (salvo `app/api` entre sí). Si el servidor necesita algo que hoy vive en la interfaz
+(un tipo, una función pura), se mueve a `lib/`. Lo vigila `lib/architecture.test.ts`.
 
 ### 2. Single responsibility
 

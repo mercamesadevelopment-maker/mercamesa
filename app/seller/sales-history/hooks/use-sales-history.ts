@@ -4,7 +4,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 
 export interface UnifiedHistoryItem {
   id: string; // e.g. "Digital #MM-1234" or "Físico #1001"

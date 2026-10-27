@@ -8,7 +8,7 @@ import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
 import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { StatusNoteModal } from './StatusNoteModal';
 import { isPaymentApproved, UNPAID_STATUS_CHANGE_WARNING } from '@/src/features/orders/utils/payment-status';
