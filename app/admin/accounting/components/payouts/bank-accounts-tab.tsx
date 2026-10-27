@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, ShieldCheck, ShieldX, Clock, AlertTriangle, FileText } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldX, Clock, AlertTriangle, FileText, FileSignature } from 'lucide-react';
 import { Button, cn } from '@/src/components/Shared';
 import { Modal } from '@/components/ui/modal/modal';
 import { fechaCorta } from '@/lib/dates/relative-time';
@@ -111,6 +111,7 @@ export function BankAccountsTab() {
                       {c.verifiedAt && ` el ${fechaCorta(c.verifiedAt)}`}
                     </p>
                   )}
+                  <Autorizacion aceptadaEl={c.authorizationAcceptedAt} />
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
@@ -228,6 +229,24 @@ export function BankAccountsTab() {
         )}
       </Modal>
     </div>
+  );
+}
+
+/** La constancia de que la tienda aceptó la autorización de pago al registrar la cuenta. */
+function Autorizacion({ aceptadaEl }: { aceptadaEl: string | null }) {
+  if (aceptadaEl) {
+    return (
+      <p className="mt-1 flex items-center gap-1 text-xs text-mm-txw">
+        <FileSignature className="h-3 w-3" />
+        Aceptó la autorización de pago el {fechaCorta(aceptadaEl)}
+      </p>
+    );
+  }
+  return (
+    <p className="mt-1 flex items-center gap-1 text-xs text-amber-700">
+      <FileSignature className="h-3 w-3" />
+      Registrada antes de la autorización de pago: la aceptará cuando cambie la cuenta
+    </p>
   );
 }
 

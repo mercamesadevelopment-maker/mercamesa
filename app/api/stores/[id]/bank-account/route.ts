@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { validateNitCheckDigit } from '@/lib/identification/nit';
+import { PAYOUT_AUTHORIZATION_VERSION } from '@/lib/payouts/authorization';
 
 /**
  * A dónde se le paga a una tienda: una cuenta bancaria o una llave Bre-B. La
@@ -28,6 +29,7 @@ const COLUMNAS = `id, payment_method, breb_key,
          holder_document_type, holder_document_number, holder_document_dv,
          holder_name, holder_address, holder_email,
          status, rejection_reason, verified_at, created_at,
+         authorization_version, authorization_accepted_at,
          banks ( name )`;
 
 export async function GET(
@@ -176,6 +178,15 @@ export async function POST(
       );
     }
 
+    // Va de última para que, si falta algo más, el tendero lo corrija antes de
+    // aceptar. La base también la exige (`guard_store_bank_account`).
+    if (body.acceptAuthorization !== true) {
+      return NextResponse.json(
+        { error: 'Para registrar la cuenta, lee y acepta la autorización de pago.' },
+        { status: 400 }
+      );
+    }
+
     // La anterior se baja primero. Si el insert fallara después, la tienda se
     // quedaría sin cuenta vigente y la siguiente dispersión la dejaría fuera —
     // molesto, pero visible y con arreglo; al revés quedarían dos vigentes y el
@@ -211,6 +222,8 @@ export async function POST(
         holder_name: holderName,
         holder_address: holderAddress,
         holder_email: holderEmail || null,
+        // La fecha de aceptación la pone el disparador con la hora del servidor.
+        authorization_version: PAYOUT_AUTHORIZATION_VERSION,
       })
       .select(COLUMNAS)
       .single();
@@ -250,5 +263,6 @@ function aCamello(row: any) {
     rejectionReason: row.rejection_reason,
     verifiedAt: row.verified_at,
     createdAt: row.created_at,
+    authorizationAcceptedAt: row.authorization_accepted_at,
   };
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldAlert, Clock, Info } from 'lucide-react';
 import { Button, Input, cn } from '@/src/components/Shared';
 import { validateNitCheckDigit } from '@/lib/identification/nit';
+import { PayoutAuthorization } from './payout-authorization';
 
 /**
  * Dónde le pagan a la tienda: una cuenta bancaria o una llave Bre-B.
@@ -79,6 +80,8 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Se acepta cada vez que se registra una cuenta: no viene marcada.
+  const [autorizada, setAutorizada] = useState(false);
 
   const [form, setForm] = useState({
     paymentMethod: 'account' as Metodo,
@@ -125,12 +128,13 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
       const res = await fetch(`/api/stores/${storeId}/bank-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, acceptAuthorization: autorizada }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'No se pudo guardar');
       setCuenta(json.data);
       setEditando(false);
+      setAutorizada(false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'No se pudieron guardar los datos.');
     } finally {
@@ -383,16 +387,18 @@ export function BankAccountTab({ storeId }: { storeId: string }) {
             el banco rechaza la transferencia.
           </p>
 
+          <PayoutAuthorization accepted={autorizada} onChange={setAutorizada} />
+
           {error && (
             <div className="rounded-2xl bg-rl px-4 py-3 text-sm font-medium text-r">{error}</div>
           )}
 
           <div className="flex gap-3">
-            <Button onClick={guardar} loading={guardando} disabled={!!dvNoCorresponde}>
+            <Button onClick={guardar} loading={guardando} disabled={!!dvNoCorresponde || !autorizada}>
               {cuenta ? 'Reemplazar' : 'Registrar'}
             </Button>
             {cuenta && (
-              <Button variant="outline" onClick={() => { setEditando(false); setError(null); }}>
+              <Button variant="outline" onClick={() => { setEditando(false); setError(null); setAutorizada(false); }}>
                 Cancelar
               </Button>
             )}

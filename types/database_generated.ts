@@ -3030,6 +3030,8 @@ export type Database = {
         Row: {
           account_kind: string | null
           account_number: string | null
+          authorization_accepted_at: string | null
+          authorization_version: string | null
           bank_code: string | null
           bbva_office_code: string | null
           breb_key: string | null
@@ -3053,6 +3055,8 @@ export type Database = {
         Insert: {
           account_kind?: string | null
           account_number?: string | null
+          authorization_accepted_at?: string | null
+          authorization_version?: string | null
           bank_code?: string | null
           bbva_office_code?: string | null
           breb_key?: string | null
@@ -3076,6 +3080,8 @@ export type Database = {
         Update: {
           account_kind?: string | null
           account_number?: string | null
+          authorization_accepted_at?: string | null
+          authorization_version?: string | null
           bank_code?: string | null
           bbva_office_code?: string | null
           breb_key?: string | null

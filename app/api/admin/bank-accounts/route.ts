@@ -30,6 +30,7 @@ export async function GET() {
            holder_document_type, holder_document_number, holder_document_dv,
            holder_name, holder_address, holder_email,
            status, rejection_reason, verified_at, created_at,
+           authorization_accepted_at,
            stores!inner ( name ),
            banks ( name ),
            verificador:profiles!store_bank_accounts_verified_by_fkey ( full_name )`
@@ -69,6 +70,7 @@ export async function GET() {
             verifiedAt: c.verified_at,
             verifiedByName: c.verificador?.full_name ?? null,
             createdAt: c.created_at,
+            authorizationAcceptedAt: c.authorization_accepted_at,
           })),
           storesWithoutAccount: tiendas
             .filter((t) => !conCuenta.has(t.id))

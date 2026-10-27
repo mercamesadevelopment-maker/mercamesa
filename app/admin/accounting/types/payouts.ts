@@ -89,6 +89,8 @@ export interface CuentaBancaria {
   verifiedAt: string | null;
   verifiedByName: string | null;
   createdAt: string;
+  /** Null en las cuentas registradas antes de existir la autorización de pago. */
+  authorizationAcceptedAt: string | null;
 }
 
 /** En el formato por líneas el archivo no lleva datos del ordenante: solo el
