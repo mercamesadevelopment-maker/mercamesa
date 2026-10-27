@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { accountService } from '../services/account.service';
 import type { AccountProfile } from '../types/account.types';
 
 export function useAccount() {
-  const { dispatch } = useApp();
+  const { updateProfile } = useSession();
   const [profile, setProfile] = useState<AccountProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,13 +31,10 @@ export function useAccount() {
       setError(null);
       const data = await accountService.updateProfile(payload);
       setProfile(data);
-      dispatch({
-        type: 'UPDATE_BUYER_PROFILE',
-        profile: {
+      updateProfile({
           name: data.full_name,
           avatar: data.avatarSignedUrl || '',
-        },
-      });
+        });
       return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error guardando el perfil');
@@ -45,7 +42,7 @@ export function useAccount() {
     } finally {
       setSaving(false);
     }
-  }, [dispatch]);
+  }, [updateProfile]);
 
   return { profile, loading, saving, error, fetchProfile, saveProfile };
 }

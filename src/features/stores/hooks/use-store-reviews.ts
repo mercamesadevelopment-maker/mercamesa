@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { storeReviewsService } from '../services/store-reviews.service';
 import type { ReviewInput, StoreReview } from '../types/review.types';
 
 export function useStoreReviews(storeId?: string) {
-  const { state } = useApp();
+  const session = useSession();
   const [reviews, setReviews] = useState<StoreReview[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -42,8 +42,8 @@ export function useStoreReviews(storeId?: string) {
   }, [storeId, fetchReviews]);
 
   const myReview = useMemo(
-    () => reviews.find((r) => r.buyer_id === state.buyerProfile?.id) || null,
-    [reviews, state.buyerProfile?.id]
+    () => reviews.find((r) => r.buyer_id === session.profile?.id) || null,
+    [reviews, session.profile?.id]
   );
 
   return { reviews, myReview, loading, submitting, error, fetchReviews, submitReview };

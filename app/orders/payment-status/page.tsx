@@ -4,12 +4,14 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowLeft, RefreshCw } from 'lucide-react';
 import { syncPaymentStatus } from '@/src/features/payment/services/payment.service';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
+import { useCartState } from '@/src/features/cart/cart-context';
 import { deleteCartForOrderDb, revertCartDb, fetchCart } from '@/src/features/cart/services/cart.service';
 import Link from 'next/link';
 
 function PaymentStatusContent() {
-  const { state, dispatch } = useApp();
+  const session = useSession();
+  const cartState = useCartState();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');
   
@@ -40,10 +42,10 @@ function PaymentStatusContent() {
         try {
           await revertCartDb(orderId);
           // Refetch active cart from database
-          const buyerId = state.buyerProfile?.id;
+          const buyerId = session.profile?.id;
           if (buyerId) {
             const items = await fetchCart(buyerId);
-            dispatch({ type: 'HYDRATE_CART', cart: items });
+            cartState.dispatch({ type: 'HYDRATE_CART', cart: items });
           }
         } catch (e) {
           console.error('Error reverting pending cart items in DB:', e);

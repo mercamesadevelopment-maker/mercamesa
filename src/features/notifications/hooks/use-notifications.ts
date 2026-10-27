@@ -1,44 +1,43 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useApp } from '@/src/store';
+import { useNotificationsState } from '../notifications-context';
 import { notificationsService } from '../services/notifications.service';
 
 export function useNotifications() {
-  const { state, dispatch } = useApp();
+  const { notifs, setNotifs } = useNotificationsState();
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const notifs = await notificationsService.getAll();
-      dispatch({ type: 'SET_NOTIFS', notifs });
+      setNotifs(await notificationsService.getAll());
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
-  }, [dispatch]);
+  }, [setNotifs]);
 
   const markRead = useCallback(
     async (id: string) => {
-      dispatch({ type: 'READ_NOTIF', notifId: id });
+      setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       try {
         await notificationsService.markRead(id);
       } catch (err) {
         console.error('Error marking notification as read:', err);
       }
     },
-    [dispatch]
+    [setNotifs]
   );
 
   const markAllRead = useCallback(async () => {
-    dispatch({ type: 'READ_ALL_NOTIFS' });
+    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
       await notificationsService.markAllRead();
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
     }
-  }, [dispatch]);
+  }, [setNotifs]);
 
   return {
-    notifs: state.notifs,
+    notifs,
     fetchNotifications,
     markRead,
     markAllRead,

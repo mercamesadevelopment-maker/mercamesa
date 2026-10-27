@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Loader2, AlertTriangle, CheckCircle2, Image as ImageIcon, RotateCcw } from 'lucide-react';
 import { Button } from '@/src/components/Shared';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { fetchPickupGroup } from '@/src/features/cart/services/cart.service';
 import { sharePickupPoint } from '@/lib/orders/pickup-group';
@@ -41,7 +41,7 @@ export function ReorderModal({
   onClose: () => void;
   orderId: string;
 }) {
-  const { state } = useApp();
+  const session = useSession();
   const { cart, addToCart, clearCart } = useCart();
 
   const [lines, setLines] = useState<ReorderLine[]>([]);
@@ -266,7 +266,7 @@ export function ReorderModal({
               <Button
                 className="flex-1"
                 loading={adding}
-                disabled={addable.length === 0 || !state.isLoggedIn}
+                disabled={addable.length === 0 || !session.isLoggedIn}
                 onClick={() => handleAdd(conflict)}
               >
                 {blocked.length > 0 ? 'Continuar sin esos productos' : 'Agregar al carrito'}

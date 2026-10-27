@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { cn } from '@/src/components/Shared';
 import {
   LayoutDashboard,
@@ -34,16 +34,17 @@ const TABS: { id: TabId; icon: React.ElementType; label: string }[] = [
 const BUYER_ONLY_TABS: TabId[] = ['addresses', 'payments', 'credit', 'favorites'];
 
 export function ProfileLayout() {
-  const { state } = useApp();
+  const session = useSession();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
-  const isBuyer = state.userRole === 'retail' || state.userRole === 'wholesale';
+  const isBuyer = session.role === 'retail' || session.role === 'wholesale';
   const visibleTabs = isBuyer ? TABS : TABS.filter((tab) => !BUYER_ONLY_TABS.includes(tab.id));
   const activeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // El checkout manda a «Mi cuenta» cuando faltan datos para facturar.
+  // El checkout y el pago de un pedido mandan a `/profile?incomplete=1` cuando
+  // faltan datos para facturar: se abre «Mi cuenta», que muestra el aviso.
   useEffect(() => {
-    if (state.currentSection === 'profile_account') setActiveTab('account');
-  }, [state.currentSection]);
+    if (new URLSearchParams(window.location.search).get('incomplete') === '1') setActiveTab('account');
+  }, []);
 
   // En móvil las pestañas son una fila deslizable: si se llega a "Mi cuenta"
   // desde fuera, la pestaña activa quedaría fuera de la vista. `block: 'nearest'`

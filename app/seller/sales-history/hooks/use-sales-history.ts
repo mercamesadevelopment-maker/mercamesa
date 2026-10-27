@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useApp } from '@/src/store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/src/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
@@ -25,7 +24,6 @@ export interface UnifiedHistoryItem {
 }
 
 export function useSalesHistory() {
-  const { state } = useApp();
   const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [onlineOrders, setOnlineOrders] = useState<UnifiedHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
