@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { NotifsView } from '../../../src/components/DeliveryNotifs';
+import { NotificationsView } from '@/src/features/notifications/components/notifications-view';
 export default function AdminNotifsPage() {
-  return <NotifsView />;
+  return <NotificationsView />;
 }

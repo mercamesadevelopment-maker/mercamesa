@@ -61,26 +61,18 @@ export function Sidebar({
     dashboard: '/seller/dashboard',
     products: '/seller/products',
     reputation: '/seller/settings',
-    whatsapp: '/seller/whatsapp',
     analytics: '/seller/dashboard',
     sales: '/seller/sales',
     sales_history:
       '/seller/sales-history',
     clients: '/seller/clients',
-    routes: '/delivery',
-    history: '/delivery/history',
-    earnings: '/delivery/earnings',
     admin_plazas:
       '/admin/marketplaces',
     admin_stores: '/admin/stores',
     admin_products:
       '/admin/products',
-    admin_reputation:
-      '/admin/reputation',
     admin_offers: '/admin/offers',
     admin_orders: '/admin/orders',
-    admin_analytics:
-      '/admin/analytics',
     admin_notifs:
       '/admin/notifications',
   };

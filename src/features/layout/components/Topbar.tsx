@@ -55,8 +55,6 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
           ? 'PANEL DE ADMINISTRACIÓN'
           : state.userRole === 'provider'
           ? 'GESTIÓN DE PROVEEDOR'
-          : state.userRole === 'delivery'
-          ? 'CENTRO DE REPARTO'
           : state.userRole === 'runner'
           ? 'PEDIDOS POR RECOGER'
           : state.userRole === 'logistics'

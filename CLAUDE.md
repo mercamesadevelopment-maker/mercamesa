@@ -43,7 +43,7 @@ Notas importantes:
   (re-serialización con pérdida). Si agregas un nuevo cliente Supabase server-side,
   replica ese `global.fetch`.
 - `proxy.ts` (equivalente al middleware) refresca la sesión con cookies y protege rutas
-  por prefijo (`/admin`, `/seller`, `/delivery`) contra `role_family`. Las rutas de
+  por prefijo (`/admin`, `/seller`, `/runner`) contra `role_family`. Las rutas de
   `app/api/**` no redirigen ahí — cada `route.ts` maneja su propio 401.
 - Tipos de la base de datos: `types/database_generated.ts` (**no editar a mano**). Tras
   cada migración se regeneran desde la base local con `pnpm gen:types:local`;
@@ -412,11 +412,9 @@ Ningún archivo debe crecer indefinidamente mezclando responsabilidades. Si un a
 supera unos pocos cientos de líneas o junta varias vistas/entidades, se divide siguiendo
 la estructura de feature de AGENTS.md (`components/`, `hooks/`, `services/`, `types/`).
 
-`src/components/AdminViews.tsx` (~3700 líneas) y `src/components/Marketplace.tsx`
-(~2000 líneas) son **deuda técnica heredada, no un ejemplo a seguir**. No agregues código
-nuevo ahí: si tocas algo dentro de esos archivos, extrae esa pieza a su feature
-correspondiente bajo `app/` (o a `components/ui/` si es genérica) en vez de sumarle más
-líneas al monolito.
+Lo que queda de la app de Vite (`src/store.tsx`, `src/constants.ts`, `src/types.ts`,
+`src/components/Shared.tsx`) es **deuda técnica heredada, no un ejemplo a seguir**: no se le
+agrega código nuevo, y lo que se toque ahí se pasa a su feature o a `lib/`.
 
 ---
 

@@ -20,7 +20,6 @@ export const ROLE_ROUTES: Record<RoleKey, string> = {
   retail: '/marketplaces',
   wholesale: '/marketplaces',
   provider: '/seller/dashboard',
-  delivery: '/delivery',
   runner: '/runner',
   // Logística solo entra a las órdenes de su plaza.
   logistics: '/admin/orders',
@@ -44,11 +43,6 @@ export const ROLES: Role[] = [
     k: "provider", emoji: "🌱", icon: "Store", color: "#7A4200", bg: "#FDF0E2", brd: "#F0C490",
     title: "Local / Tienda", sub: "Locales y tenderos", tagline: "Tu tienda en línea",
     perks: ["Perfil de tienda", "Gestión de inventario", "Bot WhatsApp", "Analítica"]
-  },
-  {
-    k: "delivery", emoji: "🚴", icon: "Truck", color: "#1A6B3A", bg: "#E2F5EA", brd: "#90D4AC",
-    title: "Repartidor", sub: "Gana entregando pedidos", tagline: "Rutas, pagos, libertad",
-    perks: ["Horario libre", "Pagos semanales", "Seguro de accidentes", "Bonos"]
   },
   {
     k: "admin", emoji: "⚙️", icon: "Settings", color: "#0E3B2F", bg: "#EEF2E8", brd: "#C3F03F",
