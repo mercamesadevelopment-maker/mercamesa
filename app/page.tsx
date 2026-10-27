@@ -36,6 +36,7 @@ export default function Page() {
   // Correo que viaja del registro al inicio de sesión cuando resulta que ya
   // tenía cuenta, para no obligar a escribirlo de nuevo.
   const [loginEmail, setLoginEmail] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
 
   useEffect(() => {
     // Se lee acá dentro, y no en un efecto aparte, porque el aviso y la
@@ -343,7 +344,8 @@ export default function Page() {
             onClose={() => setIsLoginOpen(false)}
             defaultEmail={loginEmail}
             redirectTo={redirectTo}
-            onRegisterClick={() => {
+            onRegisterClick={(email) => {
+              setRegisterEmail(email ?? '');
               setIsLoginOpen(false);
               setIsBuyerRegisterOpen(true);
             }}
@@ -358,6 +360,7 @@ export default function Page() {
             isOpen={isBuyerRegisterOpen}
             onClose={() => setIsBuyerRegisterOpen(false)}
             redirectTo={redirectTo}
+            defaultEmail={registerEmail}
             onLoginClick={(email) => {
               setLoginEmail(email);
               setIsBuyerRegisterOpen(false);

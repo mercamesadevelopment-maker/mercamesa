@@ -23,6 +23,7 @@ export function BuyerRegisterModal({
   onClose,
   onLoginClick,
   redirectTo,
+  defaultEmail,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -37,6 +38,8 @@ export function BuyerRegisterModal({
    * el producto o tienda que le compartieron a la persona antes de registrarse.
    */
   redirectTo?: string | null;
+  /** Correo con el que llega la persona; p. ej. desde el ingreso, si su cuenta se cerró por inactividad. */
+  defaultEmail?: string;
 }) {
   const router = useRouter();
   const {
@@ -59,7 +62,7 @@ export function BuyerRegisterModal({
   const [paso, setPaso] = useState(0);
   // El formulario se lee con `FormData` al enviarlo, pero ahora hay un paso
   // después: si no se guardaran acá, los datos se perderían al pasar al código.
-  const [datos, setDatos] = useState<Record<string, string>>({});
+  const [datos, setDatos] = useState<Record<string, string>>(defaultEmail ? { email: defaultEmail } : {});
   const [codigo, setCodigo] = useState('');
   // Los errores del paso 0. Antes solo existía el de la contraseña; el resto
   // del formulario no se validaba hasta después de confirmar el correo.

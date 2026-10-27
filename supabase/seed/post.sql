@@ -11,7 +11,7 @@
 -- Las dos que son SQL puro (vencer pedidos sin pagar y escalar PQRS) siguen activas.
 select cron.unschedule(jobname)
 from cron.job
-where jobname in ('sonda', 'pibox_sync', 'siigo_invoices', 'siigo_credit_notes', 'payouts_draft');
+where jobname in ('sonda', 'pibox_sync', 'siigo_invoices', 'siigo_credit_notes', 'payouts_draft', 'inactive_accounts');
 
 -- Las validaciones de ofertas que `pre.sql` quitó para poder cargar los datos.
 -- Mismas definiciones que la migración base.

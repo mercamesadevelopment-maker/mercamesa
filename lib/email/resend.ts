@@ -206,6 +206,47 @@ export function adminLoginCodeEmail(code: string) {
 // Avisos
 // ---------------------------------------------------------------------------
 
+/** El nombre viene de la base y lo escribe la persona: no se mete crudo en el HTML. */
+function escaparHtml(texto: string): string {
+  return texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Al año sin usar la cuenta: si no vuelve en dos semanas, se cierra.
+ *
+ * Sin enlace, como los demás avisos: un enlace en un correo que pide «ingresa
+ * para no perder tu cuenta» es justo lo que imita el phishing.
+ */
+export function inactivityNoticeEmail(nombre: string, cierre: Date) {
+  const fecha = cierre.toLocaleDateString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'long' });
+  return plantilla({
+    title: 'Tu cuenta será cerrada por inactividad',
+    heading: 'Tu cuenta será cerrada por inactividad',
+    body: `
+      <p class="text">${escaparHtml(nombre)}, hace un año que no utilizas tu cuenta de MercaMesa.</p>
+      <p class="text">Si no vuelves a ingresar antes del <span class="highlight">${fecha}</span>, cerraremos tu cuenta y eliminaremos los datos asociados, conservando la información de facturación y las transacciones realizadas, ya que estos registros no podrán ser eliminados.</p>
+      <p class="text">Para conservarla, basta con que ingreses a MercaMesa con tu correo y tu contraseña.</p>
+    `,
+  });
+}
+
+/** La cuenta se cerró: qué se borró, qué se conserva y cómo volver. */
+export function accountClosedEmail(nombre: string) {
+  return plantilla({
+    title: 'Cerramos tu cuenta',
+    heading: 'Cerramos tu cuenta de MercaMesa',
+    body: `
+      <p class="text">${escaparHtml(nombre)}, como no ingresaste a tu cuenta después del aviso que te enviamos, la cerramos.</p>
+      <p class="text">De acuerdo con nuestras políticas de uso de datos, anonimizamos y borramos tus datos, y dejamos solamente el registro mínimo para que las facturas y las transacciones se mantengan asociadas en caso de una auditoría.</p>
+      <p class="text">Si quieres volver a MercaMesa, puedes crear una cuenta nueva con este mismo correo.</p>
+    `,
+  });
+}
+
 export function emailChangeNotificationEmail(newEmail: string) {
   return plantilla({
     title: 'Solicitud de cambio de correo',
