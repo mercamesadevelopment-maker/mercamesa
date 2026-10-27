@@ -202,7 +202,7 @@ export async function POST(request: Request) {
      */
     const verificacion = await claimCode({
       service,
-      table: 'signup_email_codes',
+      purpose: 'signup_email',
       key: codeKey,
       code: String(code || ''),
     })
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
         'No pudimos crear la cuenta. Intenta de nuevo.',
         'register-buyer'
       )
-      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
+      await releaseCode({ service, id: verificacion.row.id })
       return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
@@ -264,14 +264,14 @@ export async function POST(request: Request) {
         'No pudimos crear la cuenta. Intenta de nuevo.',
         'register-buyer'
       )
-      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
+      await releaseCode({ service, id: verificacion.row.id })
       return NextResponse.json({ error: message, code }, { status: 400 })
     }
 
     const userId = authData.user?.id
 
     if (!userId) {
-      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
+      await releaseCode({ service, id: verificacion.row.id })
       return NextResponse.json(
         { error: 'No pudimos crear la cuenta. Intenta de nuevo.' },
         { status: 500 }
@@ -307,7 +307,7 @@ export async function POST(request: Request) {
       console.error('[auth] register-buyer: falló el insert del perfil', profileError)
       await rollbackSignUp(userId, 'register-buyer')
       // El código vuelve a servir: la persona puede reintentar sin pedir otro.
-      await releaseCode({ service, table: 'signup_email_codes', id: verificacion.row.id })
+      await releaseCode({ service, id: verificacion.row.id })
 
       return NextResponse.json(
         { error: 'No pudimos completar tu registro. Revisa los datos e intenta de nuevo.' },

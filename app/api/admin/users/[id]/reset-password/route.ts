@@ -63,15 +63,17 @@ export async function POST(
 
     // Invalida los códigos pendientes: solo el más reciente debe servir.
     await service
-      .from('password_reset_codes')
+      .from('verification_codes')
       .update({ expires_at: new Date(now).toISOString() })
+      .eq('purpose', 'password_reset')
       .eq('email', email)
       .is('consumed_at', null)
       .gt('expires_at', new Date(now).toISOString());
 
     const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
 
-    const { error: insertError } = await service.from('password_reset_codes').insert({
+    const { error: insertError } = await service.from('verification_codes').insert({
+      purpose: 'password_reset',
       email,
       code_hash: hashCode(code),
       expires_at: new Date(now + CODE_EXPIRES_MINUTES * 60_000).toISOString(),

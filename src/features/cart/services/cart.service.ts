@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { loadOrderMinPrice } from '@/lib/pricing/settings';
 import { CartItem } from '@/src/types';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 
@@ -488,7 +489,7 @@ export async function deleteCartForOrderDb(orderId: string): Promise<void> {
  * Se lee desde el navegador a propósito: el mínimo depende solo del valor de los
  * productos, no del domicilio, así que el carrito puede avisar en el primer paso
  * en vez de dejar al comprador llegar hasta "Confirmar y pagar" para enterarse.
- * La política de SELECT de `order_min_price_history` ya está abierta a
+ * La política de SELECT de `pricing_settings_history` ya está abierta a
  * `authenticated`, así que no hace falta una ruta nueva; `GET
  * /api/admin/order-min-price` no sirve acá porque devuelve el historial completo
  * con el nombre de quién hizo cada ajuste.
@@ -497,16 +498,5 @@ export async function deleteCartForOrderDb(orderId: string): Promise<void> {
  * la base y es el que decide.
  */
 export async function fetchOrderMinPrice(): Promise<number | null> {
-  const supabase = createSupabaseBrowserClient();
-
-  const { data, error } = await supabase
-    .from('order_min_price_history')
-    .select('min_price')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-
-  return data ? Number(data.min_price) : null;
+  return loadOrderMinPrice(createSupabaseBrowserClient());
 }

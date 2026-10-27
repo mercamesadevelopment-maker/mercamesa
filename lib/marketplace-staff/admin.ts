@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sendEmail, marketplaceStaffInvitationEmail } from '@/lib/email/resend';
+import { generateInviteLink } from '@/lib/auth/invite-link';
 import { STAFF_ROLE_LABEL, STAFF_ROLES, StaffError, type StaffRole } from './actor';
 
 /**
@@ -251,15 +252,10 @@ export async function inviteMarketplaceStaff(
     throw new StaffError('Ese correo ya tiene una invitación pendiente. Cancélala antes de volver a invitar.');
   }
 
-  // `generateLink` produce el enlace sin enviar correo, para mandarlo con la
-  // plantilla de la plataforma.
-  const { data: link, error: linkError } = await service.auth.admin.generateLink({
-    type: 'invite',
-    email,
-    options: { redirectTo: `${params.origin}/accept-invite` },
-  });
-  if (linkError || !link?.properties?.action_link) {
-    console.error('marketplace-staff: no se pudo generar el enlace', linkError);
+  // Sin enviar correo, para mandarlo con la plantilla de la plataforma. Sirve
+  // también si una invitación anterior ya creó la cuenta.
+  const actionLink = await generateInviteLink(service, email, `${params.origin}/accept-invite`);
+  if (!actionLink) {
     throw new StaffError('No se pudo crear la invitación. Vuelve a intentarlo.', 500);
   }
 
@@ -267,7 +263,7 @@ export async function inviteMarketplaceStaff(
   expires.setDate(expires.getDate() + DIAS_VIGENCIA);
 
   // La fila va ANTES del correo, como en la invitación de administradores:
-  // `generateLink` ya creó la cuenta en `auth.users`, y sin invitación que la
+  // el enlace ya creó la cuenta en `auth.users`, y sin invitación que la
   // respalde quedaría imposible de completar.
   const { data: invitacion, error: dbError } = await service
     .from('invitations')
@@ -297,7 +293,7 @@ export async function inviteMarketplaceStaff(
         actor?.full_name || 'Un administrador',
         plaza.name,
         STAFF_ROLE_LABEL[params.role],
-        link.properties.action_link,
+        actionLink,
         DIAS_VIGENCIA
       ),
     });

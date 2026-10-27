@@ -35,6 +35,14 @@ export interface CatalogEntry {
 export interface ImportLookups {
   /** slug normalizado -> producto del catálogo activo */
   catalogBySlug: Map<string, CatalogEntry>;
+  /** Nombre normalizado -> nombre, de los productos activos que esta tienda puede publicar. */
+  visibleNames: Map<string, string>;
+  /** Todos los slugs del catálogo, también los inactivos: el de un producto nuevo no puede repetirse. */
+  existingSlugs: Set<string>;
+  /** Categoría por texto: ruta «Padre > Hija», o el nombre si no se repite. */
+  categoryIdsByText: Map<string, string[]>;
+  /** El grupo de la tienda, o null. */
+  storeGroupId: string | null;
   /** abreviatura o nombre normalizado -> ids de unidades activas que coinciden */
   unitIdsByText: Map<string, string[]>;
   /** catalog_product_id ya publicados por la tienda */
@@ -43,4 +51,23 @@ export interface ImportLookups {
   existingProductCodes: Set<string>;
   /** Productos activos del catálogo: es el tope de filas que puede traer un archivo. */
   catalogSize: number;
+}
+
+/** Fila de la hoja «Productos nuevos» ya validada: crea el producto del catálogo y lo publica. */
+export interface ValidatedNewRow {
+  row: number;
+  name: string;
+  /** Id del producto del catálogo, generado acá porque el código de Siigo sale de él. */
+  catalogProductId: string;
+  slug: string;
+  siigoId: string;
+  categoryId: string;
+  description: string | null;
+  productCode: string;
+  unitId: string;
+  pricePerUnit: number;
+  stock: number;
+  wholesalePrice: number | null;
+  wholesaleMinQty: number | null;
+  minOrderQty: number;
 }

@@ -14,8 +14,10 @@ import {
   Image as ImageIcon,
   RotateCcw,
   LifeBuoy,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
+import { InvoiceLink } from '@/src/features/orders/components/InvoiceLink';
 
 import {
   OrderDetail,
@@ -256,6 +258,21 @@ export function OrderCard({
               </div>
             </div>
           </div>
+
+          {/* La factura es del pedido completo: en un pedido de varias tiendas
+              todas las tarjetas muestran la misma. */}
+          {order.invoice && (
+            <div className="flex items-start gap-3">
+              <FileText className="w-5 h-5 text-mm-txw shrink-0 mt-0.5" />
+
+              <div>
+                <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">
+                  Factura
+                </p>
+                <InvoiceLink invoice={order.invoice} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

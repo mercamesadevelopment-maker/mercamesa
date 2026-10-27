@@ -1,19 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Package, Edit2, Trash2, Search, Upload } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, Search, Upload, Check, Merge, Clock } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
 import { BulkImportModal } from './components/BulkImportModal';
+import { MergeProductModal } from './components/MergeProductModal';
+import { usePendingReview } from './hooks/usePendingReview';
 import { Table } from '../../../components/ui/table/components/Table';
-import { Button, Badge, normalizeText } from '@/src/components/Shared';
+import { Button, Badge, cn, normalizeText } from '@/src/components/Shared';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
   categories?: { name: string } | null;
   measurement_units?: { abbreviation: string } | null;
+  proposed_by?: { name: string } | null;
 };
 
 interface StoreGroup {
@@ -59,6 +62,10 @@ export default function ProductsAdmin() {
   // Exclusividad por grupo de tiendas
   const [storeGroups, setStoreGroups] = useState<StoreGroup[]>([]);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('');
+  // Productos que propusieron los tenderos desde la carga masiva.
+  const [reviewFilter, setReviewFilter] = useState<'' | 'pending'>('');
+  const review = usePendingReview();
+  const [mergeTarget, setMergeTarget] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
   const [bulkGroupId, setBulkGroupId] = useState('');
   const [isApplyingGroup, setIsApplyingGroup] = useState(false);
@@ -131,7 +138,7 @@ export default function ProductsAdmin() {
   // en la página 7 de un resultado que ahora tiene dos es quedarse en blanco.
   useEffect(() => {
     setPage(1);
-  }, [searchAplicada, selectedCategory, selectedGroupFilter, rowsPerPage]);
+  }, [searchAplicada, selectedCategory, selectedGroupFilter, reviewFilter, rowsPerPage]);
 
   /**
    * La única consulta al servidor. Se vuelve a lanzar cuando cambia cualquier
@@ -145,12 +152,14 @@ export default function ProductsAdmin() {
       search: searchAplicada,
       categoryIds: selectedCategoryIds,
       group: selectedGroupFilter,
+      review: reviewFilter,
       sort: sortKey,
       dir: sortOrder,
     });
+    review.refreshCount();
   }, [
     fetchProducts, page, rowsPerPage, searchAplicada,
-    selectedCategoryIds, selectedGroupFilter, sortKey, sortOrder,
+    selectedCategoryIds, selectedGroupFilter, reviewFilter, sortKey, sortOrder, review.refreshCount,
   ]);
 
   useEffect(() => {
@@ -266,9 +275,14 @@ export default function ProductsAdmin() {
       label: 'Estado',
       sortable: true,
       render: (item: Product) => (
-        <Badge variant={item.is_active ? 'success' : 'warning'}>
-          {item.is_active ? 'Activo' : 'Inactivo'}
-        </Badge>
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={item.is_active ? 'success' : 'warning'}>
+            {item.is_active ? 'Activo' : 'Inactivo'}
+          </Badge>
+          {item.review_status === 'pending' && (
+            <Badge variant="oro">En revisión{item.proposed_by?.name ? ` · ${item.proposed_by.name}` : ''}</Badge>
+          )}
+        </div>
       )
     }
   ];
@@ -319,6 +333,26 @@ export default function ProductsAdmin() {
           </Button>
         </div>
       </div>
+
+      {/* Lo que propusieron los tenderos: solo se ofrece si hay algo que revisar
+          o si el filtro ya está puesto. */}
+      {(review.count > 0 || reviewFilter) && (
+        <button
+          type="button"
+          onClick={() => setReviewFilter((f) => (f ? '' : 'pending'))}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2 rounded-2xl border text-sm font-bold transition-colors',
+            reviewFilter
+              ? 'bg-mm-g text-white border-mm-g'
+              : 'bg-lima-clara text-tinta border-lima hover:bg-lima'
+          )}
+        >
+          <Clock className="w-4 h-4" />
+          {reviewFilter
+            ? 'Ver todo el catálogo'
+            : `${review.count} producto${review.count === 1 ? '' : 's'} nuevo${review.count === 1 ? '' : 's'} de tenderos por revisar`}
+        </button>
+      )}
 
       {/* Filtros de Búsqueda y Categoría */}
       <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm">
@@ -409,6 +443,24 @@ export default function ProductsAdmin() {
         onRowsPerPageChange={setRowsPerPage}
         actions={(item: Product) => (
           <div className="flex gap-2">
+            {item.review_status === 'pending' && (
+              <>
+                <button
+                  onClick={() => review.approve(item.id, item.name).then(recargar)}
+                  title="Aprobar: pasa al catálogo de todas las tiendas"
+                  className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-ok transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setMergeTarget(item)}
+                  title="Unir con un producto que ya existe"
+                  className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+                >
+                  <Merge className="w-4 h-4" />
+                </button>
+              </>
+            )}
             <button 
               onClick={() => { setEditingProduct(item); setIsModalOpen(true); }}
               className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
@@ -437,6 +489,23 @@ export default function ProductsAdmin() {
           initialData={editingProduct}
         />
       )}
+
+      <MergeProductModal
+        product={mergeTarget}
+        onClose={() => setMergeTarget(null)}
+        onMerged={recargar}
+      />
+
+      <ConfirmModal
+        isOpen={!!review.error}
+        onClose={review.clearError}
+        onConfirm={review.clearError}
+        title="No se pudo aprobar"
+        message={review.error || ''}
+        variant="danger"
+        confirmText="Entendido"
+        hideCancel
+      />
 
       <BulkImportModal
         isOpen={isBulkImportOpen}

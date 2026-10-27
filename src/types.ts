@@ -1,4 +1,4 @@
-export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'runner' | 'logistics' | 'admin';
+export type RoleKey = 'retail' | 'wholesale' | 'provider' | 'delivery' | 'runner' | 'logistics' | 'accountant' | 'admin';
 
 export interface Role {
   k: RoleKey;
@@ -91,6 +91,8 @@ export interface Product {
   unit: string;
   unitId?: string;
   isFeatured?: boolean;
+  /** Producto nuevo que propuso la tienda y el admin todavía no revisa. */
+  inReview?: boolean;
   retailPrice: number;
   wsPrice: number;
   ws20: number;
@@ -167,6 +169,11 @@ export interface OrderStatusHistoryItem {
 }
 
 export interface Order {
+  /**
+   * En el panel de pedidos de la tienda y del admin es el id de la parte
+   * (`store_orders.id`), no el del pedido: un pedido de varias tiendas tiene una
+   * tarjeta por tienda y cada una necesita su propio id (ver `toStoreOrderCard`).
+   */
   id: string;
   storeOrderId?: string;
   /** Código visible del pedido de esta tienda: MM-2026-001017-1 */

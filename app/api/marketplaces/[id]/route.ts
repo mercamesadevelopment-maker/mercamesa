@@ -97,9 +97,19 @@ export async function PUT(
 
     const { data: currentMarketplace } = await supabase
       .from('marketplaces')
-      .select('cover_image_url, logo_url')
+      .select('cover_image_url, logo_url, hover_gif_url')
       .eq('id', id)
       .single()
+
+    // El GIF se guarda tal cual (sin variantes, que lo pasarían a WebP sin
+    // animación). Una ruta lo reemplaza y `null` lo quita.
+    let oldGif: string | null = null
+    if (body.hover_gif_url !== undefined) {
+      updateData.hover_gif_url = (body.hover_gif_url as string) || null
+      if (currentMarketplace?.hover_gif_url && currentMarketplace.hover_gif_url !== updateData.hover_gif_url) {
+        oldGif = currentMarketplace.hover_gif_url
+      }
+    }
 
     // El cliente ya subió el/los original(es) directo a Storage (evita el
     // límite de payload de las funciones serverless); acá solo descargamos
@@ -143,6 +153,12 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    // Se borra después de guardar: si el guardado falla, la plaza sigue
+    // apuntando a un archivo que existe.
+    if (oldGif) {
+      await supabase.storage.from('plazas').remove([oldGif])
+    }
+
     return NextResponse.json({ data }, { status: 200 })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error'
@@ -168,10 +184,13 @@ export async function DELETE(
     // Get current marketplace to delete images
     const { data: currentMarketplace } = await supabase
       .from('marketplaces')
-      .select('cover_image_url, logo_url')
+      .select('cover_image_url, logo_url, hover_gif_url')
       .eq('id', id)
       .single()
 
+    if (currentMarketplace?.hover_gif_url) {
+      await supabase.storage.from('plazas').remove([currentMarketplace.hover_gif_url])
+    }
     if (currentMarketplace?.cover_image_url) {
       await removeImageAndVariants(supabase, 'plazas', currentMarketplace.cover_image_url, ['cover'])
     }

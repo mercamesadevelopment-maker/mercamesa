@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     const resultado = await consumeCode({
       service,
-      table: 'admin_login_codes',
+      purpose: 'admin_login',
       key,
       code,
     })
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
 
     // Se marca usado solo ahora: si algo hubiera fallado arriba, la persona se
     // habría quedado sin código y sin sesión, y tendría que pedir otro.
-    await markCodeConsumed({ service, table: 'admin_login_codes', id: resultado.row.id })
+    await markCodeConsumed({ service, id: resultado.row.id })
 
     const { data: perfilCompleto } = await supabase
       .from('profiles')

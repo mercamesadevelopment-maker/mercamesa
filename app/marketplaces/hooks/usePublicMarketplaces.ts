@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Database } from '@/types/database_generated';
 
-type Marketplace = Database['public']['Tables']['marketplaces']['Row'] & {
+export type PublicMarketplace = Database['public']['Tables']['marketplaces']['Row'] & {
   coverSignedUrl?: string | null;
   logoSignedUrl?: string | null;
+  /** GIF que se reproduce al pasar el mouse; sin él, la portada. */
+  hoverGifUrl?: string | null;
 };
+
+type Marketplace = PublicMarketplace;
 
 export function usePublicMarketplaces() {
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);

@@ -12,8 +12,11 @@ import {
 import { sendEmail, adminLoginCodeEmail } from '@/lib/email/resend'
 import { bloqueoPorInactividad } from '@/lib/auth/deactivation'
 
-/** Roles que deben verificar además con un código al correo. */
-const ROLES_CON_CODIGO = ['admin', 'superadmin']
+/**
+ * Roles que deben verificar además con un código al correo. El auxiliar
+ * contable aprueba las dispersiones de dinero a las tiendas.
+ */
+const ROLES_CON_CODIGO = ['admin', 'superadmin', 'accountant']
 
 export async function POST(request: Request) {
   try {
@@ -110,7 +113,7 @@ export async function POST(request: Request) {
 
       const limite = await checkCodeRateLimit({
         service,
-        table: 'admin_login_codes',
+        purpose: 'admin_login',
         key,
         ip,
       })
@@ -126,7 +129,7 @@ export async function POST(request: Request) {
 
       const code = await issueCode({
         service,
-        table: 'admin_login_codes',
+        purpose: 'admin_login',
         key,
         ip,
         extra: { email: destino },

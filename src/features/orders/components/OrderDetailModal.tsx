@@ -8,6 +8,8 @@ import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/o
 import { OrderStatusTimeline } from './OrderStatusTimeline';
 import { DeliveryTracking } from './DeliveryTracking';
 import { useDeliveryTracking } from '../hooks/use-delivery-tracking';
+import { useOrderInvoice } from '../hooks/use-order-invoice';
+import { InvoiceLink } from './InvoiceLink';
 import { PackingNotesCard } from './PackingNotesCard';
 import { ConsolidatedNotice } from './ConsolidatedNotice';
 import { packingNotesEditable } from '@/lib/orders/packing-notes';
@@ -54,6 +56,7 @@ export function OrderDetailModal({
     order?.storeOrderId ? { storeOrderId: String(order.storeOrderId) } : null,
     isOpen && hasDelivery
   );
+  const invoice = useOrderInvoice(order?.storeOrderId ? String(order.storeOrderId) : null, isOpen);
 
   if (!order) return null;
 
@@ -376,6 +379,17 @@ export function OrderDetailModal({
                   </span>
                 </div>
               </div>
+
+              {/* Solo admin y superadmin: al tendero la ruta le responde 403 y no se muestra. */}
+              {invoice && (
+                <div className="flex flex-col gap-2 bg-slate-50 p-3 rounded-2xl border border-mm-crd/40">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-mm-txw" />
+                    <span className="text-[10px] text-mm-txw font-black uppercase tracking-wider">Factura</span>
+                  </div>
+                  <InvoiceLink invoice={invoice} />
+                </div>
+              )}
 
               {/* Billing breakdown */}
               <div className="space-y-3 border-t border-mm-crd/40 pt-4 text-xs font-semibold text-mm-txw">

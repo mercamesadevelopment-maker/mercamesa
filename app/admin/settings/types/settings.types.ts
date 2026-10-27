@@ -52,20 +52,23 @@ export type StoreCategoryRow = Database['public']['Tables']['store_categories'][
 export type StoreCategoryInsert = Omit<Database['public']['Tables']['store_categories']['Insert'], 'id' | 'created_at'>;
 export type StoreCategoryUpdate = Partial<StoreCategoryInsert>;
 
-export type OrderMinPriceHistoryRow = Database['public']['Tables']['order_min_price_history']['Row'] & {
+/** Un ajuste del mínimo de compra: las filas de `pricing_settings_history` con `change_type = 'order_min_price'`. */
+export type OrderMinPriceHistoryRow = {
+  id: string;
+  min_price: number;
+  notes: string | null;
+  changed_by: string | null;
+  created_at: string;
   profiles?: { full_name: string } | null;
 };
-export type OrderMinPriceHistoryInsert = Pick<
-  Database['public']['Tables']['order_min_price_history']['Insert'],
-  'min_price' | 'notes'
->;
+export type OrderMinPriceHistoryInsert = Pick<OrderMinPriceHistoryRow, 'min_price' | 'notes'>;
 
 export type PricingSettingsRow = Database['public']['Tables']['pricing_settings_history']['Row'] & {
   profiles?: { full_name: string } | null;
 };
 export type PricingSettingsInsert = Omit<
   Database['public']['Tables']['pricing_settings_history']['Insert'],
-  'id' | 'created_at' | 'changed_by'
+  'id' | 'created_at' | 'changed_by' | 'order_min_price' | 'change_type'
 >;
 
 /** Resultado de crear/verificar en Siigo los productos de servicio. */

@@ -60,3 +60,37 @@ export async function loadPricingSettings(
     siigoPlatformProductCode: data.siigo_platform_product_code,
   };
 }
+
+/**
+ * La fila vigente completa. Un ajuste nuevo parte de ella: cada fila guarda la
+ * configuración entera (tarifas y mínimo de compra) y repite lo que no cambia.
+ */
+export async function loadLatestPricingRow(supabase: SupabaseClient<any>) {
+  const { data, error } = await supabase
+    .from('pricing_settings_history')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new PricingConfigError(`No se pudieron leer las tarifas: ${error.message}`);
+  }
+  return data;
+}
+
+/**
+ * El valor mínimo de compra vigente, o `null` si no hay. Lo usan el carrito (en
+ * el navegador, como aviso) y la creación del pedido (la regla).
+ */
+export async function loadOrderMinPrice(supabase: SupabaseClient<any>): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('pricing_settings_history')
+    .select('order_min_price')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.order_min_price == null ? null : Number(data.order_min_price);
+}

@@ -4,6 +4,7 @@ import { canManageStore } from '@/lib/auth/can-manage-store';
 import { XLSX_MIME, buildTemplateWorkbook, type TemplateProduct } from '@/lib/product-import';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { applyCatalogVisibility, getStoreGroupId } from '@/lib/catalog/visibility';
+import { loadCategoryOptions } from '@/lib/catalog-import/lookups';
 
 interface CatalogRow {
   id: string;
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
     // exclusivos de otro grupo no deben aparecer en su plantilla.
     const storeGroupId = await getStoreGroupId(supabase, storeId);
 
-    const [storeRes, catalog, units, publishedRows] = await Promise.all([
+    const [storeRes, catalog, units, publishedRows, categoryOptions] = await Promise.all([
       supabase.from('stores').select('name').eq('id', storeId).single(),
       fetchAllRows<CatalogRow>((from, to) =>
         applyCatalogVisibility(
@@ -69,7 +70,8 @@ export async function GET(request: Request) {
             .eq('is_active', true)
             .order('name')
             .range(from, to),
-          storeGroupId
+          storeGroupId,
+          storeId
         )
       ),
       fetchAllRows<UnitRow>((from, to) =>
@@ -88,6 +90,7 @@ export async function GET(request: Request) {
           .order('catalog_product_id')
           .range(from, to)
       ),
+      loadCategoryOptions(supabase),
     ]);
 
     const abbreviationByUnitId = new Map(units.map((unit) => [unit.id, unit.abbreviation]));
@@ -139,7 +142,12 @@ export async function GET(request: Request) {
       );
 
     const storeName = storeRes.data?.name ?? 'Mi tienda';
-    const buffer = await buildTemplateWorkbook({ storeName, products, units });
+    const buffer = await buildTemplateWorkbook({
+      storeName,
+      products,
+      units,
+      categories: categoryOptions.categories.map((category) => category.path),
+    });
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

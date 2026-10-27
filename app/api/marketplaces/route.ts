@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabase/server'
 import { requirePermission } from '@/lib/auth/require-permission'
 import { Database } from '../../../types/database_generated'
 import { getSupabaseImageUrl, PRESET_COVER, PRESET_LOGO } from '../../../lib/supabase/supabase-image'
+import { getStoragePublicUrl } from '../../../lib/supabase/utils'
 import { uploadVariants } from '../../../lib/images/generate'
 
 type MarketplaceInsert = Database['public']['Tables']['marketplaces']['Insert']
@@ -35,6 +36,8 @@ export async function GET(request: Request) {
       ...plaza,
       coverSignedUrl,
       logoSignedUrl,
+      // El GIF va original: las variantes WebP le quitarían la animación.
+      hoverGifUrl: getStoragePublicUrl('plazas', plaza.hover_gif_url),
     };
   });
 
@@ -100,6 +103,9 @@ export async function POST(request: Request) {
       await uploadVariants(supabase, 'plazas', logo_url, buffer, ['logo'])
     }
 
+    // El GIF se guarda tal cual: sin variantes, que lo pasarían a WebP sin animación.
+    const hover_gif_url = (body.hover_gif_url as string) || null
+
     const insertData: MarketplaceInsert = {
       id: marketplaceId,
       name,
@@ -113,6 +119,7 @@ export async function POST(request: Request) {
       is_active,
       cover_image_url,
       logo_url,
+      hover_gif_url,
       business_hours,
       created_by: user.id
     }

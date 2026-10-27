@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
     const verificacion = await consumeCode({
       service,
-      table: 'password_change_codes',
+      purpose: 'password_change',
       key,
       code,
     })
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: 400 })
     }
 
-    await markCodeConsumed({ service, table: 'password_change_codes', id: verificacion.row.id })
+    await markCodeConsumed({ service, id: verificacion.row.id })
 
     // El aviso es informativo: si el cambio no fue el dueño de la cuenta, es la
     // única señal que recibe. Que falle el correo no invalida el cambio.

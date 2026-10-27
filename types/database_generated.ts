@@ -353,6 +353,8 @@ export type Database = {
           is_non_food: boolean
           name: string
           owner_group_id: string | null
+          proposed_by_store_id: string | null
+          review_status: string
           search_text: string | null
           siigo_id: string
           siigo_synced_at: string | null
@@ -375,6 +377,8 @@ export type Database = {
           is_non_food?: boolean
           name: string
           owner_group_id?: string | null
+          proposed_by_store_id?: string | null
+          review_status?: string
           search_text?: string | null
           siigo_id: string
           siigo_synced_at?: string | null
@@ -397,6 +401,8 @@ export type Database = {
           is_non_food?: boolean
           name?: string
           owner_group_id?: string | null
+          proposed_by_store_id?: string | null
+          review_status?: string
           search_text?: string | null
           siigo_id?: string
           siigo_synced_at?: string | null
@@ -430,6 +436,13 @@ export type Database = {
             columns: ["owner_group_id"]
             isOneToOne: false
             referencedRelation: "store_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_products_proposed_by_store_id_fkey"
+            columns: ["proposed_by_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -844,118 +857,6 @@ export type Database = {
           },
         ]
       }
-      marketplace_delivery_users: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          marketplace_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          marketplace_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          marketplace_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "marketplace_delivery_users_marketplace_id_fkey"
-            columns: ["marketplace_id"]
-            isOneToOne: false
-            referencedRelation: "marketplaces"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_delivery_users_marketplace_id_fkey"
-            columns: ["marketplace_id"]
-            isOneToOne: false
-            referencedRelation: "marketplaces_detail"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_delivery_users_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      marketplace_members: {
-        Row: {
-          created_at: string
-          id: string
-          invited_by: string | null
-          marketplace_id: string
-          role_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          invited_by?: string | null
-          marketplace_id: string
-          role_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          invited_by?: string | null
-          marketplace_id?: string
-          role_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "marketplace_members_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_members_marketplace_id_fkey"
-            columns: ["marketplace_id"]
-            isOneToOne: false
-            referencedRelation: "marketplaces"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_members_marketplace_id_fkey"
-            columns: ["marketplace_id"]
-            isOneToOne: false
-            referencedRelation: "marketplaces_detail"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_members_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marketplace_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       marketplace_staff: {
         Row: {
           created_at: string
@@ -1018,6 +919,7 @@ export type Database = {
           created_by: string | null
           department: string
           description: string | null
+          hover_gif_url: string | null
           id: string
           is_active: boolean
           latitude: number | null
@@ -1041,6 +943,7 @@ export type Database = {
           created_by?: string | null
           department?: string
           description?: string | null
+          hover_gif_url?: string | null
           id?: string
           is_active?: boolean
           latitude?: number | null
@@ -1064,6 +967,7 @@ export type Database = {
           created_by?: string | null
           department?: string
           description?: string | null
+          hover_gif_url?: string | null
           id?: string
           is_active?: boolean
           latitude?: number | null
@@ -2610,36 +2514,42 @@ export type Database = {
       }
       pricing_settings_history: {
         Row: {
+          change_type: string
           changed_by: string | null
           created_at: string
           id: string
           message_unit_price: number
           messages_per_order: number
           notes: string | null
+          order_min_price: number | null
           platform_commission_rate: number
           service_commission_rate: number
           siigo_delivery_product_code: string
           siigo_platform_product_code: string
         }
         Insert: {
+          change_type?: string
           changed_by?: string | null
           created_at?: string
           id?: string
           message_unit_price: number
           messages_per_order: number
           notes?: string | null
+          order_min_price?: number | null
           platform_commission_rate: number
           service_commission_rate: number
           siigo_delivery_product_code: string
           siigo_platform_product_code: string
         }
         Update: {
+          change_type?: string
           changed_by?: string | null
           created_at?: string
           id?: string
           message_unit_price?: number
           messages_per_order?: number
           notes?: string | null
+          order_min_price?: number | null
           platform_commission_rate?: number
           service_commission_rate?: number
           siigo_delivery_product_code?: string
@@ -2940,6 +2850,68 @@ export type Database = {
           request_ip?: string | null
         }
         Relationships: []
+      }
+      siigo_balance_reports: {
+        Row: {
+          account_end: string | null
+          account_start: string | null
+          branch_office: number | null
+          created_at: string
+          created_by: string | null
+          file_id: string
+          file_url: string
+          id: string
+          identification: string | null
+          includes_tax_difference: boolean
+          kind: string
+          month_end: number
+          month_start: number
+          third_party_name: string | null
+          year: number
+        }
+        Insert: {
+          account_end?: string | null
+          account_start?: string | null
+          branch_office?: number | null
+          created_at?: string
+          created_by?: string | null
+          file_id: string
+          file_url: string
+          id?: string
+          identification?: string | null
+          includes_tax_difference: boolean
+          kind: string
+          month_end: number
+          month_start: number
+          third_party_name?: string | null
+          year: number
+        }
+        Update: {
+          account_end?: string | null
+          account_start?: string | null
+          branch_office?: number | null
+          created_at?: string
+          created_by?: string | null
+          file_id?: string
+          file_url?: string
+          id?: string
+          identification?: string | null
+          includes_tax_difference?: boolean
+          kind?: string
+          month_end?: number
+          month_start?: number
+          third_party_name?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siigo_balance_reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       siigo_credit_notes: {
         Row: {
@@ -4085,6 +4057,57 @@ export type Database = {
           },
         ]
       }
+      verification_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          new_email: string | null
+          purpose: string
+          request_ip: string | null
+          reset_token: string | null
+          reset_token_expires_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          new_email?: string | null
+          purpose: string
+          request_ip?: string | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          new_email?: string | null
+          purpose?: string
+          request_ip?: string | null
+          reset_token?: string | null
+          reset_token_expires_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       marketplaces_detail: {
@@ -4233,6 +4256,7 @@ export type Database = {
       buyer_credit_balance: { Args: { p_buyer: string }; Returns: number }
       call_app_cron: { Args: { path: string }; Returns: number }
       call_edge_cron: { Args: { fn: string }; Returns: number }
+      copiar_precio_minimo_al_historial: { Args: never; Returns: undefined }
       create_order_refund: { Args: { p: Json }; Returns: string }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }
       es_lector_de_plataforma: { Args: never; Returns: boolean }
@@ -4250,6 +4274,10 @@ export type Database = {
       immutable_unaccent: { Args: { texto: string }; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      merge_catalog_product: {
+        Args: { p_pending: string; p_target: string }
+        Returns: number
+      }
       payable_until: {
         Args: { o: Database["public"]["Tables"]["orders"]["Row"] }
         Returns: string

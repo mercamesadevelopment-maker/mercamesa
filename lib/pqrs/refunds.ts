@@ -276,8 +276,20 @@ export async function markRefundPaid(
   actorId: string,
   reference: string
 ): Promise<void> {
-  const refundId = await refundIdOf(service, pqrsId);
+  await markRefundPaidById(service, await refundIdOf(service, pqrsId), actorId, reference);
+}
 
+/**
+ * Lo mismo, por la devolución. Contabilidad lo usa así porque no toda devolución
+ * tiene PQRS: la de una tienda que no cumplió su parte (`origin = 'store_cancel'`)
+ * no la tiene.
+ */
+export async function markRefundPaidById(
+  service: SupabaseClient<any>,
+  refundId: string,
+  actorId: string,
+  reference: string
+): Promise<void> {
   const { data, error } = await service
     .from('order_refunds')
     .update({

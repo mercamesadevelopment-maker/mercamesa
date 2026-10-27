@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { sendEmail, adminInvitationEmail } from '@/lib/email/resend';
+import { generateInviteLink } from '@/lib/auth/invite-link';
 
 /**
  * Invitar a alguien a administrar la plataforma.
@@ -12,13 +13,13 @@ import { sendEmail, adminInvitationEmail } from '@/lib/email/resend';
  * sumar un administrador se hacía a mano contra la base. El enum
  * `invitation_type` ya traía el valor `'admin'` sin que nadie lo usara.
  *
- * Solo el superadmin invita, y puede invitar a los dos roles. Se exige
+ * Solo el superadmin invita, a administrar o a llevar la contabilidad. Se exige
  * `users:create`, que hoy únicamente él tiene. La lista de roles invitables es
  * cerrada a propósito: si llegara del navegador, esto sería una forma de
  * asignarse cualquier rol.
  */
 
-const ROLES_INVITABLES = ['admin', 'superadmin'] as const;
+const ROLES_INVITABLES = ['admin', 'superadmin', 'accountant'] as const;
 type RolInvitable = (typeof ROLES_INVITABLES)[number];
 
 const DIAS_VIGENCIA = 7;
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
 
     if (!ROLES_INVITABLES.includes(roleName)) {
       return NextResponse.json(
-        { error: 'Solo puedes invitar con el rol de administrador o super administrador.' },
+        { error: 'Solo puedes invitar con el rol de administrador, super administrador o auxiliar contable.' },
         { status: 400 }
       );
     }
@@ -101,16 +102,11 @@ export async function POST(request: Request) {
 
     const origin = request.headers.get('origin') || new URL(request.url).origin;
 
-    // `generateLink` produce el enlace sin enviar ningún correo, para poder
-    // mandarlo con la plantilla de la plataforma en vez de con la de Supabase.
-    const { data: link, error: linkError } = await service.auth.admin.generateLink({
-      type: 'invite',
-      email,
-      options: { redirectTo: `${origin}/accept-invite` },
-    });
+    // Sin enviar correo, para mandarlo con la plantilla de la plataforma. Sirve
+    // también si una invitación anterior ya creó la cuenta.
+    const actionLink = await generateInviteLink(service, email, `${origin}/accept-invite`);
 
-    if (linkError || !link?.properties?.action_link) {
-      console.error('admin/users/invite: no se pudo generar el enlace', linkError);
+    if (!actionLink) {
       return NextResponse.json(
         { error: 'No se pudo crear la invitación. Vuelve a intentarlo.' },
         { status: 500 }
@@ -121,7 +117,7 @@ export async function POST(request: Request) {
     expires.setDate(expires.getDate() + DIAS_VIGENCIA);
 
     // La fila va ANTES del correo: si se guardara después y el envío fallara,
-    // `generateLink` ya habría creado la cuenta en `auth.users` y quedaría un
+    // el enlace ya habría creado la cuenta en `auth.users` y quedaría un
     // usuario sin invitación que lo respalde, imposible de completar.
     const { data: invitacion, error: dbError } = await service
       .from('invitations')
@@ -157,7 +153,7 @@ export async function POST(request: Request) {
         html: adminInvitationEmail(
           perfilActor?.full_name || 'Un administrador',
           rol.label,
-          link.properties.action_link,
+          actionLink,
           DIAS_VIGENCIA
         ),
       });

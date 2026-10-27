@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import {
   ACCEPTED_EXTENSIONS,
   INSERT_CHUNK_SIZE,
   MAX_FILE_BYTES,
+  MAX_NEW_PRODUCTS,
   MAX_ROW_BY_ROW_RETRIES,
   SpreadsheetError,
   buildReport,
   loadImportLookups,
-  parseSellerSpreadsheet,
+  parseSellerWorkbook,
+  validateNewRows,
   validateRows,
   type ImportRowResult,
+  type ValidatedNewRow,
   type ValidatedRow,
 } from '@/lib/product-import';
 import {
@@ -21,6 +25,7 @@ import {
 import type { Database } from '@/types/database_generated';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
+type CatalogProductInsert = Database['public']['Tables']['catalog_products']['Insert'];
 
 /**
  * Publicar un catálogo completo (proyección del cliente: hasta 3.000 productos)
@@ -34,7 +39,7 @@ type StoreProductInsert = Database['public']['Tables']['store_products']['Insert
  */
 export const maxDuration = 60;
 
-function toInsert(storeId: string, row: ValidatedRow): StoreProductInsert {
+function toInsert(storeId: string, row: ValidatedRow | ValidatedNewRow): StoreProductInsert {
   return {
     store_id: storeId,
     catalog_product_id: row.catalogProductId,
@@ -54,7 +59,11 @@ function toInsert(storeId: string, row: ValidatedRow): StoreProductInsert {
  * si algo se publicó entre la validación y la escritura, porque ambos choques ya
  * se detectan antes.
  */
-function insertErrorMessage(message: string, code: string | undefined, row: ValidatedRow): string {
+function insertErrorMessage(
+  message: string,
+  code: string | undefined,
+  row: ValidatedRow | ValidatedNewRow
+): string {
   if (code !== '23505') return message;
 
   if (message.includes(PRODUCT_CODE_UNIQUE_INDEX)) {
@@ -115,28 +124,41 @@ export async function POST(request: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const [rows, lookups] = await Promise.all([
-      parseSellerSpreadsheet(buffer, fileName),
+    const [sheets, lookups] = await Promise.all([
+      parseSellerWorkbook(buffer, fileName),
       loadImportLookups(supabase, storeId),
     ]);
 
-    const { valid, results } = validateRows(rows, lookups);
+    // Los códigos de la tienda no se pueden repetir entre las dos hojas.
+    const seenProductCodes = new Map<string, string>();
+    const { valid, results } = validateRows(sheets.catalog, lookups, seenProductCodes);
+    const nuevos = validateNewRows(sheets.newProducts, lookups, seenProductCodes);
+
+    if (nuevos.valid.length > MAX_NEW_PRODUCTS) {
+      throw new SpreadsheetError(
+        `La hoja "Productos nuevos" trae ${nuevos.valid.length} productos y el máximo por carga es ${MAX_NEW_PRODUCTS}. Divídela en varios archivos.`
+      );
+    }
 
     if (dryRun) {
       // Las filas válidas todavía no existen: se anuncian como "created" para
       // que el reporte de la previsualización tenga la misma forma que el real.
-      const preview: ImportRowResult[] = valid.map((row) => ({
-        row: row.row,
-        code: row.code,
-        name: row.name,
-        status: 'created',
-      }));
-      return NextResponse.json(buildReport([...results, ...preview], true), { status: 200 });
+      const preview: ImportRowResult[] = [
+        ...valid.map(created),
+        ...nuevos.valid.map(createdNew),
+      ];
+      return NextResponse.json(buildReport([...results, ...nuevos.results, ...preview], true), {
+        status: 200,
+      });
     }
 
     const written = await insertRows(supabase, storeId, valid);
+    const writtenNew = await insertNewRows(supabase, storeId, user.id, nuevos.valid);
 
-    return NextResponse.json(buildReport([...results, ...written], false), { status: 200 });
+    return NextResponse.json(
+      buildReport([...results, ...nuevos.results, ...written, ...writtenNew], false),
+      { status: 200 }
+    );
   } catch (error: unknown) {
     if (error instanceof SpreadsheetError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -165,13 +187,6 @@ async function insertRows(
 ): Promise<ImportRowResult[]> {
   const results: ImportRowResult[] = [];
   let rowByRowCount = 0;
-
-  const created = (row: ValidatedRow): ImportRowResult => ({
-    row: row.row,
-    code: row.code,
-    name: row.name,
-    status: 'created',
-  });
 
   for (let index = 0; index < valid.length; index += INSERT_CHUNK_SIZE) {
     const chunk = valid.slice(index, index + INSERT_CHUNK_SIZE);
@@ -211,6 +226,129 @@ async function insertRows(
   }
 
   return results;
+}
+
+function created(row: ValidatedRow): ImportRowResult {
+  return { row: row.row, code: row.code, name: row.name, status: 'created' };
+}
+
+function createdNew(row: ValidatedNewRow): ImportRowResult {
+  return { row: row.row, sheet: 'new', code: '', name: row.name, status: 'created' };
+}
+
+function toCatalogInsert(storeId: string, userId: string, row: ValidatedNewRow): CatalogProductInsert {
+  return {
+    id: row.catalogProductId,
+    name: row.name,
+    slug: row.slug,
+    siigo_id: row.siigoId,
+    category_id: row.categoryId,
+    default_unit_id: row.unitId,
+    description: row.description,
+    is_active: true,
+    // En revisión: solo esta tienda lo ve hasta que el admin lo apruebe.
+    review_status: 'pending',
+    proposed_by_store_id: storeId,
+    owner_group_id: null,
+    created_by: userId,
+  };
+}
+
+/**
+ * Productos nuevos: cada uno crea su producto del catálogo, en revisión, y lo
+ * publica en la tienda.
+ *
+ * El catálogo se escribe con el cliente de servicio: el tendero no tiene permiso
+ * sobre `catalog_products`, y quien llama ya comprobó que maneja la tienda. Va
+ * por bloques, como los del catálogo. Si falla publicar alguno, se borra el
+ * producto del catálogo que se acababa de crear para él: sin tienda que lo
+ * venda, sería un pendiente huérfano en la revisión del admin.
+ */
+async function insertNewRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  storeId: string,
+  userId: string,
+  valid: ValidatedNewRow[]
+): Promise<ImportRowResult[]> {
+  if (valid.length === 0) return [];
+
+  const service = createSupabaseServiceClient();
+  const results: ImportRowResult[] = [];
+  let rowByRowCount = 0;
+
+  const failed = (row: ValidatedNewRow, message: string): ImportRowResult => ({
+    row: row.row,
+    sheet: 'new',
+    code: '',
+    name: row.name,
+    status: 'failed',
+    message,
+  });
+
+  /** Una fila sola: catálogo, tienda, y deshacer el catálogo si la tienda falla. */
+  const writeOne = async (row: ValidatedNewRow): Promise<ImportRowResult> => {
+    const { error: catalogError } = await service
+      .from('catalog_products')
+      .insert(toCatalogInsert(storeId, userId, row));
+    if (catalogError) {
+      return failed(row, `No se pudo crear el producto: ${catalogError.message}`);
+    }
+    const { error: storeError } = await supabase.from('store_products').insert(toInsert(storeId, row));
+    if (storeError) {
+      await service.from('catalog_products').delete().eq('id', row.catalogProductId);
+      return failed(row, insertErrorMessage(storeError.message, storeError.code, row));
+    }
+    return createdNew(row);
+  };
+
+  for (let index = 0; index < valid.length; index += INSERT_CHUNK_SIZE) {
+    const chunk = valid.slice(index, index + INSERT_CHUNK_SIZE);
+
+    const { error: catalogError } = await service
+      .from('catalog_products')
+      .insert(chunk.map((row) => toCatalogInsert(storeId, userId, row)));
+
+    if (!catalogError) {
+      const { error: storeError } = await supabase
+        .from('store_products')
+        .insert(chunk.map((row) => toInsert(storeId, row)));
+
+      if (!storeError) {
+        results.push(...chunk.map(createdNew));
+        continue;
+      }
+
+      // El bloque de la tienda falló entero: se deshace el del catálogo y se
+      // reintenta fila por fila, como cuando falla el del catálogo.
+      await service
+        .from('catalog_products')
+        .delete()
+        .in('id', chunk.map((row) => row.catalogProductId));
+    }
+
+    if (rowByRowCount + chunk.length > MAX_ROW_BY_ROW_RETRIES) {
+      results.push(...valid.slice(index).map(notProcessedNew));
+      break;
+    }
+
+    for (const row of chunk) {
+      rowByRowCount++;
+      results.push(await writeOne(row));
+    }
+  }
+
+  return results;
+}
+
+function notProcessedNew(row: ValidatedNewRow): ImportRowResult {
+  return {
+    row: row.row,
+    sheet: 'new',
+    code: '',
+    name: row.name,
+    status: 'not_processed',
+    message: 'La carga se detuvo antes de llegar a este producto. Vuelve a subir el archivo para crearlo.',
+  };
 }
 
 function notProcessed(row: ValidatedRow): ImportRowResult {

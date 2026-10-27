@@ -83,6 +83,7 @@ const roleNameToKey: Record<string, RoleKey> = {
   delivery: 'delivery',
   runner: 'runner',
   logistics: 'logistics',
+  accountant: 'accountant',
   wholesale: 'wholesale',
   retail: 'retail',
 };
