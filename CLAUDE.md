@@ -414,9 +414,23 @@ Ningún archivo debe crecer indefinidamente mezclando responsabilidades. Si un a
 supera unos pocos cientos de líneas o junta varias vistas/entidades, se divide siguiendo
 la estructura de feature de AGENTS.md (`components/`, `hooks/`, `services/`, `types/`).
 
-Lo que queda de la app de Vite (`src/store.tsx`, `src/types.ts`,
-`src/components/Shared.tsx`) es **deuda técnica heredada, no un ejemplo a seguir**: no se le
-agrega código nuevo, y lo que se toque ahí se pasa a su feature o a `lib/`.
+Lo que queda de la app de Vite (`src/types.ts` y `src/components/Shared.tsx`) es **deuda
+técnica heredada, no un ejemplo a seguir**: no se le agrega código nuevo, y lo que se toque
+ahí se pasa a su feature o a `lib/`.
+
+### Estado compartido
+
+No hay un store global. Cada cosa compartida tiene su contexto, montados en
+`app/providers.tsx`:
+
+| Hook | Archivo | Qué tiene |
+|---|---|---|
+| `useSession()` | `src/features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
+| `useCart()` | `src/features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
+| `useNotifications()` | `src/features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
+
+Algo nuevo que varias pantallas necesiten compartir va en un contexto propio de su
+feature, no en uno de estos.
 
 ---
 

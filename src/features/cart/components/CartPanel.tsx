@@ -46,9 +46,8 @@ const STEPS: { id: CheckoutStep; label: string }[] = [
 ];
 
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
-  const { updateCartQty, updateCartItemNotes, clearCart } = useCart();
+  const { cart, updateCartQty, updateCartItemNotes, clearCart } = useCart();
   const {
-    state,
     isPlacingOrder,
     errorMessage,
     cartByStore,
@@ -303,9 +302,9 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-mm-txw">
-                        {state.cart.length === 1
+                        {cart.length === 1
                           ? "1 producto"
-                          : `${state.cart.length} productos`}
+                          : `${cart.length} productos`}
                       </span>
                       <button
                         type="button"
@@ -673,9 +672,9 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
         }}
         title="¿Vaciar tu canasta?"
         message={
-          state.cart.length === 1
+          cart.length === 1
             ? "Se quitará el producto que tienes en la canasta."
-            : `Se quitarán los ${state.cart.length} productos que tienes en la canasta.`
+            : `Se quitarán los ${cart.length} productos que tienes en la canasta.`
         }
         confirmText="Sí, vaciar"
         cancelText="Cancelar"

@@ -1,6 +1,7 @@
 'use client';
 
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
+import { useCartState } from '@/src/features/cart/cart-context';
 import { Product } from '@/src/types';
 import {
   addToCartDb,
@@ -14,11 +15,12 @@ import {
 import { sharePickupPoint } from '@/lib/orders/pickup-group';
 
 export function useCart() {
-  const { state, dispatch } = useApp();
-  const buyerId = state.buyerProfile?.id;
+  const session = useSession();
+  const cartState = useCartState();
+  const buyerId = session.profile?.id;
 
   const addToCart = async (product: Product, qty: number = 1, offerId?: string | null) => {
-    if (!state.isLoggedIn || !buyerId) {
+    if (!session.isLoggedIn || !buyerId) {
       alert('Debes iniciar sesión para añadir productos al carrito');
       return;
     }
@@ -27,16 +29,16 @@ export function useCart() {
     // el mismo punto: de ahí sale un solo domicilio. Si la tienda ya está en la
     // canasta no hay nada que preguntar; si es nueva, se compara su punto de
     // recogida con el de lo que ya hay (toda la canasta comparte uno).
-    const yaEnLaCanasta = state.cart.some((i) => String(i.storeId) === String(product.storeId));
-    if (state.cart.length > 0 && !yaEnLaCanasta) {
-      const currentItem = state.cart[0];
+    const yaEnLaCanasta = cartState.items.some((i) => String(i.storeId) === String(product.storeId));
+    if (cartState.items.length > 0 && !yaEnLaCanasta) {
+      const currentItem = cartState.items[0];
       const [nuevo, actual] = await Promise.all([
         fetchPickupGroup(String(product.storeId)),
         fetchPickupGroup(String(currentItem.storeId)),
       ]);
 
       if (!sharePickupPoint([actual, nuevo])) {
-        dispatch({
+        cartState.dispatch({
           type: 'SET_CART_STORE_CONFLICT',
           currentStoreName: currentItem.storeName || 'la tienda actual',
         });
@@ -45,7 +47,7 @@ export function useCart() {
     }
 
     // Optimistic update
-    dispatch({ type: 'ADD_TO_CART', product, qty });
+    cartState.dispatch({ type: 'ADD_TO_CART', product, qty });
 
     try {
       // Se manda `qty`, no la cantidad acumulada.
@@ -53,7 +55,7 @@ export function useCart() {
       // Antes se sumaba acá `existing.qty + qty` y se pasaba el total a
       // `addToCartDb`, que a su vez vuelve a sumar sobre lo que ya hay en la
       // tabla. Con dos clics seguidos la base quedaba con más cantidad que la
-      // pantalla, porque además `state.cart` es el valor previo al dispatch.
+      // pantalla, porque además `cartState.items` es el valor previo al dispatch.
       await addToCartDb(buyerId, String(product.id), qty, offerId);
     } catch (e) {
       console.error('Error adding to cart in DB:', e);
@@ -61,10 +63,10 @@ export function useCart() {
   };
 
   const updateCartQty = async (productId: number | string, qty: number) => {
-    if (!state.isLoggedIn || !buyerId) return;
+    if (!session.isLoggedIn || !buyerId) return;
 
     // Optimistic update
-    dispatch({ type: 'UPDATE_CART_QTY', productId, qty });
+    cartState.dispatch({ type: 'UPDATE_CART_QTY', productId, qty });
 
     try {
       if (qty <= 0) {
@@ -78,10 +80,10 @@ export function useCart() {
   };
 
   const updateCartItemNotes = async (productId: number | string, notes: string) => {
-    if (!state.isLoggedIn || !buyerId) return;
+    if (!session.isLoggedIn || !buyerId) return;
 
     // Optimistic update
-    dispatch({ type: 'UPDATE_CART_ITEM_NOTES', productId, notes });
+    cartState.dispatch({ type: 'UPDATE_CART_ITEM_NOTES', productId, notes });
 
     try {
       await updateCartItemNotesDb(buyerId, String(productId), notes);
@@ -91,10 +93,10 @@ export function useCart() {
   };
 
   const removeFromCart = async (productId: number | string) => {
-    if (!state.isLoggedIn || !buyerId) return;
+    if (!session.isLoggedIn || !buyerId) return;
 
     // Optimistic update
-    dispatch({ type: 'REMOVE_FROM_CART', productId });
+    cartState.dispatch({ type: 'REMOVE_FROM_CART', productId });
 
     try {
       await removeFromCartDb(buyerId, String(productId));
@@ -104,10 +106,10 @@ export function useCart() {
   };
 
   const clearCart = async () => {
-    if (!state.isLoggedIn || !buyerId) return;
+    if (!session.isLoggedIn || !buyerId) return;
 
     // Optimistic update
-    dispatch({ type: 'CLEAR_CART' });
+    cartState.dispatch({ type: 'CLEAR_CART' });
 
     try {
       await clearCartDb(buyerId);
@@ -117,18 +119,18 @@ export function useCart() {
   };
 
   const syncCart = async () => {
-    if (!state.isLoggedIn || !buyerId) return;
+    if (!session.isLoggedIn || !buyerId) return;
 
     try {
       const items = await fetchCart(buyerId);
-      dispatch({ type: 'HYDRATE_CART', cart: items });
+      cartState.dispatch({ type: 'HYDRATE_CART', cart: items });
     } catch (e) {
       console.error('Error syncing cart from DB:', e);
     }
   };
 
   return {
-    cart: state.cart,
+    cart: cartState.items,
     addToCart,
     updateCartQty,
     updateCartItemNotes,

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { fechaCorta } from '@/lib/dates/relative-time';
 import { useBuyerStats } from '../hooks/use-buyer-stats';
 
@@ -20,8 +20,8 @@ import { useBuyerStats } from '../hooks/use-buyer-stats';
  * (`profiles.reputation_score`) es una columna que nadie escribe todavía.
  */
 export function DashboardTab() {
-  const { state } = useApp();
-  const profile = state.buyerProfile;
+  const session = useSession();
+  const profile = session.profile;
   const { stats, loading } = useBuyerStats();
 
   return (

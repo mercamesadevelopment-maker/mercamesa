@@ -2,16 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
+import { useCartState } from '@/src/features/cart/cart-context';
+import { useNotificationsState } from '@/src/features/notifications/notifications-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function useTopbar() {
-  const { state } = useApp();
+  const session = useSession();
+  const cartState = useCartState();
+  const { notifs } = useNotificationsState();
   const router = useRouter();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  const cartCount = state.cart.reduce((acc, item) => acc + item.qty, 0);
-  const unreadNotifs = state.notifs.filter((n) => !n.read).length;
+  const cartCount = cartState.items.reduce((acc, item) => acc + item.qty, 0);
+  const unreadNotifs = notifs.filter((n) => !n.read).length;
 
   const handleLogout = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -24,7 +28,7 @@ export function useTopbar() {
   const closeProfileMenu = () => setShowProfileMenu(false);
 
   return {
-    state,
+    session,
     router,
     showProfileMenu,
     toggleProfileMenu,

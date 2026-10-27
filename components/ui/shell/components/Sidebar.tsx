@@ -3,7 +3,7 @@ import * as LucideIcons from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { cn } from '@/src/components/Shared';
 import { useRouter, usePathname } from 'next/navigation';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
 import { InstallAppButton } from '@/src/features/pwa/components/InstallAppButton';
@@ -21,7 +21,7 @@ export function Sidebar({
   mobileOpen = false,
   onMobileClose,
 }: SidebarProps) {
-  const { state } = useApp();
+  const session = useSession();
 
   const router = useRouter();
 
@@ -33,12 +33,12 @@ export function Sidebar({
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const effectiveCollapsed = isDesktop && collapsed;
 
-  const roleId = state.buyerProfile?.role_id;
+  const roleId = session.profile?.role_id;
 
   const { modules, loading } =
     usePermissions(
       roleId,
-      state._hydrated
+      session.hydrated
     );
 
   const [openMenus, setOpenMenus] =
@@ -121,7 +121,7 @@ export function Sidebar({
     );
 
   const avatar =
-    state.buyerProfile?.avatar?.trim();
+    session.profile?.avatar?.trim();
 
   return (
     <>
@@ -329,13 +329,13 @@ export function Sidebar({
             <div className="overflow-hidden">
               <p className="text-sm font-bold text-mm-g truncate">
                 {
-                  state.buyerProfile
+                  session.profile
                     ?.name
                 }
               </p>
 
               <p className="text-[10px] text-mm-txs uppercase font-bold tracking-tighter">
-                {state.userRole}
+                {session.role}
               </p>
             </div>
           </div>

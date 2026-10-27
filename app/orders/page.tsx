@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipboardList, LifeBuoy } from 'lucide-react';
 import { useOrders } from './hooks/useOrders';
-import { useApp } from '@/src/store';
 import { OrderStats } from './components/OrderStats';
 import { OrderFilters } from './components/OrderFilters';
 import { OrderCard } from './components/OrderCard';
@@ -15,7 +14,6 @@ import { OrderStatus } from './types/order.types';
 import { Button } from '@/src/components/Shared';
 
 export default function OrdersPage() {
-  const { state, dispatch } = useApp();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [storeId, setStoreId] = useState<string | null>(null);

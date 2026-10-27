@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
+import { useCartState } from '@/src/features/cart/cart-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   generateIdempotencyKey,
@@ -40,7 +41,8 @@ export function mensajeMinimo(faltante: FaltanteDelMinimo, minPrice: number): st
 }
 
 export function useCheckout() {
-  const { state, dispatch } = useApp();
+  const session = useSession();
+  const cartState = useCartState();
   const router = useRouter();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -79,20 +81,20 @@ export function useCheckout() {
     loadSavedPaymentMethods();
   }, []);
 
-  const isWS = state.userRole === 'wholesale';
+  const isWS = session.role === 'wholesale';
   const getPrice = (item: CartItem) => (isWS ? item.wsPrice : item.retailPrice);
 
-  const storesInCart = Array.from(new Set(state.cart.map((i) => i.storeId)));
+  const storesInCart = Array.from(new Set(cartState.items.map((i) => i.storeId)));
 
   const cartByStore = storesInCart.map((storeId) => {
-    const items = state.cart.filter((i) => i.storeId === storeId);
+    const items = cartState.items.filter((i) => i.storeId === storeId);
     return {
       store: { id: storeId, name: items[0]?.storeName || 'Tienda', emoji: '🏪' },
       items,
     };
   });
 
-  const subtotal = state.cart.reduce(
+  const subtotal = cartState.items.reduce(
     (acc, item) => acc + getPrice(item) * item.qty,
     0
   );
@@ -104,7 +106,7 @@ export function useCheckout() {
    * Al mayorista no se le aplica ninguna oferta, y su precio mayorista por debajo
    * del de lista no es un descuento que haya que anunciarle.
    */
-  const savings = isWS ? NO_SAVINGS : cartSavings(state.cart, getPrice);
+  const savings = isWS ? NO_SAVINGS : cartSavings(cartState.items, getPrice);
 
   /**
    * El valor mínimo de compra. Se consulta acá y no en la cotización porque el
@@ -134,7 +136,7 @@ export function useCheckout() {
    * la canasta, igual que lo hace el servidor (`assertMinimumPurchase`).
    */
   const belowMinimum: FaltanteDelMinimo | null =
-    minPrice !== null && state.cart.length > 0 && subtotal < minPrice
+    minPrice !== null && cartState.items.length > 0 && subtotal < minPrice
       ? { subtotal, shortfall: minPrice - subtotal }
       : null;
 
@@ -147,13 +149,13 @@ export function useCheckout() {
 
   // Firma del carrito: evita recotizar cuando cambia algo que no afecta el precio
   // (notas, por ejemplo) y evita el bucle de un array nuevo en cada render.
-  const cartSignature = state.cart
+  const cartSignature = cartState.items
     .map((i) => `${i.id}:${i.qty}:${getPrice(i)}`)
     .sort()
     .join('|');
 
   useEffect(() => {
-    if (!selectedAddressId || state.cart.length === 0) {
+    if (!selectedAddressId || cartState.items.length === 0) {
       setQuote(null);
       setQuoteError(null);
       return;
@@ -167,7 +169,7 @@ export function useCheckout() {
     // pedido sale en una entrega y paga un domicilio.
     quoteCheckout({
       delivery_address_id: selectedAddressId,
-      items: state.cart.map((i) => ({ store_product_id: String(i.id), quantity: i.qty })),
+      items: cartState.items.map((i) => ({ store_product_id: String(i.id), quantity: i.qty })),
     })
       .then((cotizacion) => {
         if (cancelled) return;
@@ -274,7 +276,7 @@ export function useCheckout() {
       const orderPayload = {
         order: {
           buyer_id: buyerId,
-          buyer_type: (state.userRole === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
+          buyer_type: (session.role === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
           status: 'pending' as const,
           payment_status: 'pending' as const,
           notes: 'Pedido desde la web',
@@ -282,7 +284,7 @@ export function useCheckout() {
           client_idempotency_key: idempotencyKey,
           use_credit: useCredit && creditBalance > 0,
         },
-        items: state.cart.map((i) => ({
+        items: cartState.items.map((i) => ({
           store_product_id: String(i.id),
           quantity: i.qty,
           unit_price: getPrice(i),
@@ -309,12 +311,12 @@ export function useCheckout() {
       }
 
       const orderId = String(orderResult.data.id);
-      const storeProductIds = state.cart.map((i) => String(i.id));
+      const storeProductIds = cartState.items.map((i) => String(i.id));
 
       // El saldo a favor cubrió todo: el pedido ya quedó pagado y no hay nada
       // que cobrar en la pasarela.
       if (orderResult.data.payment_status === 'approved') {
-        dispatch({ type: 'CLEAR_CART' });
+        cartState.dispatch({ type: 'CLEAR_CART' });
         try {
           await clearCartDb(buyerId);
         } catch (e) {
@@ -338,7 +340,7 @@ export function useCheckout() {
           throw new Error('El pago fue rechazado con la tarjeta guardada. Intenta con otro método de pago.');
         }
 
-        dispatch({ type: 'CLEAR_CART' });
+        cartState.dispatch({ type: 'CLEAR_CART' });
         try {
           await clearCartDb(buyerId);
         } catch (e) {
@@ -367,7 +369,7 @@ export function useCheckout() {
       } catch (e) {
         console.error('Error updating cart status to pending in DB:', e);
       }
-      dispatch({ type: 'CLEAR_CART' });
+      cartState.dispatch({ type: 'CLEAR_CART' });
       window.location.href = paymentUrl;
       return;
     } catch (error) {
@@ -375,7 +377,6 @@ export function useCheckout() {
       const message = error instanceof Error ? error.message : 'Hubo un error procesando el pedido.';
 
       if (message === PERFIL_SIN_DOCUMENTO || message === PERFIL_SIN_EMAIL) {
-        dispatch({ type: 'SET_SECTION', section: 'profile_account' });
         router.push('/profile?incomplete=1');
         return;
       }
@@ -387,8 +388,6 @@ export function useCheckout() {
   };
 
   return {
-    state,
-    dispatch,
     isPlacingOrder,
     errorMessage,
     cartByStore,

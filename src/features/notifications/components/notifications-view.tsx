@@ -4,14 +4,14 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Bell, Check, CheckCircle2, CreditCard, ShoppingBag, Star, TrendingUp } from 'lucide-react';
-import { useApp } from '@/src/store';
+import { useNotificationsState } from '@/src/features/notifications/notifications-context';
 import { AppNotification } from '@/src/types';
 import { Button } from '@/src/components/Shared';
 import { cn } from '@/lib/utils/cn';
 import { useNotifications } from '../hooks/use-notifications';
 
 export function NotificationsView() {
-  const { state } = useApp();
+  const { notifs } = useNotificationsState();
   const { markRead, markAllRead } = useNotifications();
   const router = useRouter();
 
@@ -52,13 +52,13 @@ export function NotificationsView() {
       </div>
 
       <div className="space-y-4">
-        {state.notifs.length === 0 ? (
+        {notifs.length === 0 ? (
           <div className="bg-white p-12 rounded-[32px] border border-mm-crd text-center opacity-40">
             <div className="text-7xl mb-4">🔔</div>
             <p className="text-xl font-display">No tienes notificaciones</p>
           </div>
         ) : (
-          state.notifs.map(notif => {
+          notifs.map(notif => {
             const { icon: Icon, color } = getNotifIcon(notif.type);
             return (
               <motion.div

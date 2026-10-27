@@ -7,7 +7,7 @@ import { Stamp } from '@/components/ui/stamp';
 import { formatCOP } from '@/lib/utils/format';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { discountPct } from '@/src/features/cart/utils/cart-savings';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/src/features/products/utils/share-link';
@@ -23,7 +23,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, highlighted }: ProductCardProps) {
   const { cart, addToCart, updateCartQty } = useCart();
-  const { state } = useApp();
+  const session = useSession();
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -49,7 +49,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
    * es la misma regla de `resolveOfferPrices` y del carrito.
    */
   const listPrice = Number(product.price_per_unit || 0);
-  const offer = state.userRole === 'wholesale' ? null : product.offer ?? null;
+  const offer = session.role === 'wholesale' ? null : product.offer ?? null;
   const price = offer && offer.finalPrice < listPrice ? offer.finalPrice : listPrice;
   const hasDiscount = price < listPrice;
   const pct = discountPct(listPrice, price);

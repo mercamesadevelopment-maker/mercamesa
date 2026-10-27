@@ -8,13 +8,13 @@ import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
 import { LoginModal } from './auth/LoginModal';
 import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
 import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { ROLE_ROUTES } from '@/lib/auth/roles';
 import { useLegalLinks } from './hooks/use-legal-links';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
 export default function Page() {
-  const { state } = useApp();
+  const session = useSession();
   const router = useRouter();
   // El proxy marca así el rebote por falta de permisos. Sin esta marca, la
   // redirección de abajo lo devolvería a la misma ruta que el proxy acaba de
@@ -56,19 +56,19 @@ export default function Page() {
     setCuentaInactiva(inactiva);
     setRedirectTo(redirect);
 
-    if (state.isLoggedIn && !rebotado && !inactiva) {
+    if (session.isLoggedIn && !rebotado && !inactiva) {
       // Sesión ya abierta en otra pestaña, por ejemplo: no hace falta pasar por
       // el login, se va directo a lo que se compartió.
-      router.replace(redirect || ROLE_ROUTES[state.userRole] || '/marketplaces');
+      router.replace(redirect || ROLE_ROUTES[session.role] || '/marketplaces');
       return;
     }
 
     // Sin sesión y con un link compartido de por medio: se abre el login de una
     // vez, en vez de dejar que la persona tenga que encontrar el botón.
-    if (!state.isLoggedIn && redirect) {
+    if (!session.isLoggedIn && redirect) {
       setIsLoginOpen(true);
     }
-  }, [state.isLoggedIn, state.userRole, router]);
+  }, [session.isLoggedIn, session.role, router]);
 
   // Show landing page (not logged in)
   return (

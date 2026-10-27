@@ -1,6 +1,6 @@
 import './globals.css';
 import { Poppins, JetBrains_Mono } from 'next/font/google';
-import { AppProvider } from '../src/store';
+import { AppProviders } from './providers';
 import AppShell from './app-shell';
 import type { Metadata, Viewport } from 'next';
 import { ServiceWorkerRegister } from '@/src/features/pwa/components/ServiceWorkerRegister';
@@ -62,11 +62,11 @@ export default function RootLayout({
     <html lang="es" className={`${poppins.variable} ${jetbrains.variable}`}>
       <body>
         <ServiceWorkerRegister />
-        <AppProvider>
+        <AppProviders>
           <AppShell>
             {children}
           </AppShell>
-        </AppProvider>
+        </AppProviders>
       </body>
     </html>
   );

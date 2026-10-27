@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import {
   fetchFavoriteStores,
   fetchFavoriteStoreIds,
@@ -11,8 +11,8 @@ import {
 import type { FavoriteStore } from '../types/favorite.types';
 
 export function useFavorites() {
-  const { state } = useApp();
-  const buyerId = state.buyerProfile?.id;
+  const session = useSession();
+  const buyerId = session.profile?.id;
 
   const [favoriteStores, setFavoriteStores] = useState<FavoriteStore[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());

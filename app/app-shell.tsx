@@ -7,7 +7,7 @@ import { Sidebar } from '@/src/features/layout/components/Sidebar';
 import { CartPanel } from '@/src/features/cart/components/CartPanel';
 import { CartStoreConflictModal } from '@/src/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/src/components/Shared';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
 import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
 import { LegalGate } from '@/src/features/legal/components/LegalGate';
@@ -15,7 +15,7 @@ import { LegalGate } from '@/src/features/legal/components/LegalGate';
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { state } = useApp();
+  const session = useSession();
   const { fetchNotifications } = useNotifications();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -33,17 +33,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // vencido, logout desde otra pestaña), saca al usuario en vez de dejarlo
   // viendo una página "muerta" hasta la próxima navegación.
   useEffect(() => {
-    if (state._hydrated && !state.isLoggedIn && !isNoLayoutPage) {
+    if (session.hydrated && !session.isLoggedIn && !isNoLayoutPage) {
       router.replace('/');
     }
-  }, [state._hydrated, state.isLoggedIn, isNoLayoutPage, router]);
+  }, [session.hydrated, session.isLoggedIn, isNoLayoutPage, router]);
 
   useEffect(() => {
-    if (state._hydrated && ['admin', 'provider', 'runner', 'logistics', 'accountant'].includes(state.userRole)) {
+    if (session.hydrated && ['admin', 'provider', 'runner', 'logistics', 'accountant'].includes(session.role)) {
       fetchNotifications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state._hydrated, state.userRole]);
+  }, [session.hydrated, session.role]);
 
   if (isNoLayoutPage) return <>{children}</>;
 
@@ -75,7 +75,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           datos, no se sigue hasta aceptarla. Se monta acá porque este shell ya
           envuelve todo lo que exige sesión, y ya espera a que el estado esté
           hidratado. */}
-      <LegalGate enabled={state._hydrated && state.isLoggedIn} />
+      <LegalGate enabled={session.hydrated && session.isLoggedIn} />
     </div>
   );
 }

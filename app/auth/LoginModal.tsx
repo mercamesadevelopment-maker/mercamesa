@@ -52,7 +52,7 @@ export function LoginModal({
     onClose();
     // Navegación completa (no router.push): el login corre en el servidor y deja
     // la sesión en cookies httpOnly. El cliente Supabase del navegador que usa
-    // AppProvider ya está montado desde antes del login y no se entera de esas
+    // SessionProvider ya está montado desde antes del login y no se entera de esas
     // cookies nuevas sin recrearse — por eso hace falta recargar la página al
     // llegar a la ruta destino. Va acá, y no en cada llamada, para que valga
     // también para quien entra con código de verificación.

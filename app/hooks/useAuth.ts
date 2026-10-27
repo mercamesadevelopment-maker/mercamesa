@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ApiError, authService } from '../services/auth.service';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { resolveRoleKey } from '@/lib/auth/roles';
 import { useResendCooldown } from './use-resend-cooldown';
 
@@ -11,7 +11,7 @@ export function useAuthHooks() {
   // reaccionar (ofrecer iniciar sesión si el correo ya tiene cuenta) sin
   // comparar textos.
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const { dispatch } = useApp();
+  const session = useSession();
   const { cooldownSeconds, startCooldown } = useResendCooldown();
 
   /** Guarda el error para mostrarlo y devuelve el mensaje. */
@@ -44,17 +44,13 @@ export function useAuthHooks() {
     const user = data.user || {};
     const roleKey = resolveRoleKey(profile.roles?.name, profile.buyer_type);
 
-    dispatch({
-      type: 'LOGIN',
-      role: roleKey,
-      profile: {
+    session.signIn(roleKey, {
         id: user.id,
         email,
         name: profile.full_name || '',
         avatar: profile.avatar_url || '',
         role_id: profile.role_id,
-      },
-    });
+      });
 
     return { ...data, roleKey };
   };
@@ -186,7 +182,7 @@ export function useAuthHooks() {
   const logout = async () => {
     try {
       await authService.logout();
-      dispatch({ type: 'LOGOUT' });
+      session.signOut();
     } catch (err) {
       console.error(err);
     }
