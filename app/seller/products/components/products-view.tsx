@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History, Upload, Eye, EyeOff } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History, Upload, Eye, EyeOff, ImagePlus } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
@@ -8,6 +8,8 @@ import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
 import { StockMovementModal } from './StockMovementModal';
 import { BulkImportModal } from './bulk-import-modal';
+import { ImageBulkUploadModal } from '@/src/features/catalog-images/components/ImageBulkUploadModal';
+import { useHasImageTargets } from '@/src/features/catalog-images/hooks/use-has-image-targets';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
@@ -49,6 +51,9 @@ export function ProductsView() {
   } = useProducts();
 
   const [isBulkImportOpen, setIsBulkImportOpen] = React.useState(false);
+  const [isImagesOpen, setIsImagesOpen] = React.useState(false);
+  // Solo las tiendas de un grupo (o con productos propuestos) tienen fotos propias.
+  const puedeCargarImagenes = useHasImageTargets(storeId || undefined);
   const [selectedProductForHistory, setSelectedProductForHistory] = React.useState<any | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false);
   const [selectedProductForMovement, setSelectedProductForMovement] = React.useState<any | null>(null);
@@ -221,6 +226,11 @@ export function ProductsView() {
           <Button variant="outline" onClick={() => setIsBulkImportOpen(true)} disabled={!storeId}>
             <Upload className="w-5 h-5 mr-1" /> Carga masiva
           </Button>
+          {puedeCargarImagenes && (
+            <Button variant="outline" onClick={() => setIsImagesOpen(true)}>
+              <ImagePlus className="w-5 h-5 mr-1" /> Cargar imágenes
+            </Button>
+          )}
           <Button onClick={handleOpenAdd} className="shadow-lg shadow-mm-g/10">
             <Plus className="w-5 h-5 mr-1" /> Agregar
           </Button>
@@ -449,6 +459,13 @@ export function ProductsView() {
         storeId={storeId}
         storeName={storeName}
         onImported={fetchStoreProducts}
+      />
+
+      <ImageBulkUploadModal
+        isOpen={isImagesOpen}
+        onClose={() => setIsImagesOpen(false)}
+        onUploaded={fetchStoreProducts}
+        storeId={storeId || undefined}
       />
 
       {/* Stock History Modal */}

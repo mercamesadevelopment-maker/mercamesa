@@ -30,9 +30,9 @@ async function plantilla() {
 const relleno = (cell: ExcelJS.Cell) => (cell.fill as ExcelJS.FillPattern | undefined)?.fgColor?.argb;
 
 describe('plantilla de carga masiva del tendero', () => {
-  it('oculta el código del catálogo, pero lo deja en el archivo', async () => {
+  it('muestra el código del catálogo: con él se nombran las fotos', async () => {
     const { sheet } = await plantilla();
-    expect(sheet.getColumn(columnOf('catalogCode')).hidden).toBe(true);
+    expect(sheet.getColumn(columnOf('catalogCode')).hidden).toBe(false);
     expect(sheet.getRow(2).getCell(columnOf('catalogCode')).value).toBe('papa-criolla');
   });
 
