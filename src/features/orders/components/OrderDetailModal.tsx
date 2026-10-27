@@ -3,7 +3,7 @@ import { Modal } from '@/components/ui/modal/modal';
 import { Button, Badge, cn } from '@/src/components/Shared';
 import { fmt } from '@/src/constants';
 import { Order, OrderStatus } from '@/src/types';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { OrderStatusTimeline } from './OrderStatusTimeline';
 import { DeliveryTracking } from './DeliveryTracking';

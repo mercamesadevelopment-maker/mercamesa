@@ -96,6 +96,10 @@ hooks/
 types/
 ```
 
+Las dependencias van en una sola dirección: la interfaz (`src/`, `app/`, `components/`)
+importa de `lib/`, pero `lib/` y `app/api/` no importan de la interfaz. Lo comprueba
+`lib/architecture.test.ts`.
+
 ---
 
 # Prohibido

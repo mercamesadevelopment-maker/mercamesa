@@ -6,7 +6,7 @@ import { saveClient } from '../services/sales.service';
 import { fmt } from '@/src/constants';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { formatOrderCode } from '@/src/features/orders/utils/orderCode';
+import { formatOrderCode } from '@/lib/orders/order-code';
 
 export function useSales() {
   const { state, dispatch } = useApp();

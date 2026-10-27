@@ -131,16 +131,10 @@ export interface CartItem extends Product {
   notes?: string;
 }
 
-export interface OrderItem {
-  id: number | string;
-  name: string;
-  qty: number;
-  price: number;
-  unit: string;
-  emoji: string;
-  image?: string;
-  notes?: string;
-}
+import type { OrderItem } from '@/lib/orders/types';
+
+// Vive en lib porque el servidor también lo usa.
+export type { OrderItem };
 
 export type SaleStatus = 'pedido' | 'preparado' | 'entregado' | 'pagado';
 

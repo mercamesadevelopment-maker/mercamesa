@@ -1,3 +1,5 @@
+import type { OrderItemInput } from '@/lib/orders/types'
+
 export interface ZonapagosCompraData {
   idPago: string
   total: number
@@ -29,40 +31,6 @@ export interface ZonapagosResponse {
   error?: string
   mensaje?: string
   [key: string]: unknown
-}
-
-export interface OrderItemInput {
-  store_product_id: string
-  quantity: number
-  unit_price: number
-  total_price: number
-  catalog_name: string
-  unit_name: string
-  notes?: string | null
-}
-
-export interface StoreOrderInput {
-  store_id: string
-  order_id: string
-  subtotal: number
-  has_refrigerated?: boolean
-  notes?: string
-}
-
-export interface CreateOrderPayload {
-  order: {
-    buyer_id: string
-    buyer_type: 'retail' | 'wholesale'
-    status: 'pending'
-    payment_status: 'pending'
-    notes?: string
-    delivery_address_id?: string | null
-    client_idempotency_key: string
-    /** El comprador quiere usar su saldo a favor. Cuánto se usa lo decide el servidor. */
-    use_credit?: boolean
-  }
-  items: OrderItemInput[]
-  storeOrders: StoreOrderInput[]
 }
 
 export interface CreateOrderResponse {

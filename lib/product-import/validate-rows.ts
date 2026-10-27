@@ -1,4 +1,4 @@
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 import { SpreadsheetError, isBlank } from '@/lib/spreadsheet/parse';
 import { EXCLUSIVE_PRODUCT_MESSAGE } from '@/lib/catalog/visibility';
 import type { ImportRowResult } from '@/lib/spreadsheet/report';

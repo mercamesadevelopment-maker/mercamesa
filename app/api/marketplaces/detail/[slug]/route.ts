@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getMarketplaceDetail, getStoreSalesTypes } from '@/app/services/marketplaces/marketplaces.service';
+import { getMarketplaceDetail, getStoreSalesTypes } from '@/lib/marketplaces/detail';
 import { createClient } from '@/lib/supabase/server';
 import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '@/lib/supabase/supabase-image';
 import { toPublicStore } from '@/lib/stores/public-store';

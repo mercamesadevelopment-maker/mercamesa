@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 import ExcelJS from 'exceljs';
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 
 /**
  * Lectura de archivos .xlsx y .csv subidos por el usuario, agnóstica del
