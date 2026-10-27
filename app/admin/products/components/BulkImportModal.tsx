@@ -89,8 +89,8 @@ export function BulkImportModal({ isOpen, onClose, onImported }: BulkImportModal
                 clasificados.
               </p>
               <p className="text-xs text-mm-txw">
-                Los productos se crean activos y sin imagen; la foto se agrega después editando cada
-                uno. Si el nombre ya existe en el catálogo, esa fila se omite.
+                Los productos se crean activos y sin imagen: después súbelas todas juntas con
+                «Cargar imágenes». Si el nombre ya existe en el catálogo, esa fila se omite.
               </p>
               <Button
                 type="button"

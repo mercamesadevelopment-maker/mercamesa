@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Package, Edit2, Trash2, Search, Upload, Check, Merge, Clock } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, Search, Upload, Check, Merge, Clock, ImagePlus } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
 import { BulkImportModal } from './components/BulkImportModal';
+import { ImageBulkUploadModal } from '@/src/features/catalog-images/components/ImageBulkUploadModal';
 import { MergeProductModal } from './components/MergeProductModal';
 import { usePendingReview } from './hooks/usePendingReview';
 import { Table } from '../../../components/ui/table/components/Table';
@@ -32,6 +33,7 @@ export default function ProductsAdmin() {
     useProducts();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isImagesOpen, setIsImagesOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -328,6 +330,9 @@ export default function ProductsAdmin() {
           <Button size="sm" variant="outline" onClick={() => setIsBulkImportOpen(true)}>
             <Upload className="w-4 h-4 mr-2" /> Carga masiva
           </Button>
+          <Button size="sm" variant="outline" onClick={() => setIsImagesOpen(true)}>
+            <ImagePlus className="w-4 h-4 mr-2" /> Cargar imágenes
+          </Button>
           <Button size="sm" onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" /> Nuevo Item
           </Button>
@@ -511,6 +516,12 @@ export default function ProductsAdmin() {
         isOpen={isBulkImportOpen}
         onClose={() => setIsBulkImportOpen(false)}
         onImported={recargar}
+      />
+
+      <ImageBulkUploadModal
+        isOpen={isImagesOpen}
+        onClose={() => setIsImagesOpen(false)}
+        onUploaded={recargar}
       />
 
       <ConfirmModal

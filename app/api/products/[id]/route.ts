@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { Database } from '../../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../../lib/supabase/supabase-image';
-import { uploadVariants, removeImageAndVariants } from '../../../../lib/images/generate';
+import { removeImageAndVariants } from '../../../../lib/images/generate';
 import { PRODUCT_IMAGE_VARIANTS } from '../../../../lib/images/variants';
 import { requirePermission } from '@/lib/auth/require-permission';
+import { generateCatalogImageVariants, removePreviousCatalogImage } from '@/lib/catalog-images/server';
 
 type ProductUpdate = Database['public']['Tables']['catalog_products']['Update'];
 
@@ -99,18 +100,9 @@ export async function PUT(
         .eq('id', id)
         .single();
 
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('products')
-        .download(path);
-      if (downloadError) throw downloadError;
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-
       updateData.image_url = path;
-      await uploadVariants(supabase, 'products', path, buffer, PRODUCT_IMAGE_VARIANTS);
-
-      if (currentProduct?.image_url) {
-        await removeImageAndVariants(supabase, 'products', currentProduct.image_url, PRODUCT_IMAGE_VARIANTS);
-      }
+      await generateCatalogImageVariants(supabase, path);
+      await removePreviousCatalogImage(supabase, currentProduct?.image_url ?? null, path);
     }
 
     const { data, error } = await supabase.from('catalog_products').update(updateData).eq('id', id).select().single();
