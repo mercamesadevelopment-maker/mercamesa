@@ -3,7 +3,7 @@
 import React, { useId, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 interface DisclosureProps {
   /** Texto del botón que abre y cierra. */

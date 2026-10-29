@@ -11,7 +11,10 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Badge, StepBar, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { StepBar } from '@/components/ui/step-bar';
+import { cn } from '@/lib/utils/cn';
 import type { ImportReport, ImportRowResult } from '@/lib/catalog-import/types';
 import { useBulkImport } from '../hooks/useBulkImport';
 

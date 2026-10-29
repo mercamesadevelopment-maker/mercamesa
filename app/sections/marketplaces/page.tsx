@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Store as StoreIcon, Building2 } from 'lucide-react';
-import { Badge, cn } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';
 
 export default function MarketplacesSectionPage() {

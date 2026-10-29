@@ -1,7 +1,7 @@
 'use client';
 
-import { useApp } from '@/src/store';
-import { LogisticsOrdersView } from '@/src/features/logistics/components/LogisticsOrdersView';
+import { useSession } from '@/features/auth/session-context';
+import { LogisticsOrdersView } from '@/features/logistics/components/LogisticsOrdersView';
 import { OrdersView } from './components/orders-view';
 
 /**
@@ -9,7 +9,7 @@ import { OrdersView } from './components/orders-view';
  * vista del admin: ve la bahía de su plaza, con solo recibir y despachar.
  */
 export default function AdminOrdersPage() {
-  const { state } = useApp();
-  if (!state._hydrated) return null;
-  return state.userRole === 'logistics' ? <LogisticsOrdersView /> : <OrdersView />;
+  const session = useSession();
+  if (!session.hydrated) return null;
+  return session.role === 'logistics' ? <LogisticsOrdersView /> : <OrdersView />;
 }

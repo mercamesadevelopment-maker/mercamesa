@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Filter, X } from 'lucide-react';
 import { ORDER_STATUS_LABELS, OrderStatus } from '../types/order.types';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 interface Store {
   id: string;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import type { ClientWithMetrics } from '@/lib/stores/store-clients';
 import { fetchStoreClientsService } from '../services/clients.service';
 

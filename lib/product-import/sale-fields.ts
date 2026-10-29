@@ -57,16 +57,20 @@ export function validateSaleFields(
     return fail(`${productCodeError} Es la columna "${TEMPLATE_HEADERS.productCode}".`);
   }
 
+  // Vacío es válido: la base le asigna uno (`MM-000123`). Los repetidos solo
+  // se buscan entre los que sí traen código.
   const productCode = normalizeProductCode(row.productCode);
   const productCodeAsKey = productCodeKey(productCode);
 
-  const previous = context.seenProductCodes.get(productCodeAsKey);
-  if (previous !== undefined) {
-    return fail(`Ese código ya lo usaste en ${previous} del archivo.`);
-  }
+  if (productCode) {
+    const previous = context.seenProductCodes.get(productCodeAsKey);
+    if (previous !== undefined) {
+      return fail(`Ese código ya lo usaste en ${previous} del archivo.`);
+    }
 
-  if (context.lookups.existingProductCodes.has(productCodeAsKey)) {
-    return fail(duplicateProductCodeMessage(productCode));
+    if (context.lookups.existingProductCodes.has(productCodeAsKey)) {
+      return fail(duplicateProductCodeMessage(productCode));
+    }
   }
 
   let unitId: string | null;
@@ -124,7 +128,7 @@ export function validateSaleFields(
     minOrderQty = parsed;
   }
 
-  context.seenProductCodes.set(productCodeAsKey, context.where);
+  if (productCode) context.seenProductCodes.set(productCodeAsKey, context.where);
 
   return {
     ok: true,

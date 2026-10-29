@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/features/auth/session-context';
 
 /**
  * «Ayuda y Soporte» lleva a las PQRS de quien entra.
@@ -18,13 +18,13 @@ const PQRS_POR_ROL: Record<string, string> = {
 
 export default function SupportPage() {
   const router = useRouter();
-  const { state } = useApp();
+  const session = useSession();
 
   useEffect(() => {
     // Hasta que la sesión termine de cargar no se sabe el rol.
-    if (!state._hydrated) return;
-    router.replace(PQRS_POR_ROL[state.userRole] ?? '/pqrs');
-  }, [state._hydrated, state.userRole, router]);
+    if (!session.hydrated) return;
+    router.replace(PQRS_POR_ROL[session.role] ?? '/pqrs');
+  }, [session.hydrated, session.role, router]);
 
   return (
     <div className="flex items-center justify-center py-24">

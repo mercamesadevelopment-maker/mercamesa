@@ -8,15 +8,17 @@ import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
 import { StockMovementModal } from './StockMovementModal';
 import { BulkImportModal } from './bulk-import-modal';
-import { ImageBulkUploadModal } from '@/src/features/catalog-images/components/ImageBulkUploadModal';
-import { useHasImageTargets } from '@/src/features/catalog-images/hooks/use-has-image-targets';
+import { ImageBulkUploadModal } from '@/features/catalog-images/components/ImageBulkUploadModal';
+import { useHasImageTargets } from '@/features/catalog-images/hooks/use-has-image-targets';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
-import type { Product } from '@/src/types';
-import { Button, Badge, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import type { Product } from '@/features/products/types/product.types';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
+import { formatCOP } from '@/lib/utils/format';
 
 export function ProductsView() {
   const {
@@ -106,12 +108,12 @@ export function ProductsView() {
     {
       key: 'retailPrice',
       label: 'Precio Retail',
-      render: (item: any) => <span className="text-sm font-bold text-mm-g">{fmt(item.retailPrice)}</span>
+      render: (item: any) => <span className="text-sm font-bold text-mm-g">{formatCOP(item.retailPrice)}</span>
     },
     {
       key: 'wsPrice',
       label: 'Precio Mayorista',
-      render: (item: any) => <span className="text-sm font-bold text-blue">{fmt(item.wsPrice)}</span>
+      render: (item: any) => <span className="text-sm font-bold text-blue">{formatCOP(item.wsPrice)}</span>
     },
     {
       key: 'stock',

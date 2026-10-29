@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, Mail, CreditCard, Phone, CheckCircle, Loader2 } from 'lucide-react';
 import { searchClientByDocumentOrEmail, ClientData } from '../services/sales.service';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 
 export interface CustomerState {
   name: string;

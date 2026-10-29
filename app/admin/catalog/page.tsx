@@ -8,9 +8,12 @@ import { StoreProductModal } from './components/StoreProductModal';
 import { BatchAssignModal } from './components/BatchAssignModal';
 import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
-import { Button, Badge, normalizeText } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { normalizeText } from '@/lib/utils/text';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
+import { formatCOP } from '@/lib/utils/format';
 
 // Grouped data type for the table
 type GroupedProduct = {
@@ -165,7 +168,6 @@ export default function CatalogAdmin() {
     setPage(1);
   }, [searchQuery, selectedStore, selectedCategory, setPage]);
 
-  const fmt = (price: number) => `$${price.toLocaleString('es-CO')}`;
 
   const columns = [
     {
@@ -216,7 +218,7 @@ export default function CatalogAdmin() {
       label: 'Precio Prom.',
       sortable: true,
       render: (item: GroupedProduct) => (
-        <span className="text-sm font-bold text-mm-g">{fmt(item.avgPrice)}</span>
+        <span className="text-sm font-bold text-mm-g">{formatCOP(item.avgPrice)}</span>
       )
     },
     {
@@ -253,7 +255,7 @@ export default function CatalogAdmin() {
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right flex flex-col items-end mr-2">
-              <p className="text-sm font-bold text-mm-g">{fmt(storeProd.price_per_unit)}</p>
+              <p className="text-sm font-bold text-mm-g">{formatCOP(storeProd.price_per_unit)}</p>
               <p className="text-[10px] text-mm-txw font-bold">{storeProd.stock} {storeProd.measurement_units?.abbreviation}</p>
             </div>
             <div className="flex gap-1">

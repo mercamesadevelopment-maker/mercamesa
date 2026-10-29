@@ -29,8 +29,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Button, Badge, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
+import { formatCOP } from '@/lib/utils/format';
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/app/orders/types/order.types';
 import { useSellerDashboard, type Trend } from '../hooks/use-seller-dashboard';
 
@@ -104,7 +106,7 @@ export function DashboardView() {
             <p className="text-mm-gll text-lg max-w-md leading-relaxed opacity-90">
               {metrics.todayRevenue > 0 ? (
                 <>
-                  Hoy llevas <span className="font-bold text-white">{fmt(metrics.todayRevenue)}</span>{' '}
+                  Hoy llevas <span className="font-bold text-white">{formatCOP(metrics.todayRevenue)}</span>{' '}
                   en {metrics.todayOrderCount} {metrics.todayOrderCount === 1 ? 'venta' : 'ventas'}
                   {metrics.todayTrend && (
                     <>
@@ -146,13 +148,13 @@ export function DashboardView() {
               <p className="text-[10px] font-black tracking-widest uppercase text-mm-gll mb-1">
                 Ventas en local
               </p>
-              <p className="text-2xl font-bold">{fmt(metrics.localRevenue)}</p>
+              <p className="text-2xl font-bold">{formatCOP(metrics.localRevenue)}</p>
             </div>
             <div className="bg-mm-oro/20 backdrop-blur-xl p-6 rounded-3xl border border-mm-oro/30">
               <p className="text-[10px] font-black tracking-widest uppercase text-mm-gll mb-1">
                 Pedidos digitales
               </p>
-              <p className="text-2xl font-bold">{fmt(metrics.digitalRevenue)}</p>
+              <p className="text-2xl font-bold">{formatCOP(metrics.digitalRevenue)}</p>
             </div>
           </div>
         </div>
@@ -168,7 +170,7 @@ export function DashboardView() {
           icon={<TrendingUp className="w-6 h-6" />}
           iconClass="bg-okl text-ok"
           label="Ingresos de hoy"
-          value={fmt(metrics.todayRevenue)}
+          value={formatCOP(metrics.todayRevenue)}
           trend={metrics.todayTrend}
           trendLabel="vs. ayer"
           loading={loading}
@@ -177,7 +179,7 @@ export function DashboardView() {
           icon={<Activity className="w-6 h-6" />}
           iconClass="bg-mm-orl text-mm-oro"
           label="Ingresos del mes"
-          value={fmt(metrics.monthRevenue)}
+          value={formatCOP(metrics.monthRevenue)}
           trend={metrics.monthTrend}
           trendLabel="vs. mes pasado"
           loading={loading}
@@ -244,7 +246,7 @@ export function DashboardView() {
                 />
                 <Tooltip
                   contentStyle={CHART_TOOLTIP_STYLE}
-                  formatter={(value: number) => [fmt(value), 'Ingresos']}
+                  formatter={(value: number) => [formatCOP(value), 'Ingresos']}
                 />
                 <Area
                   type="monotone"
@@ -305,7 +307,7 @@ export function DashboardView() {
                     <Tooltip
                       contentStyle={CHART_TOOLTIP_STYLE}
                       itemStyle={{ fontWeight: 'bold' }}
-                      formatter={(value: number) => [fmt(value), 'Ingresos']}
+                      formatter={(value: number) => [formatCOP(value), 'Ingresos']}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -313,7 +315,7 @@ export function DashboardView() {
                   <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest leading-none">
                     Total del periodo
                   </p>
-                  <p className="text-2xl font-bold text-mm-g mt-1">{fmt(channelTotal)}</p>
+                  <p className="text-2xl font-bold text-mm-g mt-1">{formatCOP(channelTotal)}</p>
                 </div>
               </>
             ) : (
@@ -362,7 +364,7 @@ export function DashboardView() {
                   </div>
                   <p className="text-xs text-mm-txs mt-0.5 truncate">{activity.customerName}</p>
                   <div className="flex items-center justify-between gap-2 mt-2">
-                    <p className="text-sm font-bold text-mm-g">{fmt(activity.subtotal)}</p>
+                    <p className="text-sm font-bold text-mm-g">{formatCOP(activity.subtotal)}</p>
                     <Badge
                       variant={statusVariant(activity.status as OrderStatus)}
                       className="text-[9px]"

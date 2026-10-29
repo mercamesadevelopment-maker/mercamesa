@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { DAY_LABELS } from './summarize-hours';
 
 export interface BusinessHourEntry {

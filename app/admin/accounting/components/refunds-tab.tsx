@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Table } from '@/components/ui/table/components/Table';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta, fechaCorta } from '@/lib/dates/relative-time';
 import type { RefundRow } from '@/lib/accounting/types';
 import { useAccountingList } from '../hooks/use-accounting-list';
@@ -85,7 +86,7 @@ export function RefundsTab({ query, pagination }: AccountingTabProps) {
     {
       key: 'amount',
       label: 'Monto',
-      render: (r: RefundRow) => <span className="font-bold text-mm-g">{fmt(r.amount)}</span>,
+      render: (r: RefundRow) => <span className="font-bold text-mm-g">{formatCOP(r.amount)}</span>,
     },
     {
       key: 'status',
@@ -113,13 +114,13 @@ export function RefundsTab({ query, pagination }: AccountingTabProps) {
           cards={[
             {
               label: 'Por pagar',
-              value: fmt(data.totals.pending),
+              value: formatCOP(data.totals.pending),
               hint: devoluciones(data.totals.pendingCount),
               tone: data.totals.pendingCount ? 'warn' : 'default',
             },
             {
               label: 'Pagadas',
-              value: fmt(data.totals.paid),
+              value: formatCOP(data.totals.paid),
               hint: devoluciones(data.totals.paidCount),
               tone: 'ok',
             },
@@ -157,7 +158,7 @@ export function RefundsTab({ query, pagination }: AccountingTabProps) {
             }}
           >
             <p className="text-sm leading-relaxed text-mm-txs">
-              Confirma que ya transferiste <span className="font-bold text-mm-g">{fmt(pagando.amount)}</span> a{' '}
+              Confirma que ya transferiste <span className="font-bold text-mm-g">{formatCOP(pagando.amount)}</span> a{' '}
               <span className="font-bold text-mm-g">{pagando.buyerName ?? 'el cliente'}</span> por la devolución del
               pedido <span className="font-mono">{pagando.orderCode}</span>. No se puede deshacer.
             </p>

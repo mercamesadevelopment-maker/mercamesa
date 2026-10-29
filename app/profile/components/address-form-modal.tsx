@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, MapPin, Pencil } from 'lucide-react';
-import { Button, Input, Textarea } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input, Textarea } from '@/components/ui/form-fields';
 import { MAX_DELIVERY_INSTRUCTIONS, MIN_DELIVERY_INSTRUCTIONS } from '@/lib/addresses/limits';
 import { MapLocationGuide } from './map-location-guide';
 import { Modal } from '@/components/ui/modal/modal';

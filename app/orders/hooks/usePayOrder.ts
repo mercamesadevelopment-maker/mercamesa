@@ -6,7 +6,7 @@ import {
   iniciarPagoDeOrden,
   PERFIL_SIN_DOCUMENTO,
   PERFIL_SIN_EMAIL,
-} from '@/src/features/payment/services/payment.service';
+} from '@/features/payment/services/payment.service';
 
 /** Si un pedido todavía se puede pagar, según `payable_until` de la vista. */
 export function isPayable(payableUntil: string | null | undefined): boolean {
