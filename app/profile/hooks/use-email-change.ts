@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useSession } from '@/features/auth/session-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { emailChangeService } from '../services/email-change.service';
-import { useResendCooldown } from '@/app/hooks/use-resend-cooldown';
+import { useResendCooldown } from '@/features/auth/hooks/use-resend-cooldown';
 
 export function useEmailChange() {
   const { updateProfile } = useSession();

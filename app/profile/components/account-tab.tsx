@@ -13,7 +13,7 @@ import { EmailChangeModal } from './email-change-modal';
 import { PasswordChangeModal } from './password-change-modal';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 
 export function AccountTab() {
   return (

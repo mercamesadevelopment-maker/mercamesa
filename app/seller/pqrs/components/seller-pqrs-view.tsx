@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { PqrsView } from '@/features/pqrs/components/PqrsView';
 import { StoreBlocksPanel } from '@/features/pqrs/components/StoreBlocksPanel';
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Product, MasterProduct } from '@/features/products/types/product.types';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { validateProductCode } from '@/lib/products/product-code';
 
 export function useProducts() {

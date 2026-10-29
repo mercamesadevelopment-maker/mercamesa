@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/form-fields';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
 export default function AcceptInvite() {

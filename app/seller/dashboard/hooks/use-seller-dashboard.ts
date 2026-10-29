@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 
 /** Estados que no representan ingreso: no suman a ninguna métrica de plata. */
 const NON_REVENUE_STATUSES = ['cancelled', 'returned'] as const;

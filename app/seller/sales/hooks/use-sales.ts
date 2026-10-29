@@ -6,7 +6,7 @@ import { OrderItem } from '@/lib/orders/types';
 import { CustomerState } from '../components/customer-autocomplete';
 import { saveClient } from '../services/sales.service';
 import { formatCOP } from '@/lib/utils/format';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatOrderCode } from '@/lib/orders/order-code';
 

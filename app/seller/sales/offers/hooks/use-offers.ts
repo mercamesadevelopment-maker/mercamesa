@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { useOffers as useOffersData } from '@/features/offers/hooks/use-offers';
 
 export function useOffers() {

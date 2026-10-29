@@ -11,8 +11,8 @@ import { Input, Select } from '@/components/ui/form-fields';
 import { StepBar } from '@/components/ui/step-bar';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAuthHooks } from '../hooks/useAuth';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
-import { useLegalLinks } from '@/app/hooks/use-legal-links';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
+import { useLegalLinks } from '@/features/auth/hooks/use-legal-links';
 import { toE164 } from '@/lib/phone/phone';
 import { validateDocumentNumber } from '@/lib/identification/validate-document';
 
