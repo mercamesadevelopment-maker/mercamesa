@@ -47,3 +47,8 @@ where id in (
 -- migraciones corren antes de cargar los datos: lo que traiga la copia en
 -- `order_min_price_history` se pasa acá. Se quita cuando se borre esa tabla.
 select public.copiar_precio_minimo_al_historial();
+
+-- Los productos sin código reciben uno generado (`MM-000123`), como hizo la
+-- migración en producción. La copia se carga sin triggers, así que acá no lo
+-- pone el de `store_products`.
+select public.asignar_codigos_faltantes();

@@ -147,12 +147,12 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
             name="code"
             value={formData.code}
             onChange={handleChange}
-            required
             maxLength={PRODUCT_CODE_MAX_LENGTH}
-            placeholder="Ej: 7702004003508"
+            placeholder="Opcional: se genera si lo dejas vacío"
           />
           <p className="text-xs text-mm-txw ml-1">
-            Código propio de la tienda para este producto. Único dentro de esa tienda.
+            Código propio de la tienda para este producto. Único dentro de esa tienda. Si lo
+            dejas vacío, MercaMesa le asigna uno (por ejemplo MM-000123).
           </p>
         </div>
 

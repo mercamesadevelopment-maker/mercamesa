@@ -4300,6 +4300,7 @@ export type Database = {
         }
         Returns: number
       }
+      asignar_codigos_faltantes: { Args: never; Returns: undefined }
       buyer_credit_balance: { Args: { p_buyer: string }; Returns: number }
       call_app_cron: { Args: { path: string }; Returns: number }
       call_edge_cron: { Args: { fn: string }; Returns: number }
@@ -4314,6 +4315,7 @@ export type Database = {
         Returns: boolean
       }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      generar_codigo_producto: { Args: { p_store: string }; Returns: string }
       has_permission: {
         Args: { action_name: string; module_key: string }
         Returns: boolean

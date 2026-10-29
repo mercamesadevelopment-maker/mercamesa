@@ -70,7 +70,7 @@ export const TEMPLATE_HEADER_ALIASES: Record<string, TemplateField> = {
 export const TEMPLATE_SCHEMA = {
   headers: TEMPLATE_HEADERS,
   aliases: TEMPLATE_HEADER_ALIASES,
-  required: ['catalogCode', 'productCode', 'retailPrice', 'stock'] as TemplateField[],
+  required: ['catalogCode', 'retailPrice', 'stock'] as TemplateField[],
 };
 
 /** Anchos de columna del xlsx, en el mismo orden que TEMPLATE_HEADERS. */
@@ -118,7 +118,7 @@ export type NewProductField = keyof typeof NEW_PRODUCT_HEADERS;
 
 export const NEW_PRODUCT_SCHEMA = {
   headers: NEW_PRODUCT_HEADERS,
-  required: ['name', 'category', 'unit', 'productCode', 'retailPrice', 'stock'] as NewProductField[],
+  required: ['name', 'category', 'unit', 'retailPrice', 'stock'] as NewProductField[],
 };
 
 export const NEW_PRODUCT_COLUMN_WIDTHS: Record<NewProductField, number> = {

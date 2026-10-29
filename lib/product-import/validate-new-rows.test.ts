@@ -115,6 +115,22 @@ describe('validateNewRows', () => {
     expect(results).toHaveLength(2);
   });
 
+  it('sin código la fila vale (la base genera uno), y dos sin código no cuentan como repetidas', () => {
+    const vistos = new Map<string, string>();
+    const catalogo: SellerRow[] = [
+      { __row: 2, catalogCode: 'papa-criolla', productCode: '', retailPrice: '2000', stock: '5' },
+    ];
+    expect(validateRows(catalogo, lookups(), vistos).valid).toMatchObject([{ productCode: '' }]);
+
+    const { valid, results } = validateNewRows(
+      [fila(2, { productCode: '  ' }), fila(3, { name: 'Lulo', productCode: undefined })],
+      lookups(),
+      vistos
+    );
+    expect(results).toEqual([]);
+    expect(valid).toHaveLength(2);
+  });
+
   it('el precio mayorista no puede superar al minorista', () => {
     const { results } = validateNewRows([fila(2, { wholesalePrice: '5000' })], lookups(), new Map());
     expect(results[0].message).toContain('mayorista');
