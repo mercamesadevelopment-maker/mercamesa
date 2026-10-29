@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Wallet } from 'lucide-react';
 import { Button, Input } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { PQRS_LIABLE_LABELS } from '@/lib/pqrs/reasons';
 import type { PqrsRefund, PqrsRefundPreview, PqrsViewer } from '@/lib/pqrs/types';
@@ -36,7 +36,7 @@ function Fila({ etiqueta, valor }: { etiqueta: string; valor: number }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-mm-txs">{etiqueta}</dt>
-      <dd className="font-medium text-mm-g">{fmt(valor)}</dd>
+      <dd className="font-medium text-mm-g">{formatCOP(valor)}</dd>
     </div>
   );
 }
@@ -54,13 +54,13 @@ export function PqrsRefundPanel({ viewer, refund, preview, working, onAction }: 
     const lineas = [
       preview.itemsTotal !== null &&
         (viewer === 'buyer'
-          ? `Si se aprueba, recibirás ${fmt(preview.itemsTotal)} de saldo a favor.`
-          : `Devolviendo los productos marcados, el comprador recibe ${fmt(preview.itemsTotal)} de saldo a favor.`),
+          ? `Si se aprueba, recibirás ${formatCOP(preview.itemsTotal)} de saldo a favor.`
+          : `Devolviendo los productos marcados, el comprador recibe ${formatCOP(preview.itemsTotal)} de saldo a favor.`),
       preview.itemsStoreCharge !== null &&
         (viewer === 'seller'
-          ? `Si aceptas, se descuentan ${fmt(preview.itemsStoreCharge)} de tu próximo pago.`
-          : `Si la asume la tienda, se le descuentan ${fmt(preview.itemsStoreCharge)}.`),
-      preview.orderTotal !== null && `Devolviendo el pedido completo, recibe ${fmt(preview.orderTotal)}.`,
+          ? `Si aceptas, se descuentan ${formatCOP(preview.itemsStoreCharge)} de tu próximo pago.`
+          : `Si la asume la tienda, se le descuentan ${formatCOP(preview.itemsStoreCharge)}.`),
+      preview.orderTotal !== null && `Devolviendo el pedido completo, recibe ${formatCOP(preview.orderTotal)}.`,
     ].filter(Boolean);
 
     if (lineas.length === 0) return null;
@@ -88,7 +88,7 @@ export function PqrsRefundPanel({ viewer, refund, preview, working, onAction }: 
       {refund.total !== null && (
         <p className="text-sm text-mm-txs">
           {viewer === 'buyer' ? 'Recibiste ' : 'Al comprador se le devolvieron '}
-          <span className="font-bold text-mm-g">{fmt(refund.total)}</span>
+          <span className="font-bold text-mm-g">{formatCOP(refund.total)}</span>
           {refund.method === 'credit'
             ? ' de saldo a favor, que puedes usar en cualquier tienda.'
             : ' en dinero.'}
@@ -98,7 +98,7 @@ export function PqrsRefundPanel({ viewer, refund, preview, working, onAction }: 
       {viewer === 'seller' && (
         <p className="text-sm text-mm-txs">
           {refund.storeCharge
-            ? <>Se descuentan <span className="font-bold text-mm-g">{fmt(refund.storeCharge)}</span> de tu próximo pago.</>
+            ? <>Se descuentan <span className="font-bold text-mm-g">{formatCOP(refund.storeCharge)}</span> de tu próximo pago.</>
             : 'Esta devolución no se le descuenta a tu tienda.'}
         </p>
       )}
@@ -112,7 +112,7 @@ export function PqrsRefundPanel({ viewer, refund, preview, working, onAction }: 
           <Fila etiqueta="Domicilio" valor={refund.breakdown.delivery} />
           <p className="text-xs text-mm-txw pt-1">
             Los productos los asume: {PQRS_LIABLE_LABELS[refund.breakdown.liable]}
-            {refund.storeCharge ? ` (descuento de ${fmt(refund.storeCharge)} en su próximo pago)` : ''}. Las comisiones
+            {refund.storeCharge ? ` (descuento de ${formatCOP(refund.storeCharge)} en su próximo pago)` : ''}. Las comisiones
             las asume MercaMesa.
             {refund.breakdown.moneyReference && ` Referencia del reembolso: ${refund.breakdown.moneyReference}.`}
             {refund.moneyPaidAt && ` Pagado el ${fechaCompleta(refund.moneyPaidAt)}.`}

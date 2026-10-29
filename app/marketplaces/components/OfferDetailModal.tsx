@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart } from 'lucide-react';
 import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Badge, Button } from '@/src/components/Shared';
-import { useApp } from '@/src/store';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 
@@ -16,7 +15,6 @@ interface OfferDetailModalProps {
 }
 
 export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
-  const { state, dispatch } = useApp();
   const { cart, addToCart, updateCartQty } = useCart();
 
   // El mismo bloqueo que hace el Modal genérico (components/ui/modal). Sin él,

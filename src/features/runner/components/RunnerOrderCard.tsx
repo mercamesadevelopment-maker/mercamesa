@@ -4,7 +4,7 @@ import React from 'react';
 import { CheckCircle2, Clock, MapPin, Package, PackageCheck, Truck } from 'lucide-react';
 import { Badge, Button, cn } from '@/src/components/Shared';
 import { fechaCompleta } from '@/lib/dates/relative-time';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import type { RunnerOrder, RunnerPart } from '@/lib/runner/orders';
 
 /** Cómo se le dice al patinador en qué va cada pedido. */
@@ -49,7 +49,7 @@ export function RunnerOrderCard({ order, busyId, onCollect, onMarkAtBay }: Runne
           </p>
           {order.commissionAmount != null && (
             <p className="text-xs text-mm-txs mt-1">
-              Tu comisión: <span className="font-bold text-mm-g">{fmt(order.commissionAmount)}</span>
+              Tu comisión: <span className="font-bold text-mm-g">{formatCOP(order.commissionAmount)}</span>
             </p>
           )}
         </div>

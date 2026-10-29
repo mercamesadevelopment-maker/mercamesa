@@ -23,7 +23,7 @@ import { useCart } from "../hooks/use-cart";
 import { usePayableOrder } from "../hooks/use-payable-order";
 import Link from "next/link";
 import { Button, cn } from "@/src/components/Shared";
-import { fmt } from "@/src/constants";
+import { formatCOP } from '@/lib/utils/format';
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
 import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
 import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
@@ -46,9 +46,8 @@ const STEPS: { id: CheckoutStep; label: string }[] = [
 ];
 
 export function CartPanel({ isOpen, onClose }: CartPanelProps) {
-  const { updateCartQty, updateCartItemNotes, clearCart } = useCart();
+  const { cart, updateCartQty, updateCartItemNotes, clearCart } = useCart();
   const {
-    state,
     isPlacingOrder,
     errorMessage,
     cartByStore,
@@ -128,15 +127,15 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     <div className="space-y-2.5">
       <div className="flex justify-between text-mm-txs text-sm">
         <span>Productos y servicio de compra</span>
-        <span className="font-bold">{fmt(quote.netPurchase)}</span>
+        <span className="font-bold">{formatCOP(quote.netPurchase)}</span>
       </div>
       <div className="flex justify-between text-mm-txs text-sm">
         <span>Domicilio</span>
-        <span className="font-bold">{fmt(quote.deliveryFee)}</span>
+        <span className="font-bold">{formatCOP(quote.deliveryFee)}</span>
       </div>
       <div className="flex justify-between text-mm-txs text-sm">
         <span>Servicio MercaMesa</span>
-        <span className="font-bold">{fmt(quote.platformCommission)}</span>
+        <span className="font-bold">{formatCOP(quote.platformCommission)}</span>
       </div>
       {/* Solo para quien tiene saldo: al resto no le aporta nada verlo. */}
       {creditBalance > 0 && (
@@ -148,14 +147,14 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
               onChange={(e) => setUseCredit(e.target.checked)}
               className="w-4 h-4 accent-mm-g"
             />
-            Usar mi saldo a favor ({fmt(creditBalance)})
+            Usar mi saldo a favor ({formatCOP(creditBalance)})
           </span>
-          {useCredit && <span className="font-bold text-ok">−{fmt(creditToApply)}</span>}
+          {useCredit && <span className="font-bold text-ok">−{formatCOP(creditToApply)}</span>}
         </label>
       )}
       <div className="pt-3 border-t border-mm-crd/50 flex justify-between items-center">
         <span className="font-bold text-mm-g">Total a pagar</span>
-        <span className="text-2xl font-bold text-mm-g">{fmt(totalToPay)}</span>
+        <span className="text-2xl font-bold text-mm-g">{formatCOP(totalToPay)}</span>
       </div>
       {creditToApply > 0 && totalToPay === 0 && (
         <p className="text-xs text-mm-txw">Tu saldo cubre todo el pedido: no tendrás que pagar nada más.</p>
@@ -303,9 +302,9 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-mm-txw">
-                        {state.cart.length === 1
+                        {cart.length === 1
                           ? "1 producto"
-                          : `${state.cart.length} productos`}
+                          : `${cart.length} productos`}
                       </span>
                       <button
                         type="button"
@@ -336,7 +335,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                           {/* Lo que suma esta tienda: con varias en la canasta
                               el subtotal del pie ya no dice cuánto es de cada una. */}
                           <span className="text-sm font-bold text-mm-txs whitespace-nowrap">
-                            {fmt(
+                            {formatCOP(
                               group.items.reduce(
                                 (acc, i) => acc + getPrice(i) * i.qty,
                                 0,
@@ -576,7 +575,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   {savings.total > 0 && (
                     <p className="flex items-center gap-1.5 mb-2 text-xs font-bold text-ok">
                       <Tag className="w-3.5 h-3.5 shrink-0" />
-                      {CART_SAVINGS_LABEL(fmt(savings.total))}
+                      {CART_SAVINGS_LABEL(formatCOP(savings.total))}
                     </p>
                   )}
                   <div className="flex justify-between items-center mb-4">
@@ -586,11 +585,11 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                     <span className="flex items-baseline gap-2">
                       {savings.total > 0 && (
                         <span className="text-xs font-bold text-mm-txw line-through decoration-r">
-                          {fmt(subtotal + savings.total)}
+                          {formatCOP(subtotal + savings.total)}
                         </span>
                       )}
                       <span className="text-xl font-bold text-mm-g">
-                        {fmt(subtotal)}
+                        {formatCOP(subtotal)}
                       </span>
                     </span>
                   </div>
@@ -673,9 +672,9 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
         }}
         title="¿Vaciar tu canasta?"
         message={
-          state.cart.length === 1
+          cart.length === 1
             ? "Se quitará el producto que tienes en la canasta."
-            : `Se quitarán los ${state.cart.length} productos que tienes en la canasta.`
+            : `Se quitarán los ${cart.length} productos que tienes en la canasta.`
         }
         confirmText="Sí, vaciar"
         cancelText="Cancelar"

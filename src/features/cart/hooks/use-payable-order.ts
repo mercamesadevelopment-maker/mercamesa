@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { hasPayableOrder } from '../services/cart.service';
 
 /**
@@ -10,8 +10,8 @@ import { hasPayableOrder } from '../services/cart.service';
  * dónde se fueron los productos.
  */
 export function usePayableOrder(enabled: boolean): boolean {
-  const { state } = useApp();
-  const buyerId = state.buyerProfile?.id;
+  const session = useSession();
+  const buyerId = session.profile?.id;
   const [pending, setPending] = useState(false);
 
   useEffect(() => {

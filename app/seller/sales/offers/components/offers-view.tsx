@@ -6,7 +6,7 @@ import { OfferModal } from '@/src/features/offers/components/OfferModal';
 import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { Button, Badge, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { offerDisplayStatus } from '@/src/features/offers/utils/offer-display-status';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -59,7 +59,7 @@ export function OffersView() {
       label: 'Descuento',
       render: (item: StoreOffer) => (
         <Badge variant={item.discount_pct !== null ? 'success' : 'oro'}>
-          {item.discount_pct !== null ? `${item.discount_pct}% desc` : item.special_price ? `${fmt(item.special_price)} desc` : 'N/A'}
+          {item.discount_pct !== null ? `${item.discount_pct}% desc` : item.special_price ? `${formatCOP(item.special_price)} desc` : 'N/A'}
         </Badge>
       )
     },

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { emailChangeService } from '../services/email-change.service';
 import { useResendCooldown } from '@/app/hooks/use-resend-cooldown';
 
 export function useEmailChange() {
-  const { dispatch } = useApp();
+  const { updateProfile } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // La cuenta regresiva es la misma en los cuatro flujos que mandan códigos, y
@@ -40,7 +40,7 @@ export function useEmailChange() {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.refreshSession();
 
-      dispatch({ type: 'UPDATE_BUYER_PROFILE', profile: { email } });
+      updateProfile({ email });
 
       return email;
     } catch (e: unknown) {
@@ -49,7 +49,7 @@ export function useEmailChange() {
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, [updateProfile]);
 
   return { loading, error, cooldownSeconds, requestChange, verifyChange };
 }

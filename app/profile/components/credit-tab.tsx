@@ -3,7 +3,7 @@
 import { motion } from 'motion/react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { useCredit } from '../hooks/use-credit';
 
@@ -43,7 +43,7 @@ export function CreditTab() {
           <>
             <div className="bg-white rounded-3xl border border-mm-crd shadow-sm p-5 sm:p-6">
               <p className="text-xs text-mm-txw font-bold uppercase tracking-widest">Disponible</p>
-              <p className="text-3xl sm:text-4xl font-display text-mm-g mt-1">{fmt(credit.balance)}</p>
+              <p className="text-3xl sm:text-4xl font-display text-mm-g mt-1">{formatCOP(credit.balance)}</p>
               <p className="text-sm text-mm-txs mt-2">
                 Lo recibes cuando se aprueba una devolución. Sirve para comprar en cualquier tienda y no vence.
               </p>
@@ -66,7 +66,7 @@ export function CreditTab() {
                     </div>
                     <span className={cn('shrink-0 font-bold whitespace-nowrap', m.amount > 0 ? 'text-ok' : 'text-mm-txs')}>
                       {m.amount > 0 ? '+' : '−'}
-                      {fmt(Math.abs(m.amount))}
+                      {formatCOP(Math.abs(m.amount))}
                     </span>
                   </li>
                 ))}

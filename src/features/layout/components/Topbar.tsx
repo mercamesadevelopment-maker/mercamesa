@@ -22,7 +22,7 @@ interface TopbarProps {
 
 export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
   const {
-    state,
+    session,
     router,
     showProfileMenu,
     toggleProfileMenu,
@@ -33,7 +33,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
   } = useTopbar();
 
   // El equipo de la plaza tampoco compra: no ve la canasta.
-  const isStaff = ['admin', 'provider', 'runner', 'logistics', 'accountant'].includes(state.userRole);
+  const isStaff = ['admin', 'provider', 'runner', 'logistics', 'accountant'].includes(session.role);
 
   return (
     <header className="fixed top-0 left-0 w-full h-16 bg-mm-g text-white z-[60] flex items-center justify-between px-4 lg:px-8 shadow-lg">
@@ -51,15 +51,15 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
       </div>
 
       <div className="flex-grow max-w-xl mx-8 hidden lg:block text-mm-gll font-medium text-sm tracking-wide">
-        {state.userRole === 'admin'
+        {session.role === 'admin'
           ? 'PANEL DE ADMINISTRACIÓN'
-          : state.userRole === 'provider'
+          : session.role === 'provider'
           ? 'GESTIÓN DE PROVEEDOR'
-          : state.userRole === 'runner'
+          : session.role === 'runner'
           ? 'PEDIDOS POR RECOGER'
-          : state.userRole === 'logistics'
+          : session.role === 'logistics'
           ? 'LOGÍSTICA DE LA PLAZA'
-          : state.userRole === 'accountant'
+          : session.role === 'accountant'
           ? 'CONTABILIDAD'
           : 'MARKETPLACE MERCAMESA'}
       </div>
@@ -100,10 +100,10 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
             onClick={toggleProfileMenu}
             className="flex items-center gap-2 pl-2 border-l border-white/20 ml-2 hover:bg-white/10 p-1 rounded-xl transition-all"
           >
-            {state.buyerProfile.avatar ? (
+            {session.profile.avatar ? (
               <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20">
                 <img
-                  src={state.buyerProfile.avatar}
+                  src={session.profile.avatar}
                   alt="Profile"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -115,11 +115,11 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
 
             <div className="text-left hidden sm:block">
               <p className="text-xs font-bold leading-none">
-                {state.buyerProfile.name}
+                {session.profile.name}
               </p>
 
               <p className="text-[10px] text-mm-gll uppercase font-bold tracking-tighter">
-                {state.userRole}
+                {session.role}
               </p>
             </div>
 
@@ -163,7 +163,7 @@ export function Topbar({ onCartOpen, onToggleSidebar }: TopbarProps) {
                     </p>
 
                     <p className="text-sm font-bold text-mm-g truncate">
-                      {state.buyerProfile.name}
+                      {session.profile.name}
                     </p>
                   </div>
 

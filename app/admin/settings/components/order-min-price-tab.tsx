@@ -7,7 +7,7 @@ import { OrderMinPriceHistoryRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { Button, Input } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { Modal } from '@/components/ui/modal/modal';
 
 export function OrderMinPriceTab() {
@@ -57,7 +57,7 @@ export function OrderMinPriceTab() {
       label: 'Precio Mínimo',
       sortable: true,
       render: (item: OrderMinPriceHistoryRow) => (
-        <span className="font-bold text-mm-g">{fmt(item.min_price)}</span>
+        <span className="font-bold text-mm-g">{formatCOP(item.min_price)}</span>
       ),
     },
     {
@@ -88,7 +88,7 @@ export function OrderMinPriceTab() {
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-mm-txw">Precio mínimo vigente</p>
-            <p className="text-3xl font-display text-mm-g">{fmt(currentMinPrice)}</p>
+            <p className="text-3xl font-display text-mm-g">{formatCOP(currentMinPrice)}</p>
             {currentAdjustment && (
               <p className="text-xs text-mm-txs mt-1 flex items-center gap-3">
                 <span className="flex items-center gap-1"><User className="w-3 h-3" /> {currentAdjustment.profiles?.full_name || 'Sistema'}</span>

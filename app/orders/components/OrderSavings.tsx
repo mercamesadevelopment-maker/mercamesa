@@ -1,6 +1,6 @@
 import { Tag } from 'lucide-react';
 import { cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { ORDER_SAVINGS_LABEL } from '@/lib/copy/discount-notice';
 
 interface OrderSavingsProps {
@@ -21,7 +21,7 @@ export function OrderSavings({ amount, className }: OrderSavingsProps) {
   return (
     <p className={cn('flex items-center gap-1.5 text-xs font-bold text-ok', className)}>
       <Tag className="h-3.5 w-3.5 shrink-0" />
-      {ORDER_SAVINGS_LABEL(fmt(amount))}
+      {ORDER_SAVINGS_LABEL(formatCOP(amount))}
     </p>
   );
 }

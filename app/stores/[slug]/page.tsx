@@ -11,7 +11,7 @@ import {
   CONSULTA_INICIAL,
   type StoreProduct,
 } from '@/app/sections/products/hooks/usePublicProducts';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 import { ProductCard } from '@/src/features/products/components/ProductCard';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
@@ -26,7 +26,7 @@ const PRODUCTS_PER_PAGE = 20;
 export default function StoreDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
-  const { state } = useApp();
+  const session = useSession();
   const { isFavorite, toggleFavorite, fetchFavoriteIds } = useFavorites();
 
   const [store, setStore] = useState<any>(null);
@@ -93,9 +93,9 @@ export default function StoreDetailPage() {
   }, [slug]);
 
   useEffect(() => {
-    if (state.isLoggedIn) fetchFavoriteIds();
+    if (session.isLoggedIn) fetchFavoriteIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isLoggedIn]);
+  }, [session.isLoggedIn]);
 
   useEffect(() => {
     if (storeId) fetchReviews();
@@ -190,7 +190,7 @@ export default function StoreDetailPage() {
         rating={rating}
         reviewCount={reviews.length}
         hasMyReview={Boolean(myReview)}
-        isLoggedIn={state.isLoggedIn}
+        isLoggedIn={session.isLoggedIn}
         isFavorite={isFavorite(store.id)}
         onToggleFavorite={() => toggleFavorite(store.id)}
         onRate={() => setIsRatingModalOpen(true)}

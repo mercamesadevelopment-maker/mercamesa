@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { Button, Select, Textarea, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCorta } from '@/lib/dates/relative-time';
 import { MAX_DESCRIPTION } from '@/lib/pqrs/rules';
 import { usePqrsForm } from '../hooks/use-pqrs-form';
@@ -112,7 +112,7 @@ export function PqrsFormModal({
                           {item.name}
                         </span>
                         <span className="block text-xs text-mm-txw">
-                          {item.quantity} {item.unit ?? ''} · {fmt(item.unitPrice)} c/u
+                          {item.quantity} {item.unit ?? ''} · {formatCOP(item.unitPrice)} c/u
                         </span>
                       </label>
                       {/* La cantidad solo importa cuando el problema es con parte

@@ -1,13 +1,13 @@
 'use client';
 
-import { useApp } from '@/src/store';
+import { useCartState } from '@/src/features/cart/cart-context';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 
 export function CartStoreConflictModal() {
-  const { state, dispatch } = useApp();
-  const conflict = state.cartStoreConflict;
+  const cartState = useCartState();
+  const conflict = cartState.conflict;
 
-  const handleClose = () => dispatch({ type: 'CLEAR_CART_STORE_CONFLICT' });
+  const handleClose = () => cartState.dispatch({ type: 'CLEAR_CART_STORE_CONFLICT' });
 
   return (
     <ConfirmModal

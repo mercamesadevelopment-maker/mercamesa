@@ -5,7 +5,7 @@ import {
   Clock, ClipboardList, TrendingUp, Package
 } from 'lucide-react';
 import { Button, Badge, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { Order, OrderStatus } from '@/src/types';
 import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
 import { formatOrderCode } from '@/lib/orders/order-code';
@@ -283,7 +283,7 @@ export function OrdersView({
                         {order.items.slice(0, 3).map((item, idx) => (
                           <div key={idx} className="flex justify-between text-xs font-bold text-mm-g">
                             <span className="truncate pr-4">{item.qty}{item.unit} {item.name}</span>
-                            <span className="shrink-0">{fmt(item.price * item.qty)}</span>
+                            <span className="shrink-0">{formatCOP(item.price * item.qty)}</span>
                           </div>
                         ))}
                         {order.items.length > 3 && (
@@ -306,7 +306,7 @@ export function OrdersView({
                   <div className="p-8 pt-6 mt-4 border-t border-mm-crd/50 flex items-center justify-between bg-mm-gbg/10">
                     <div>
                       <p className="text-[10px] font-black text-mm-txw uppercase tracking-widest mb-1">Valor Total</p>
-                      <p className="text-xl font-bold text-mm-g">{fmt(order.total)}</p>
+                      <p className="text-xl font-bold text-mm-g">{formatCOP(order.total)}</p>
                     </div>
                     <div className="flex gap-2">
                       <Button

@@ -5,14 +5,14 @@ import { normalizeText } from '@/src/components/Shared';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 import { usePublicStores } from './hooks/usePublicStores';
 import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';
-import { useApp } from '@/src/store';
+import { useSession } from '@/src/features/auth/session-context';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 import { StoreCard } from './components/StoreCard';
 import { SalesTypeFilter } from '@/src/features/stores/components/SalesTypeFilter';
 import { matchesSalesType, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
 
 export default function StoresSectionPage() {
-  const { state } = useApp();
+  const session = useSession();
   const { stores, loading: loadingStores, error } = usePublicStores();
   const { marketplaces, loading: loadingPlazas } = usePublicMarketplaces();
   const { isFavorite, toggleFavorite, fetchFavoriteIds } = useFavorites();
@@ -23,9 +23,9 @@ export default function StoresSectionPage() {
   const [salesType, setSalesType] = useState<SalesTypeFilterValue>('all');
 
   useEffect(() => {
-    if (state.isLoggedIn) fetchFavoriteIds();
+    if (session.isLoggedIn) fetchFavoriteIds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isLoggedIn]);
+  }, [session.isLoggedIn]);
 
   const loading = loadingStores || loadingPlazas;
 
@@ -102,7 +102,7 @@ export default function StoresSectionPage() {
           <StoreCard
             key={store.id}
             store={store}
-            isLoggedIn={state.isLoggedIn}
+            isLoggedIn={session.isLoggedIn}
             isFavorite={isFavorite(store.id)}
             onToggleFavorite={() => toggleFavorite(store.id)}
           />
