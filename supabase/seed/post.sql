@@ -33,6 +33,16 @@ comment on constraint store_offers_discount_xor_price on public.store_offers is
 -- nuevo siempre está: se activan todos, o las pantallas nuevas no se verían.
 update public.modules set is_active = true where not is_active;
 
+-- La copia no trae `roles` (salen de las migraciones) y se carga sin revisar
+-- llaves foráneas: si una migración quitó un rol, sus cuentas llegan apuntando
+-- a un rol que no existe. Se borran, como en producción (B2Chat, por ejemplo).
+delete from auth.users
+where id in (
+  select p.id from public.profiles p
+  where p.role_id is not null
+    and not exists (select 1 from public.roles r where r.id = p.role_id)
+);
+
 -- El precio mínimo de compra pasó a `pricing_settings_history`, pero las
 -- migraciones corren antes de cargar los datos: lo que traiga la copia en
 -- `order_min_price_history` se pasa acá. Se quita cuando se borre esa tabla.

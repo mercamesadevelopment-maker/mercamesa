@@ -35,8 +35,7 @@ export async function GET(request: Request) {
 
   let esCatalogo = false;
   if (!esGestion && user) {
-    // El mismo módulo que protege /admin/catalog (admin, superadmin y
-    // b2chat_integration).
+    // El mismo módulo que protege /admin/catalog (admin y superadmin).
     const { data: puedeVerCatalogo } = await supabase.rpc('has_permission', {
       module_key: 'catalog',
       action_name: 'read',
