@@ -1,5 +1,5 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { OrderStatus } from '@/src/features/orders/types/order.types';
+import { OrderStatus } from '@/features/orders/types/order.types';
 import { Database } from '@/types/database_generated';
 
 type DbOrderStatus = Database['public']['Enums']['order_status'];

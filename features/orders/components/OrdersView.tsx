@@ -8,15 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
-import { Order, OrderStatus } from '@/src/features/orders/types/order.types';
-import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
+import { Order, OrderStatus } from '@/features/orders/types/order.types';
+import { OrderDetailModal } from '@/features/orders/components/OrderDetailModal';
 import { formatOrderCode } from '@/lib/orders/order-code';
-import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
+import { getStatusConfig, getRevertTargets } from '@/features/orders/utils/order-status';
 import { StatusNoteModal } from './StatusNoteModal';
-import { isPaymentApproved, UNPAID_STATUS_CHANGE_WARNING } from '@/src/features/orders/utils/payment-status';
+import { isPaymentApproved, UNPAID_STATUS_CHANGE_WARNING } from '@/features/orders/utils/payment-status';
 import { RevertStatusModal } from './RevertStatusModal';
 import { CancelPartModal } from './CancelPartModal';
-import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
+import { PqrsFormModal } from '@/features/pqrs/components/PqrsFormModal';
 
 interface StoreOption {
   id: string;

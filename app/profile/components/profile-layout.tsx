@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 import { cn } from '@/lib/utils/cn';
 import {
   LayoutDashboard,

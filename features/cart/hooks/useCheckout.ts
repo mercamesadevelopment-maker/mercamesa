@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@/src/features/auth/session-context';
-import { useCartState } from '@/src/features/cart/cart-context';
+import { useSession } from '@/features/auth/session-context';
+import { useCartState } from '@/features/cart/cart-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import {
   generateIdempotencyKey,
@@ -13,13 +13,13 @@ import {
   iniciarPagoDeOrden,
   PERFIL_SIN_DOCUMENTO,
   PERFIL_SIN_EMAIL,
-} from '@/src/features/payment/services/payment.service';
-import { CartItem } from '@/src/features/cart/types/cart.types';
+} from '@/features/payment/services/payment.service';
+import { CartItem } from '@/features/cart/types/cart.types';
 import { formatCOP } from '@/lib/utils/format';
 import { checkoutCartDb, clearCartDb, fetchOrderMinPrice } from '../services/cart.service';
 import { quoteCheckout, type CheckoutQuote } from '../services/checkout-quote.service';
 import { cartSavings, NO_SAVINGS } from '../utils/cart-savings';
-import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
+import { CARD_TOKENIZATION_ENABLED } from '@/features/payment/config';
 import type { Database } from '@/types/database_generated';
 
 type SavedPaymentMethod = Database['public']['Tables']['buyer_payment_methods']['Row'];

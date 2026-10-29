@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Tag, Plus, Trash2, Edit2, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useOffers } from '../hooks/use-offers';
-import { OfferModal } from '@/src/features/offers/components/OfferModal';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
+import { OfferModal } from '@/features/offers/components/OfferModal';
+import { StoreOffer } from '@/features/offers/types/offer.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
-import { offerDisplayStatus } from '@/src/features/offers/utils/offer-display-status';
+import { offerDisplayStatus } from '@/features/offers/utils/offer-display-status';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',

@@ -1,6 +1,6 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { loadOrderMinPrice } from '@/lib/pricing/settings';
-import { CartItem } from '@/src/features/cart/types/cart.types';
+import { CartItem } from '@/features/cart/types/cart.types';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 
 /**

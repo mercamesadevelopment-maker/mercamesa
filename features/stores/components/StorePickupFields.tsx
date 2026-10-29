@@ -28,7 +28,7 @@ interface StorePickupFieldsProps {
 /**
  * Dirección donde el mensajero recoge los pedidos de esta tienda.
  *
- * Vive en `src/features/stores` y no dentro de `app/admin` por la misma razón
+ * Vive en `features/stores` y no dentro de `app/admin` por la misma razón
  * que `StoreContactFields`: que el tendero importara un componente del admin
  * mezclaría dos features que el repo mantiene separadas a propósito.
  *

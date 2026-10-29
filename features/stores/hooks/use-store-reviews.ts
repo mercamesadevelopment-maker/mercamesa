@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 import { storeReviewsService } from '../services/store-reviews.service';
 import type { ReviewInput, StoreReview } from '../types/review.types';
 

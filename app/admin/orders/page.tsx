@@ -1,7 +1,7 @@
 'use client';
 
-import { useSession } from '@/src/features/auth/session-context';
-import { LogisticsOrdersView } from '@/src/features/logistics/components/LogisticsOrdersView';
+import { useSession } from '@/features/auth/session-context';
+import { LogisticsOrdersView } from '@/features/logistics/components/LogisticsOrdersView';
 import { OrdersView } from './components/orders-view';
 
 /**

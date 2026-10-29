@@ -1,6 +1,6 @@
 'use client';
 
-import { useCartState } from '@/src/features/cart/cart-context';
+import { useCartState } from '@/features/cart/cart-context';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 
 export function CartStoreConflictModal() {

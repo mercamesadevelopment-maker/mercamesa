@@ -90,13 +90,17 @@ admin.service.ts
 Código reutilizable global va en:
 
 ```txt
-components/ui/
-lib/
-hooks/
-types/
+components/ui/   componentes de interfaz genéricos (botones, modales, tablas…)
+features/        lo que comparten varias rutas: canasta, pedidos, PQRS, sesión…
+lib/             lógica y acceso a datos, sin React; también lo usa el servidor
+types/           solo los tipos generados de la base (database_generated.ts)
 ```
 
-Las dependencias van en una sola dirección: la interfaz (`src/`, `app/`, `components/`)
+`features/<nombre>/` sigue la misma estructura de una feature (`components/`, `hooks/`,
+`services/`, `types/`, `utils/`). Si algo lo usa una sola ruta, vive en `app/<ruta>/`, no
+en `features/`.
+
+Las dependencias van en una sola dirección: la interfaz (`features/`, `app/`, `components/`)
 importa de `lib/`, pero `lib/` y `app/api/` no importan de la interfaz. Lo comprueba
 `lib/architecture.test.ts`.
 

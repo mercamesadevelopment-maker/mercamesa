@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal/modal';
 import { Table } from '@/components/ui/table/components/Table';
 import { formatCOP } from '@/lib/utils/format';
-import { Product } from '@/src/features/products/types/product.types';
+import { Product } from '@/features/products/types/product.types';
 
 export function SalesView() {
   const {

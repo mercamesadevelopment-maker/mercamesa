@@ -1,8 +1,8 @@
 'use client';
 
-import { useSession } from '@/src/features/auth/session-context';
-import { useCartState } from '@/src/features/cart/cart-context';
-import { Product } from '@/src/features/products/types/product.types';
+import { useSession } from '@/features/auth/session-context';
+import { useCartState } from '@/features/cart/cart-context';
+import { Product } from '@/features/products/types/product.types';
 import {
   addToCartDb,
   updateCartQtyDb,

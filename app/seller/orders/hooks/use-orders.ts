@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Order, OrderStatus } from '@/src/features/orders/types/order.types';
+import { Order, OrderStatus } from '@/features/orders/types/order.types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
-import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
-import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
-import { cancelStorePart } from '@/src/features/orders/services/cancel-store-part.service';
-import { savePackingNotes } from '@/src/features/orders/services/packing-notes.service';
-import { toStoreOrderCard } from '@/src/features/orders/utils/store-order-card';
-import { isPaymentApproved } from '@/src/features/orders/utils/payment-status';
+import { updateStoreOrderStatus } from '@/features/orders/services/update-order-status.service';
+import { revertStoreOrderStatus } from '@/features/orders/services/revert-order-status.service';
+import { cancelStorePart } from '@/features/orders/services/cancel-store-part.service';
+import { savePackingNotes } from '@/features/orders/services/packing-notes.service';
+import { toStoreOrderCard } from '@/features/orders/utils/store-order-card';
+import { isPaymentApproved } from '@/features/orders/utils/payment-status';
 
 export function useOrders() {
   const { stores, storeId, storeName, selectStore } = useSellerStore();

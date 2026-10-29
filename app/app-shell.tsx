@@ -2,15 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Topbar } from '@/src/features/layout/components/Topbar';
-import { Sidebar } from '@/src/features/layout/components/Sidebar';
-import { CartPanel } from '@/src/features/cart/components/CartPanel';
-import { CartStoreConflictModal } from '@/src/features/cart/components/CartStoreConflictModal';
+import { Topbar } from '@/features/layout/components/Topbar';
+import { Sidebar } from '@/features/layout/components/Sidebar';
+import { CartPanel } from '@/features/cart/components/CartPanel';
+import { CartStoreConflictModal } from '@/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/lib/utils/cn';
-import { useSession } from '@/src/features/auth/session-context';
-import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
-import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
-import { LegalGate } from '@/src/features/legal/components/LegalGate';
+import { useSession } from '@/features/auth/session-context';
+import { useNotifications } from '@/features/notifications/hooks/use-notifications';
+import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
+import { LegalGate } from '@/features/legal/components/LegalGate';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

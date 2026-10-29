@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useReducer, ReactNode } from 'react';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 import { fetchCart, recoverAbandonedCartDb } from './services/cart.service';
 import { EMPTY_CART, cartReducer, type CartAction, type CartState } from './utils/cart-reducer';
 

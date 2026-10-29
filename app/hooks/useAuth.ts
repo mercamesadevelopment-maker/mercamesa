@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ApiError, authService } from '../services/auth.service';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 import { resolveRoleKey } from '@/lib/auth/roles';
 import { useResendCooldown } from './use-resend-cooldown';
 

@@ -5,10 +5,10 @@ import { normalizeText } from '@/lib/utils/text';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 import { usePublicStores } from './hooks/usePublicStores';
 import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';
-import { useSession } from '@/src/features/auth/session-context';
-import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
+import { useSession } from '@/features/auth/session-context';
+import { useFavorites } from '@/features/favorites/hooks/use-favorites';
 import { StoreCard } from './components/StoreCard';
-import { SalesTypeFilter } from '@/src/features/stores/components/SalesTypeFilter';
+import { SalesTypeFilter } from '@/features/stores/components/SalesTypeFilter';
 import { matchesSalesType, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
 
 export default function StoresSectionPage() {

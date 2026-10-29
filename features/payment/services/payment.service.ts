@@ -5,7 +5,7 @@ import {
   ZonapagosPayload,
   ZonapagosResponse,
   CreateOrderResponse,
-} from '@/src/features/payment/types/payment.types'
+} from '@/features/payment/types/payment.types'
 
 export function generateIdempotencyKey(): string {
   return crypto.randomUUID()

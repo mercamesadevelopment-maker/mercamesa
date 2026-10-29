@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 
 interface HasPermissionProps {
   module: string;

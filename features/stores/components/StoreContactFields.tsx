@@ -26,7 +26,7 @@ interface StoreContactFieldsProps {
  * Datos de contacto de una tienda, compartidos por los dos formularios que la
  * editan: el del admin (`StoreModal`) y el del tendero (`StoreProfileTab`).
  *
- * Vive en `src/features/stores` y no dentro de `app/admin`: que el tendero
+ * Vive en `features/stores` y no dentro de `app/admin`: que el tendero
  * importara un componente del admin mezclaría dos features que el repo mantiene
  * separadas a propósito.
  *

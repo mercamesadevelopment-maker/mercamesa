@@ -1,4 +1,4 @@
-import type { CartItem } from '@/src/features/cart/types/cart.types';
+import type { CartItem } from '@/features/cart/types/cart.types';
 
 /**
  * Cuánto se ahorra el comprador con las ofertas de su canasta.

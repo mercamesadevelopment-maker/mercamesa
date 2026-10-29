@@ -137,7 +137,7 @@ Reglas:
 
 | Tipo | Comando | Dónde viven | Qué cubren |
 |---|---|---|---|
-| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `src/features/**/utils`: sin base, sin red |
+| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `features/**/utils`: sin base, sin red |
 | Base de datos (pgTAP) | `pnpm test:db`, con la base local arriba | `supabase/tests/*.test.sql` | Lo que solo vive en SQL: políticas RLS y de Storage, triggers, funciones de las tareas programadas |
 
 - Cada prueba de base de datos incluye `supabase/tests/_helpers/fixtures.inc`, que crea
@@ -301,7 +301,7 @@ Convención para agregar uno nuevo:
 
 ### Responsividad
 
-- `useMediaQuery(query)` (`src/features/layout/hooks/use-media-query.ts`) — hook
+- `useMediaQuery(query)` (`features/layout/hooks/use-media-query.ts`) — hook
   compartido para condicionar lógica en **JS** al viewport (SSR-safe: devuelve `false`
   hasta hidratar). Úsalo en vez de escribir `window.innerWidth`/`matchMedia` a mano o
   crear otro hook de breakpoint. Para estilos puros, usa las utilidades responsive de
@@ -396,8 +396,8 @@ lo mismo y reúsalo. En particular:
 Si dos features necesitan la misma lógica, esa lógica sube a `lib/`, `components/ui/`,
 `hooks/` o `types/` (ver "Shared global" en AGENTS.md) — no se copia y pega.
 
-**Dirección de las dependencias:** la interfaz (`src/`, `app/`, `components/`) importa de
-`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `src/`, de `components/` ni de
+**Dirección de las dependencias:** la interfaz (`features/`, `app/`, `components/`) importa de
+`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `features/`, de `components/` ni de
 `app/` (salvo `app/api` entre sí). Si el servidor necesita algo que hoy vive en la interfaz
 (un tipo, una función pura), se mueve a `lib/`. Lo vigila `lib/architecture.test.ts`.
 
@@ -429,9 +429,9 @@ No hay un store global. Cada cosa compartida tiene su contexto, montados en
 
 | Hook | Archivo | Qué tiene |
 |---|---|---|
-| `useSession()` | `src/features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
-| `useCart()` | `src/features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
-| `useNotifications()` | `src/features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
+| `useSession()` | `features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
+| `useCart()` | `features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
+| `useNotifications()` | `features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
 
 Algo nuevo que varias pantallas necesiten compartir va en un contexto propio de su
 feature, no en uno de estos.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CartItem } from '@/src/features/cart/types/cart.types';
+import type { CartItem } from '@/features/cart/types/cart.types';
 import { cartSavings, discountPct } from './cart-savings';
 
 const item = (over: Partial<CartItem>): CartItem => ({ qty: 1, ...over }) as CartItem;

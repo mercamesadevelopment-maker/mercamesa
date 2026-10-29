@@ -5,10 +5,10 @@ import { CheckCircle2, Loader2, Image as ImageIcon, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form-fields';
 import { useStoreProfile } from '../hooks/use-store-profile';
-import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
-import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
+import { StoreContactFields } from '@/features/stores/components/StoreContactFields';
+import { StoreSalesTypeFields } from '@/features/stores/components/StoreSalesTypeFields';
 import { MultiSelect } from '@/components/ui/multi-select';
-import { StorePickupFields, type StorePickupValues } from '@/src/features/stores/components/StorePickupFields';
+import { StorePickupFields, type StorePickupValues } from '@/features/stores/components/StorePickupFields';
 
 interface StoreProfileTabProps {
   storeId: string | null;

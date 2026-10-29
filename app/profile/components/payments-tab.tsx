@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { usePayments } from '../hooks/use-payments';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, Trash2, Loader2 } from 'lucide-react';
-import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
+import { CARD_TOKENIZATION_ENABLED } from '@/features/payment/config';
 
 export function PaymentsTab() {
   const { paymentMethods, loading, error, fetchPaymentMethods, deletePaymentMethod } = usePayments();

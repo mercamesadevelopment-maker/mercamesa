@@ -6,7 +6,7 @@ import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
 import { BulkImportModal } from './components/BulkImportModal';
-import { ImageBulkUploadModal } from '@/src/features/catalog-images/components/ImageBulkUploadModal';
+import { ImageBulkUploadModal } from '@/features/catalog-images/components/ImageBulkUploadModal';
 import { MergeProductModal } from './components/MergeProductModal';
 import { usePendingReview } from './hooks/usePendingReview';
 import { Table } from '../../../components/ui/table/components/Table';

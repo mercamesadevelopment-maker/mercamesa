@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNotificationsState } from '@/src/features/notifications/notifications-context';
-import { Product } from '@/src/features/products/types/product.types';
+import { useNotificationsState } from '@/features/notifications/notifications-context';
+import { Product } from '@/features/products/types/product.types';
 import { Sale, SaleStatus } from '@/app/seller/sales/types/sale.types';
 import { OrderItem } from '@/lib/orders/types';
 import { CustomerState } from '../components/customer-autocomplete';

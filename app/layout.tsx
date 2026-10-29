@@ -3,7 +3,7 @@ import { Poppins, JetBrains_Mono } from 'next/font/google';
 import { AppProviders } from './providers';
 import AppShell from './app-shell';
 import type { Metadata, Viewport } from 'next';
-import { ServiceWorkerRegister } from '@/src/features/pwa/components/ServiceWorkerRegister';
+import { ServiceWorkerRegister } from '@/features/pwa/components/ServiceWorkerRegister';
 
 /**
  * Las fuentes se sirven desde el propio sitio con `next/font`. Antes se pedían a

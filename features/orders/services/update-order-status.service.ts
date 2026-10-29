@@ -1,4 +1,4 @@
-import { OrderStatus } from '@/src/features/orders/types/order.types';
+import { OrderStatus } from '@/features/orders/types/order.types';
 
 /** Lo que pasó con el domicilio al cambiar el estado, para poder avisarlo. */
 export interface DeliveryRequestOutcome {

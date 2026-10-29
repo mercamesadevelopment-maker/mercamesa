@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { OrderItem } from '@/lib/orders/types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
-import { formatDeliveryAddress, getDeliveryInstructions } from '@/src/features/orders/utils/format-delivery-address';
+import { formatDeliveryAddress, getDeliveryInstructions } from '@/features/orders/utils/format-delivery-address';
 import { formatOrderCode } from '@/lib/orders/order-code';
 
 export interface UnifiedHistoryItem {

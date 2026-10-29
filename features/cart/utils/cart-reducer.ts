@@ -1,5 +1,5 @@
-import type { CartItem } from '@/src/features/cart/types/cart.types';
-import type { Product } from '@/src/features/products/types/product.types';
+import type { CartItem } from '@/features/cart/types/cart.types';
+import type { Product } from '@/features/products/types/product.types';
 
 export interface CartState {
   items: CartItem[];

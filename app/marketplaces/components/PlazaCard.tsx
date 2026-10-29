@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { MapPin, Store as StoreIcon, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
-import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
+import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
 import type { PublicMarketplace } from '../hooks/usePublicMarketplaces';
 
 interface PlazaCardProps {

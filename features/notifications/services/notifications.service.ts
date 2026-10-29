@@ -1,4 +1,4 @@
-import { AppNotification } from '@/src/features/notifications/types/notification.types';
+import { AppNotification } from '@/features/notifications/types/notification.types';
 import { timeAgo } from '@/lib/dates/relative-time';
 
 interface NotificationRecipientRow {

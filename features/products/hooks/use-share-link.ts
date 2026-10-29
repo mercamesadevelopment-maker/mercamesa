@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
+import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
 
 /**
  * Comparte un link: menú del sistema en el celular, portapapeles en escritorio.

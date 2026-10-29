@@ -10,9 +10,9 @@ import {
   type BusinessHours,
 } from '@/components/ui/business-hours/business-hours-editor';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
-import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
-import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';
-import { StorePickupFields, type StorePickupValues } from '@/src/features/stores/components/StorePickupFields';
+import { StoreContactFields } from '@/features/stores/components/StoreContactFields';
+import { StoreSalesTypeFields } from '@/features/stores/components/StoreSalesTypeFields';
+import { StorePickupFields, type StorePickupValues } from '@/features/stores/components/StorePickupFields';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { validateStoreFields, STORE_DESCRIPTION_MAX_LENGTH } from '@/lib/stores/validate-store';
 

@@ -6,8 +6,8 @@ import { motion } from 'motion/react';
 import { ArrowLeft, MapPin, Clock, Phone, Mail, Compass, Globe, Star, Zap, Store as StoreIcon, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Database } from '@/types/database_generated';
-import { SalesTypeFilter } from '@/src/features/stores/components/SalesTypeFilter';
-import { SalesTypeLine } from '@/src/features/stores/components/SalesTypeLine';
+import { SalesTypeFilter } from '@/features/stores/components/SalesTypeFilter';
+import { SalesTypeLine } from '@/features/stores/components/SalesTypeLine';
 import { matchesSalesType, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
 
 type MarketplaceDetail = Database['public']['Views']['marketplaces_detail']['Row'] & {

@@ -11,13 +11,13 @@ import {
   CONSULTA_INICIAL,
   type StoreProduct,
 } from '@/app/sections/products/hooks/usePublicProducts';
-import { useSession } from '@/src/features/auth/session-context';
-import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
-import { ProductCard } from '@/src/features/products/components/ProductCard';
-import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
-import { RatingModal } from '@/src/features/stores/components/RatingModal';
-import { ReviewsPanel } from '@/src/features/stores/components/ReviewsPanel';
-import { StoreHeader } from '@/src/features/stores/components/StoreHeader';
+import { useSession } from '@/features/auth/session-context';
+import { useFavorites } from '@/features/favorites/hooks/use-favorites';
+import { ProductCard } from '@/features/products/components/ProductCard';
+import { useStoreReviews } from '@/features/stores/hooks/use-store-reviews';
+import { RatingModal } from '@/features/stores/components/RatingModal';
+import { ReviewsPanel } from '@/features/stores/components/ReviewsPanel';
+import { StoreHeader } from '@/features/stores/components/StoreHeader';
 import { Pagination } from '@/app/orders/components/Pagination';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 

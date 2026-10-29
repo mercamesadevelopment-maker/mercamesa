@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { usePublicOffers } from './hooks/usePublicOffers';
 import { OfferCard } from './components/OfferCard';
 import { OfferDetailModal } from './components/OfferDetailModal';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
+import { StoreOffer } from '@/features/offers/types/offer.types';
 import { PlazaList } from './components/PlazaList';
 
 export default function MarketplacesPage() {

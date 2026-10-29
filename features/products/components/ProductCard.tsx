@@ -5,13 +5,13 @@ import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Stamp } from '@/components/ui/stamp';
 import { formatCOP } from '@/lib/utils/format';
-import { useCart } from '@/src/features/cart/hooks/use-cart';
-import { discountPct } from '@/src/features/cart/utils/cart-savings';
-import { useSession } from '@/src/features/auth/session-context';
+import { useCart } from '@/features/cart/hooks/use-cart';
+import { discountPct } from '@/features/cart/utils/cart-savings';
+import { useSession } from '@/features/auth/session-context';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
-import { getProductShareUrl } from '@/src/features/products/utils/share-link';
-import { ShareLinkButton } from '@/src/features/products/components/ShareLinkButton';
+import { getProductShareUrl } from '@/features/products/utils/share-link';
+import { ShareLinkButton } from '@/features/products/components/ShareLinkButton';
 import type { StoreProduct } from '@/app/sections/products/hooks/usePublicProducts';
 
 interface ProductCardProps {

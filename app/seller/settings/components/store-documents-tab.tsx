@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { ShieldCheck, ShieldAlert } from 'lucide-react';
-import { StoreDocumentsPanel } from '@/src/features/stores/components/StoreDocumentsPanel';
+import { StoreDocumentsPanel } from '@/features/stores/components/StoreDocumentsPanel';
 
 /**
  * La documentación de la tienda, para el tendero.

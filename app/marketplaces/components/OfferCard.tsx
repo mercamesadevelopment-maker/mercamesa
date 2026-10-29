@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { Floating } from '@/components/ui/floating';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
+import { StoreOffer } from '@/features/offers/types/offer.types';
 
 interface OfferCardProps {
   offer: StoreOffer;

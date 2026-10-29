@@ -31,8 +31,8 @@ import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
 import { DiscountSummary } from "./DiscountSummary";
 import { CartItemPrice } from "./CartItemPrice";
 import { CART_SAVINGS_LABEL } from "@/lib/copy/discount-notice";
-import { CARD_TOKENIZATION_ENABLED } from "@/src/features/payment/config";
-import { CartItem } from "@/src/features/cart/types/cart.types";
+import { CARD_TOKENIZATION_ENABLED } from "@/features/payment/config";
+import { CartItem } from "@/features/cart/types/cart.types";
 
 interface CartPanelProps {
   isOpen: boolean;

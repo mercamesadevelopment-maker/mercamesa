@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@/src/features/auth/session-context';
-import { useCartState } from '@/src/features/cart/cart-context';
-import { useNotificationsState } from '@/src/features/notifications/notifications-context';
+import { useSession } from '@/features/auth/session-context';
+import { useCartState } from '@/features/cart/cart-context';
+import { useNotificationsState } from '@/features/notifications/notifications-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function useTopbar() {

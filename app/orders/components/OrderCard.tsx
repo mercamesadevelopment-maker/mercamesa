@@ -17,7 +17,7 @@ import {
   FileText,
 } from 'lucide-react';
 import Link from 'next/link';
-import { InvoiceLink } from '@/src/features/orders/components/InvoiceLink';
+import { InvoiceLink } from '@/features/orders/components/InvoiceLink';
 
 import {
   OrderDetail,
@@ -33,7 +33,7 @@ import { OrderDetailModal } from './OrderDetailModal';
 import { OrderSavings } from './OrderSavings';
 import { ReorderModal } from './ReorderModal';
 import { usePayOrder, isPayable } from '../hooks/usePayOrder';
-import { PqrsFormModal } from '@/src/features/pqrs/components/PqrsFormModal';
+import { PqrsFormModal } from '@/features/pqrs/components/PqrsFormModal';
 
 interface OrderCardProps {
   order: OrderDetail;
