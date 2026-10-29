@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Product, MasterProduct } from '@/src/types';
+import { Product, MasterProduct } from '@/src/features/products/types/product.types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { validateProductCode } from '@/lib/products/product-code';
 

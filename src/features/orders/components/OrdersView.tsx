@@ -4,9 +4,11 @@ import {
   Bell, Loader2, Truck, CheckCircle2, XCircle, History,
   Clock, ClipboardList, TrendingUp, Package
 } from 'lucide-react';
-import { Button, Badge, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
-import { Order, OrderStatus } from '@/src/types';
+import { Order, OrderStatus } from '@/src/features/orders/types/order.types';
 import { OrderDetailModal } from '@/src/features/orders/components/OrderDetailModal';
 import { formatOrderCode } from '@/lib/orders/order-code';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';

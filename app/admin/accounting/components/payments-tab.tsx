@@ -1,7 +1,7 @@
 'use client';
 
 import { Table } from '@/components/ui/table/components/Table';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta, fechaCorta } from '@/lib/dates/relative-time';
 import type { PaymentRow } from '@/lib/accounting/types';

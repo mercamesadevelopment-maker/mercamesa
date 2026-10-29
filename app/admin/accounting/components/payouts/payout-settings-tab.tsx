@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, Info, Plus } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { Modal } from '@/components/ui/modal/modal';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { usePayoutSettings } from '../../hooks/use-bank-accounts';

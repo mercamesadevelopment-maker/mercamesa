@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, Image as ImageIcon, MapPin } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { useStoreProfile } from '../hooks/use-store-profile';
 import { StoreContactFields } from '@/src/features/stores/components/StoreContactFields';
 import { StoreSalesTypeFields } from '@/src/features/stores/components/StoreSalesTypeFields';

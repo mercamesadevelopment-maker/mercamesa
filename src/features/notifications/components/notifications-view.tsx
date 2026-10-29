@@ -5,8 +5,8 @@ import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Bell, Check, CheckCircle2, CreditCard, ShoppingBag, Star, TrendingUp } from 'lucide-react';
 import { useNotificationsState } from '@/src/features/notifications/notifications-context';
-import { AppNotification } from '@/src/types';
-import { Button } from '@/src/components/Shared';
+import { AppNotification } from '@/src/features/notifications/types/notification.types';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { useNotifications } from '../hooks/use-notifications';
 

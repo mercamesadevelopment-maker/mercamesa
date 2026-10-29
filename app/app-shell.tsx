@@ -6,7 +6,7 @@ import { Topbar } from '@/src/features/layout/components/Topbar';
 import { Sidebar } from '@/src/features/layout/components/Sidebar';
 import { CartPanel } from '@/src/features/cart/components/CartPanel';
 import { CartStoreConflictModal } from '@/src/features/cart/components/CartStoreConflictModal';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { useSession } from '@/src/features/auth/session-context';
 import { useNotifications } from '@/src/features/notifications/hooks/use-notifications';
 import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';

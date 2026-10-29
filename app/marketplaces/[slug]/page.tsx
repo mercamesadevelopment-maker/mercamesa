@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { ArrowLeft, MapPin, Clock, Phone, Mail, Compass, Globe, Star, Zap, Store as StoreIcon, ChevronRight } from 'lucide-react';
-import { Badge } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
 import { Database } from '@/types/database_generated';
 import { SalesTypeFilter } from '@/src/features/stores/components/SalesTypeFilter';
 import { SalesTypeLine } from '@/src/features/stores/components/SalesTypeLine';

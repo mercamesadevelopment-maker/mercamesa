@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { Store as StoreIcon, Star, Phone, MapPin, Heart, Clock } from 'lucide-react';
-import { Badge, Button, cn } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
 import { WeeklyHoursSummary } from '@/components/ui/business-hours/weekly-hours-summary';
 import { openStatus } from '@/components/ui/business-hours/summarize-hours';

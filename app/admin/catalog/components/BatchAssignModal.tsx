@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { Database } from '../../../../types/database_generated';
 
 type CatalogProduct = Database['public']['Tables']['catalog_products']['Row'];

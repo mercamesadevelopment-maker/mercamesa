@@ -3,7 +3,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Share2, Check } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { useShareLink } from '@/src/features/products/hooks/use-share-link';
 
 interface ShareLinkButtonProps {

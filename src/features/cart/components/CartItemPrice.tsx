@@ -1,4 +1,5 @@
-import { Badge, cn } from "@/src/components/Shared";
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { LINE_SAVINGS_LABEL } from "@/lib/copy/discount-notice";
 import { discountPct } from "../utils/cart-savings";

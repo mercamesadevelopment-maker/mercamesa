@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import type { LogisticsOrder } from '@/lib/logistics/orders';
 import { useLogisticsOrders } from '../hooks/use-logistics-orders';

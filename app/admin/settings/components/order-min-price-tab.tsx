@@ -6,7 +6,8 @@ import { useOrderMinPrice } from '../hooks/use-order-min-price';
 import { OrderMinPriceHistoryRow } from '../types/settings.types';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { formatCOP } from '@/lib/utils/format';
 import { Modal } from '@/components/ui/modal/modal';
 

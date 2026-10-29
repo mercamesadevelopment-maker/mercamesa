@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, Info } from 'lucide-react';
 
-import { Button, Input, StepBar } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { StepBar } from '@/components/ui/step-bar';
 import { ROLE_ROUTES } from '@/lib/auth/roles';
 import { useAuthHooks } from '../hooks/useAuth';
 import { BrandLogo } from '@/components/ui/brand-logo';

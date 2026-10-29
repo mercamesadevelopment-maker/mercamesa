@@ -5,7 +5,9 @@ import { useOffers } from '../hooks/use-offers';
 import { OfferModal } from '@/src/features/offers/components/OfferModal';
 import { StoreOffer } from '@/src/features/offers/types/offer.types';
 import { Table } from '@/components/ui/table/components/Table';
-import { Button, Badge, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { offerDisplayStatus } from '@/src/features/offers/utils/offer-display-status';
 

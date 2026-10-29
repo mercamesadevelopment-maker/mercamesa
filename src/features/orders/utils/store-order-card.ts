@@ -1,4 +1,5 @@
-import type { Order, OrderItem, OrderStatus, OrderStatusHistoryItem } from '@/src/types';
+import type { Order, OrderStatus, OrderStatusHistoryItem } from '@/src/features/orders/types/order.types';
+import type { OrderItem } from '@/lib/orders/types';
 import { formatDeliveryAddress, getDeliveryInstructions } from './format-delivery-address';
 
 /**

@@ -14,7 +14,7 @@ import {
   PERFIL_SIN_DOCUMENTO,
   PERFIL_SIN_EMAIL,
 } from '@/src/features/payment/services/payment.service';
-import { CartItem } from '@/src/types';
+import { CartItem } from '@/src/features/cart/types/cart.types';
 import { formatCOP } from '@/lib/utils/format';
 import { checkoutCartDb, clearCartDb, fetchOrderMinPrice } from '../services/cart.service';
 import { quoteCheckout, type CheckoutQuote } from '../services/checkout-quote.service';

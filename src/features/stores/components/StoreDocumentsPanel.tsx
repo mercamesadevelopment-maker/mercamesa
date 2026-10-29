@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FileText, Eye, Upload, AlertCircle, Loader, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * La documentación de una tienda: subirla, consultarla y ver su histórico.

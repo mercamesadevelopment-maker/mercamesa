@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { CheckCircle2, Clock, KeyRound, MapPin, Package, Truck } from 'lucide-react';
-import { Badge, Button, cn } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { formatCOP } from '@/lib/utils/format';
 import type { LogisticsOrder, LogisticsPart } from '@/lib/logistics/orders';

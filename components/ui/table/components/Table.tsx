@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TableProps } from '../types';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 export function Table<T>({
   data,

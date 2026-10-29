@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Wallet } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { PQRS_LIABLE_LABELS } from '@/lib/pqrs/reasons';

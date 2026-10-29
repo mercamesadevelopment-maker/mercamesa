@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
 import { PQRS_OUTCOME_LABELS, PQRS_STATUS_LABELS, type PqrsOutcome, type PqrsStatus } from '@/lib/pqrs/types';
 
 const OUTCOME_VARIANT: Record<PqrsOutcome, 'success' | 'error' | 'info'> = {

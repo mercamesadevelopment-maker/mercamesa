@@ -11,7 +11,7 @@ import { Pagination } from './components/Pagination';
 import { RatingModal } from '@/src/features/stores/components/RatingModal';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
 import { OrderStatus } from './types/order.types';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 
 export default function OrdersPage() {
   const router = useRouter();

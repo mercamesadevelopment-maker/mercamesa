@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, X } from 'lucide-react';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 
 interface RatingModalProps {
   isOpen: boolean;

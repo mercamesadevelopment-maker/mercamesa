@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input, normalizeText } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { normalizeText } from '@/lib/utils/text';
 import { SearchableSelect, SelectOption } from '@/components/ui/searchable-select';
 import { parseAmount, validateOffer, formatCop, offerFinalPrice } from '@/lib/offers/validate-offer';
 import type { StoreOffer } from '../types/offer.types';

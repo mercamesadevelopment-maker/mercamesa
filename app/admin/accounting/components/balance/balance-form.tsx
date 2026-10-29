@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { FileSpreadsheet } from 'lucide-react';
 import { SearchableSelect, type SelectOption } from '@/components/ui/searchable-select';
-import { Button, Input, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { searchSiigoBuyersService } from '../../services/accounting.service';
 import { MESES_SIIGO } from './balance-labels';
 

@@ -10,7 +10,10 @@ import { ImageBulkUploadModal } from '@/src/features/catalog-images/components/I
 import { MergeProductModal } from './components/MergeProductModal';
 import { usePendingReview } from './hooks/usePendingReview';
 import { Table } from '../../../components/ui/table/components/Table';
-import { Button, Badge, cn, normalizeText } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
+import { normalizeText } from '@/lib/utils/text';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {

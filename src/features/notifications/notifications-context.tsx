@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState, ReactNode } from 'react';
-import type { AppNotification } from '@/src/types';
+import type { AppNotification } from '@/src/features/notifications/types/notification.types';
 
 interface NotificationsContextValue {
   notifs: AppNotification[];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Product } from '@/src/types';
+import type { Product } from '@/src/features/products/types/product.types';
 import { EMPTY_CART, cartReducer } from './cart-reducer';
 
 const tomate = { id: 'p1', storeId: 's1', name: 'Tomate', retailPrice: 3000 } as Product;

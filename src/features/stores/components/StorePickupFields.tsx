@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Truck } from 'lucide-react';
-import { Input, cn } from '@/src/components/Shared';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { MapPicker, type MapPickerChange } from '@/components/ui/map-picker/MapPicker';
 
 export interface StorePickupValues {

@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 import { usePublicStores } from './hooks/usePublicStores';
 import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';

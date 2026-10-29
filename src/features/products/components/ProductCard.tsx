@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { Stamp } from '@/components/ui/stamp';
 import { formatCOP } from '@/lib/utils/format';
 import { useCart } from '@/src/features/cart/hooks/use-cart';

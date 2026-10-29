@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Input, cn } from '@/src/components/Shared';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { isValidEmail } from '@/lib/email/validate';
 

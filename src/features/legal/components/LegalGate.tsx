@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { FileText, ExternalLink, Loader2 } from 'lucide-react';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 
 type PendingDocument = {
   id: string;

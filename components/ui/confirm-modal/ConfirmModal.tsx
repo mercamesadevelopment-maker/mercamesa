@@ -4,8 +4,8 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
-import { Button } from '@/src/components/Shared';
-import { cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 
 interface ConfirmModalProps {
   isOpen: boolean;

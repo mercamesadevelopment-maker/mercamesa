@@ -22,7 +22,8 @@ import { useCheckout, mensajeMinimo } from "../hooks/useCheckout";
 import { useCart } from "../hooks/use-cart";
 import { usePayableOrder } from "../hooks/use-payable-order";
 import Link from "next/link";
-import { Button, cn } from "@/src/components/Shared";
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
 import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
@@ -31,7 +32,7 @@ import { DiscountSummary } from "./DiscountSummary";
 import { CartItemPrice } from "./CartItemPrice";
 import { CART_SAVINGS_LABEL } from "@/lib/copy/discount-notice";
 import { CARD_TOKENIZATION_ENABLED } from "@/src/features/payment/config";
-import { CartItem } from "@/src/types";
+import { CartItem } from "@/src/features/cart/types/cart.types";
 
 interface CartPanelProps {
   isOpen: boolean;

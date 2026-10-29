@@ -1,8 +1,10 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Badge, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
-import { Order, OrderStatus } from '@/src/types';
+import { Order, OrderStatus } from '@/src/features/orders/types/order.types';
 import { formatOrderCode } from '@/lib/orders/order-code';
 import { getStatusConfig, getRevertTargets } from '@/src/features/orders/utils/order-status';
 import { OrderStatusTimeline } from './OrderStatusTimeline';

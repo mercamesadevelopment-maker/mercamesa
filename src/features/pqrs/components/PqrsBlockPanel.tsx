@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Ban } from 'lucide-react';
-import { Button, Textarea } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/form-fields';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import type { PqrsBlock, PqrsBuyerHistory } from '@/lib/pqrs/types';
 

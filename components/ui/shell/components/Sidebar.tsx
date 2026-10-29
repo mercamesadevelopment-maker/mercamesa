@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from '@/src/features/auth/session-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';

@@ -10,7 +10,8 @@ import {
 } from './hooks/usePublicProducts';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 
-import { Button, normalizeText } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { normalizeText } from '@/lib/utils/text';
 import { ProductCard } from '@/src/features/products/components/ProductCard';
 
 /** Lo que muestra el selector, y cómo se traduce a lo que entiende el servidor. */

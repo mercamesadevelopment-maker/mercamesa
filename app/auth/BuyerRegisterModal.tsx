@@ -6,7 +6,9 @@ import { motion } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 import { ROLE_ROUTES } from '@/lib/auth/roles';
-import { Button, Input, Select, StepBar } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/form-fields';
+import { StepBar } from '@/components/ui/step-bar';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAuthHooks } from '../hooks/useAuth';
 import { useIdentificationTypes } from '@/app/hooks/use-identification-types';

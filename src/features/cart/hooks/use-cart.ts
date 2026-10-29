@@ -2,7 +2,7 @@
 
 import { useSession } from '@/src/features/auth/session-context';
 import { useCartState } from '@/src/features/cart/cart-context';
-import { Product } from '@/src/types';
+import { Product } from '@/src/features/products/types/product.types';
 import {
   addToCartDb,
   updateCartQtyDb,

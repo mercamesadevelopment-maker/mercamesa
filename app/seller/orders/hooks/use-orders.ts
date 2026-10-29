@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Order, OrderStatus } from '@/src/types';
+import { Order, OrderStatus } from '@/src/features/orders/types/order.types';
 import { useSellerStore } from '@/app/hooks/use-seller-store';
 import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
 import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';

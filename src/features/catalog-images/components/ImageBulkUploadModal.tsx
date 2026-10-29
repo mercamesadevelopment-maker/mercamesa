@@ -3,7 +3,8 @@
 import React from 'react';
 import { CheckCircle2, Download, ImagePlus, XCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { useImageBulkUpload } from '../hooks/use-image-bulk-upload';
 import { ImageMatchList } from './ImageMatchList';
 

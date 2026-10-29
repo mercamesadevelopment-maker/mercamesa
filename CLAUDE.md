@@ -261,10 +261,14 @@ correr si alguna URL apunta a producción.
 `components/ui/` es la librería de UI compartida entre features. Antes de crear un
 componente nuevo, **revisa si ya existe algo reutilizable ahí**. Para mezclar clases de
 Tailwind está `cn()` en `lib/utils/cn.ts`: úsalo en vez de concatenar strings.
-`src/components/Shared.tsx` la reexporta mientras se termina de mover `src/`.
 
 Inventario actual:
 
+- `button.tsx` — `Button` (variantes, tamaños y `loading`, que también lo deshabilita).
+- `badge.tsx` — `Badge`, la etiqueta de estado.
+- `form-fields.tsx` — `Input`, `Select` y `Textarea` con la misma etiqueta y el mismo
+  borde, para que un formulario que los mezcla no se vea a dos aguas.
+- `step-bar.tsx` — `StepBar`, los pasos numerados de un formulario largo.
 - `modal/` — `Modal` genérico (portal + animación + bloqueo de scroll).
 - `confirm-modal/` — `ConfirmModal`, diálogo de confirmación sobre `Modal`.
 - `table/` — tabla reutilizable, ya dividida en `components/Table.tsx`, `hooks/useTable.ts`
@@ -417,10 +421,6 @@ Cada archivo/función/componente hace una sola cosa:
 Ningún archivo debe crecer indefinidamente mezclando responsabilidades. Si un archivo
 supera unos pocos cientos de líneas o junta varias vistas/entidades, se divide siguiendo
 la estructura de feature de AGENTS.md (`components/`, `hooks/`, `services/`, `types/`).
-
-Lo que queda de la app de Vite (`src/types.ts` y `src/components/Shared.tsx`) es **deuda
-técnica heredada, no un ejemplo a seguir**: no se le agrega código nuevo, y lo que se toque
-ahí se pasa a su feature o a `lib/`.
 
 ### Estado compartido
 

@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { Bike, PackageCheck, UserPlus, X } from 'lucide-react';
-import { Button, Input, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { STAFF_ROLE_LABEL, type StaffRole } from '@/lib/marketplace-staff/actor';
 import type { MarketplaceStaffSettings } from '@/lib/marketplace-staff/admin';

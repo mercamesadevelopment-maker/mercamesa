@@ -12,7 +12,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/brand-logo';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { useTopbar } from '../hooks/useTopbar';
 
 interface TopbarProps {

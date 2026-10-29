@@ -27,7 +27,8 @@ import {
   PAYMENT_STATUS_LABELS,
 } from '../types/order.types';
 
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { OrderDetailModal } from './OrderDetailModal';
 import { OrderSavings } from './OrderSavings';
 import { ReorderModal } from './ReorderModal';

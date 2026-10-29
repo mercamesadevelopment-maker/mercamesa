@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, MessageSquare, XCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 import { formatCOP } from '@/lib/utils/format';
 import { MIN_CANCEL_REASON } from '@/lib/orders/cancel-part-rules';
 

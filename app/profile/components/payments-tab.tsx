@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { usePayments } from '../hooks/use-payments';
-import { Badge } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
 import { CreditCard, Trash2, Loader2 } from 'lucide-react';
 import { CARD_TOKENIZATION_ENABLED } from '@/src/features/payment/config';
 

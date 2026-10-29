@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle, ClipboardList, MessageSquare } from 'lucide-react';
 
 interface StatusNoteModalProps {

@@ -5,7 +5,8 @@ import {
   Users, Search, Loader2, KeyRound, LogOut, Store as StoreIcon, UserX, Ban, UserCheck, UserPlus, X,
   FileCheck2, FileClock,
 } from 'lucide-react';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Table } from '@/components/ui/table/components/Table';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useAdminUsers, type AdminUser } from './hooks/use-admin-users';

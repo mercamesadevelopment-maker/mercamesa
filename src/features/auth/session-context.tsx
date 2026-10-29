@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, ReactNode } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { resolveRoleKey, type RoleKey } from '@/lib/auth/roles';
-import type { BuyerProfile } from '@/src/types';
+import type { BuyerProfile } from '@/src/features/auth/types/session.types';
 
 interface SessionState {
   profile: BuyerProfile;

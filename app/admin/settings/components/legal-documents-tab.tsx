@@ -3,7 +3,8 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileText, Upload, ExternalLink, Loader2, Mail, AlertCircle } from 'lucide-react';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { MAX_LEGAL_NOTES } from '@/lib/legal/current-documents';

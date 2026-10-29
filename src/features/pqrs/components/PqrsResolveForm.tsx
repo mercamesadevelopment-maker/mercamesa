@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Select, Textarea } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Select, Textarea } from '@/components/ui/form-fields';
 import { getPqrsReason, PQRS_LIABLE_LABELS, type PqrsLiable } from '@/lib/pqrs/reasons';
 import { PQRS_OUTCOME_LABELS, type PqrsOutcome } from '@/lib/pqrs/types';
 import type { PqrsResolveInput } from '../services/pqrs.service';

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { LifeBuoy, Loader2, Plus } from 'lucide-react';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { Pagination } from '@/app/orders/components/Pagination';
 import { timeAgo, fechaCompleta } from '@/lib/dates/relative-time';
 import { PQRS_KIND_LABELS } from '@/lib/pqrs/reasons';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Star, MessageSquare } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import type { StoreReview } from '../types/review.types';
 
 interface ReviewsPanelProps {

@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Star, MessageSquare, Smile, Loader2 } from 'lucide-react';
 import { useStoreReviews } from '@/src/features/stores/hooks/use-store-reviews';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 interface StoreReputationTabProps {
   storeId: string | null;

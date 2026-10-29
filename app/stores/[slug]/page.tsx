@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Search } from 'lucide-react';
-import { normalizeText } from '@/src/components/Shared';
+import { normalizeText } from '@/lib/utils/text';
 import {
   usePublicProducts,
   useVitrinaCategorias,

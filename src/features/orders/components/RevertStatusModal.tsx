@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, MessageSquare, Undo2 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, cn } from '@/src/components/Shared';
-import { OrderStatus } from '@/src/types';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
+import { OrderStatus } from '@/src/features/orders/types/order.types';
 import { getStatusConfig } from '../utils/order-status';
 
 // Estados en los que el mensajero ya pudo haberse solicitado a Pibox.

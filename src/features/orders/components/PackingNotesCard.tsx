@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 import { PACKING_NOTES_MAX } from '@/lib/orders/packing-notes';
 
 interface PackingNotesCardProps {

@@ -1,5 +1,5 @@
 import type { ImageMatch, ImageMatchStatus } from '@/lib/catalog-images/match-files';
-import { Badge } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
 
 const BADGE: Record<ImageMatchStatus, { label: string; variant: 'success' | 'warning' | 'error' | 'default' }> = {
   ok: { label: 'Lista', variant: 'success' },

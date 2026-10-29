@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import { Lock, Send } from 'lucide-react';
-import { Button, Textarea, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { MAX_DESCRIPTION } from '@/lib/pqrs/rules';
 import type { PqrsMessage, PqrsViewer } from '@/lib/pqrs/types';

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
 import { LoginModal } from './auth/LoginModal';
 import { BuyerRegisterModal } from './auth/BuyerRegisterModal';

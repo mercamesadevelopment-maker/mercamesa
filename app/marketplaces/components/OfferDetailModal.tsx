@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart } from 'lucide-react';
 import { StoreOffer } from '@/src/features/offers/types/offer.types';
-import { Badge, Button } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useCart } from '@/src/features/cart/hooks/use-cart';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 

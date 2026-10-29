@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react';
 import { Loader2 } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { useCredit } from '../hooks/use-credit';

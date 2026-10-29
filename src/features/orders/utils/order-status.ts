@@ -2,7 +2,7 @@ import {
   Bell, Loader2, Truck, CheckCircle2, XCircle, History, ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
-import { OrderStatus } from '@/src/types';
+import { OrderStatus } from '@/src/features/orders/types/order.types';
 
 export interface OrderStatusConfig {
   label: string;

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Building2, MapPin, Store as StoreIcon } from 'lucide-react';
 
 import { Modal } from '@/components/ui/modal/modal';
-import { Badge } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
 import { Database } from '../../../../types/database_generated';
 import { MarketplaceStaffPanel } from './MarketplaceStaffPanel';
 

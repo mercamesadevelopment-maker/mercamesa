@@ -1,7 +1,8 @@
 'use client';
 
 import { Bike, Loader2, MapPinned, Phone, RotateCw, Search, AlertTriangle, CheckCircle2, KeyRound } from 'lucide-react';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import type {
   DeliveryStage,

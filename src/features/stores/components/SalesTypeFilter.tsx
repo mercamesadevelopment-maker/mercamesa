@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { SALES_TYPE_OPTIONS, type SalesTypeFilter as SalesTypeFilterValue } from '@/lib/stores/sales-type';
 
 interface SalesTypeFilterProps {

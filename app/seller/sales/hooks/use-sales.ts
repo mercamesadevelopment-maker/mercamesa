@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNotificationsState } from '@/src/features/notifications/notifications-context';
-import { Product, Sale, OrderItem, SaleStatus } from '@/src/types';
+import { Product } from '@/src/features/products/types/product.types';
+import { Sale, SaleStatus } from '@/app/seller/sales/types/sale.types';
+import { OrderItem } from '@/lib/orders/types';
 import { CustomerState } from '../components/customer-autocomplete';
 import { saveClient } from '../services/sales.service';
 import { formatCOP } from '@/lib/utils/format';

@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-import { Button, Input, StepBar } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { StepBar } from '@/components/ui/step-bar';
 import { useAuthHooks } from '../hooks/useAuth';
 
 export function ForgotPasswordModal({

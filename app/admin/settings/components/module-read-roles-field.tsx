@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { RoleOption } from '../types/settings.types';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 /** Se resaltan porque son los que administran la plataforma entera. */
 const ROLES_DE_PLATAFORMA = ['admin', 'superadmin'];

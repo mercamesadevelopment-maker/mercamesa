@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 import { usePublicOffers } from './hooks/usePublicOffers';
 import { OfferCard } from './components/OfferCard';
 import { OfferDetailModal } from './components/OfferDetailModal';

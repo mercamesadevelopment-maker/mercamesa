@@ -1,5 +1,5 @@
 import { Undo2 } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 interface TimelineItem<S extends string> {
   id?: string;

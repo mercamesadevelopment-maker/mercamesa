@@ -2,7 +2,7 @@
 
 import { Share, SquarePlus, CheckCircle2 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 
 const STEPS = [
   {
