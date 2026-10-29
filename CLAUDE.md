@@ -407,6 +407,10 @@ Cada archivo/función/componente hace una sola cosa:
   y emite eventos.
 - Un `service` no renderiza JSX ni maneja estado de React.
 - Un hook no hace queries HTTP directas si ya hay un `service` para eso — las compone.
+- Una ruta de `app/api` es delgada: sesión, permiso, leer la entrada y responder. La
+  regla de negocio y las consultas van en `lib/<dominio>/`, con la parte pura probada
+  (ejemplos: `lib/store-products/`, `lib/accounts/anonymize-account.ts`). Una ruta
+  gorda se adelgaza cuando se la toca, no en un PR aparte.
 
 ### 3. No monolitos
 
