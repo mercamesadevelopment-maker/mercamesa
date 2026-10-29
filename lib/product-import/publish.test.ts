@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PRODUCT_CODE_UNIQUE_INDEX } from '@/lib/products/product-code';
-import { insertErrorMessage, publishNewRows, publishRows } from './publish';
+import { insertErrorMessage, publishNewRows, publishRows, toInsert } from './publish';
 import type { ValidatedNewRow, ValidatedRow } from './types';
 
 const fila = (n: number, productCode = `C-${n}`): ValidatedRow => ({
@@ -92,5 +92,12 @@ describe('insertErrorMessage', () => {
       'Ya lo tienes publicado (se publicó mientras se procesaba el archivo).'
     );
     expect(insertErrorMessage('se cayó', '08006', fila(1))).toBe('se cayó');
+  });
+});
+
+describe('toInsert', () => {
+  it('sin código manda null, para que la base asigne uno', () => {
+    expect(toInsert('s', fila(1, '')).code).toBeNull();
+    expect(toInsert('s', fila(1, 'A-1')).code).toBe('A-1');
   });
 });

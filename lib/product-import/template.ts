@@ -123,8 +123,8 @@ export async function buildTemplateWorkbook(input: TemplateInput): Promise<Buffe
     `Carga masiva de productos — ${input.storeName}`,
     [
       `1. En la hoja "${SHEET_NAMES.catalog}" están los productos del catálogo que puedes vender y aún no publicas.`,
-      `2. Llena las columnas en verde claro SOLO en los productos que vendes: "${TEMPLATE_HEADERS.productCode}", "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" son obligatorias. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
-      `3. "${TEMPLATE_HEADERS.productCode}" es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. No puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
+      `2. Llena las columnas en verde claro SOLO en los productos que vendes: "${TEMPLATE_HEADERS.retailPrice}" y "${TEMPLATE_HEADERS.stock}" son obligatorias. Las filas que dejes vacías se ignoran: no hace falta borrarlas.`,
+      `3. "${TEMPLATE_HEADERS.productCode}" es el código con el que reconoces el producto en tu tienda, como el de su etiqueta. Es opcional: si lo dejas vacío, MercaMesa le asigna uno (por ejemplo MM-000123). Si lo escribes, no puede repetirse entre tus productos y admite máximo ${PRODUCT_CODE_MAX_LENGTH} caracteres.`,
       `4. "${TEMPLATE_HEADERS.wholesalePrice}", "${TEMPLATE_HEADERS.wholesaleMinQty}" y "${TEMPLATE_HEADERS.minOrderQty}" son opcionales. El mayorista no puede superar al minorista.`,
       `5. "${TEMPLATE_HEADERS.unit}" ya viene sugerida; cámbiala solo si vendes en otra, eligiéndola de la lista.`,
       '6. Las columnas en gris son del catálogo y no se cambian.',

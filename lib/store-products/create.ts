@@ -3,7 +3,7 @@ import type { Database } from '@/types/database_generated';
 import {
   PRODUCT_CODE_UNIQUE_INDEX,
   duplicateProductCodeMessage,
-  normalizeProductCode,
+  productCodeOrNull,
   validateProductCode,
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
@@ -33,13 +33,15 @@ export function toStoreProductInsert(body: any, now: Date): StoreProductInsert {
     is_active: body.is_active ?? true,
     is_featured: isFeatured,
     featured_at: isFeatured ? now.toISOString() : null,
-    code: normalizeProductCode(body.code),
+    // Vacío va como null: la base le asigna uno (`MM-000123`).
+    code: productCodeOrNull(body.code),
   };
 }
 
 /**
  * La fila de la asignación masiva del admin. Sin `code` a propósito: el admin no
- * conoce el código interno de cada tienda, y el tendero lo completa al editar.
+ * conoce el código interno de cada tienda. La base le asigna uno (`MM-000123`) y
+ * el tendero puede cambiarlo al editar.
  */
 export function toAssignmentInsert(item: any): StoreProductInsert {
   return {

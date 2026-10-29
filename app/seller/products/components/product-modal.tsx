@@ -137,13 +137,13 @@ export function ProductModal({
             label="Código del producto"
             value={newProduct.code}
             onChange={e => setNewOfferProduct(prev => ({ ...prev, code: e.target.value }))}
-            placeholder="Ej: 7702004003508"
+            placeholder="Opcional: se genera si lo dejas vacío"
             maxLength={PRODUCT_CODE_MAX_LENGTH}
-            required
           />
           <p className="text-xs text-mm-txw ml-1">
             El código con el que identificas este producto en tu tienda. No puede repetirse
-            entre tus productos (máx. {PRODUCT_CODE_MAX_LENGTH} caracteres).
+            entre tus productos (máx. {PRODUCT_CODE_MAX_LENGTH} caracteres). Si lo dejas vacío,
+            MercaMesa le asigna uno (por ejemplo MM-000123).
           </p>
         </div>
 

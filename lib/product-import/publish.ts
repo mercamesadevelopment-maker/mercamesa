@@ -11,7 +11,8 @@ export function toInsert(storeId: string, row: ValidatedRow | ValidatedNewRow): 
   return {
     store_id: storeId,
     catalog_product_id: row.catalogProductId,
-    code: row.productCode,
+    // Sin código, la base le asigna uno (`MM-000123`).
+    code: row.productCode || null,
     unit_id: row.unitId,
     price_per_unit: row.pricePerUnit,
     stock: row.stock,
