@@ -3,10 +3,11 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Tag, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useOffers } from '@/src/features/offers/hooks/use-offers';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
-import { OfferModal } from '@/src/features/offers/components/OfferModal';
-import { Button, Badge } from '@/src/components/Shared';
+import { useOffers } from '@/features/offers/hooks/use-offers';
+import { StoreOffer } from '@/features/offers/types/offer.types';
+import { OfferModal } from '@/features/offers/components/OfferModal';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { formatCOP } from '@/lib/utils/format';
 
 export default function OffersAdmin() {

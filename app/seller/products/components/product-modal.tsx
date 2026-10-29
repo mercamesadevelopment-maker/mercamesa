@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input, Badge } from '@/src/components/Shared';
-import { MasterProduct, Product } from '@/src/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { Badge } from '@/components/ui/badge';
+import { MasterProduct, Product } from '@/features/products/types/product.types';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
 

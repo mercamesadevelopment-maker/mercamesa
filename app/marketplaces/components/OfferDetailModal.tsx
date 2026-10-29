@@ -4,9 +4,10 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart } from 'lucide-react';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
-import { Badge, Button } from '@/src/components/Shared';
-import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { StoreOffer } from '@/features/offers/types/offer.types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/features/cart/hooks/use-cart';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
 
 interface OfferDetailModalProps {

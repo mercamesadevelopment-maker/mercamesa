@@ -137,7 +137,7 @@ Reglas:
 
 | Tipo | Comando | Dónde viven | Qué cubren |
 |---|---|---|---|
-| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `src/features/**/utils`: sin base, sin red |
+| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `features/**/utils`: sin base, sin red |
 | Base de datos (pgTAP) | `pnpm test:db`, con la base local arriba | `supabase/tests/*.test.sql` | Lo que solo vive en SQL: políticas RLS y de Storage, triggers, funciones de las tareas programadas |
 
 - Cada prueba de base de datos incluye `supabase/tests/_helpers/fixtures.inc`, que crea
@@ -261,10 +261,14 @@ correr si alguna URL apunta a producción.
 `components/ui/` es la librería de UI compartida entre features. Antes de crear un
 componente nuevo, **revisa si ya existe algo reutilizable ahí**. Para mezclar clases de
 Tailwind está `cn()` en `lib/utils/cn.ts`: úsalo en vez de concatenar strings.
-`src/components/Shared.tsx` la reexporta mientras se termina de mover `src/`.
 
 Inventario actual:
 
+- `button.tsx` — `Button` (variantes, tamaños y `loading`, que también lo deshabilita).
+- `badge.tsx` — `Badge`, la etiqueta de estado.
+- `form-fields.tsx` — `Input`, `Select` y `Textarea` con la misma etiqueta y el mismo
+  borde, para que un formulario que los mezcla no se vea a dos aguas.
+- `step-bar.tsx` — `StepBar`, los pasos numerados de un formulario largo.
 - `modal/` — `Modal` genérico (portal + animación + bloqueo de scroll).
 - `confirm-modal/` — `ConfirmModal`, diálogo de confirmación sobre `Modal`.
 - `table/` — tabla reutilizable, ya dividida en `components/Table.tsx`, `hooks/useTable.ts`
@@ -297,7 +301,7 @@ Convención para agregar uno nuevo:
 
 ### Responsividad
 
-- `useMediaQuery(query)` (`src/features/layout/hooks/use-media-query.ts`) — hook
+- `useMediaQuery(query)` (`features/layout/hooks/use-media-query.ts`) — hook
   compartido para condicionar lógica en **JS** al viewport (SSR-safe: devuelve `false`
   hasta hidratar). Úsalo en vez de escribir `window.innerWidth`/`matchMedia` a mano o
   crear otro hook de breakpoint. Para estilos puros, usa las utilidades responsive de
@@ -392,8 +396,8 @@ lo mismo y reúsalo. En particular:
 Si dos features necesitan la misma lógica, esa lógica sube a `lib/`, `components/ui/`,
 `hooks/` o `types/` (ver "Shared global" en AGENTS.md) — no se copia y pega.
 
-**Dirección de las dependencias:** la interfaz (`src/`, `app/`, `components/`) importa de
-`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `src/`, de `components/` ni de
+**Dirección de las dependencias:** la interfaz (`features/`, `app/`, `components/`) importa de
+`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `features/`, de `components/` ni de
 `app/` (salvo `app/api` entre sí). Si el servidor necesita algo que hoy vive en la interfaz
 (un tipo, una función pura), se mueve a `lib/`. Lo vigila `lib/architecture.test.ts`.
 
@@ -418,10 +422,6 @@ Ningún archivo debe crecer indefinidamente mezclando responsabilidades. Si un a
 supera unos pocos cientos de líneas o junta varias vistas/entidades, se divide siguiendo
 la estructura de feature de AGENTS.md (`components/`, `hooks/`, `services/`, `types/`).
 
-Lo que queda de la app de Vite (`src/types.ts` y `src/components/Shared.tsx`) es **deuda
-técnica heredada, no un ejemplo a seguir**: no se le agrega código nuevo, y lo que se toque
-ahí se pasa a su feature o a `lib/`.
-
 ### Estado compartido
 
 No hay un store global. Cada cosa compartida tiene su contexto, montados en
@@ -429,9 +429,9 @@ No hay un store global. Cada cosa compartida tiene su contexto, montados en
 
 | Hook | Archivo | Qué tiene |
 |---|---|---|
-| `useSession()` | `src/features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
-| `useCart()` | `src/features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
-| `useNotifications()` | `src/features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
+| `useSession()` | `features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
+| `useCart()` | `features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
+| `useNotifications()` | `features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
 
 Algo nuevo que varias pantallas necesiten compartir va en un contexto propio de su
 feature, no en uno de estos.

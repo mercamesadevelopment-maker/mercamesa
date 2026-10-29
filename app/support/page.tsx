@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 
 /**
  * «Ayuda y Soporte» lleva a las PQRS de quien entra.

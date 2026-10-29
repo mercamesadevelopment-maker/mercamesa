@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 import { fechaCorta } from '@/lib/dates/relative-time';
 import { useBuyerStats } from '../hooks/use-buyer-stats';
 

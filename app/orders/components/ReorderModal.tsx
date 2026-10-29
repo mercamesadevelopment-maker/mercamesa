@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { X, Loader2, AlertTriangle, CheckCircle2, Image as ImageIcon, RotateCcw } from 'lucide-react';
-import { Button } from '@/src/components/Shared';
-import { useSession } from '@/src/features/auth/session-context';
-import { useCart } from '@/src/features/cart/hooks/use-cart';
-import { fetchPickupGroup } from '@/src/features/cart/services/cart.service';
+import { Button } from '@/components/ui/button';
+import { useSession } from '@/features/auth/session-context';
+import { useCart } from '@/features/cart/hooks/use-cart';
+import { fetchPickupGroup } from '@/features/cart/services/cart.service';
 import { sharePickupPoint } from '@/lib/orders/pickup-group';
 import { formatCOP } from '@/lib/utils/format';
 

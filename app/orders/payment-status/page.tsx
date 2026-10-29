@@ -3,10 +3,10 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowLeft, RefreshCw } from 'lucide-react';
-import { syncPaymentStatus } from '@/src/features/payment/services/payment.service';
-import { useSession } from '@/src/features/auth/session-context';
-import { useCartState } from '@/src/features/cart/cart-context';
-import { deleteCartForOrderDb, revertCartDb, fetchCart } from '@/src/features/cart/services/cart.service';
+import { syncPaymentStatus } from '@/features/payment/services/payment.service';
+import { useSession } from '@/features/auth/session-context';
+import { useCartState } from '@/features/cart/cart-context';
+import { deleteCartForOrderDb, revertCartDb, fetchCart } from '@/features/cart/services/cart.service';
 import Link from 'next/link';
 
 function PaymentStatusContent() {

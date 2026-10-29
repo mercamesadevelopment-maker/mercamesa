@@ -12,8 +12,13 @@ app/
 ├── profile/
 ├── orders/
 ├── marketplaces/
-├── auth/
 ```
+
+**En `app/` solo hay rutas.** Lo que no es una página ni el layout raíz (`layout.tsx`,
+`app-shell.tsx`, `providers.tsx`) va en `features/` si lo comparten varias rutas (los modales
+de ingreso y registro, por ejemplo, están en `features/auth/`), en `components/ui/` si es un
+componente genérico, o en `lib/` si es lógica sin React. No se crean `app/hooks/`,
+`app/services/` ni carpetas parecidas que no sean una ruta.
 
 `app/{admin,seller,customer}` son ejemplos, no una lista cerrada: **cualquier ruta de primer nivel bajo `app/` es una feature** y debe seguir la misma estructura modular. `app/profile` es hoy el ejemplo más completo del patrón: una sola feature (el perfil del comprador) con varias secciones (`components/addresses-tab.tsx`, `components/payments-tab.tsx`, etc.), cada sección con su propio archivo en `hooks/`, `services/` y `types/` (ej. `hooks/use-payments.ts` + `services/payments.service.ts` + `types/payment.types.ts` para medios de pago).
 
@@ -90,13 +95,17 @@ admin.service.ts
 Código reutilizable global va en:
 
 ```txt
-components/ui/
-lib/
-hooks/
-types/
+components/ui/   componentes de interfaz genéricos (botones, modales, tablas…)
+features/        lo que comparten varias rutas: canasta, pedidos, PQRS, sesión…
+lib/             lógica y acceso a datos, sin React; también lo usa el servidor
+types/           solo los tipos generados de la base (database_generated.ts)
 ```
 
-Las dependencias van en una sola dirección: la interfaz (`src/`, `app/`, `components/`)
+`features/<nombre>/` sigue la misma estructura de una feature (`components/`, `hooks/`,
+`services/`, `types/`, `utils/`). Si algo lo usa una sola ruta, vive en `app/<ruta>/`, no
+en `features/`.
+
+Las dependencias van en una sola dirección: la interfaz (`features/`, `app/`, `components/`)
 importa de `lib/`, pero `lib/` y `app/api/` no importan de la interfaz. Lo comprueba
 `lib/architecture.test.ts`.
 

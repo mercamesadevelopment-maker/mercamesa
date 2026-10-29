@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
-import { PqrsView } from '@/src/features/pqrs/components/PqrsView';
-import { StoreBlocksPanel } from '@/src/features/pqrs/components/StoreBlocksPanel';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
+import { PqrsView } from '@/features/pqrs/components/PqrsView';
+import { StoreBlocksPanel } from '@/features/pqrs/components/StoreBlocksPanel';
 
 /** Las PQRS de la tienda activa del tendero. */
 export function SellerPqrsView() {

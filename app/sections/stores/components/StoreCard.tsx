@@ -4,12 +4,13 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { Store as StoreIcon, Star, Heart } from 'lucide-react';
-import { Badge, cn } from '@/src/components/Shared';
-import { getStoreShareUrl } from '@/src/features/products/utils/share-link';
-import { ShareLinkButton } from '@/src/features/products/components/ShareLinkButton';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
+import { getStoreShareUrl } from '@/features/products/utils/share-link';
+import { ShareLinkButton } from '@/features/products/components/ShareLinkButton';
 import type { BusinessHours } from '@/components/ui/business-hours/business-hours-editor';
 import { openStatus } from '@/components/ui/business-hours/summarize-hours';
-import { SalesTypeLine } from '@/src/features/stores/components/SalesTypeLine';
+import { SalesTypeLine } from '@/features/stores/components/SalesTypeLine';
 import type { PublicStore } from '../hooks/usePublicStores';
 
 interface StoreCardProps {

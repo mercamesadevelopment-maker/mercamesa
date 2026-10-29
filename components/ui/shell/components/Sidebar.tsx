@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { useRouter, usePathname } from 'next/navigation';
-import { useSession } from '@/src/features/auth/session-context';
+import { useSession } from '@/features/auth/session-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useMediaQuery } from '@/src/features/layout/hooks/use-media-query';
-import { InstallAppButton } from '@/src/features/pwa/components/InstallAppButton';
+import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
+import { InstallAppButton } from '@/features/pwa/components/InstallAppButton';
 
 interface SidebarProps {
   collapsed: boolean;

@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
 import { SearchableSelect, type SelectOption } from '@/components/ui/searchable-select';
-import { Button, normalizeText } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { normalizeText } from '@/lib/utils/text';
 import { mergeProductService, searchApprovedProductsService } from '../services/review.service';
 
 interface MergeProductModalProps {

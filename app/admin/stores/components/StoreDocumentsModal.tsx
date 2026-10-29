@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { StoreDocumentsPanel } from '@/src/features/stores/components/StoreDocumentsPanel';
+import { StoreDocumentsPanel } from '@/features/stores/components/StoreDocumentsPanel';
 
 /**
  * La documentación de una tienda, en un modal.

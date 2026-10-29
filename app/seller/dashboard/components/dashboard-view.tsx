@@ -29,7 +29,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Button, Badge, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/app/orders/types/order.types';
 import { useSellerDashboard, type Trend } from '../hooks/use-seller-dashboard';

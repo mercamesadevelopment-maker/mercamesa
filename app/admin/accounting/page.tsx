@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { Calculator, CreditCard, FileMinus, Banknote, Undo2, Scale } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { PAGE_SIZES, useAccountingFilters, type AccountingTab } from './hooks/use-accounting-filters';
 import { useAccountingOptions } from './hooks/use-accounting-options';
 import { AccountingFilters } from './components/accounting-filters';

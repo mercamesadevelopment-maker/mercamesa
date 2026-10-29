@@ -5,11 +5,12 @@ import {
 } from 'lucide-react';
 import { useSales } from '../hooks/use-sales';
 import { CustomerAutocomplete } from './customer-autocomplete';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal/modal';
 import { Table } from '@/components/ui/table/components/Table';
 import { formatCOP } from '@/lib/utils/format';
-import { Product } from '@/src/types';
+import { Product } from '@/features/products/types/product.types';
 
 export function SalesView() {
   const {

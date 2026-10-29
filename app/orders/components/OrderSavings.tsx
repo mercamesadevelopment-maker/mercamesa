@@ -1,5 +1,5 @@
 import { Tag } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { ORDER_SAVINGS_LABEL } from '@/lib/copy/discount-notice';
 

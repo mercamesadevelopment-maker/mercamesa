@@ -6,7 +6,9 @@ import {
 import { useSalesHistory, UnifiedHistoryItem } from '../hooks/use-sales-history';
 import { Table } from '@/components/ui/table/components/Table';
 import { Modal } from '@/components/ui/modal/modal';
-import { Badge, Button, cn } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 
 export function SalesHistoryView() {

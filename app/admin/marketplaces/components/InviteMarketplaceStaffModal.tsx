@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Input, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { Modal } from '@/components/ui/modal/modal';
 import type { StaffRole } from '@/lib/marketplace-staff/actor';
 

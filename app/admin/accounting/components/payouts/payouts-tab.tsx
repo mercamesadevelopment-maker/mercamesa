@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import {
   Loader2, FileText, Download, Ban, Eye, RefreshCw, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { Button, Badge, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { Table } from '@/components/ui/table/components/Table';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Modal } from '@/components/ui/modal/modal';

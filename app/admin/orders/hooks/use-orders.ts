@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { Order, OrderStatus } from '@/src/types';
-import { updateStoreOrderStatus } from '@/src/features/orders/services/update-order-status.service';
-import { revertStoreOrderStatus } from '@/src/features/orders/services/revert-order-status.service';
-import { cancelStorePart } from '@/src/features/orders/services/cancel-store-part.service';
-import { toStoreOrderCard } from '@/src/features/orders/utils/store-order-card';
+import { Order, OrderStatus } from '@/features/orders/types/order.types';
+import { updateStoreOrderStatus } from '@/features/orders/services/update-order-status.service';
+import { revertStoreOrderStatus } from '@/features/orders/services/revert-order-status.service';
+import { cancelStorePart } from '@/features/orders/services/cancel-store-part.service';
+import { toStoreOrderCard } from '@/features/orders/utils/store-order-card';
 
 export function useOrders() {
   const [stores, setStores] = useState<Array<{ id: string; name: string }>>([]);

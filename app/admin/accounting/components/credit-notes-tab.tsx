@@ -1,10 +1,10 @@
 'use client';
 
 import { Table } from '@/components/ui/table/components/Table';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 import { fechaCompleta, fechaCorta } from '@/lib/dates/relative-time';
-import { InvoiceLink } from '@/src/features/orders/components/InvoiceLink';
+import { InvoiceLink } from '@/features/orders/components/InvoiceLink';
 import type { CreditNoteRow } from '@/lib/accounting/types';
 import { useAccountingList } from '../hooks/use-accounting-list';
 import { fetchCreditNotes } from '../services/accounting.service';

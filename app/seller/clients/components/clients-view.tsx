@@ -6,7 +6,9 @@ import {
 import { useClients, ClientWithMetrics, ClientOrder, ALL_STORES } from '../hooks/use-clients';
 import { Table } from '@/components/ui/table/components/Table';
 import { Modal } from '@/components/ui/modal/modal';
-import { Badge, Button, cn } from '@/src/components/Shared';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
 
 export function ClientsView() {

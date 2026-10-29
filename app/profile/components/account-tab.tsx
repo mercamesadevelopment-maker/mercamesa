@@ -4,7 +4,8 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { KeyRound, LogOut } from 'lucide-react';
-import { Button, Input, Select } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/form-fields';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAccount } from '../hooks/use-account';
@@ -12,7 +13,7 @@ import { EmailChangeModal } from './email-change-modal';
 import { PasswordChangeModal } from './password-change-modal';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 
 export function AccountTab() {
   return (

@@ -3,14 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { ShoppingBag, Package, Leaf, User } from 'lucide-react';
-import { LoginModal } from './auth/LoginModal';
-import { BuyerRegisterModal } from './auth/BuyerRegisterModal';
-import { ForgotPasswordModal } from './auth/ForgotPasswordModal';
-import { useSession } from '@/src/features/auth/session-context';
+import { LoginModal } from '@/features/auth/components/LoginModal';
+import { BuyerRegisterModal } from '@/features/auth/components/BuyerRegisterModal';
+import { ForgotPasswordModal } from '@/features/auth/components/ForgotPasswordModal';
+import { useSession } from '@/features/auth/session-context';
 import { ROLE_ROUTES } from '@/lib/auth/roles';
-import { useLegalLinks } from './hooks/use-legal-links';
+import { useLegalLinks } from '@/features/auth/hooks/use-legal-links';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
 export default function Page() {
