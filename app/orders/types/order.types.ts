@@ -18,26 +18,8 @@ export interface OrderProduct {
 export type OrderStatus = Database['public']['Enums']['order_status'];
 export type PaymentStatus = Database['public']['Enums']['payment_status'];
 
-export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  paid: 'Pagado',
-  packing: 'Empacando',
-  at_collection: 'En recolección',
-  dispatched: 'Despachado',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
-  returned: 'Devuelto',
-};
-
-export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  pending: 'Pendiente',
-  processing: 'Procesando',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-  refunded: 'Reembolsado',
-  disputed: 'Disputado',
-};
+// Viven en lib/ porque también los usa el servidor (el MCP de Meteor).
+export { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/orders/status-labels';
 
 export interface OrderDetail extends Omit<OrderDetailRow, 'products'> {
   products: OrderProduct[] | null;

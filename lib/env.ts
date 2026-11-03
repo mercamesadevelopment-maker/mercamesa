@@ -28,3 +28,11 @@ export function getResendFromEmail(): string {
   if (!email) throw new Error('Missing RESEND_FROM_EMAIL');
   return email;
 }
+/**
+ * El token con el que Meteor llama al MCP (`/api/mcp`), uno distinto por
+ * entorno. Sin él el MCP no responde: `null` en vez de lanzar, para que la ruta
+ * conteste 503 y no un error.
+ */
+export function getMeteorMcpToken(): string | null {
+  return process.env.METEOR_MCP_TOKEN || null;
+}
