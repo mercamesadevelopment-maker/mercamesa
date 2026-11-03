@@ -9,6 +9,7 @@ import { useCart } from '@/features/cart/hooks/use-cart';
 import { discountPct } from '@/features/cart/utils/cart-savings';
 import { useSession } from '@/features/auth/session-context';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
+import { maxQtyFor, offerLimitLabel } from '@/lib/offers/offer-limit';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/features/products/utils/share-link';
 import { ShareLinkButton } from '@/features/products/components/ShareLinkButton';
@@ -53,6 +54,9 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   const price = offer && offer.finalPrice < listPrice ? offer.finalPrice : listPrice;
   const hasDiscount = price < listPrice;
   const pct = discountPct(listPrice, price);
+  // Solo si la oferta se aplica: sin descuento no hay máximo que cuidar.
+  const offerMax = hasDiscount ? offer?.maxQtyPerOrder ?? null : null;
+  const tope = maxQtyFor(stock, offerMax);
 
   // Red de seguridad: si el derivado WebP aún no existe (imagen subida antes
   // del backfill, o formato que sharp no pudo procesar), cae al original.
@@ -78,6 +82,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
         // Con descuento, el carrito tacha el de lista y suma el ahorro.
         listPrice: hasDiscount ? listPrice : undefined,
         offerId: hasDiscount ? offer?.id ?? null : null,
+        offerMaxQty: offerMax,
         stock: product.stock ?? 0,
         unit: product.measurement_units?.abbreviation || 'und',
         emoji: '📦',
@@ -158,6 +163,9 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
             {stock} {unit} disponibles
           </p>
         )}
+        {offerMax != null && stock > 0 && (
+          <p className="font-mono text-[10px] font-bold text-arcilla-oscura">{offerLimitLabel(offerMax, unit)}</p>
+        )}
       </div>
 
       {/* La base curva: el borde superior es un arco, como en la lámina 16. Sin
@@ -175,7 +183,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
         ) : qty > 0 ? (
           <QuantityStepper
             qty={qty}
-            max={stock}
+            max={tope}
             onChange={(next) => updateCartQty(product.id, next)}
             // Bajar de 1 saca el producto de la canasta.
             min={1}

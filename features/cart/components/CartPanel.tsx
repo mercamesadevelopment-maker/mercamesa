@@ -33,6 +33,7 @@ import { CartItemPrice } from "./CartItemPrice";
 import { CART_SAVINGS_LABEL } from "@/lib/copy/discount-notice";
 import { CARD_TOKENIZATION_ENABLED } from "@/features/payment/config";
 import { CartItem } from "@/features/cart/types/cart.types";
+import { maxQtyFor, offerLimitLabel } from "@/lib/offers/offer-limit";
 
 interface CartPanelProps {
   isOpen: boolean;
@@ -378,6 +379,13 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                                   </span>
                                 </p>
 
+                                {/* El máximo por pedido de la oferta: el contador no lo pasa. */}
+                                {item.offerMaxQty != null && !item.offerExpired && (
+                                  <p className="text-[10px] font-bold text-arcilla-oscura mt-0.5">
+                                    {offerLimitLabel(item.offerMaxQty, item.unit || "und")} en esta oferta
+                                  </p>
+                                )}
+
                                 {/* Alerta de oferta expirada */}
                                 {item.offerExpired && (
                                   <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg mt-1">
@@ -405,7 +413,7 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
                                   <QuantityStepper
                                     size="sm"
                                     qty={item.qty}
-                                    max={item.stock}
+                                    max={maxQtyFor(item.stock, item.offerMaxQty)}
                                     onChange={(next) =>
                                       updateCartQty(item.id, next)
                                     }

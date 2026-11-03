@@ -3,8 +3,11 @@ import type { Product } from '@/features/products/types/product.types';
 
 export interface CartState {
   items: CartItem[];
-  /** Aviso al intentar juntar tiendas que no despachan desde el mismo punto. */
-  conflict: { currentStoreName: string } | null;
+  /**
+   * Aviso al agregar de una tienda que no cabe: no despacha desde el mismo punto
+   * que lo que ya hay, o la canasta ya tiene el máximo de tiendas (`storeLimit`).
+   */
+  conflict: { currentStoreName: string; storeLimit?: true } | null;
 }
 
 export type CartAction =
@@ -15,6 +18,7 @@ export type CartAction =
   | { type: 'CLEAR_CART' }
   | { type: 'HYDRATE_CART'; cart: CartItem[] }
   | { type: 'SET_CART_STORE_CONFLICT'; currentStoreName: string }
+  | { type: 'SET_CART_STORE_LIMIT' }
   | { type: 'CLEAR_CART_STORE_CONFLICT' };
 
 export const EMPTY_CART: CartState = { items: [], conflict: null };
@@ -50,6 +54,8 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       return { ...state, items: action.cart };
     case 'SET_CART_STORE_CONFLICT':
       return { ...state, conflict: { currentStoreName: action.currentStoreName } };
+    case 'SET_CART_STORE_LIMIT':
+      return { ...state, conflict: { currentStoreName: '', storeLimit: true } };
     case 'CLEAR_CART_STORE_CONFLICT':
       return { ...state, conflict: null };
     default:

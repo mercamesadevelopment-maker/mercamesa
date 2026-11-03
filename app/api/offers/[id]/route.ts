@@ -3,7 +3,7 @@ import { createClient } from '../../../../lib/supabase/server';
 import { Database } from '../../../../types/database_generated';
 import { createNotification } from '../../../../lib/notifications/create-notification';
 import { canManageStore } from '@/lib/auth/can-manage-store';
-import { parseAmount, validateOffer } from '@/lib/offers/validate-offer';
+import { parseAmount, parseMaxQty, validateOffer } from '@/lib/offers/validate-offer';
 import { findOverlappingOffer } from '@/lib/offers/find-overlapping-offer';
 
 type StoreOfferUpdate = Database['public']['Tables']['store_offers']['Update'];
@@ -43,7 +43,7 @@ export async function PUT(
     // La oferta que se va a editar, con su producto y su tienda actuales.
     const { data: existing } = await supabase
       .from('store_offers')
-      .select('id, store_product_id, starts_at, ends_at, discount_pct, special_price, store_products ( store_id, price_per_unit )')
+      .select('id, store_product_id, starts_at, ends_at, discount_pct, special_price, max_qty_per_order, store_products ( store_id, price_per_unit )')
       .eq('id', id)
       .maybeSingle();
 
@@ -89,9 +89,12 @@ export async function PUT(
       body.special_price !== undefined ? parseAmount(body.special_price) : existing.special_price;
     const startsAt = body.starts_at !== undefined ? body.starts_at : existing.starts_at;
     const endsAt = body.ends_at !== undefined ? body.ends_at || null : existing.ends_at;
+    // Sin el campo se conserva el que tenía; vacío lo quita.
+    const maxQtyPerOrder =
+      body.max_qty_per_order !== undefined ? parseMaxQty(body.max_qty_per_order) : existing.max_qty_per_order;
 
     const invalid = validateOffer(
-      { discountPct, specialPrice, startsAt, endsAt },
+      { discountPct, specialPrice, startsAt, endsAt, maxQtyPerOrder },
       { pricePerUnit }
     );
     if (invalid) {
@@ -107,6 +110,7 @@ export async function PUT(
       store_product_id: targetProductId,
       discount_pct: discountPct,
       special_price: specialPrice,
+      max_qty_per_order: maxQtyPerOrder,
       starts_at: startsAt,
       ends_at: endsAt,
     };

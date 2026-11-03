@@ -185,7 +185,9 @@ export function toStorefrontItem(p: StorefrontRow, precio: PrecioResuelto | unde
     store_id: p.store_id,
     // Sigue siendo el precio de lista: el filtro y el orden van contra él.
     price_per_unit: p.price_per_unit,
-    offer: precio?.offerId ? { id: precio.offerId, finalPrice: precio.finalPrice, label: precio.label } : null,
+    offer: precio?.offerId
+      ? { id: precio.offerId, finalPrice: precio.finalPrice, label: precio.label, maxQtyPerOrder: precio.maxQtyPerOrder }
+      : null,
     stock: p.stock,
     is_featured: p.is_featured,
     featured_at: p.featured_at,

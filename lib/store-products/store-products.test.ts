@@ -67,8 +67,8 @@ describe('toStorefrontItem', () => {
   });
 
   it('la oferta vigente viaja aparte y el precio de lista no cambia', () => {
-    const item = toStorefrontItem(fila, { listPrice: 3000, finalPrice: 2400, offerId: 'o', label: '-20%' });
-    expect(item.offer).toEqual({ id: 'o', finalPrice: 2400, label: '-20%' });
+    const item = toStorefrontItem(fila, { listPrice: 3000, finalPrice: 2400, offerId: 'o', label: '-20%', maxQtyPerOrder: 3 });
+    expect(item.offer).toEqual({ id: 'o', finalPrice: 2400, label: '-20%', maxQtyPerOrder: 3 });
     expect(item.price_per_unit).toBe(3000);
   });
 });

@@ -3620,6 +3620,7 @@ export type Database = {
           id: string
           is_featured: boolean
           label: string | null
+          max_qty_per_order: number | null
           special_price: number | null
           starts_at: string
           status: string
@@ -3632,6 +3633,7 @@ export type Database = {
           id?: string
           is_featured?: boolean
           label?: string | null
+          max_qty_per_order?: number | null
           special_price?: number | null
           starts_at: string
           status?: string
@@ -3644,6 +3646,7 @@ export type Database = {
           id?: string
           is_featured?: boolean
           label?: string | null
+          max_qty_per_order?: number | null
           special_price?: number | null
           starts_at?: string
           status?: string
