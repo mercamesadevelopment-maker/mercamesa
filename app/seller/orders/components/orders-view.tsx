@@ -1,5 +1,5 @@
 import { useOrders } from '../hooks/use-orders';
-import { OrdersView as OrdersViewShared } from '@/src/features/orders/components/OrdersView';
+import { OrdersView as OrdersViewShared } from '@/features/orders/components/OrdersView';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 
 export function OrdersView() {

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldX, Clock, AlertTriangle, FileText, FileSignature } from 'lucide-react';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { Modal } from '@/components/ui/modal/modal';
 import { fechaCorta } from '@/lib/dates/relative-time';
 import { useBankAccounts } from '../../hooks/use-bank-accounts';

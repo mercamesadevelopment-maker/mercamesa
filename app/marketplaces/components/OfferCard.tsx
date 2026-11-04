@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { cn } from '@/lib/utils/cn';
+import { formatCOP } from '@/lib/utils/format';
 import { Floating } from '@/components/ui/floating';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
+import { offerLimitLabel } from '@/lib/offers/offer-limit';
+import { StoreOffer } from '@/features/offers/types/offer.types';
 
 interface OfferCardProps {
   offer: StoreOffer;
@@ -46,7 +47,7 @@ export function OfferCard({ offer, onClick, destacada = false, index = 0 }: Offe
   const [fotoRota, setFotoRota] = useState(false);
 
   const kicker = offer.label || (offer.discount_pct ? 'Descuento' : 'Precio especial');
-  const cifra = offer.discount_pct ? `${offer.discount_pct}%` : fmt(Number(offer.special_price ?? 0));
+  const cifra = offer.discount_pct ? `${offer.discount_pct}%` : formatCOP(Number(offer.special_price ?? 0));
 
   const foto = offer.imageSignedUrl && !fotoRota ? (
     <img
@@ -83,6 +84,11 @@ export function OfferCard({ offer, onClick, destacada = false, index = 0 }: Offe
         <p className={cn('truncate font-mono text-[10px] uppercase tracking-widest', tono.sub)}>
           {offer.store_products?.stores?.name || 'Tienda'}
         </p>
+        {offer.max_qty_per_order != null && (
+          <p className={cn('mt-1 truncate font-mono text-[10px] font-bold uppercase tracking-widest', tono.sub)}>
+            {offerLimitLabel(Number(offer.max_qty_per_order), offer.store_products?.measurement_units?.abbreviation)}
+          </p>
+        )}
       </div>
 
       {/* La media luna y el producto encima. */}

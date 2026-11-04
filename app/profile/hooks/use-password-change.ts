@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { passwordChangeService } from '../services/password-change.service';
-import { useResendCooldown } from '@/app/hooks/use-resend-cooldown';
+import { useResendCooldown } from '@/features/auth/hooks/use-resend-cooldown';
 
 export const MIN_PASSWORD_LENGTH = 8;
 

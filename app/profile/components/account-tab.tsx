@@ -3,16 +3,20 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { KeyRound, LogOut } from 'lucide-react';
-import { Button, Input, Select } from '@/src/components/Shared';
+import { BellRing, KeyRound, LogOut, MessageCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
+import { Button } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/form-fields';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { useAccount } from '../hooks/use-account';
 import { EmailChangeModal } from './email-change-modal';
 import { PasswordChangeModal } from './password-change-modal';
+import { PhoneVerificationModal } from './phone-verification-modal';
 import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 
 export function AccountTab() {
   return (
@@ -50,7 +54,13 @@ function AccountTabContent() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [confirmSignOutAll, setConfirmSignOutAll] = useState(false);
   const [signingOutAll, setSigningOutAll] = useState(false);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
   const router = useRouter();
+
+  const savedPhone = profile?.phone || '';
+  const phoneVerified = !!profile?.phone_verified_at;
+  // Se verifica el número guardado: si lo está editando, primero que lo guarde.
+  const phoneDirty = phone !== savedPhone;
 
   useEffect(() => {
     fetchProfile();
@@ -232,6 +242,85 @@ function AccountTabContent() {
       </form>
 
       <div className="mt-8 sm:mt-10 max-w-xl border-t border-mm-crd pt-6 sm:pt-8">
+        <h3 className="mb-1 text-xl font-display text-mm-g">WhatsApp</h3>
+        <p className="mb-4 sm:mb-6 text-sm text-mm-txs">
+          Con tu número verificado te avisamos por WhatsApp cómo va tu pedido, y puedes consultarlo con Carolina.
+        </p>
+
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-mm-crd p-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-mm-txw" />
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-mm-g">
+                  {savedPhone || 'Sin número'}
+                  {savedPhone && (
+                    <Badge variant={phoneVerified ? 'success' : 'warning'}>
+                      {phoneVerified ? 'Verificado' : 'Sin verificar'}
+                    </Badge>
+                  )}
+                </p>
+                <p className="text-xs text-mm-txs">
+                  {!savedPhone
+                    ? 'Guarda tu número de celular para verificarlo.'
+                    : phoneDirty
+                      ? 'Guarda el número nuevo antes de verificarlo.'
+                      : phoneVerified
+                        ? 'Si cambias el número, tendrás que verificarlo otra vez.'
+                        : 'Envía un código por WhatsApp desde este número.'}
+                </p>
+              </div>
+            </div>
+            {savedPhone && !phoneVerified && (
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                disabled={phoneDirty}
+                className="w-full sm:w-auto shrink-0 whitespace-nowrap"
+                onClick={() => setShowPhoneVerification(true)}
+              >
+                Verificar por WhatsApp
+              </Button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={phoneVerified && !!profile?.whatsapp_notifications}
+            disabled={!phoneVerified || saving}
+            onClick={() => saveProfile({ whatsapp_notifications: !profile?.whatsapp_notifications })}
+            className="flex w-full items-center justify-between gap-4 rounded-2xl border border-mm-crd p-4 text-left disabled:opacity-60"
+          >
+            <span className="flex items-start gap-3 min-w-0">
+              <BellRing className="mt-0.5 h-5 w-5 shrink-0 text-mm-txw" />
+              <span>
+                <span className="block text-sm font-bold text-mm-g">Avisos de mis pedidos por WhatsApp</span>
+                <span className="block text-xs text-mm-txs">
+                  {phoneVerified ? 'Confirmación, despacho con el enlace de seguimiento y entrega.' : 'Disponible al verificar tu número.'}
+                </span>
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={cn(
+                'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+                phoneVerified && profile?.whatsapp_notifications ? 'bg-mm-g' : 'bg-mm-crd'
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
+                  phoneVerified && profile?.whatsapp_notifications ? 'translate-x-[22px]' : 'translate-x-0.5'
+                )}
+              />
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-8 sm:mt-10 max-w-xl border-t border-mm-crd pt-6 sm:pt-8">
         <h3 className="mb-1 text-xl font-display text-mm-g">Seguridad</h3>
         <p className="mb-4 sm:mb-6 text-sm text-mm-txs">
           Protege el acceso a tu cuenta.
@@ -293,6 +382,14 @@ function AccountTabContent() {
       <PasswordChangeModal
         isOpen={showPasswordChange}
         onClose={() => setShowPasswordChange(false)}
+      />
+
+      <PhoneVerificationModal
+        isOpen={showPhoneVerification}
+        phone={savedPhone}
+        verified={phoneVerified}
+        onClose={() => setShowPhoneVerification(false)}
+        onVerified={fetchProfile}
       />
 
       <ConfirmModal

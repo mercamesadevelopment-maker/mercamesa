@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useStoreHours } from '../hooks/use-store-hours';
 import { WeeklyHoursEditor } from '@/components/ui/business-hours/business-hours-editor';
-import { Button } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
 
 interface StoreHoursTabProps {
   storeId: string | null;

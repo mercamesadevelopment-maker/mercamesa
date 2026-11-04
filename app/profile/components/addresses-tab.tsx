@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useAddresses } from '../hooks/use-addresses';
 import type { AddressFormValues, DeliveryAddress } from '../types/address.types';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { MapPin, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { AddressFormModal } from './address-form-modal';
 

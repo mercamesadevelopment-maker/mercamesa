@@ -1,7 +1,8 @@
 /**
  * Código propio de la tienda para un producto publicado (`store_products.code`),
  * del estilo de un código de barras: lo escribe el vendedor y debe ser único
- * dentro de su tienda.
+ * dentro de su tienda. Es opcional: si llega vacío, la base le asigna uno
+ * (`MM-000123`, trigger `store_products_codigo_generado`).
  *
  * Una sola fuente para el formato y los mensajes, usada por los formularios, los
  * endpoints y la carga masiva, para que el vendedor lea siempre lo mismo.
@@ -24,11 +25,14 @@ export function productCodeKey(input: unknown): string {
   return normalizeProductCode(input).toUpperCase();
 }
 
-/** Devuelve el mensaje de error, o null si el código es válido. */
+/** El código para guardar: `null` si viene vacío, para que la base genere uno. */
+export function productCodeOrNull(input: unknown): string | null {
+  return normalizeProductCode(input) || null;
+}
+
+/** Devuelve el mensaje de error, o null si el código es válido (vacío también lo es). */
 export function validateProductCode(input: unknown): string | null {
   const code = normalizeProductCode(input);
-
-  if (!code) return 'El código del producto es obligatorio.';
 
   if (code.length > PRODUCT_CODE_MAX_LENGTH) {
     return `El código del producto no puede pasar de ${PRODUCT_CODE_MAX_LENGTH} caracteres.`;

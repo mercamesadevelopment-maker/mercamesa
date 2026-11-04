@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useApp } from '@/src/store';
 import { addressesService } from '../services/addresses.service';
 import type { DeliveryAddress, AddressFormValues } from '../types/address.types';
 
 export function useAddresses() {
-  const { dispatch } = useApp();
   const [addresses, setAddresses] = useState<DeliveryAddress[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,28 +15,12 @@ export function useAddresses() {
       setError(null);
       const data = await addressesService.getAll();
       setAddresses(data);
-      // Sync store so other parts of the app see updated list
-      dispatch({
-        type: 'UPDATE_BUYER_PROFILE',
-        profile: {
-          addresses: data.map((a) => ({
-            id: a.id,
-            label: a.label ?? a.address_line,
-            street: a.address_line,
-            neighborhood: a.neighborhood ?? '',
-            city: a.municipality,
-            notes: '',
-            isDefault: a.is_default,
-            icon: '📍',
-          })),
-        },
-      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error cargando direcciones');
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, []);
 
   const createAddress = useCallback(
     async (form: AddressFormValues) => {

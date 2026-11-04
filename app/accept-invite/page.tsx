@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
-import { Button, Input, Select } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input, Select } from '@/components/ui/form-fields';
 import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { useIdentificationTypes } from '@/app/hooks/use-identification-types';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 import { BrandLogo } from '@/components/ui/brand-logo';
 
 export default function AcceptInvite() {

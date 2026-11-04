@@ -8,7 +8,8 @@ import { MarketplaceModal } from './components/MarketplaceModal'
 import { MarketplaceDetailModal } from './components/MarketplaceDetailModal'
 import { Table } from '../../../components/ui/table/components/Table'
 import { useTable } from '../../../components/ui/table/hooks/useTable'
-import { Button, Badge } from '@/src/components/Shared'
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 type Marketplace = Database['public']['Tables']['marketplaces']['Row'] & {
   coverSignedUrl?: string | null

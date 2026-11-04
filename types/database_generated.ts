@@ -2693,12 +2693,14 @@ export type Database = {
           person_type: string | null
           person_type_id: string | null
           phone: string | null
+          phone_verified_at: string | null
           reputation_score: number | null
           role_id: string
           siigo_customer_id: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
+          whatsapp_notifications: boolean
         }
         Insert: {
           anonymized_at?: string | null
@@ -2718,12 +2720,14 @@ export type Database = {
           person_type?: string | null
           person_type_id?: string | null
           phone?: string | null
+          phone_verified_at?: string | null
           reputation_score?: number | null
           role_id: string
           siigo_customer_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          whatsapp_notifications?: boolean
         }
         Update: {
           anonymized_at?: string | null
@@ -2743,12 +2747,14 @@ export type Database = {
           person_type?: string | null
           person_type_id?: string | null
           phone?: string | null
+          phone_verified_at?: string | null
           reputation_score?: number | null
           role_id?: string
           siigo_customer_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          whatsapp_notifications?: boolean
         }
         Relationships: [
           {
@@ -3620,6 +3626,7 @@ export type Database = {
           id: string
           is_featured: boolean
           label: string | null
+          max_qty_per_order: number | null
           special_price: number | null
           starts_at: string
           status: string
@@ -3632,6 +3639,7 @@ export type Database = {
           id?: string
           is_featured?: boolean
           label?: string | null
+          max_qty_per_order?: number | null
           special_price?: number | null
           starts_at: string
           status?: string
@@ -3644,6 +3652,7 @@ export type Database = {
           id?: string
           is_featured?: boolean
           label?: string | null
+          max_qty_per_order?: number | null
           special_price?: number | null
           starts_at?: string
           status?: string
@@ -4115,6 +4124,7 @@ export type Database = {
           id: string
           max_attempts: number
           new_email: string | null
+          phone: string | null
           purpose: string
           request_ip: string | null
           reset_token: string | null
@@ -4131,6 +4141,7 @@ export type Database = {
           id?: string
           max_attempts?: number
           new_email?: string | null
+          phone?: string | null
           purpose: string
           request_ip?: string | null
           reset_token?: string | null
@@ -4147,6 +4158,7 @@ export type Database = {
           id?: string
           max_attempts?: number
           new_email?: string | null
+          phone?: string | null
           purpose?: string
           request_ip?: string | null
           reset_token?: string | null
@@ -4154,6 +4166,65 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      whatsapp_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          order_id: string
+          seq: number
+          status_to: string | null
+          store_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          order_id: string
+          seq?: number
+          status_to?: string | null
+          store_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          order_id?: string
+          seq?: number
+          status_to?: string | null
+          store_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_events_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_events_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -4300,6 +4371,7 @@ export type Database = {
         }
         Returns: number
       }
+      asignar_codigos_faltantes: { Args: never; Returns: undefined }
       buyer_credit_balance: { Args: { p_buyer: string }; Returns: number }
       call_app_cron: { Args: { path: string }; Returns: number }
       call_edge_cron: { Args: { fn: string }; Returns: number }
@@ -4314,6 +4386,7 @@ export type Database = {
         Returns: boolean
       }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
+      generar_codigo_producto: { Args: { p_store: string }; Returns: string }
       has_permission: {
         Args: { action_name: string; module_key: string }
         Returns: boolean
@@ -4332,6 +4405,7 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       last_account_activity: { Args: { p_user: string }; Returns: string }
+      limpiar_telefonos_repetidos: { Args: never; Returns: number }
       merge_catalog_product: {
         Args: { p_pending: string; p_target: string }
         Returns: number

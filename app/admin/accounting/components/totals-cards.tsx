@@ -1,4 +1,4 @@
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 export interface TotalCard {
   label: string;

@@ -1,4 +1,4 @@
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 /**
  * El logo de MercaMesa (MercaMesa_Branding_Case.pdf, láminas 7 y 8).

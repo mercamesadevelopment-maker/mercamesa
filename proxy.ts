@@ -12,7 +12,6 @@ const ROLE_FAMILY_BY_PREFIX: Record<string, string[]> = {
   // superadmin entra a todo /admin; el filtro fino por módulo lo hace el bloque 2.
   '/admin': ['admin', 'superadmin'],
   '/seller': ['seller', 'store_owner'],
-  '/delivery': ['delivery'],
   // Los administradores entran por el permiso del módulo (bloque 2), no por familia.
   '/runner': ['runner'],
 }
@@ -117,7 +116,7 @@ export async function proxy(request: NextRequest) {
     puedeLeerModulo = true
   }
 
-  // Familia de rol por prefijo de sección (admin/seller/delivery). Un `read`
+  // Familia de rol por prefijo de sección (admin/seller/runner). Un `read`
   // explícito en `role_permissions` pesa más: así un módulo de `/seller` puede
   // quedar solo para superadmin (Clientes) desde la tabla, sin un caso especial
   // en el código. Las páginas sin módulo siguen protegidas por la familia.

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { formatOrderCode } from '@/lib/orders/order-code';
 import { fechaCompleta } from '@/lib/dates/relative-time';
-import { OrderStatusTimeline } from '@/src/features/orders/components/OrderStatusTimeline';
+import { OrderStatusTimeline } from '@/features/orders/components/OrderStatusTimeline';
 import {
   MapPin,
   CreditCard,
@@ -14,7 +15,7 @@ import {
   ShieldCheck,
   FileText,
 } from 'lucide-react';
-import { InvoiceLink } from '@/src/features/orders/components/InvoiceLink';
+import { InvoiceLink } from '@/features/orders/components/InvoiceLink';
 
 import {
   DELIVERY_CODE_NOTICE,
@@ -31,8 +32,8 @@ import { ORDER_STATUS_CONFIG, PAYMENT_STATUS_CONFIG } from './OrderCard';
 import { useOrderHistory } from '../hooks/useOrderHistory';
 import { isPayable } from '../hooks/usePayOrder';
 import { OrderSavings } from './OrderSavings';
-import { DeliveryTracking } from '@/src/features/orders/components/DeliveryTracking';
-import { useDeliveryTracking } from '@/src/features/orders/hooks/use-delivery-tracking';
+import { DeliveryTracking } from '@/features/orders/components/DeliveryTracking';
+import { useDeliveryTracking } from '@/features/orders/hooks/use-delivery-tracking';
 import type { OrderStatus } from '../types/order.types';
 
 /** Estados en los que el pedido ya tiene (o tuvo) domiciliario. */

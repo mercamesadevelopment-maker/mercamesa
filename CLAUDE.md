@@ -43,7 +43,7 @@ Notas importantes:
   (re-serialización con pérdida). Si agregas un nuevo cliente Supabase server-side,
   replica ese `global.fetch`.
 - `proxy.ts` (equivalente al middleware) refresca la sesión con cookies y protege rutas
-  por prefijo (`/admin`, `/seller`, `/delivery`) contra `role_family`. Las rutas de
+  por prefijo (`/admin`, `/seller`, `/runner`) contra `role_family`. Las rutas de
   `app/api/**` no redirigen ahí — cada `route.ts` maneja su propio 401.
 - Tipos de la base de datos: `types/database_generated.ts` (**no editar a mano**). Tras
   cada migración se regeneran desde la base local con `pnpm gen:types:local`;
@@ -137,7 +137,7 @@ Reglas:
 
 | Tipo | Comando | Dónde viven | Qué cubren |
 |---|---|---|---|
-| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `src/features/**/utils`: sin base, sin red |
+| Unitarias (Vitest) | `pnpm test` (`pnpm test:watch` mientras se trabaja) | `*.test.ts` junto al archivo | Lógica pura de `lib/` y `features/**/utils`: sin base, sin red |
 | Base de datos (pgTAP) | `pnpm test:db`, con la base local arriba | `supabase/tests/*.test.sql` | Lo que solo vive en SQL: políticas RLS y de Storage, triggers, funciones de las tareas programadas |
 
 - Cada prueba de base de datos incluye `supabase/tests/_helpers/fixtures.inc`, que crea
@@ -214,6 +214,13 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
   `PIBOX_DRY_RUN=true`, `CRON_SECRET` y `PIBOX_WEBHOOK_SECRET` propios, y Pibox, Mapbox y
   Resend con los mismos valores de producción (Pibox solo cotiza). **No llevan** Siigo ni
   ZonaPagos.
+- `METEOR_MCP_TOKEN`: el token con el que Meteor llama a `/api/mcp` y consulta los avisos del pedido
+  para WhatsApp (`/api/meteor/avisos`, tabla `whatsapp_events`) (48 caracteres o más,
+  distinto por entorno). Sin ella el MCP responde 503. Por ahora solo en Preview.
+- `METEOR_WHATSAPP_BUYERS_NUMBER` y `METEOR_WHATSAPP_SELLERS_NUMBER`: las dos líneas de WhatsApp de
+  Meteor (compradores y tenderos), a las que el usuario manda el código que verifica su teléfono
+  (`lib/phone/verification.ts`): +57 312 365 5225 y +57 313 744 5344. Sin la que le toca,
+  verificar responde 503.
 
 Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
 corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada
@@ -261,10 +268,14 @@ correr si alguna URL apunta a producción.
 `components/ui/` es la librería de UI compartida entre features. Antes de crear un
 componente nuevo, **revisa si ya existe algo reutilizable ahí**. Para mezclar clases de
 Tailwind está `cn()` en `lib/utils/cn.ts`: úsalo en vez de concatenar strings.
-`src/components/Shared.tsx` la reexporta mientras se termina de mover `src/`.
 
 Inventario actual:
 
+- `button.tsx` — `Button` (variantes, tamaños y `loading`, que también lo deshabilita).
+- `badge.tsx` — `Badge`, la etiqueta de estado.
+- `form-fields.tsx` — `Input`, `Select` y `Textarea` con la misma etiqueta y el mismo
+  borde, para que un formulario que los mezcla no se vea a dos aguas.
+- `step-bar.tsx` — `StepBar`, los pasos numerados de un formulario largo.
 - `modal/` — `Modal` genérico (portal + animación + bloqueo de scroll).
 - `confirm-modal/` — `ConfirmModal`, diálogo de confirmación sobre `Modal`.
 - `table/` — tabla reutilizable, ya dividida en `components/Table.tsx`, `hooks/useTable.ts`
@@ -297,7 +308,7 @@ Convención para agregar uno nuevo:
 
 ### Responsividad
 
-- `useMediaQuery(query)` (`src/features/layout/hooks/use-media-query.ts`) — hook
+- `useMediaQuery(query)` (`features/layout/hooks/use-media-query.ts`) — hook
   compartido para condicionar lógica en **JS** al viewport (SSR-safe: devuelve `false`
   hasta hidratar). Úsalo en vez de escribir `window.innerWidth`/`matchMedia` a mano o
   crear otro hook de breakpoint. Para estilos puros, usa las utilidades responsive de
@@ -380,6 +391,8 @@ lo mismo y reúsalo. En particular:
 - Cliente Supabase → los helpers de `lib/supabase/`, no `createClient(...)` inline.
 - Clases condicionales → `cn()` de `lib/utils/cn.ts`, no template strings a mano.
 - Comparar o buscar texto sin tildes → `normalizeText()` de `lib/utils/text.ts`.
+- Mostrar pesos → `formatCOP()` de `lib/utils/format.ts`, no otro `toLocaleString('es-CO')`.
+- Rol de la interfaz y a dónde va al entrar → `resolveRoleKey()` y `ROLE_ROUTES` de `lib/auth/roles.ts`.
 - Modales/confirmaciones/tablas/selects → los componentes de `components/ui/`, no
   reimplementar un `<div>` con `position: fixed` de cero.
 - URLs de imágenes/storage → `getStoragePublicUrl` / `getSupabaseImageUrl`, no construir
@@ -390,8 +403,8 @@ lo mismo y reúsalo. En particular:
 Si dos features necesitan la misma lógica, esa lógica sube a `lib/`, `components/ui/`,
 `hooks/` o `types/` (ver "Shared global" en AGENTS.md) — no se copia y pega.
 
-**Dirección de las dependencias:** la interfaz (`src/`, `app/`, `components/`) importa de
-`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `src/`, de `components/` ni de
+**Dirección de las dependencias:** la interfaz (`features/`, `app/`, `components/`) importa de
+`lib/`, nunca al revés. `lib/` y `app/api/` no importan de `features/`, de `components/` ni de
 `app/` (salvo `app/api` entre sí). Si el servidor necesita algo que hoy vive en la interfaz
 (un tipo, una función pura), se mueve a `lib/`. Lo vigila `lib/architecture.test.ts`.
 
@@ -405,6 +418,10 @@ Cada archivo/función/componente hace una sola cosa:
   y emite eventos.
 - Un `service` no renderiza JSX ni maneja estado de React.
 - Un hook no hace queries HTTP directas si ya hay un `service` para eso — las compone.
+- Una ruta de `app/api` es delgada: sesión, permiso, leer la entrada y responder. La
+  regla de negocio y las consultas van en `lib/<dominio>/`, con la parte pura probada
+  (ejemplos: `lib/store-products/`, `lib/accounts/anonymize-account.ts`). Una ruta
+  gorda se adelgaza cuando se la toca, no en un PR aparte.
 
 ### 3. No monolitos
 
@@ -412,11 +429,19 @@ Ningún archivo debe crecer indefinidamente mezclando responsabilidades. Si un a
 supera unos pocos cientos de líneas o junta varias vistas/entidades, se divide siguiendo
 la estructura de feature de AGENTS.md (`components/`, `hooks/`, `services/`, `types/`).
 
-`src/components/AdminViews.tsx` (~3700 líneas) y `src/components/Marketplace.tsx`
-(~2000 líneas) son **deuda técnica heredada, no un ejemplo a seguir**. No agregues código
-nuevo ahí: si tocas algo dentro de esos archivos, extrae esa pieza a su feature
-correspondiente bajo `app/` (o a `components/ui/` si es genérica) en vez de sumarle más
-líneas al monolito.
+### Estado compartido
+
+No hay un store global. Cada cosa compartida tiene su contexto, montados en
+`app/providers.tsx`:
+
+| Hook | Archivo | Qué tiene |
+|---|---|---|
+| `useSession()` | `features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
+| `useCart()` | `features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
+| `useNotifications()` | `features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
+
+Algo nuevo que varias pantallas necesiten compartir va en un contexto propio de su
+feature, no en uno de estos.
 
 ---
 

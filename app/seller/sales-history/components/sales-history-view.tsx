@@ -6,8 +6,10 @@ import {
 import { useSalesHistory, UnifiedHistoryItem } from '../hooks/use-sales-history';
 import { Table } from '@/components/ui/table/components/Table';
 import { Modal } from '@/components/ui/modal/modal';
-import { Badge, Button, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
+import { formatCOP } from '@/lib/utils/format';
 
 export function SalesHistoryView() {
   const {
@@ -25,7 +27,7 @@ export function SalesHistoryView() {
     const date = new Date(item.date).toLocaleString();
     const itemsText = item.items.map(i => {
       const qtyText = i.unit === 'kg' && i.qty < 1 ? `${Math.round(i.qty * 1000)}g` : `${i.qty} ${i.unit}`;
-      return `• ${i.emoji} ${i.name}: ${qtyText} - ${fmt(i.price * i.qty)}`;
+      return `• ${i.emoji} ${i.name}: ${qtyText} - ${formatCOP(i.price * i.qty)}`;
     }).join('\n');
 
     const message = `*MERCAMESA - Recibo de Venta (${item.type === 'online' ? 'Digital' : 'Físico'})*\n\n` +
@@ -33,7 +35,7 @@ export function SalesHistoryView() {
       `*Código:* ${item.id}\n` +
       `*Fecha:* ${date}\n\n` +
       `*Productos:*\n${itemsText}\n\n` +
-      `*TOTAL:* ${fmt(item.total)}\n\n` +
+      `*TOTAL:* ${formatCOP(item.total)}\n\n` +
       `*Cliente:* ${item.customerName}\n` +
       `¡Gracias por tu compra en MercaMesa! 🍎🥕`;
 
@@ -105,7 +107,7 @@ export function SalesHistoryView() {
     {
       key: 'total',
       label: 'Monto',
-      render: (item: UnifiedHistoryItem) => <span className="font-mono font-bold text-mm-g">{fmt(item.total)}</span>
+      render: (item: UnifiedHistoryItem) => <span className="font-mono font-bold text-mm-g">{formatCOP(item.total)}</span>
     },
     {
       key: 'status',
@@ -169,7 +171,7 @@ export function SalesHistoryView() {
           <History className="w-5 h-5 text-mm-g" />
           <div className="text-right">
              <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest leading-none mb-1">Total Histórico</p>
-             <p className="text-lg font-bold text-mm-g leading-none">{fmt(totalHistoricalRevenue)}</p>
+             <p className="text-lg font-bold text-mm-g leading-none">{formatCOP(totalHistoricalRevenue)}</p>
           </div>
         </div>
       </div>
@@ -236,13 +238,13 @@ export function SalesHistoryView() {
                        </div>
                        <div className="flex-grow">
                          <p className="font-bold text-mm-g">{item.name}</p>
-                         <p className="text-xs text-mm-txw">{fmt(item.price)} / {item.unit}</p>
+                         <p className="text-xs text-mm-txw">{formatCOP(item.price)} / {item.unit}</p>
                        </div>
                        <div className="text-right">
                          <p className="text-lg font-bold text-mm-g">
                            {item.unit === 'kg' && item.qty < 1 ? `${Math.round(item.qty * 1000)} g` : `${item.qty.toLocaleString()} ${item.unit}`}
                          </p>
-                         <p className="text-[10px] font-bold text-blue uppercase tabular-nums">{fmt(item.price * item.qty)}</p>
+                         <p className="text-[10px] font-bold text-blue uppercase tabular-nums">{formatCOP(item.price * item.qty)}</p>
                        </div>
                      </div>
                    ))}
@@ -284,7 +286,7 @@ export function SalesHistoryView() {
             <div className="p-8 bg-mm-gbg/10 border-t border-mm-crd space-y-3">
               <div className="flex justify-between items-center mb-3">
                 <span className="text-lg font-bold text-mm-txw">Total Facturado</span>
-                <span className="text-3xl font-display text-mm-g">{fmt(selectedItem.total)}</span>
+                <span className="text-3xl font-display text-mm-g">{formatCOP(selectedItem.total)}</span>
               </div>
               
               <div className="grid grid-cols-2 gap-3">

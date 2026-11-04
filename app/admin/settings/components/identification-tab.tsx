@@ -3,7 +3,9 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, X, Users, IdCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Button, Badge, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/form-fields';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useIdentification } from '../hooks/use-identification';
 import type { PersonTypeRow, IdentificationTypeRow } from '../types/settings.types';

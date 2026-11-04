@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { Button, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/cn';
 import { Modal } from '@/components/ui/modal/modal';
 import { PERIODOS, ETIQUETA_PERIODO, type PeriodoInactivacion } from '@/lib/auth/deactivation';
 import type { AdminUser } from '../hooks/use-admin-users';

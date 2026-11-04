@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Banknote, Landmark, Settings2, Building2 } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import { PayoutsTab } from './payouts-tab';
 import { BankAccountsTab } from './bank-accounts-tab';
 import { PayoutSettingsTab } from './payout-settings-tab';

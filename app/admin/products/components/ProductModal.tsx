@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { Database } from '../../../../types/database_generated';
 import { uploadImageDirect, removeImageDirect } from '@/lib/supabase/client-upload';
 import { slugify } from '@/lib/catalog-import/slug';

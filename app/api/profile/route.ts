@@ -8,6 +8,12 @@ import {
   validateIdentificationTypeExists,
 } from '@/lib/identification/validate';
 import { toE164 } from '@/lib/phone/phone';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import {
+  PHONE_IN_USE_MESSAGE,
+  isPhoneTakenByOther,
+  isPhoneUniqueViolation,
+} from '@/lib/auth/signup-conflicts';
 
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
@@ -23,7 +29,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('profiles')
       .select(
-        `full_name, phone, email, document_number, avatar_url,
+        `full_name, phone, phone_verified_at, whatsapp_notifications, email, document_number, avatar_url,
          person_type_id, identification_type_id,
          person_types ( id, name, requires_business_name ),
          identification_types ( id, name, code )`
@@ -31,6 +37,9 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
+    if (isPhoneUniqueViolation(error)) {
+      return NextResponse.json({ error: PHONE_IN_USE_MESSAGE, code: 'phone_in_use' }, { status: 400 });
+    }
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -77,8 +86,21 @@ export async function PUT(request: Request) {
         if (!e164) {
           return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
         }
+        // Un número es de una sola cuenta: con él se identifica a quien escribe
+        // por WhatsApp. Se busca con la llave de servicio porque la RLS no deja
+        // ver los perfiles ajenos. Cambiarlo le quita la verificación (trigger).
+        if (await isPhoneTakenByOther(createSupabaseServiceClient(), e164, user.id)) {
+          return NextResponse.json({ error: PHONE_IN_USE_MESSAGE, code: 'phone_in_use' }, { status: 400 });
+        }
         updateData.phone = e164;
       }
+    }
+
+    if (body.whatsapp_notifications !== undefined) {
+      if (typeof body.whatsapp_notifications !== 'boolean') {
+        return NextResponse.json({ error: 'El aviso por WhatsApp debe ser sí o no.' }, { status: 400 });
+      }
+      updateData.whatsapp_notifications = body.whatsapp_notifications;
     }
 
     // El tipo de identificación se valida contra el tipo de persona que YA tiene
@@ -140,7 +162,7 @@ export async function PUT(request: Request) {
       .update(updateData)
       .eq('id', user.id)
       .select(
-        `full_name, phone, email, document_number, avatar_url,
+        `full_name, phone, phone_verified_at, whatsapp_notifications, email, document_number, avatar_url,
          person_type_id, identification_type_id,
          person_types ( id, name, requires_business_name ),
          identification_types ( id, name, code )`

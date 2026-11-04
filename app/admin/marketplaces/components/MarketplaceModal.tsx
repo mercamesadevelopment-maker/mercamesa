@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 
 import { Database } from '../../../../types/database_generated';
-import { Input, Button } from '@/src/components/Shared';
+import { Input } from '@/components/ui/form-fields';
+import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal/modal';
 import { getStoragePublicUrl } from '@/lib/supabase/utils';
 import {

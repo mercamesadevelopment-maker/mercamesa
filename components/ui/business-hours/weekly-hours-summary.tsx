@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 import type { BusinessHours } from './business-hours-editor';
 import { summarizeWeeklyHours } from './summarize-hours';
 

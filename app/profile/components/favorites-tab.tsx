@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
-import type { FavoriteStore } from '@/src/features/favorites/types/favorite.types';
+import { useFavorites } from '@/features/favorites/hooks/use-favorites';
+import type { FavoriteStore } from '@/features/favorites/types/favorite.types';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Store as StoreIcon, Heart, Loader2 } from 'lucide-react';
 

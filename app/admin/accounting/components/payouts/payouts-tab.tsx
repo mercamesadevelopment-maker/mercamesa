@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import {
   Loader2, FileText, Download, Ban, Eye, RefreshCw, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { Button, Badge, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils/cn';
 import { Table } from '@/components/ui/table/components/Table';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { Modal } from '@/components/ui/modal/modal';
-import { fmt } from '@/src/constants';
+import { formatCOP } from '@/lib/utils/format';
 import { fechaCorta, fechaCompleta } from '@/lib/dates/relative-time';
 import { usePayouts } from '../../hooks/use-payouts';
 import type { Payout, PayoutDetalle, Elegibles } from '../../types/payouts';
@@ -61,7 +63,7 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
       setAviso({
         title: 'Borrador creado',
         message:
-          `Quedaron ${r.itemsCount} pedidos de ${r.storesCount} tiendas, por ${fmt(r.totalAmount)}. ` +
+          `Quedaron ${r.itemsCount} pedidos de ${r.storesCount} tiendas, por ${formatCOP(r.totalAmount)}. ` +
           'Revísalo y apruébalo para generar el archivo del banco.',
       });
     } catch (e) { conError(e); }
@@ -78,7 +80,7 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
         setAviso({
           title: 'Archivo generado',
           message:
-            `Se descargó ${r.fileName} con ${r.storesCount} pagos por ${fmt(r.totalAmount)}. ` +
+            `Se descargó ${r.fileName} con ${r.storesCount} pagos por ${formatCOP(r.totalAmount)}. ` +
             'Súbelo al portal del banco.',
         });
       } else {
@@ -120,7 +122,7 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
       label: 'Total',
       render: (p: Payout) => (
         <div>
-          <p className="font-bold text-mm-g">{fmt(p.totalAmount)}</p>
+          <p className="font-bold text-mm-g">{formatCOP(p.totalAmount)}</p>
           <p className="text-xs text-mm-txw">{p.itemsCount} pedidos</p>
         </div>
       ),
@@ -237,7 +239,7 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
             <>
               Se generará el archivo para el banco con{' '}
               <span className="font-bold text-mm-g">{confirmando.payout.itemsCount} pedidos</span> por{' '}
-              <span className="font-bold text-mm-g">{fmt(confirmando.payout.totalAmount)}</span>, y se
+              <span className="font-bold text-mm-g">{formatCOP(confirmando.payout.totalAmount)}</span>, y se
               descargará.
               {'\n\n'}
               A partir de ahí la liquidación no se puede deshacer desde acá: una vez subas el archivo
@@ -285,7 +287,7 @@ function VistaPrevia({
               <p className="text-sm text-mm-txs">
                 {elegibles.ordersCount} pedidos · {elegibles.stores.length} tiendas
               </p>
-              <p className="text-2xl font-bold text-mm-g">{fmt(elegibles.total)}</p>
+              <p className="text-2xl font-bold text-mm-g">{formatCOP(elegibles.total)}</p>
             </div>
             {elegibles.ordersCount > 0 && (
               <Button onClick={onGenerar} loading={trabajando}>Generar borrador</Button>
@@ -301,8 +303,8 @@ function VistaPrevia({
                     <span className="text-mm-g">{s.storeName}</span>
                     <span className="text-mm-txw">
                       {s.orders} {s.orders === 1 ? 'pedido' : 'pedidos'}
-                      {s.charges > 0 && ` · −${fmt(s.charges)} por devoluciones`} ·{' '}
-                      <span className="font-bold text-mm-g">{fmt(s.amount)}</span>
+                      {s.charges > 0 && ` · −${formatCOP(s.charges)} por devoluciones`} ·{' '}
+                      <span className="font-bold text-mm-g">{formatCOP(s.amount)}</span>
                     </span>
                   </div>
                 ))}
@@ -323,7 +325,7 @@ function VistaPrevia({
                   <div key={d.storeOrderId} className="flex items-start justify-between gap-4 px-4 py-2.5 text-xs">
                     <div className="min-w-0">
                       <p className="truncate font-bold text-mm-g">{d.storeName}</p>
-                      <p className="text-mm-txw">{d.storeOrderCode} · {fmt(d.amount)}</p>
+                      <p className="text-mm-txw">{d.storeOrderCode} · {formatCOP(d.amount)}</p>
                     </div>
                     <span className="shrink-0 text-right text-amber-900">{d.reasonLabel}</span>
                   </div>
@@ -361,7 +363,7 @@ function DetalleModal({ detalle, onClose }: { detalle: PayoutDetalle | null; onC
             <span className="text-sm text-mm-txs">
               {detalle.itemsCount} pedidos · {detalle.stores.length} tiendas
             </span>
-            <span className="text-xl font-bold text-mm-g">{fmt(detalle.totalAmount)}</span>
+            <span className="text-xl font-bold text-mm-g">{formatCOP(detalle.totalAmount)}</span>
           </div>
 
           <div className="space-y-3">
@@ -380,7 +382,7 @@ function DetalleModal({ detalle, onClose }: { detalle: PayoutDetalle | null; onC
                       ····{s.accountLast4}
                     </p>
                   </div>
-                  <span className="shrink-0 font-bold text-mm-g">{fmt(s.amount)}</span>
+                  <span className="shrink-0 font-bold text-mm-g">{formatCOP(s.amount)}</span>
                 </div>
                 {/* Por qué se le paga: cada pedido con su cliente, y los
                     descuentos por devolución como líneas negativas. */}
@@ -402,7 +404,7 @@ function DetalleModal({ detalle, onClose }: { detalle: PayoutDetalle | null; onC
                         )}
                       </div>
                       <span className={cn('shrink-0 font-bold', o.isCharge ? 'text-r' : 'text-mm-g')}>
-                        {fmt(o.amount)}
+                        {formatCOP(o.amount)}
                       </span>
                     </div>
                   ))}

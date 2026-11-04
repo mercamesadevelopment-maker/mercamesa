@@ -3,7 +3,7 @@
  * admin con el botón del pedido.
  *
  * Es el mismo orden que muestra el panel (`next` en
- * `src/features/orders/utils/order-status.ts`): un paso a la vez, solo hacia
+ * `features/orders/utils/order-status.ts`): un paso a la vez, solo hacia
  * adelante. Regresar a un estado anterior va por `revert_store_order_status`, y
  * cancelar por `/api/store-orders/[id]/cancel`, que abona al comprador.
  *
