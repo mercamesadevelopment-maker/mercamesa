@@ -38,10 +38,11 @@ export function getMeteorMcpToken(): string | null {
 }
 
 /**
- * El número de WhatsApp de Carolina (Meteor), al que el usuario manda el código
- * que verifica su teléfono. Sin él no se puede verificar: `null`, y la ruta
- * responde 503.
+ * Los números de WhatsApp de Meteor, a los que el usuario manda el código que
+ * verifica su teléfono. Son dos líneas: la de compradores y la de tenderos. Sin
+ * la que le toca no se puede verificar: `null`, y la ruta responde 503.
  */
-export function getMeteorWhatsappNumber(): string | null {
-  return process.env.METEOR_WHATSAPP_NUMBER || null;
+export function getMeteorWhatsappNumber(line: 'compradores' | 'tenderos'): string | null {
+  const numero = line === 'tenderos' ? process.env.METEOR_WHATSAPP_SELLERS_NUMBER : process.env.METEOR_WHATSAPP_BUYERS_NUMBER;
+  return numero || null;
 }

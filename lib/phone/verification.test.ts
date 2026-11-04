@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { verificationMessage, verifyPhoneCode, whatsappVerificationUrl } from './verification';
+import { verificationMessage, verifyPhoneCode, whatsappLineFor, whatsappVerificationUrl } from './verification';
 
 describe('verificación del teléfono por WhatsApp', () => {
   it('el enlace abre el chat de Carolina con el código escrito', () => {
@@ -7,6 +7,13 @@ describe('verificación del teléfono por WhatsApp', () => {
     expect(url.startsWith('https://wa.me/573001234567?text=')).toBe(true);
     expect(decodeURIComponent(url.split('text=')[1])).toBe(verificationMessage('048213'));
     expect(verificationMessage('048213')).toContain('048213');
+  });
+
+  it('el tendero escribe a la línea de comerciantes; los demás, a la de compradores', () => {
+    expect(whatsappLineFor('provider')).toBe('tenderos');
+    expect(whatsappLineFor('retail')).toBe('compradores');
+    expect(whatsappLineFor('wholesale')).toBe('compradores');
+    expect(whatsappLineFor('runner')).toBe('compradores');
   });
 
   it('sin teléfono válido o con un código que no son 6 dígitos, ni se consulta la base', async () => {

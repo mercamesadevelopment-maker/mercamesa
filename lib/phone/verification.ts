@@ -7,6 +7,7 @@ import {
   type CodeRateLimit,
 } from '@/lib/auth/verification-codes';
 import { toE164 } from './phone';
+import type { RoleKey } from '@/lib/auth/roles';
 
 /**
  * Verificar que el teléfono del perfil es de quien tiene la cuenta.
@@ -22,6 +23,14 @@ import { toE164 } from './phone';
  */
 
 export const PHONE_PURPOSE = 'phone_verification' as const;
+
+/**
+ * A qué línea de Meteor escribe cada quien: los tenderos y dueños de tienda a la
+ * de comerciantes; los compradores, y el resto, a la de compradores.
+ */
+export function whatsappLineFor(role: RoleKey): 'compradores' | 'tenderos' {
+  return role === 'provider' ? 'tenderos' : 'compradores';
+}
 
 /** El texto que queda escrito en WhatsApp, listo para enviar. */
 export function verificationMessage(code: string): string {

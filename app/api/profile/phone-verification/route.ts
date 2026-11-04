@@ -3,7 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { getClientIp } from '@/lib/auth/verification-codes';
 import { getMeteorWhatsappNumber } from '@/lib/env';
-import { requestPhoneVerification, whatsappVerificationUrl } from '@/lib/phone/verification';
+import { resolveRoleKey } from '@/lib/auth/roles';
+import {
+  requestPhoneVerification,
+  whatsappLineFor,
+  whatsappVerificationUrl,
+} from '@/lib/phone/verification';
 
 /**
  * Da el código con el que el usuario verifica su teléfono: se lo manda a
@@ -17,19 +22,20 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const whatsappNumber = getMeteorWhatsappNumber();
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('email, phone, phone_verified_at, buyer_type, roles ( name )')
+      .eq('id', user.id)
+      .single();
+
+    const rol = (perfil?.roles as { name: string } | null)?.name;
+    const whatsappNumber = getMeteorWhatsappNumber(whatsappLineFor(resolveRoleKey(rol, perfil?.buyer_type)));
     if (!whatsappNumber) {
       return NextResponse.json(
         { error: 'La verificación por WhatsApp todavía no está disponible.' },
         { status: 503 }
       );
     }
-
-    const { data: perfil } = await supabase
-      .from('profiles')
-      .select('email, phone, phone_verified_at')
-      .eq('id', user.id)
-      .single();
 
     if (!perfil?.phone) {
       return NextResponse.json({ error: 'Primero guarda tu número de celular.' }, { status: 400 });
