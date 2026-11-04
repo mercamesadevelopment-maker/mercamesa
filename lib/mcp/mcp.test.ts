@@ -26,12 +26,21 @@ describe('token de Meteor', () => {
 });
 
 describe('identificar por teléfono', () => {
-  const fila = (id: string) => ({ id, full_name: id, roles: { name: 'buyer' } });
+  const fila = (id: string, verificado = true) => ({
+    id,
+    full_name: id,
+    phone_verified_at: verificado ? '2026-11-04T10:00:00Z' : null,
+    roles: { name: 'buyer' },
+  });
 
   it('sin cuenta no identifica, y con dos no elige ninguna', () => {
     expect(pickProfile([])).toMatchObject({ ok: false, code: 'NO_IDENTIFICADO' });
     expect(pickProfile([fila('a'), fila('b')])).toMatchObject({ ok: false, code: 'AMBIGUO' });
     expect(pickProfile([fila('a')])).toEqual(fila('a'));
+  });
+
+  it('un teléfono sin verificar no identifica a nadie', () => {
+    expect(pickProfile([fila('a', false)])).toMatchObject({ ok: false, code: 'NO_VERIFICADO' });
   });
 });
 

@@ -36,3 +36,12 @@ export function getResendFromEmail(): string {
 export function getMeteorMcpToken(): string | null {
   return process.env.METEOR_MCP_TOKEN || null;
 }
+
+/**
+ * El número de WhatsApp de Carolina (Meteor), al que el usuario manda el código
+ * que verifica su teléfono. Sin él no se puede verificar: `null`, y la ruta
+ * responde 503.
+ */
+export function getMeteorWhatsappNumber(): string | null {
+  return process.env.METEOR_WHATSAPP_NUMBER || null;
+}

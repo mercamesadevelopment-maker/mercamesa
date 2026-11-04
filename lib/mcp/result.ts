@@ -8,7 +8,9 @@
 export type McpErrorCode =
   | 'TELEFONO_INVALIDO'
   | 'NO_IDENTIFICADO'
+  | 'NO_VERIFICADO'
   | 'AMBIGUO'
+  | 'CODIGO_INVALIDO'
   | 'NO_EXISTE'
   | 'FALLO_CONSULTA';
 

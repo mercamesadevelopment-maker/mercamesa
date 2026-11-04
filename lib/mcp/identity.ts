@@ -4,11 +4,13 @@ import { toE164 } from '@/lib/phone/phone';
 /**
  * Quién escribe por WhatsApp, a partir del teléfono que manda Meteor.
  *
- * El teléfono del perfil **no está verificado**: lo escribe la persona. Por eso
- * solo se acepta si es de una sola cuenta activa. Si se repite, no se elige
- * ninguna: Carolina responde que no puede identificarlo y pasa a un humano.
- * El riesgo que queda —alguien que puso en su perfil el número de otra
- * persona— está en `docs/mcp-meteor.md`.
+ * Solo cuenta un teléfono **verificado**: el dueño de la cuenta mandó desde ese
+ * número el código que le dio la app (`lib/phone/verification.ts`). Un número
+ * que alguien escribió en su perfil sin verificar podría ser de otra persona, y
+ * con él vería sus pedidos: responde `NO_VERIFICADO`.
+ *
+ * Un número es de una sola cuenta (índice `profiles_phone_unique`); `AMBIGUO`
+ * queda como defensa por si eso fallara.
  */
 
 export interface McpUser {
@@ -21,11 +23,12 @@ export interface McpUser {
 
 export type IdentityResult =
   | { ok: true; user: McpUser }
-  | { ok: false; code: 'TELEFONO_INVALIDO' | 'NO_IDENTIFICADO' | 'AMBIGUO'; message: string };
+  | { ok: false; code: 'TELEFONO_INVALIDO' | 'NO_IDENTIFICADO' | 'NO_VERIFICADO' | 'AMBIGUO'; message: string };
 
 interface ProfileRow {
   id: string;
   full_name: string | null;
+  phone_verified_at?: string | null;
   roles: { name: string } | null;
 }
 
@@ -41,6 +44,14 @@ export function pickProfile(rows: ProfileRow[]): IdentityResult | ProfileRow {
       message: 'Ese teléfono está en más de una cuenta: no se puede saber de quién es.',
     };
   }
+  if (!rows[0].phone_verified_at) {
+    return {
+      ok: false,
+      code: 'NO_VERIFICADO',
+      message:
+        'El teléfono no está verificado. La persona debe entrar a su perfil en MercaMesa, tocar «Verificar por WhatsApp» y enviar el código que le aparece.',
+    };
+  }
   return rows[0];
 }
 
@@ -50,7 +61,7 @@ export async function identifyByPhone(service: SupabaseClient<any>, phone: strin
 
   const { data, error } = await service
     .from('profiles')
-    .select('id, full_name, roles ( name )')
+    .select('id, full_name, phone_verified_at, roles ( name )')
     .eq('phone', e164)
     .eq('is_active', true)
     .limit(2);
