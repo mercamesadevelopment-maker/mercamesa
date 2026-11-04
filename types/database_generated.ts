@@ -4167,6 +4167,65 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          order_id: string
+          seq: number
+          status_to: string | null
+          store_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          order_id: string
+          seq?: number
+          status_to?: string | null
+          store_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          order_id?: string
+          seq?: number
+          status_to?: string | null
+          store_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["order_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_events_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_events_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       marketplaces_detail: {
