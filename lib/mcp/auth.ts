@@ -21,3 +21,16 @@ export function isValidMcpToken(given: string | null, expected: string | null): 
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/**
+ * La puerta de todo lo que llama Meteor (el MCP y la consulta de avisos):
+ * `null` si el token es el del entorno; si no, la respuesta que se devuelve.
+ * Sin token configurado, 503: el entorno no tiene a Meteor habilitado.
+ */
+export function meteorAuthError(request: Request, expected: string | null): Response | null {
+  if (!expected) return Response.json({ error: 'Meteor no está habilitado en este entorno.' }, { status: 503 });
+  if (!isValidMcpToken(bearerFrom(request.headers.get('authorization')), expected)) {
+    return Response.json({ error: 'No autorizado' }, { status: 401 });
+  }
+  return null;
+}

@@ -214,7 +214,8 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
   `PIBOX_DRY_RUN=true`, `CRON_SECRET` y `PIBOX_WEBHOOK_SECRET` propios, y Pibox, Mapbox y
   Resend con los mismos valores de producción (Pibox solo cotiza). **No llevan** Siigo ni
   ZonaPagos.
-- `METEOR_MCP_TOKEN`: el token con el que Meteor llama a `/api/mcp` (48 caracteres o más,
+- `METEOR_MCP_TOKEN`: el token con el que Meteor llama a `/api/mcp` y consulta los avisos del pedido
+  para WhatsApp (`/api/meteor/avisos`, tabla `whatsapp_events`) (48 caracteres o más,
   distinto por entorno). Sin ella el MCP responde 503. Por ahora solo en Preview.
 - `METEOR_WHATSAPP_BUYERS_NUMBER` y `METEOR_WHATSAPP_SELLERS_NUMBER`: las dos líneas de WhatsApp de
   Meteor (compradores y tenderos), a las que el usuario manda el código que verifica su teléfono
