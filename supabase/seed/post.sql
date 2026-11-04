@@ -52,3 +52,8 @@ select public.copiar_precio_minimo_al_historial();
 -- migración en producción. La copia se carga sin triggers, así que acá no lo
 -- pone el de `store_products`.
 select public.asignar_codigos_faltantes();
+
+-- Cada teléfono en una sola cuenta, como dejó la migración en producción, y el
+-- índice único que `pre.sql` quitó para cargar la copia.
+select public.limpiar_telefonos_repetidos();
+create unique index if not exists profiles_phone_unique on public.profiles (phone) where phone is not null;

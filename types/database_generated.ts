@@ -2693,12 +2693,14 @@ export type Database = {
           person_type: string | null
           person_type_id: string | null
           phone: string | null
+          phone_verified_at: string | null
           reputation_score: number | null
           role_id: string
           siigo_customer_id: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
+          whatsapp_notifications: boolean
         }
         Insert: {
           anonymized_at?: string | null
@@ -2718,12 +2720,14 @@ export type Database = {
           person_type?: string | null
           person_type_id?: string | null
           phone?: string | null
+          phone_verified_at?: string | null
           reputation_score?: number | null
           role_id: string
           siigo_customer_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          whatsapp_notifications?: boolean
         }
         Update: {
           anonymized_at?: string | null
@@ -2743,12 +2747,14 @@ export type Database = {
           person_type?: string | null
           person_type_id?: string | null
           phone?: string | null
+          phone_verified_at?: string | null
           reputation_score?: number | null
           role_id?: string
           siigo_customer_id?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          whatsapp_notifications?: boolean
         }
         Relationships: [
           {
@@ -4115,6 +4121,7 @@ export type Database = {
           id: string
           max_attempts: number
           new_email: string | null
+          phone: string | null
           purpose: string
           request_ip: string | null
           reset_token: string | null
@@ -4131,6 +4138,7 @@ export type Database = {
           id?: string
           max_attempts?: number
           new_email?: string | null
+          phone?: string | null
           purpose: string
           request_ip?: string | null
           reset_token?: string | null
@@ -4147,6 +4155,7 @@ export type Database = {
           id?: string
           max_attempts?: number
           new_email?: string | null
+          phone?: string | null
           purpose?: string
           request_ip?: string | null
           reset_token?: string | null
@@ -4334,6 +4343,7 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       last_account_activity: { Args: { p_user: string }; Returns: string }
+      limpiar_telefonos_repetidos: { Args: never; Returns: number }
       merge_catalog_product: {
         Args: { p_pending: string; p_target: string }
         Returns: number

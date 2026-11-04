@@ -11,7 +11,8 @@ export function registerIdentificarUsuario(server: McpServer) {
       title: 'Identificar usuario',
       description:
         'Dice quién es la persona del teléfono: su nombre, su rol y sus tiendas si es tendero. Úsala al empezar la conversación. ' +
-        'Si responde NO_IDENTIFICADO o AMBIGUO, no des datos de pedidos ni de casos y ofrece hablar con una persona.',
+        'Si responde NO_VERIFICADO, explícale que entre a su perfil en MercaMesa, toque «Verificar por WhatsApp» y te envíe el código ' +
+        '(luego usa verificar_telefono). Si responde NO_IDENTIFICADO o AMBIGUO, no des datos de pedidos ni de casos y ofrece hablar con una persona.',
       inputSchema: z.object({ telefono }),
       annotations: { readOnlyHint: true },
     },

@@ -36,14 +36,45 @@ export async function findSignupConflict(
   // Los celulares se guardan en E.164; se compara en ese mismo formato.
   const celular = phone ? toE164(String(phone)) : null;
   if (celular && (await existeEnPerfiles(service, 'phone', celular))) {
-    return {
-      code: 'phone_in_use',
-      message:
-        'Ya hay una cuenta registrada con ese número de celular. Si es tuya, inicia sesión o recupera tu contraseña.',
-    };
+    return { code: 'phone_in_use', message: PHONE_IN_USE_MESSAGE };
   }
 
   return null;
+}
+
+export const PHONE_IN_USE_MESSAGE =
+  'Ya hay una cuenta registrada con ese número de celular. Si es tuya, inicia sesión o recupera tu contraseña.';
+
+/**
+ * El celular que alguien quiere poner en su perfil, o al aceptar una
+ * invitación, ya es de otra cuenta.
+ *
+ * Un número es de una sola cuenta (índice `profiles_phone_unique`): con él se
+ * identifica a quien escribe por WhatsApp. El índice es la garantía; esto es
+ * para responder con un mensaje claro en vez del error de la base.
+ */
+export async function isPhoneTakenByOther(
+  service: SupabaseClient<any>,
+  phoneE164: string,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await service
+    .from('profiles')
+    .select('id')
+    .eq('phone', phoneE164)
+    .neq('id', userId)
+    .limit(1);
+
+  if (error) {
+    console.error('[auth] signup-conflicts: no se pudo revisar el celular', error);
+    throw new Error('No pudimos verificar tus datos. Intenta de nuevo.');
+  }
+  return (data ?? []).length > 0;
+}
+
+/** El choque con `profiles_phone_unique`, por si dos cuentas lo ponen a la vez. */
+export function isPhoneUniqueViolation(error: { code?: string; message?: string } | null): boolean {
+  return error?.code === '23505' && (error.message ?? '').includes('profiles_phone_unique');
 }
 
 /**

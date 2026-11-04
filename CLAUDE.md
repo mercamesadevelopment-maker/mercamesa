@@ -216,6 +216,10 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
   ZonaPagos.
 - `METEOR_MCP_TOKEN`: el token con el que Meteor llama a `/api/mcp` (48 caracteres o más,
   distinto por entorno). Sin ella el MCP responde 503. Por ahora solo en Preview.
+- `METEOR_WHATSAPP_BUYERS_NUMBER` y `METEOR_WHATSAPP_SELLERS_NUMBER`: las dos líneas de WhatsApp de
+  Meteor (compradores y tenderos), a las que el usuario manda el código que verifica su teléfono
+  (`lib/phone/verification.ts`): +57 312 365 5225 y +57 313 744 5344. Sin la que le toca,
+  verificar responde 503.
 
 Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
 corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada

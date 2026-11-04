@@ -10,3 +10,7 @@ alter table public.store_offers
   drop constraint if exists store_offers_discount_pct_range,
   drop constraint if exists store_offers_discount_xor_price,
   drop constraint if exists store_offers_special_price_positive;
+
+-- En producción hubo teléfonos repetidos antes del índice único. Se quita para
+-- cargar la copia y `post.sql` limpia los repetidos y lo vuelve a crear.
+drop index if exists public.profiles_phone_unique;
