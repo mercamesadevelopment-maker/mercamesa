@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveOfferPrices } from '@/lib/offers/resolve-offer-prices';
+import { MAX_STORES_PER_ORDER, offerLimitMessage, offerLimitViolations, tooManyStoresMessage } from '@/lib/offers/offer-limit';
 import { isBuyerBlocked } from '@/lib/stores/buyer-blocks';
 import { loadOrderMinPrice } from '@/lib/pricing/settings';
 import { MIXED_PICKUP_MESSAGE, sharePickupPoint } from './pickup-group';
@@ -158,6 +159,28 @@ export async function buildOrderDraft(
   });
 
   const storeParts = Array.from(partes.values());
+
+  // El máximo por pedido de cada oferta. Lo cuida también la canasta, pero acá
+  // es donde se decide: una canasta vieja o una llamada directa no lo evaden.
+  const excedidas = offerLimitViolations(
+    draftItems.map((item) => {
+      const precio = precios.get(item.store_product_id)!;
+      return {
+        name: item.catalog_name,
+        unit: item.unit_name,
+        quantity: item.quantity,
+        offerId: precio.offerId,
+        maxQtyPerOrder: precio.maxQtyPerOrder,
+      };
+    })
+  );
+  if (excedidas.length > 0) {
+    throw new OrderDraftError(offerLimitMessage(excedidas), 409, 'offer_limit', { lines: excedidas });
+  }
+
+  if (storeParts.length > MAX_STORES_PER_ORDER) {
+    throw new OrderDraftError(tooManyStoresMessage(storeParts.length), 400, 'too_many_stores');
+  }
 
   // Varias tiendas solo si despachan desde el mismo punto: de ahí sale un solo
   // domicilio. El carrito ya lo avisa al agregar; acá es donde se decide.

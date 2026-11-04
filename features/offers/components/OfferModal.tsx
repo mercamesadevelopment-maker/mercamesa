@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form-fields';
 import { normalizeText } from '@/lib/utils/text';
 import { SearchableSelect, SelectOption } from '@/components/ui/searchable-select';
-import { parseAmount, validateOffer, formatCop, offerFinalPrice } from '@/lib/offers/validate-offer';
+import { parseAmount, parseMaxQty, validateOffer, formatCop, offerFinalPrice } from '@/lib/offers/validate-offer';
 import type { StoreOffer } from '../types/offer.types';
 
 interface StoreProduct {
@@ -55,6 +55,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
     label: '',
     discount_pct: '',
     special_price: '',
+    max_qty_per_order: '',
     starts_at: new Date().toISOString().split('T')[0], // Default to today
     ends_at: '',
     status: 'pending',
@@ -126,6 +127,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
         label: initialData.label || '',
         discount_pct: initialData.discount_pct?.toString() || '',
         special_price: initialData.special_price?.toString() || '',
+        max_qty_per_order: initialData.max_qty_per_order?.toString() || '',
         starts_at: initialData.starts_at.split('T')[0], // Format for date input
         ends_at: initialData.ends_at ? initialData.ends_at.split('T')[0] : '',
         status: initialData.status,
@@ -138,6 +140,7 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
         label: '',
         discount_pct: '',
         special_price: '',
+        max_qty_per_order: '',
         starts_at: new Date().toISOString().split('T')[0],
         ends_at: '',
         status: 'pending',
@@ -273,10 +276,11 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
 
     const discountPct = mode === 'pct' ? parseAmount(formData.discount_pct) : null;
     const specialPrice = mode === 'price' ? parseAmount(formData.special_price) : null;
+    const maxQtyPerOrder = parseMaxQty(formData.max_qty_per_order);
 
     // Las mismas reglas que aplica el servidor, para avisar sin ida y vuelta.
     const invalid = validateOffer(
-      { discountPct, specialPrice, startsAt: formData.starts_at, endsAt: formData.ends_at || null },
+      { discountPct, specialPrice, startsAt: formData.starts_at, endsAt: formData.ends_at || null, maxQtyPerOrder },
       basePrice !== null ? { pricePerUnit: basePrice } : null
     );
     if (invalid) {
@@ -291,6 +295,8 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
         label: formData.label,
         discount_pct: discountPct,
         special_price: specialPrice,
+        // Vacío se manda como null: así, al editar, quitarlo deja la oferta sin límite.
+        max_qty_per_order: maxQtyPerOrder,
         starts_at: new Date(formData.starts_at).toISOString(),
         ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null,
       };
@@ -450,6 +456,22 @@ export function OfferModal({ isOpen, onClose, onSave, initialData, storeId, allo
               en vez de {formatCop(basePrice)}.
             </p>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Input
+            label={unit ? `Máximo por pedido, en ${unit} (opcional)` : 'Máximo por pedido (opcional)'}
+            name="max_qty_per_order"
+            type="number"
+            step="any"
+            min="0"
+            value={formData.max_qty_per_order}
+            onChange={handleChange}
+            placeholder="Ej: 3"
+          />
+          <p className="ml-1 text-[11px] text-mm-txs">
+            Cuánto puede llevar un comprador a este precio en cada pedido. Vacío: sin límite.
+          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">

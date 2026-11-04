@@ -16,11 +16,23 @@ export interface OfferInput {
   specialPrice: number | null;
   startsAt: string | null;
   endsAt: string | null;
+  /** Máximo de unidades por pedido a ese precio. `null`: sin límite. */
+  maxQtyPerOrder?: number | null;
 }
 
 /** Precio del inventario contra el que se compara el precio especial. */
 export interface OfferProductContext {
   pricePerUnit: number;
+}
+
+/**
+ * El máximo por pedido tal como llega del formulario o de la API. Vacío es sin
+ * límite; lo que no sea un número queda como `NaN` para que `validateOffer` lo
+ * rechace en vez de tomarlo, en silencio, por «sin límite».
+ */
+export function parseMaxQty(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  return Number(value);
 }
 
 export function parseAmount(value: unknown): number | null {
@@ -63,6 +75,11 @@ export function validateOffer(
     if (product && specialPrice! >= product.pricePerUnit) {
       return `El precio especial debe ser menor que el precio del inventario (${formatCop(product.pricePerUnit)}). Así como está, no sería una oferta.`;
     }
+  }
+
+  const { maxQtyPerOrder } = input;
+  if (maxQtyPerOrder !== undefined && maxQtyPerOrder !== null && !(Number.isFinite(maxQtyPerOrder) && maxQtyPerOrder > 0)) {
+    return 'El máximo por pedido debe ser un número mayor que cero, o quedar vacío para no tener límite.';
   }
 
   if (!startsAt) {

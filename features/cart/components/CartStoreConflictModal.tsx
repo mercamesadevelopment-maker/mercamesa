@@ -2,6 +2,7 @@
 
 import { useCartState } from '@/features/cart/cart-context';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { STORE_LIMIT_REACHED_MESSAGE } from '@/lib/offers/offer-limit';
 
 export function CartStoreConflictModal() {
   const cartState = useCartState();
@@ -14,8 +15,11 @@ export function CartStoreConflictModal() {
       isOpen={conflict !== null}
       onClose={handleClose}
       onConfirm={handleClose}
-      title="Estas tiendas no despachan juntas."
+      title={conflict?.storeLimit ? 'Llegaste al máximo de tiendas.' : 'Estas tiendas no despachan juntas.'}
       message={
+        conflict?.storeLimit ? (
+          STORE_LIMIT_REACHED_MESSAGE
+        ) : (
         <>
           Tu carrito tiene productos de{' '}
           <strong className="font-bold text-mm-g">
@@ -25,6 +29,7 @@ export function CartStoreConflictModal() {
           salen en una sola entrega; esta tienda despacha desde otro lugar.
           Termina tu pedido o vacía el carrito para comprar acá.
         </>
+        )
       }
       confirmText="Entendido"
       cancelText="Cerrar"

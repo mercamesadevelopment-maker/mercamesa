@@ -28,7 +28,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
         catalog_products ( name, image_url, categories ( name ) ),
         stores ( name, marketplace_id ),
         measurement_units ( id, name, abbreviation ),
-        store_offers ( id, discount_pct, special_price, label, starts_at, ends_at, status )
+        store_offers ( id, discount_pct, special_price, label, max_qty_per_order, starts_at, ends_at, status )
       )
     `)
     .eq('buyer_id', buyerId)
@@ -57,6 +57,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
     let offerExpired = false;
     let originalOfferPrice: number | undefined = undefined;
     let validOfferId: string | null = item.offer_id || null;
+    let offerMaxQty: number | null = null;
 
     // Verificar si el ítem tenía una oferta vinculada o si hay ofertas en store_offers
     const offersList = Array.isArray(sp?.store_offers) ? sp.store_offers : [];
@@ -71,6 +72,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
         (!linkedOffer.ends_at || new Date(linkedOffer.ends_at) >= now);
 
       if (isStillValid) {
+        offerMaxQty = linkedOffer.max_qty_per_order == null ? null : Number(linkedOffer.max_qty_per_order);
         if (linkedOffer.special_price != null) {
           retailPrice = Number(linkedOffer.special_price);
         } else if (linkedOffer.discount_pct != null) {
@@ -97,6 +99,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
 
       if (activeOffer) {
         validOfferId = activeOffer.id;
+        offerMaxQty = activeOffer.max_qty_per_order == null ? null : Number(activeOffer.max_qty_per_order);
         if (activeOffer.special_price != null) {
           retailPrice = Number(activeOffer.special_price);
         } else if (activeOffer.discount_pct != null) {
@@ -132,6 +135,7 @@ export async function fetchCart(buyerId: string): Promise<CartItem[]> {
       offerExpired,
       originalOfferPrice,
       listPrice,
+      offerMaxQty,
       notes: item.notes || '',
     } as unknown as CartItem;
   });

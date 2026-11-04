@@ -13,6 +13,7 @@ import {
   updateCartItemNotesDb,
 } from '../services/cart.service';
 import { sharePickupPoint } from '@/lib/orders/pickup-group';
+import { MAX_STORES_PER_ORDER } from '@/lib/offers/offer-limit';
 
 export function useCart() {
   const session = useSession();
@@ -30,6 +31,15 @@ export function useCart() {
     // canasta no hay nada que preguntar; si es nueva, se compara su punto de
     // recogida con el de lo que ya hay (toda la canasta comparte uno).
     const yaEnLaCanasta = cartState.items.some((i) => String(i.storeId) === String(product.storeId));
+
+    // Una tienda nueva no cabe si la canasta ya tiene el máximo por pedido. El
+    // servidor lo rechaza igual al cotizar; acá se avisa antes.
+    const tiendas = new Set(cartState.items.map((i) => String(i.storeId)));
+    if (!yaEnLaCanasta && tiendas.size >= MAX_STORES_PER_ORDER) {
+      cartState.dispatch({ type: 'SET_CART_STORE_LIMIT' });
+      return;
+    }
+
     if (cartState.items.length > 0 && !yaEnLaCanasta) {
       const currentItem = cartState.items[0];
       const [nuevo, actual] = await Promise.all([

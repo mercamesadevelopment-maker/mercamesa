@@ -15,5 +15,7 @@ export interface CartItem extends Product {
    * Solo viene cuando hay una oferta vigente aplicada.
    */
   listPrice?: number;
+  /** El máximo por pedido de la oferta aplicada. `null` o ausente: sin límite. */
+  offerMaxQty?: number | null;
   notes?: string;
 }

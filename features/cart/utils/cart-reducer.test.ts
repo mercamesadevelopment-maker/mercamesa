@@ -27,4 +27,9 @@ describe('cartReducer', () => {
     expect(s.conflict).toEqual({ currentStoreName: 'La Esquina' });
     expect(cartReducer(s, { type: 'CLEAR_CART_STORE_CONFLICT' }).conflict).toBeNull();
   });
+
+  it('el tope de tiendas usa el mismo aviso, marcado como tope', () => {
+    const s = cartReducer(EMPTY_CART, { type: 'SET_CART_STORE_LIMIT' });
+    expect(s.conflict).toEqual({ currentStoreName: '', storeLimit: true });
+  });
 });
