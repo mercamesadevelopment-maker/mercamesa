@@ -1,24 +1,31 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../../lib/supabase/server';
+import { getAuthenticatedClient } from '@/lib/supabase/auth-helpers';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { invitePasswordError } from '@/lib/auth/password-rules';
 import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate';
 import { toE164 } from '@/lib/phone/phone';
 import { PHONE_IN_USE_MESSAGE, isPhoneTakenByOther } from '@/lib/auth/signup-conflicts';
 import { authErrorMessage } from '@/lib/auth/auth-error-messages';
 
+/**
+ * Aceptar una invitación (de tienda, de administración o del equipo de una plaza).
+ *
+ * La sesión llega en `Authorization: Bearer` o en la cookie. La página manda las
+ * dos: algunos navegadores —el que abre Gmail por dentro, por ejemplo— no
+ * conservan la cookie entre que se abre el enlace y se envía el formulario, y la
+ * persona veía «No autorizado» con el formulario ya lleno.
+ */
+const SIN_SESION = 'No autorizado o la sesión de invitación ha expirado.';
+
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const { user } = await getAuthenticatedClient(request);
+
     if (!user) {
       return NextResponse.json({ authenticated: false, hasInvite: false }, { status: 200 });
     }
 
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const serviceSupabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const serviceSupabase = createSupabaseServiceClient();
 
     // Sin filtrar por tipo: ahora también se invita a administrar la
     // plataforma, y el formulario que se muestra depende de cuál de las dos es.
@@ -64,12 +71,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
-    // 1. Verify user session (Supabase automatically logs in the user when they click the invite link)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'No autorizado o la sesión de invitación ha expirado.' }, { status: 401 });
+    // 1. La sesión que abrió el enlace de la invitación, por encabezado o cookie.
+    const { supabase, user } = await getAuthenticatedClient(request);
+    if (!user || !supabase) {
+      return NextResponse.json({ error: SIN_SESION }, { status: 401 });
     }
 
     // Campos tomados uno a uno, nunca con un spread: el `role_id` sale de la
@@ -85,18 +90,15 @@ export async function POST(request: Request) {
       contact_name,
     } = await request.json();
 
-    if (!password) {
-      return NextResponse.json({ error: 'La contraseña es un campo obligatorio.' }, { status: 400 });
+    const claveInvalida = invitePasswordError(password);
+    if (claveInvalida) {
+      return NextResponse.json({ error: claveInvalida }, { status: 400 });
     }
 
     // La invitación se busca antes que nada porque su tipo decide qué datos se
     // piden: a un administrador no se le exige tipo de persona ni documento,
     // que son requisitos de facturación de una tienda.
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-    const serviceSupabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const serviceSupabase = createSupabaseServiceClient();
 
     const { data: invite } = await serviceSupabase
       .from('invitations')
@@ -150,9 +152,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'La invitación no indica un rol válido.' }, { status: 400 });
       }
 
-      // Se valida todo antes de tocar la contraseña: `updateUser` no se puede
-      // deshacer y dejaría al invitado sin poder entrar ni reintentar.
-      const { error: claveError } = await supabase.auth.updateUser({ password });
+      // Se valida todo antes de tocar la contraseña: no se puede deshacer y
+      // dejaría al invitado sin poder entrar ni reintentar.
+      const { error: claveError } = await guardarClave(serviceSupabase, user.id, password);
       if (claveError) {
         const { message } = authErrorMessage(
           claveError,
@@ -224,7 +226,7 @@ export async function POST(request: Request) {
     // ------------------------------------------------------------------
 
     // Todo lo que sigue se valida ANTES de tocar la contraseña. El orden
-    // importa: `updateUser({ password })` no se puede deshacer, y un cuerpo
+    // importa: guardar la contraseña no se puede deshacer, y un cuerpo
     // inválido dejaría al invitado con la contraseña cambiada, sin perfil y sin
     // tienda — o sea, sin poder entrar ni volver a intentarlo.
     const personType = person_type_id
@@ -265,8 +267,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El nombre completo es un campo obligatorio.' }, { status: 400 });
     }
 
-    // 3. Set the user's password in auth.users
-    const { error: passwordError } = await supabase.auth.updateUser({ password });
+    // 3. La contraseña, en auth.users.
+    const { error: passwordError } = await guardarClave(serviceSupabase, user.id, password);
     if (passwordError) {
       const { message } = authErrorMessage(
         passwordError,
@@ -335,4 +337,13 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+/**
+ * Con la API de administración y no con `updateUser` de la sesión: cuando la
+ * sesión llega por encabezado no hay una sesión guardada que actualizar. El
+ * `userId` es el del usuario que Supabase acaba de validar.
+ */
+function guardarClave(service: ReturnType<typeof createSupabaseServiceClient>, userId: string, password: string) {
+  return service.auth.admin.updateUserById(userId, { password });
 }
