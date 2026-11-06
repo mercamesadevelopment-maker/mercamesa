@@ -34,7 +34,7 @@ interface Invitation {
   is_pending: boolean;
   created_at: string;
   expires_at: string;
-  /** El enlace ya no sirve: se ofrece reenviarla. */
+  /** El enlace ya no sirve. Se puede reenviar igual que una vigente. */
   expired: boolean;
 }
 
@@ -60,6 +60,8 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
   const [roleId, setRoleId] = useState(STORE_ROLES[1].id); // Default to 'seller' / Tendero
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  // La invitación que se va a reenviar, mientras se confirma.
+  const [toResend, setToResend] = useState<Invitation | null>(null);
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -118,7 +120,12 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
     }
   };
 
+  // Se puede reenviar cualquier invitación pendiente, no solo la vencida: a veces
+  // el enlace vigente no le sirve a la persona (lo abrió en un navegador que
+  // perdió la sesión, o borró el correo) y la única salida era cancelarla e
+  // invitarla otra vez.
   const handleResend = async (invite: Invitation) => {
+    setToResend(null);
     setResendingId(invite.id);
     try {
       const res = await fetch(`/api/stores/${storeId}/members?inviteId=${invite.id}`, {
@@ -279,17 +286,15 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
                     <span className="text-xs font-semibold px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full">
                       {invite.roles?.label || 'Invitado'}
                     </span>
-                    {invite.expired && (
-                      <button
-                        onClick={() => handleResend(invite)}
-                        disabled={resendingId === invite.id}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-mm-g hover:bg-mm-gbg rounded-lg transition-colors disabled:opacity-50"
-                        title="Reenviar Invitación"
-                      >
-                        <RotateCw className={`w-3.5 h-3.5 ${resendingId === invite.id ? 'animate-spin' : ''}`} />
-                        {resendingId === invite.id ? 'Enviando...' : 'Reenviar'}
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setToResend(invite)}
+                      disabled={resendingId === invite.id}
+                      className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-mm-g hover:bg-mm-gbg rounded-lg transition-colors disabled:opacity-50"
+                      title="Reenviar Invitación"
+                    >
+                      <RotateCw className={`w-3.5 h-3.5 ${resendingId === invite.id ? 'animate-spin' : ''}`} />
+                      {resendingId === invite.id ? 'Enviando...' : 'Reenviar'}
+                    </button>
                     <button 
                       onClick={() => handleDelete(invite.id, true)}
                       className="p-1.5 hover:bg-red-50 text-mm-txw hover:text-r rounded-lg transition-colors"
@@ -313,6 +318,20 @@ export function StoreMembersModal({ isOpen, onClose, storeId, storeName }: Store
         </div>
 
       </div>
+
+      <ConfirmModal
+        isOpen={!!toResend}
+        onClose={() => setToResend(null)}
+        onConfirm={() => toResend && handleResend(toResend)}
+        title="Reenviar invitación"
+        message={
+          toResend
+            ? `Le enviamos a ${toResend.email} un enlace nuevo, que vence en 7 días. El enlace anterior deja de servir.`
+            : ''
+        }
+        variant="info"
+        confirmText="Reenviar"
+      />
 
       <ConfirmModal
         isOpen={!!successMessage}
