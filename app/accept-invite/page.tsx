@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
@@ -10,6 +10,8 @@ import { PhoneInput } from '@/components/ui/phone-input/PhoneInput';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 import { BrandLogo } from '@/components/ui/brand-logo';
+import { MIN_INVITE_PASSWORD_LENGTH } from '@/lib/auth/password-rules';
+import { acceptInvitation, getInvitation } from './services/accept-invite.service';
 
 export default function AcceptInvite() {
   const router = useRouter();
@@ -42,6 +44,11 @@ export default function AcceptInvite() {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // El token de la sesión que abrió el enlace, guardado en memoria. Si el
+  // navegador pierde la cookie antes de enviar el formulario, la sesión del
+  // cliente de Supabase (que vive en esa cookie) se pierde con ella; este token
+  // sigue sirviendo una hora.
+  const tokenDelEnlace = useRef<string | null>(null);
 
   useEffect(() => {
     const checkInvitation = async () => {
@@ -71,22 +78,21 @@ export default function AcceptInvite() {
             if (setError) {
               console.error('Error setting session from hash:', setError);
             } else {
-              console.log('Session set successfully from hash');
               session = newSession;
             }
+            tokenDelEnlace.current = session?.access_token ?? access_token;
           }
         }
+        if (!tokenDelEnlace.current) tokenDelEnlace.current = session?.access_token ?? null;
 
-        // Fetch verification from GET api endpoint
-        const res = await fetch('/api/auth/accept-invite');
-        const result = await res.json();
+        const result = await getInvitation(tokenDelEnlace.current);
 
-        if (res.ok && result.authenticated) {
+        if (result.authenticated) {
           setAuthenticated(true);
-          setEmail(result.email);
+          setEmail(result.email ?? '');
           if (result.hasInvite) {
             setHasInvite(true);
-            setStoreName(result.storeName);
+            setStoreName(result.storeName ?? '');
             // El equipo de una plaza usa el mismo formulario corto del admin.
             setEsAdmin(result.invitationType === 'admin' || result.invitationType === 'marketplace_member');
             setPlaza(result.invitationType === 'marketplace_member' ? result.marketplaceName ?? 'la plaza' : null);
@@ -162,19 +168,26 @@ export default function AcceptInvite() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+    if (password.length < MIN_INVITE_PASSWORD_LENGTH) {
+      setError(`La contraseña debe tener al menos ${MIN_INVITE_PASSWORD_LENGTH} caracteres.`);
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/accept-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: esAdmin
-          ? JSON.stringify({ fullName: fullName.trim(), phone: phone.trim(), password })
-          : JSON.stringify({
+      // La sesión más fresca (el cliente la renueva si venció) y, si el
+      // navegador la perdió, la del enlace.
+      const { data: { session } } = await createSupabaseBrowserClient().auth.getSession();
+      const token = session?.access_token ?? tokenDelEnlace.current;
+      if (!token) {
+        throw new Error('Tu enlace ya no es válido. Pide que te reenvíen la invitación.');
+      }
+
+      const result = await acceptInvitation(
+        token,
+        esAdmin
+          ? { fullName: fullName.trim(), phone: phone.trim(), password }
+          : {
               fullName: requiresBusinessName ? undefined : fullName.trim(),
               phone: phone.trim(),
               password,
@@ -182,14 +195,11 @@ export default function AcceptInvite() {
               identification_type_id: identificationTypeId,
               document_number: documentNumber.trim(),
               business_name: requiresBusinessName ? businessName.trim() : undefined,
-              contact_name: requiresBusinessName ? contactName.trim() : undefined
-            })
-      });
+              contact_name: requiresBusinessName ? contactName.trim() : undefined,
+            }
+      );
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
-
-      setRedirectUrl(result.redirectUrl ?? null);
+      setRedirectUrl(result.redirectUrl);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Error al completar el registro.');
