@@ -1483,6 +1483,8 @@ export type Database = {
           expired_at: string | null
           fulfillment: string
           id: string
+          logistics_dispatched_at: string | null
+          logistics_dispatched_by: string | null
           logistics_required: boolean
           messages_amount: number
           notes: string | null
@@ -1519,6 +1521,8 @@ export type Database = {
           expired_at?: string | null
           fulfillment?: string
           id?: string
+          logistics_dispatched_at?: string | null
+          logistics_dispatched_by?: string | null
           logistics_required?: boolean
           messages_amount?: number
           notes?: string | null
@@ -1555,6 +1559,8 @@ export type Database = {
           expired_at?: string | null
           fulfillment?: string
           id?: string
+          logistics_dispatched_at?: string | null
+          logistics_dispatched_by?: string | null
           logistics_required?: boolean
           messages_amount?: number
           notes?: string | null
@@ -3675,6 +3681,48 @@ export type Database = {
           },
         ]
       }
+      store_order_bay_photos: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string | null
+          path: string
+          store_order_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          path: string
+          store_order_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          path?: string
+          store_order_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_order_bay_photos_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_detail_view"
+            referencedColumns: ["store_order_id"]
+          },
+          {
+            foreignKeyName: "store_order_bay_photos_store_order_id_fkey"
+            columns: ["store_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_order_status_history: {
         Row: {
           changed_by: string | null
@@ -3729,6 +3777,9 @@ export type Database = {
       }
       store_orders: {
         Row: {
+          bay_damaged: boolean
+          bay_evidence_updated_at: string | null
+          bay_observation: string | null
           bay_received_at: string | null
           bay_received_by: string | null
           code: string
@@ -3747,6 +3798,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bay_damaged?: boolean
+          bay_evidence_updated_at?: string | null
+          bay_observation?: string | null
           bay_received_at?: string | null
           bay_received_by?: string | null
           code?: string
@@ -3765,6 +3819,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bay_damaged?: boolean
+          bay_evidence_updated_at?: string | null
+          bay_observation?: string | null
           bay_received_at?: string | null
           bay_received_by?: string | null
           code?: string
@@ -4406,6 +4463,16 @@ export type Database = {
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       last_account_activity: { Args: { p_user: string }; Returns: string }
       limpiar_telefonos_repetidos: { Args: never; Returns: number }
+      logistics_services_by_day: {
+        Args: { p_from: string; p_marketplace?: string; p_to: string }
+        Returns: {
+          day: string
+          marketplace_id: string
+          parts_damaged: number
+          parts_received: number
+          services: number
+        }[]
+      }
       merge_catalog_product: {
         Args: { p_pending: string; p_target: string }
         Returns: number

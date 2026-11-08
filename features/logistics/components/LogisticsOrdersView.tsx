@@ -5,10 +5,11 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
-import type { LogisticsOrder } from '@/lib/logistics/orders';
+import type { LogisticsOrder, LogisticsPart } from '@/lib/logistics/orders';
 import { useLogisticsOrders } from '../hooks/use-logistics-orders';
 import type { LogisticsScope } from '../services/logistics.service';
 import { LogisticsOrderCard } from './LogisticsOrderCard';
+import { ReceptionModal } from './ReceptionModal';
 
 const PESTANAS: { id: LogisticsScope; label: string }[] = [
   { id: 'open', label: 'En la plaza' },
@@ -22,9 +23,25 @@ const PESTANAS: { id: LogisticsScope; label: string }[] = [
  * el domiciliario, valida con él el código de recogida y marca «En camino».
  */
 export function LogisticsOrdersView() {
-  const { scope, setScope, orders, loading, error, busyId, deliveryError, dismissDeliveryError, receive, dispatch, refresh } =
-    useLogisticsOrders();
+  const {
+    scope,
+    setScope,
+    orders,
+    loading,
+    error,
+    busyId,
+    deliveryError,
+    dismissDeliveryError,
+    receive,
+    updateEvidence,
+    dispatch,
+    refresh,
+  } = useLogisticsOrders();
   const [confirmando, setConfirmando] = useState<LogisticsOrder | null>(null);
+  // La parte cuyo formulario está abierto, y si es para recibir o completar.
+  const [recepcion, setRecepcion] = useState<{ order: LogisticsOrder; part: LogisticsPart; mode: 'receive' | 'edit' } | null>(
+    null
+  );
 
   return (
     <div className="p-4 sm:p-8 space-y-6 pb-24 max-w-4xl mx-auto">
@@ -84,12 +101,26 @@ export function LogisticsOrdersView() {
               key={order.orderId}
               order={order}
               busyId={busyId}
-              onReceive={receive}
+              onReceive={(part) => setRecepcion({ order, part, mode: 'receive' })}
+              onEditEvidence={(part) => setRecepcion({ order, part, mode: 'edit' })}
               onDispatch={setConfirmando}
             />
           ))}
         </div>
       )}
+
+      <ReceptionModal
+        part={recepcion?.part ?? null}
+        mode={recepcion?.mode ?? 'receive'}
+        consolidated={recepcion?.order.consolidated ?? false}
+        busy={recepcion !== null && busyId === recepcion.part.storeOrderId}
+        onClose={() => setRecepcion(null)}
+        onSubmit={(form) =>
+          recepcion!.mode === 'receive'
+            ? receive(recepcion!.part.storeOrderId, form)
+            : updateEvidence(recepcion!.part.storeOrderId, form)
+        }
+      />
 
       <ConfirmModal
         isOpen={confirmando !== null}

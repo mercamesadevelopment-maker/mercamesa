@@ -13,6 +13,8 @@ import { useDeliveryTracking } from '../hooks/use-delivery-tracking';
 import { useOrderInvoice } from '../hooks/use-order-invoice';
 import { InvoiceLink } from './InvoiceLink';
 import { PackingNotesCard } from './PackingNotesCard';
+import { BayReceptionCard } from './BayReceptionCard';
+import { useBayReception } from '../hooks/use-bay-reception';
 import { ConsolidatedNotice } from './ConsolidatedNotice';
 import { packingNotesEditable } from '@/lib/orders/packing-notes';
 
@@ -59,6 +61,7 @@ export function OrderDetailModal({
     isOpen && hasDelivery
   );
   const invoice = useOrderInvoice(order?.storeOrderId ? String(order.storeOrderId) : null, isOpen);
+  const bayReception = useBayReception(order?.storeOrderId ? String(order.storeOrderId) : null, isOpen);
 
   if (!order) return null;
 
@@ -227,6 +230,8 @@ export function OrderDetailModal({
                 }
               />
             )}
+
+            <BayReceptionCard reception={bayReception} />
 
             <PackingNotesCard
               notes={order.packingNotes ?? null}
