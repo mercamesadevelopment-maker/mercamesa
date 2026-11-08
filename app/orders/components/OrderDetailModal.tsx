@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { formatOrderCode } from '@/lib/orders/order-code';
 import { fechaCompleta } from '@/lib/dates/relative-time';
+import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 import { OrderStatusTimeline } from '@/features/orders/components/OrderStatusTimeline';
 import {
   MapPin,
@@ -80,12 +81,10 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
 
   const products = (order.products as any[]) || [];
 
-  const netPurchase =
-    Number(order.order_subtotal ?? 0) +
-    Number(order.service_commission_amount ?? 0) +
-    Number(order.messages_amount ?? 0);
+  // Los dos conceptos de la factura: lo del tendero y todo lo de MercaMesa.
   const creditApplied = Number(order.credit_applied ?? 0);
   const orderTotal = Number(order.order_total ?? 0);
+  const { thirdPartyProducts, delivery } = buyerInvoiceConcepts(Number(order.order_subtotal ?? 0), orderTotal);
   // Mientras se pueda pagar, lo que falta es lo que cobra la pasarela.
   const payable = isPayable(order.payable_until);
   const amountShown = payable ? orderTotal - creditApplied : orderTotal;
@@ -233,20 +232,17 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
           />
         )}
 
-        {/* Total. Mismo desglose que el carrito y la factura: tres conceptos.
-            Es el del pedido completo, no solo los productos de esta tienda. */}
+        {/* Total. Los mismos dos conceptos que la canasta y la factura: productos
+            de terceros (lo del tendero) y domicilio (todo lo de MercaMesa). Es el
+            del pedido completo, no solo los productos de esta tienda. */}
         <div className="bg-white rounded-3xl border border-mm-crd p-6 shadow-sm space-y-2.5">
           <div className="flex justify-between text-sm text-mm-txs">
-            <span>Productos y servicio de compra</span>
-            <span className="font-bold">{formatCurrency(netPurchase)}</span>
+            <span>Productos de terceros</span>
+            <span className="font-bold">{formatCurrency(thirdPartyProducts)}</span>
           </div>
           <div className="flex justify-between text-sm text-mm-txs">
             <span>Domicilio</span>
-            <span className="font-bold">{formatCurrency(Number(order.delivery_fee ?? 0))}</span>
-          </div>
-          <div className="flex justify-between text-sm text-mm-txs">
-            <span>Servicio MercaMesa</span>
-            <span className="font-bold">{formatCurrency(Number(order.platform_commission_amount ?? 0))}</span>
+            <span className="font-bold">{formatCurrency(delivery)}</span>
           </div>
           {creditApplied > 0 && (
             <div className="flex justify-between text-sm text-mm-txs">

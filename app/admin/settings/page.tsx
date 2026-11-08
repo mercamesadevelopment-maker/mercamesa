@@ -77,7 +77,7 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
     label: 'Tarifas y Comisiones',
     icon: Percent,
     description:
-      'Comisión de servicio, mensajes y servicio MercaMesa que se le cobran al comprador, y con qué productos de Siigo se facturan. El domicilio se cotiza en vivo con el operador logístico.',
+      'Gastos administrativos y operativos que se le cobran al comprador, y con qué productos de Siigo se facturan (Productos de terceros y Domicilio). El domicilio se cotiza en vivo con el operador logístico.',
   },
   {
     key: 'order_min_price',
@@ -94,7 +94,7 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType; description: 
   },
   {
     key: 'pqrs',
-    label: 'PQRS',
+    label: 'PQRSF',
     icon: LifeBuoy,
     description:
       'Cuánto tiempo tiene el comprador para reclamar por un producto y cuánto la tienda para responder antes de que el caso pase a MercaMesa.',

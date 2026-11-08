@@ -12,6 +12,8 @@ import { fechaCorta } from '@/lib/dates/relative-time';
 import { MAX_DESCRIPTION } from '@/lib/pqrs/rules';
 import { usePqrsForm } from '../hooks/use-pqrs-form';
 import { PqrsPhotoPicker } from './PqrsPhotoPicker';
+import { PqrsKindPicker } from './PqrsKindPicker';
+import type { PqrsKind } from '@/lib/pqrs/reasons';
 
 interface PqrsFormModalProps {
   isOpen: boolean;
@@ -25,7 +27,16 @@ interface PqrsFormModalProps {
   onCreated: (created: { id: string; code: string }) => void;
 }
 
-/** Radicar una PQRS. */
+/** La pregunta de la descripción, dicha según lo que se radica. */
+const PREGUNTA: Record<PqrsKind, string> = {
+  peticion: '¿Qué necesitas?',
+  queja: '¿Qué pasó?',
+  reclamo: '¿Qué pasó?',
+  sugerencia: '¿Cuál es tu idea?',
+  felicitacion: '¿Qué te gustó?',
+};
+
+/** Radicar una PQRSF: primero el tipo y después el motivo. */
 export function PqrsFormModal({
   isOpen,
   onClose,
@@ -48,11 +59,12 @@ export function PqrsFormModal({
 
   const { context, reason } = form;
   const order = context?.order ?? null;
-  const pidePedido = reason ? reason.order !== 'none' : true;
+  // Con el motivo elegido manda el motivo; antes, basta con que algún motivo del tipo pida pedido.
+  const pidePedido = Boolean(form.kind) && (reason ? reason.order !== 'none' : form.kindReasons.some((r) => r.order !== 'none'));
   const pideProductos = Boolean(reason && reason.items !== 'none' && order);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Radicar una PQRS" maxWidth="max-w-xl">
+    <Modal isOpen={isOpen} onClose={onClose} title="Radicar una PQRSF" maxWidth="max-w-xl">
       {form.loadError ? (
         <p className="text-sm text-r py-6 text-center">{form.loadError}</p>
       ) : !context ? (
@@ -61,6 +73,8 @@ export function PqrsFormModal({
         </div>
       ) : (
         <div className="space-y-5">
+          <PqrsKindPicker kinds={form.kinds} value={form.kind} onChange={form.setKind} />
+
           {pidePedido && (
             <Select
               label={as === 'seller' ? 'Pedido del comprador' : 'Pedido'}
@@ -80,10 +94,12 @@ export function PqrsFormModal({
             </Select>
           )}
 
+          {/* Con un solo motivo en el tipo, ya quedó elegido: solo se muestra su ayuda. */}
+          {form.kindReasons.length > 1 && (
           <div>
             <Select label="Motivo" value={form.reasonKey} onChange={(e) => form.setReasonKey(e.target.value)}>
               <option value="">Elige un motivo…</option>
-              {context.reasons.map((r) => (
+              {form.kindReasons.map((r) => (
                 <option key={r.key} value={r.key} disabled={Boolean(order && r.unavailableWhy)}>
                   {r.label}
                 </option>
@@ -91,6 +107,8 @@ export function PqrsFormModal({
             </Select>
             {reason && <p className="text-xs text-mm-txw ml-1 mt-1.5">{reason.help}</p>}
           </div>
+          )}
+          {form.kindReasons.length === 1 && reason && <p className="text-xs text-mm-txw ml-1 -mt-2">{reason.help}</p>}
 
           {pideProductos && order && (
             <div>
@@ -135,7 +153,7 @@ export function PqrsFormModal({
           )}
 
           <Textarea
-            label="¿Qué pasó?"
+            label={PREGUNTA[form.kind || 'reclamo']}
             rows={4}
             maxLength={MAX_DESCRIPTION}
             value={form.description}

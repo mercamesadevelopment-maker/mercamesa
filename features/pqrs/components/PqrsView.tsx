@@ -69,7 +69,7 @@ export function PqrsView({ scope, title, subtitle, storeId, headerExtra, childre
 
         {scope !== 'admin' && (
           <Button size="md" onClick={() => setShowForm(true)} disabled={esperaTienda} className="shrink-0">
-            <Plus className="w-4 h-4" /> Radicar PQRS
+            <Plus className="w-4 h-4" /> Radicar PQRSF
           </Button>
         )}
       </div>
@@ -104,7 +104,7 @@ export function PqrsView({ scope, title, subtitle, storeId, headerExtra, childre
         <div className="bg-white p-8 sm:p-12 rounded-3xl border border-mm-crd text-center flex flex-col items-center">
           <LifeBuoy className="w-12 h-12 text-mm-txw mb-3" />
           <p className="text-mm-txs">
-            {status ? 'No hay casos en ese estado.' : 'Todavía no hay PQRS.'}
+            {status ? 'No hay casos en ese estado.' : 'Todavía no hay PQRSF.'}
           </p>
         </div>
       ) : (

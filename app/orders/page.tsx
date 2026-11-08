@@ -60,7 +60,7 @@ export default function OrdersPage() {
         {/* Para reportar un problema con un pedido puntual, el botón está en la
             tarjeta de ese pedido; este lleva a los casos ya radicados. */}
         <Button variant="outline" size="md" className="shrink-0 self-start md:self-auto" onClick={() => router.push('/pqrs')}>
-          <LifeBuoy className="w-4 h-4" /> Mis PQRS
+          <LifeBuoy className="w-4 h-4" /> Mis PQRSF
         </Button>
       </div>
 

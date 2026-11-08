@@ -63,7 +63,7 @@ export interface Order {
   serviceCommission?: number;
   /** Mensajes de seguimiento cobrados al comprador. */
   messagesAmount?: number;
-  /** Comisión de plataforma, "Servicio MercaMesa" en la factura. */
+  /** Comisión de plataforma (gastos administrativos sobre el neto). En la factura va dentro de «Domicilio». */
   platformCommission?: number;
   history?: OrderStatusHistoryItem[];
 }

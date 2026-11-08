@@ -2572,7 +2572,8 @@ export type Database = {
           platform_commission_rate: number
           service_commission_rate: number
           siigo_delivery_product_code: string
-          siigo_platform_product_code: string
+          siigo_platform_product_code: string | null
+          siigo_third_party_product_code: string | null
         }
         Insert: {
           change_type?: string
@@ -2586,7 +2587,8 @@ export type Database = {
           platform_commission_rate: number
           service_commission_rate: number
           siigo_delivery_product_code: string
-          siigo_platform_product_code: string
+          siigo_platform_product_code?: string | null
+          siigo_third_party_product_code?: string | null
         }
         Update: {
           change_type?: string
@@ -2600,7 +2602,8 @@ export type Database = {
           platform_commission_rate?: number
           service_commission_rate?: number
           siigo_delivery_product_code?: string
-          siigo_platform_product_code?: string
+          siigo_platform_product_code?: string | null
+          siigo_third_party_product_code?: string | null
         }
         Relationships: [
           {

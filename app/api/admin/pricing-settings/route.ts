@@ -65,15 +65,15 @@ export async function POST(request: Request) {
       messages_per_order,
       platform_commission_rate,
       siigo_delivery_product_code,
-      siigo_platform_product_code,
+      siigo_third_party_product_code,
       notes,
     } = body;
 
     // Las tarifas se guardan como fracción (0.0299), no como porcentaje. Un 2,99
     // escrito por error multiplicaría el precio por 3, así que se rechaza.
     const rates: [string, unknown][] = [
-      ['La comisión de servicio', service_commission_rate],
-      ['La comisión de plataforma', platform_commission_rate],
+      ['Los gastos administrativos (servicio de compra)', service_commission_rate],
+      ['Los gastos administrativos (sobre el neto)', platform_commission_rate],
     ];
     for (const [label, value] of rates) {
       const parsed = Number(value);
@@ -101,9 +101,9 @@ export async function POST(request: Request) {
 
     // Sin estos códigos no se puede emitir ninguna factura: el mapper de Siigo
     // se detiene antes que emitir una descuadrada.
-    if (!siigo_delivery_product_code?.trim() || !siigo_platform_product_code?.trim()) {
+    if (!siigo_delivery_product_code?.trim() || !siigo_third_party_product_code?.trim()) {
       return NextResponse.json(
-        { error: 'Los códigos de Siigo del domicilio y del servicio MercaMesa son obligatorios' },
+        { error: 'Los códigos de Siigo de Domicilio y de Productos de terceros son obligatorios' },
         { status: 400 }
       );
     }
@@ -122,7 +122,9 @@ export async function POST(request: Request) {
         messages_per_order: Number(messages_per_order),
         platform_commission_rate: Number(platform_commission_rate),
         siigo_delivery_product_code: siigo_delivery_product_code.trim(),
-        siigo_platform_product_code: siigo_platform_product_code.trim(),
+        siigo_third_party_product_code: siigo_third_party_product_code.trim(),
+        // Ya no se factura con él; se repite para las notas crédito de facturas viejas.
+        siigo_platform_product_code: vigente?.siigo_platform_product_code ?? null,
         order_min_price: vigente?.order_min_price ?? null,
         change_type: 'rates',
         notes: notes.trim(),

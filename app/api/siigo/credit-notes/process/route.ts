@@ -7,6 +7,7 @@ import {
   SIIGO_MAX_INVOICE_ATTEMPTS,
   SIIGO_NC_DOCUMENT_ID,
   SIIGO_PLATFORM_PRODUCT_CODE,
+  SIIGO_THIRD_PARTY_PRODUCT_CODE,
   SIIGO_STAMP_SEND,
 } from '@/lib/siigo/config';
 import { createCreditNote } from '@/lib/siigo/services/credit-note.service';
@@ -172,7 +173,7 @@ async function loadCreditNoteContext(supabase: SupabaseClient<any>, refundId: st
 
   const { data: pricingRow } = await supabase
     .from('pricing_settings_history')
-    .select('siigo_delivery_product_code, siigo_platform_product_code')
+    .select('siigo_delivery_product_code, siigo_third_party_product_code, siigo_platform_product_code')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -196,6 +197,7 @@ async function loadCreditNoteContext(supabase: SupabaseClient<any>, refundId: st
         amount: Number(i.amount),
       })),
       deliveryProductCode: pricingRow?.siigo_delivery_product_code || SIIGO_DELIVERY_PRODUCT_CODE,
+      thirdPartyProductCode: pricingRow?.siigo_third_party_product_code || SIIGO_THIRD_PARTY_PRODUCT_CODE,
       platformProductCode: pricingRow?.siigo_platform_product_code || SIIGO_PLATFORM_PRODUCT_CODE,
     },
   };

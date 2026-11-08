@@ -55,15 +55,16 @@ export const SIIGO_STAMP_SEND = process.env.SIIGO_STAMP_SEND === 'true';
 export const SIIGO_MAIL_SEND = process.env.SIIGO_MAIL_SEND === 'true';
 
 /**
- * Códigos de los productos de Siigo con los que se facturan el domicilio y la
- * comisión de plataforma.
+ * Códigos de los productos de Siigo de los dos conceptos de la factura:
+ * «Domicilio» (todo lo de MercaMesa) y «Productos de terceros» (lo del tendero).
  *
  * Son solo el respaldo: lo normal es que salgan de `pricing_settings_history`,
- * para que el administrador los cambie sin un despliegue. Si no hay ninguno de
- * los dos, el mapper lo dice explícitamente en vez de omitir el cobro y emitir
- * una factura descuadrada.
+ * para que el administrador los cambie sin un despliegue. Si falta uno, el
+ * mapper lo dice explícitamente en vez de emitir una factura descuadrada.
  */
 export const SIIGO_DELIVERY_PRODUCT_CODE = process.env.SIIGO_DELIVERY_PRODUCT_CODE || '';
+export const SIIGO_THIRD_PARTY_PRODUCT_CODE = process.env.SIIGO_THIRD_PARTY_PRODUCT_CODE || '';
+/** El de la antigua línea «Servicio MercaMesa». Solo para notas crédito de facturas viejas. */
 export const SIIGO_PLATFORM_PRODUCT_CODE = process.env.SIIGO_PLATFORM_PRODUCT_CODE || '';
 
 /**

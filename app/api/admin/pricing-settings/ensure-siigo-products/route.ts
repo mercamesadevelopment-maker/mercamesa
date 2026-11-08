@@ -5,8 +5,8 @@ import { createProduct, getProducts } from '@/lib/siigo/services/products/produc
 import { loadPricingSettings, PricingConfigError } from '@/lib/pricing/settings';
 
 /**
- * Crea (o verifica) en Siigo los dos productos de servicio con los que se
- * facturan el domicilio y la comisión de plataforma.
+ * Crea (o verifica) en Siigo los dos productos de la factura: «Domicilio»
+ * (todo lo de MercaMesa) y «Productos de terceros» (lo del tendero).
  *
  * Es idempotente: `createProduct` devuelve `alreadyExists` en vez de fallar si el
  * código ya está, así que se puede volver a ejecutar sin riesgo cada vez que se
@@ -70,9 +70,16 @@ export async function POST() {
 
     const settings = await loadPricingSettings(supabase);
 
+    if (!settings.siigoThirdPartyProductCode) {
+      return NextResponse.json(
+        { error: 'Configura primero el código de Productos de terceros en un ajuste nuevo.' },
+        { status: 400 }
+      );
+    }
+
     const results = [
       await ensureProduct(settings.siigoDeliveryProductCode, 'Domicilio'),
-      await ensureProduct(settings.siigoPlatformProductCode, 'Servicio MercaMesa'),
+      await ensureProduct(settings.siigoThirdPartyProductCode, 'Productos de terceros'),
     ];
 
     const failed = results.filter((r) => r.status === 'error');

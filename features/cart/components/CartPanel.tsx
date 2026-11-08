@@ -25,6 +25,7 @@ import Link from "next/link";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { formatCOP } from '@/lib/utils/format';
+import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 import { ConfirmModal } from "@/components/ui/confirm-modal/ConfirmModal";
 import { QuantityStepper } from "@/components/ui/quantity-stepper/QuantityStepper";
 import { DeliveryAddressSelector } from "./DeliveryAddressSelector";
@@ -107,9 +108,10 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
   }, [isEmpty]);
 
   /**
-   * Mismo desglose que la factura: tres conceptos. Lo que el comprador ve antes
-   * de pagar es idéntico a lo que le llega facturado.
+   * Mismo desglose que la factura: productos de terceros y domicilio. Lo que el
+   * comprador ve antes de pagar es idéntico a lo que le llega facturado.
    */
+  const conceptos = buyerInvoiceConcepts(quote?.productsSubtotal ?? 0, quote?.total ?? 0);
   const totalsBreakdown = quoteError ? (
     // No es culpa del comprador ni algo que él pueda corregir, así que se usa el
     // aviso ámbar y no el rojo de error.
@@ -127,17 +129,14 @@ export function CartPanel({ isOpen, onClose }: CartPanelProps) {
     </div>
   ) : (
     <div className="space-y-2.5">
+      {/* Los dos conceptos de la factura: lo del tendero y todo lo de MercaMesa. */}
       <div className="flex justify-between text-mm-txs text-sm">
-        <span>Productos y servicio de compra</span>
-        <span className="font-bold">{formatCOP(quote.netPurchase)}</span>
+        <span>Productos de terceros</span>
+        <span className="font-bold">{formatCOP(conceptos.thirdPartyProducts)}</span>
       </div>
       <div className="flex justify-between text-mm-txs text-sm">
         <span>Domicilio</span>
-        <span className="font-bold">{formatCOP(quote.deliveryFee)}</span>
-      </div>
-      <div className="flex justify-between text-mm-txs text-sm">
-        <span>Servicio MercaMesa</span>
-        <span className="font-bold">{formatCOP(quote.platformCommission)}</span>
+        <span className="font-bold">{formatCOP(conceptos.delivery)}</span>
       </div>
       {/* Solo para quien tiene saldo: al resto no le aporta nada verlo. */}
       {creditBalance > 0 && (

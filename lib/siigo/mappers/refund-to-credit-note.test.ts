@@ -33,9 +33,20 @@ const ctx = (over: Partial<CreditNoteContext> = {}): CreditNoteContext => ({
   total: 11500,
   items: [],
   deliveryProductCode: 'DOM',
+  thirdPartyProductCode: 'PDT',
   platformProductCode: 'SRV',
   ...over,
 });
+
+/** Una factura de los dos conceptos: los productos con PDT y «Domicilio». */
+const facturaNueva = {
+  cost_center: 10119,
+  items: [
+    { code: 'PDT', description: 'Tomate', quantity: 2, taxed_price: 5000 },
+    { code: 'PDT', description: 'Cebolla', quantity: 1.5, taxed_price: 3000 },
+    { code: 'DOM-FACTURA', description: 'Domicilio', quantity: 1, taxed_price: 9000 },
+  ],
+};
 
 describe('buildCreditNotePayload', () => {
   it('sin comprobante configurado no arma nada', async () => {
@@ -82,5 +93,85 @@ describe('buildCreditNotePayload', () => {
     expect(p.reason).toBe('1');
     expect(p.items).toEqual([{ code: 'P-1', description: 'Tomate', quantity: 1, price: 5000 }]);
     expect(p.payments[0].value).toBe(5000);
+  });
+
+  it('una factura vieja (código por producto y línea de servicio) no es de productos de terceros', async () => {
+    const { isThirdPartyInvoice } = await mapper({ SIIGO_NC_DOCUMENT_ID: '26737' });
+    expect(isThirdPartyInvoice(ctx())).toBe(false);
+    expect(isThirdPartyInvoice(ctx({ invoiceRequest: facturaNueva }))).toBe(true);
+  });
+
+  it('vieja, parcial con servicio: los productos llevan su parte de la comisión y el servicio va en su línea', async () => {
+    const { buildCreditNotePayload } = await mapper({ SIIGO_NC_DOCUMENT_ID: '26737' });
+    const p = buildCreditNotePayload(
+      ctx({
+        scope: 'items',
+        products: 5000,
+        serviceCommission: 150,
+        platformCommission: 772.5,
+        total: 5922.5,
+        items: [{ siigoCode: 'P-1', description: 'Tomate', quantity: 1, amount: 5000 }],
+      })
+    );
+    expect(p.items).toEqual([
+      { code: 'P-1', description: 'Tomate', quantity: 1, price: 5150 },
+      { code: 'SRV', description: 'Servicio MercaMesa', quantity: 1, price: 772.5 },
+    ]);
+  });
+
+  it('nueva, parcial: los productos con el código de terceros a su valor real y los gastos en «Domicilio»', async () => {
+    const { buildCreditNotePayload } = await mapper({ SIIGO_NC_DOCUMENT_ID: '26737' });
+    const p = buildCreditNotePayload(
+      ctx({
+        invoiceRequest: facturaNueva,
+        scope: 'items',
+        products: 5000,
+        serviceCommission: 150,
+        platformCommission: 772.5,
+        total: 5922.5,
+        items: [{ siigoCode: null, description: 'Tomate', quantity: 1, amount: 5000 }],
+      })
+    );
+    expect(p.items).toEqual([
+      { code: 'PDT', description: 'Tomate', quantity: 1, price: 5000 },
+      // El código con que la factura llevó «Domicilio», no el de la parametrización de hoy.
+      { code: 'DOM-FACTURA', description: 'Domicilio', quantity: 1, price: 922.5 },
+    ]);
+    expect(p.payments[0].value).toBe(5922.5);
+    expect(p.items.some((i) => /Servicio/.test(i.description ?? ''))).toBe(false);
+  });
+
+  it('nueva, parcial solo de productos: sin línea de domicilio', async () => {
+    const { buildCreditNotePayload } = await mapper({ SIIGO_NC_DOCUMENT_ID: '26737' });
+    const p = buildCreditNotePayload(
+      ctx({
+        invoiceRequest: facturaNueva,
+        scope: 'items',
+        total: 4500,
+        items: [{ siigoCode: null, description: 'Cebolla', quantity: 1.5, amount: 4500 }],
+      })
+    );
+    expect(p.items).toEqual([{ code: 'PDT', description: 'Cebolla', quantity: 1.5, price: 3000 }]);
+  });
+
+  it('nueva, parcial: los centavos del redondeo van a «Domicilio»', async () => {
+    const { buildCreditNotePayload } = await mapper({ SIIGO_NC_DOCUMENT_ID: '26737' });
+    const p = buildCreditNotePayload(
+      ctx({
+        invoiceRequest: facturaNueva,
+        scope: 'items',
+        total: 1100,
+        items: [{ siigoCode: null, description: 'Limón', quantity: 3, amount: 1000 }],
+      })
+    );
+    const suma = p.items.reduce((s, i) => s + i.price * i.quantity, 0);
+    expect(Math.round(suma * 100) / 100).toBe(1100);
+    expect(p.items[1].description).toBe('Domicilio');
+  });
+
+  it('nueva, pedido completo: copia la factura', async () => {
+    const { buildCreditNotePayload } = await mapper({ SIIGO_NC_DOCUMENT_ID: '26737' });
+    const p = buildCreditNotePayload(ctx({ invoiceRequest: facturaNueva, total: 23500 }));
+    expect(p.items.map((i) => [i.code, i.price])).toEqual([['PDT', 5000], ['PDT', 3000], ['DOM-FACTURA', 9000]]);
   });
 });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { pqrsService } from '../services/pqrs.service';
 import { MAX_PHOTOS, MIN_DESCRIPTION } from '@/lib/pqrs/rules';
 import type { PqrsFormContext } from '@/lib/pqrs/types';
+import { getPqrsReason, kindsOf, type PqrsKind } from '@/lib/pqrs/reasons';
 
 interface UsePqrsFormParams {
   isOpen: boolean;
@@ -19,6 +20,10 @@ interface UsePqrsFormParams {
 
 /**
  * El formulario de radicación.
+ *
+ * Primero el tipo (petición, queja, reclamo, sugerencia o felicitación) y
+ * después el motivo dentro de ese tipo. Si el tipo tiene un solo motivo, se
+ * elige solo.
  *
  * Lo que se puede elegir lo dice el servidor (`/api/pqrs/context`): los pedidos,
  * los productos del elegido y qué motivos le aplican. Cambiar de pedido vuelve a
@@ -38,6 +43,7 @@ export function usePqrsForm({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [storeOrderId, setStoreOrderId] = useState<string | null>(null);
+  const [kind, setKindState] = useState<PqrsKind | ''>('');
   const [reasonKey, setReasonKey] = useState('');
   const [description, setDescription] = useState('');
   /** Cantidad reclamada por línea del pedido. Ausente = no marcada. */
@@ -69,12 +75,30 @@ export function usePqrsForm({
   useEffect(() => {
     if (!isOpen) return;
     setReasonKey(initialReason ?? '');
+    // Un formulario que se abre con el motivo ya elegido (desde el pedido) parte de su tipo.
+    setKindState((initialReason && getPqrsReason(initialReason)?.kind) || '');
     setDescription('');
     setQuantities({});
     setPhotos([]);
     setSubmitError(null);
     load({ storeOrderId: initialStoreOrderId, orderId: initialOrderId });
   }, [isOpen, initialOrderId, initialStoreOrderId, initialReason, load]);
+
+  const kinds = useMemo(() => kindsOf(context?.reasons ?? []), [context]);
+  const kindReasons = useMemo(
+    () => (context?.reasons ?? []).filter((r) => r.kind === kind),
+    [context, kind]
+  );
+
+  /** Cambiar el tipo limpia el motivo; si el tipo tiene uno solo, queda elegido. */
+  const setKind = useCallback(
+    (next: PqrsKind | '') => {
+      setKindState(next);
+      const delTipo = (context?.reasons ?? []).filter((r) => r.kind === next);
+      setReasonKey(delTipo.length === 1 ? delTipo[0].key : '');
+    },
+    [context]
+  );
 
   const reason = useMemo(
     () => context?.reasons.find((r) => r.key === reasonKey) ?? null,
@@ -107,6 +131,7 @@ export function usePqrsForm({
    * mismo; esto solo evita un viaje para decir algo que ya se sabe.
    */
   const missing = useMemo((): string | null => {
+    if (!kind) return 'Elige qué quieres radicar.';
     if (!reason) return 'Elige un motivo.';
     if (reason.order === 'required' && !context?.order) return 'Elige el pedido.';
     if (context?.order && reason.unavailableWhy) return reason.unavailableWhy;
@@ -119,7 +144,7 @@ export function usePqrsForm({
       return `Describe lo que pasó (mínimo ${MIN_DESCRIPTION} caracteres).`;
     }
     return null;
-  }, [reason, context, quantities, photos, description]);
+  }, [kind, reason, context, quantities, photos, description]);
 
   const submit = useCallback(async () => {
     if (!reason || missing) return;
@@ -153,6 +178,10 @@ export function usePqrsForm({
     context,
     loading,
     loadError,
+    kinds,
+    kind,
+    setKind,
+    kindReasons,
     reason,
     reasonKey,
     setReasonKey,

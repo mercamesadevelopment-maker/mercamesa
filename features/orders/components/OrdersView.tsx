@@ -431,7 +431,7 @@ export function OrdersView({
           role="status"
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[260] max-w-[calc(100vw-2rem)] rounded-full bg-mm-g text-white text-sm font-medium px-5 py-3 shadow-xl flex items-center gap-3"
         >
-          <span>Caso {reportedCode} radicado. Lo encuentras en «PQRS».</span>
+          <span>Caso {reportedCode} radicado. Lo encuentras en «PQRSF».</span>
           <button type="button" onClick={() => setReportedCode(null)} className="font-bold underline underline-offset-2">
             Cerrar
           </button>
