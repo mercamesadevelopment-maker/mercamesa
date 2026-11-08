@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 interface QuantityStepperProps {
   qty: number;

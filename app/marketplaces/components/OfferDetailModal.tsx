@@ -4,11 +4,12 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart } from 'lucide-react';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
-import { Badge, Button } from '@/src/components/Shared';
-import { useApp } from '@/src/store';
-import { useCart } from '@/src/features/cart/hooks/use-cart';
+import { StoreOffer } from '@/features/offers/types/offer.types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useCart } from '@/features/cart/hooks/use-cart';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
+import { maxQtyFor, offerLimitLabel } from '@/lib/offers/offer-limit';
 
 interface OfferDetailModalProps {
   offer: StoreOffer | null;
@@ -16,7 +17,6 @@ interface OfferDetailModalProps {
 }
 
 export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
-  const { state, dispatch } = useApp();
   const { cart, addToCart, updateCartQty } = useCart();
 
   // El mismo bloqueo que hace el Modal genérico (components/ui/modal). Sin él,
@@ -44,6 +44,9 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
   const storeProductId = offer.store_products?.id || '';
   const qty = cart.find((i) => String(i.id) === String(storeProductId))?.qty ?? 0;
   const stock = Number(offer.store_products?.stock ?? 0);
+  const unidad = offer.store_products?.measurement_units?.abbreviation || 'und';
+  // El contador no pasa del máximo por pedido de la oferta; el servidor lo exige igual.
+  const tope = maxQtyFor(stock, offer.max_qty_per_order);
 
   const isPercentage = !!offer.discount_pct;
   const discountLabel = isPercentage ? `${offer.discount_pct}% DESCUENTO` : `-$${offer.special_price?.toLocaleString('es-CO')} DTO`;
@@ -59,6 +62,7 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
       // decir cuánto se ahorra hasta que se recarga la página.
       listPrice: discountedPrice < Number(originalPrice) ? Number(originalPrice) : undefined,
       offerId: offer.id,
+      offerMaxQty: offer.max_qty_per_order,
       stock: offer.store_products?.stock ?? 0,
       unit: offer.store_products?.measurement_units?.abbreviation || 'und',
       emoji: '🎁',
@@ -151,6 +155,11 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
                 </div>
 
                 <div className="flex flex-col gap-3">
+                  {offer.max_qty_per_order != null && stock > 0 && (
+                    <p className="text-center font-mono text-[11px] uppercase tracking-widest text-mm-txs">
+                      {offerLimitLabel(Number(offer.max_qty_per_order), unidad)}
+                    </p>
+                  )}
                   {stock <= 0 ? (
                     <p className="text-center text-sm font-bold text-r py-3">Agotado</p>
                   ) : qty > 0 ? (
@@ -158,7 +167,7 @@ export function OfferDetailModal({ offer, onClose }: OfferDetailModalProps) {
                       <span className="text-sm font-bold text-mm-g pl-1">En tu canasta</span>
                       <QuantityStepper
                         qty={qty}
-                        max={stock}
+                        max={tope}
                         onChange={(next) => updateCartQty(storeProductId, next)}
                         // Bajar de 1 saca el producto de la canasta, como en la tarjeta.
                         min={1}

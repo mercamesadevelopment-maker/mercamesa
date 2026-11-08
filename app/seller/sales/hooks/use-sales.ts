@@ -1,15 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useApp } from '@/src/store';
-import { Product, Sale, OrderItem, SaleStatus } from '@/src/types';
+import { useNotificationsState } from '@/features/notifications/notifications-context';
+import { Product } from '@/features/products/types/product.types';
+import { Sale, SaleStatus } from '@/app/seller/sales/types/sale.types';
+import { OrderItem } from '@/lib/orders/types';
 import { CustomerState } from '../components/customer-autocomplete';
 import { saveClient } from '../services/sales.service';
-import { fmt } from '@/src/constants';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { formatCOP } from '@/lib/utils/format';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { formatOrderCode } from '@/lib/orders/order-code';
 
 export function useSales() {
-  const { state, dispatch } = useApp();
+  const { setNotifs } = useNotificationsState();
   const { stores, storeId, storeName, selectStore } = useSellerStore();
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,17 +303,14 @@ export function useSales() {
       setCustomer({ name: '', id: '', identification_type_id: '', email: '', phone: '' });
       setSearch('');
 
-      dispatch({
-        type: 'ADD_NOTIF',
-        notif: {
+      setNotifs((prev) => [{
           id: `sale-${Date.now()}`,
           type: 'order_new',
           title: 'Venta Registrada',
-          msg: `Venta física por ${fmt(total)} registrada con éxito en la base de datos.`,
+          msg: `Venta física por ${formatCOP(total)} registrada con éxito en la base de datos.`,
           time: new Date().toISOString(),
           read: false
-        }
-      });
+        }, ...prev]);
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'Error al guardar la venta');

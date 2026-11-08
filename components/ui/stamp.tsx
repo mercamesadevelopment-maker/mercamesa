@@ -1,4 +1,4 @@
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 /**
  * Sellos de la marca (caso de marca, lámina 11): el descuento en arcilla

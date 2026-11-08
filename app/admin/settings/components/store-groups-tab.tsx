@@ -3,7 +3,9 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Search, X, Users, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Button, Badge, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/form-fields';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';

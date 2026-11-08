@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
-import { useApp } from '@/src/store';
+import { useSession } from '@/features/auth/session-context';
 
 interface HasPermissionProps {
   module: string;
@@ -17,12 +17,12 @@ export function HasPermission({
   children,
   fallback = null,
 }: HasPermissionProps) {
-  const { state } = useApp();
-  const roleId = state.buyerProfile?.role_id;
+  const session = useSession();
+  const roleId = session.profile?.role_id;
 
   const { hasPermission, loading } = usePermissions(
     roleId,
-    state._hydrated
+    session.hydrated
   );
 
   if (loading) {

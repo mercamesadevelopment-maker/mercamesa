@@ -3,10 +3,12 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Plus, Tag, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useOffers } from '@/src/features/offers/hooks/use-offers';
-import { StoreOffer } from '@/src/features/offers/types/offer.types';
-import { OfferModal } from '@/src/features/offers/components/OfferModal';
-import { Button, Badge } from '@/src/components/Shared';
+import { useOffers } from '@/features/offers/hooks/use-offers';
+import { StoreOffer } from '@/features/offers/types/offer.types';
+import { OfferModal } from '@/features/offers/components/OfferModal';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatCOP } from '@/lib/utils/format';
 
 export default function OffersAdmin() {
   return (
@@ -50,7 +52,6 @@ function OffersAdminContent() {
   const totalPages = Math.ceil(offers.length / rowsPerPage);
   const paginatedData = offers.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  const fmt = (price: number) => `$${price.toLocaleString('es-CO')}`;
 
   if (loading) return <div className="p-8 text-center text-mm-txs">Cargando ofertas...</div>;
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
@@ -121,7 +122,7 @@ function OffersAdminContent() {
               <div className="flex items-center justify-between gap-3 pt-4 border-t border-mm-gbg mt-auto relative z-10">
                 <div className="min-w-0 truncate text-mm-g font-bold text-lg">
                   {offer.special_price 
-                    ? fmt(offer.special_price) 
+                    ? formatCOP(offer.special_price) 
                     : offer.discount_pct ? `${offer.discount_pct}% Descuento` : 'Sin precio'}
                 </div>
                 <div className="flex gap-1 shrink-0">

@@ -5,8 +5,12 @@ import {
   toConsolidatedOrder,
   type ConsolidatedOrder,
 } from '@/lib/orders/consolidated-order';
-import { activeParts, canReceivePart, carrierOf } from '@/lib/orders/consolidation';
+import { activeParts, carrierOf } from '@/lib/orders/consolidation';
 import { canWorkMarketplace, StaffError, type StaffActor } from '@/lib/marketplace-staff/actor';
+import { fetchAllIn } from '@/lib/supabase/in-chunks';
+import { areOwnUploads, FOTO_NO_VALIDA } from '@/lib/storage/private-photos';
+import { canEditEvidence, canRecordReception, parseReceptionInput } from './reception-rules';
+import { loadBayReceptions, notifyDamagedPart, saveBayEvidence, type BayReception } from './bay-reception';
 
 /**
  * Los pedidos que pasan por la bahía de una plaza, vistos por logística.
@@ -24,6 +28,12 @@ import { canWorkMarketplace, StaffError, type StaffActor } from '@/lib/marketpla
 const EN_PLAZA = ['confirmed', 'paid', 'packing', 'at_collection'];
 const DESPACHADO = ['dispatched', 'delivered'];
 
+export interface LogisticsItem {
+  name: string;
+  unit: string;
+  quantity: number;
+}
+
 export interface LogisticsPart {
   storeOrderId: string;
   code: string;
@@ -33,7 +43,13 @@ export interface LogisticsPart {
   status: string;
   collectedAt: string | null;
   bayReceivedAt: string | null;
+  /** Lo que trae la parte: nombre, unidad y cantidad, sin precios. */
+  items: LogisticsItem[];
+  /** Puede registrar ahora la recepción («Recibido» o «Registrar recepción»). */
   canReceive: boolean;
+  /** Ya la recibió y sigue en la plaza: puede agregar fotos o cambiar la observación. */
+  canEditEvidence: boolean;
+  reception: BayReception | null;
 }
 
 export interface LogisticsOrder {
@@ -59,7 +75,16 @@ export interface LogisticsOrder {
   } | null;
 }
 
-function aPedido(pedido: ConsolidatedOrder, reserva: any | null): LogisticsOrder {
+/** Lo que la tarjeta muestra además del pedido: productos, recepciones y si la plaza tiene logística. */
+interface Contexto {
+  items: Map<string, LogisticsItem[]>;
+  receptions: Map<string, BayReception>;
+  plazasConLogistica: Set<string>;
+}
+
+const CONTEXTO_VACIO: Contexto = { items: new Map(), receptions: new Map(), plazasConLogistica: new Set() };
+
+function aPedido(pedido: ConsolidatedOrder, reserva: any | null, ctx: Contexto = CONTEXTO_VACIO): LogisticsOrder {
   const consolidated = pedido.fulfillment === 'consolidated';
   // Uno de una sola tienda no pasa por «Recibido»: logística solo lo despacha.
   const cfg = consolidated ? pedido.config : { runnerRequired: false, logisticsRequired: false };
@@ -74,7 +99,14 @@ function aPedido(pedido: ConsolidatedOrder, reserva: any | null): LogisticsOrder
     status: p.status,
     collectedAt: p.collectedAt,
     bayReceivedAt: p.bayReceivedAt,
-    canReceive: consolidated && canReceivePart(p, cfg),
+    items: ctx.items.get(p.id) ?? [],
+    canReceive: canRecordReception(p, {
+      consolidated,
+      config: cfg,
+      marketplaceHasLogistics: Boolean(pedido.marketplaceId && ctx.plazasConLogistica.has(pedido.marketplaceId)),
+    }),
+    canEditEvidence: canEditEvidence(p),
+    reception: ctx.receptions.get(p.id) ?? null,
   }));
 
   const todasListas =
@@ -132,6 +164,46 @@ async function reservasVigentes(service: SupabaseClient<any>, pedidos: Consolida
   return porPedido;
 }
 
+/**
+ * Los productos de cada parte, las recepciones ya registradas y qué plazas
+ * tienen logística, para todos los pedidos de una vez.
+ */
+async function cargarContexto(service: SupabaseClient<any>, pedidos: ConsolidatedOrder[]): Promise<Contexto> {
+  if (pedidos.length === 0) return CONTEXTO_VACIO;
+
+  const parteDe = new Map<string, string>();
+  for (const p of pedidos) for (const parte of p.parts) parteDe.set(`${p.id}:${parte.storeId}`, parte.id);
+  const plazas = Array.from(new Set(pedidos.map((p) => p.marketplaceId).filter((id): id is string => Boolean(id))));
+
+  const [filas, receptions, { data: conLogistica }] = await Promise.all([
+    fetchAllIn<any>(
+      pedidos.map((p) => p.id),
+      (ids, from, to) =>
+        service
+          .from('order_items')
+          .select('order_id, catalog_name, unit_name, quantity, created_at, store_products!inner ( store_id )')
+          .in('order_id', ids)
+          .order('created_at', { ascending: true })
+          .range(from, to)
+    ),
+    loadBayReceptions(service, Array.from(parteDe.values())),
+    plazas.length > 0
+      ? service.from('marketplaces').select('id').in('id', plazas).eq('logistics_enabled', true)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const items = new Map<string, LogisticsItem[]>();
+  for (const f of filas) {
+    const parte = parteDe.get(`${f.order_id}:${f.store_products?.store_id}`);
+    if (!parte) continue;
+    const lista = items.get(parte) ?? [];
+    lista.push({ name: f.catalog_name, unit: f.unit_name, quantity: Number(f.quantity) });
+    items.set(parte, lista);
+  }
+
+  return { items, receptions, plazasConLogistica: new Set((conLogistica ?? []).map((m: any) => m.id)) };
+}
+
 /** Las tiendas de las plazas de quien pregunta; `null` para un administrador (todas). */
 async function tiendasDe(service: SupabaseClient<any>, actor: StaffActor): Promise<string[] | null> {
   if (actor.isAdmin) return null;
@@ -180,8 +252,9 @@ export async function listLogisticsOrders(
     .map(toConsolidatedOrder)
     .filter((p) => canWorkMarketplace(actor, p.marketplaceId));
   const reservas = await reservasVigentes(service, pedidos);
+  const ctx = await cargarContexto(service, pedidos);
 
-  const vista = pedidos.map((p) => aPedido(p, reservas.get(p.id) ?? null));
+  const vista = pedidos.map((p) => aPedido(p, reservas.get(p.id) ?? null, ctx));
   const enPlaza = (o: LogisticsOrder) => o.stage === 'preparing' || o.stage === 'at_bay';
 
   return scope === 'open'
@@ -210,8 +283,8 @@ export async function getLogisticsOrder(
   orderId: string
 ): Promise<LogisticsOrder> {
   const pedido = await cargarPedido(service, actor, orderId);
-  const reservas = await reservasVigentes(service, [pedido]);
-  return aPedido(pedido, reservas.get(pedido.id) ?? null);
+  const [reservas, ctx] = await Promise.all([reservasVigentes(service, [pedido]), cargarContexto(service, [pedido])]);
+  return aPedido(pedido, reservas.get(pedido.id) ?? null, ctx);
 }
 
 export interface ReceiveOutcome {
@@ -220,50 +293,97 @@ export interface ReceiveOutcome {
   deliveryError: string | null;
 }
 
-/**
- * Logística recibió en la bahía la parte de una tienda. Con la última parte,
- * se pide el mensajero.
- */
-export async function receivePart(
-  service: SupabaseClient<any>,
-  actor: StaffActor,
-  storeOrderId: string
-): Promise<ReceiveOutcome> {
+/** Lee la entrada y comprueba que las fotos sean de quien las manda, antes de escribir nada. */
+function leerEvidencia(actor: StaffActor, body: unknown, firstTime: boolean) {
+  const leida = parseReceptionInput(body, { firstTime });
+  if ('error' in leida) throw new StaffError(leida.error, 400);
+  if (!areOwnUploads(actor.userId, leida.input.photos)) throw new StaffError(FOTO_NO_VALIDA, 400);
+  return leida.input;
+}
+
+async function pedidoDeLaParte(service: SupabaseClient<any>, actor: StaffActor, storeOrderId: string) {
   const { data: fila } = await service.from('store_orders').select('order_id').eq('id', storeOrderId).maybeSingle();
   if (!fila) throw new StaffError('No encontramos ese pedido.', 404);
 
   const pedido = await cargarPedido(service, actor, fila.order_id);
   const parte = pedido.parts.find((p) => p.id === storeOrderId)!;
+  return { pedido, parte };
+}
 
-  if (pedido.fulfillment !== 'consolidated' || !pedido.config.logisticsRequired) {
+async function avisarSiLlegoMal(
+  service: SupabaseClient<any>,
+  actor: StaffActor,
+  pedido: ConsolidatedOrder,
+  parte: ConsolidatedOrder['parts'][number],
+  observation: string | null,
+  newlyDamaged: boolean
+) {
+  if (!newlyDamaged) return;
+  await notifyDamagedPart(service, {
+    storeOrderId: parte.id,
+    storeId: parte.storeId,
+    storeName: parte.storeName,
+    orderCode: pedido.code,
+    observation: observation ?? '',
+    actorId: actor.userId,
+  });
+}
+
+/**
+ * Logística recibió en la bahía la parte de una tienda, con fotos de cómo
+ * llegó. En un pedido de varias tiendas, con la última parte se pide el
+ * mensajero. En uno de una sola tienda es solo evidencia: el despacho no la
+ * espera.
+ *
+ * Si la parte ya estaba recibida (un toque repetido), lo que llega se guarda
+ * como evidencia de más, mientras siga en la plaza.
+ */
+export async function receivePart(
+  service: SupabaseClient<any>,
+  actor: StaffActor,
+  storeOrderId: string,
+  body: unknown
+): Promise<ReceiveOutcome> {
+  const { pedido, parte } = await pedidoDeLaParte(service, actor, storeOrderId);
+  const consolidated = pedido.fulfillment === 'consolidated';
+
+  if (parte.bayReceivedAt) {
+    return { order: await updateEvidence(service, actor, storeOrderId, body), deliveryError: null };
+  }
+
+  if (consolidated && !pedido.config.logisticsRequired) {
     throw new StaffError('Este pedido no pasa por logística en la bahía.', 409);
   }
 
-  // Recibirla dos veces no es un error: puede ser un toque repetido.
-  if (!parte.bayReceivedAt) {
-    if (!canReceivePart(parte, pedido.config)) {
-      throw new StaffError(
-        pedido.config.runnerRequired
-          ? `El patinador todavía no ha recogido la parte de ${parte.storeName}.`
-          : `${parte.storeName} todavía no tiene lista su parte.`,
-        409
-      );
+  const actual = await getLogisticsOrder(service, actor, pedido.id);
+  const vista = actual.parts.find((p) => p.storeOrderId === storeOrderId)!;
+  if (!vista.canReceive) {
+    if (!consolidated && parte.status === 'at_collection') {
+      throw new StaffError('Esta plaza no tiene logística en la bahía.', 409);
     }
-
-    const { error } = await service
-      .from('store_orders')
-      .update({ bay_received_at: new Date().toISOString(), bay_received_by: actor.userId })
-      .eq('id', storeOrderId)
-      .is('bay_received_at', null);
-    if (error) throw new Error(`No se pudo registrar la recepción: ${error.message}`);
-
-    await service.from('store_order_status_history').insert({
-      store_order_id: storeOrderId,
-      status: parte.status,
-      notes: 'Logística recibió esta parte en la bahía',
-      changed_by: actor.userId,
-    });
+    throw new StaffError(
+      consolidated && pedido.config.runnerRequired
+        ? `El patinador todavía no ha recogido la parte de ${parte.storeName}.`
+        : `${parte.storeName} todavía no tiene lista su parte.`,
+      409
+    );
   }
+
+  const input = leerEvidencia(actor, body, true);
+  const { newlyDamaged } = await saveBayEvidence(service, { storeOrderId, userId: actor.userId, input, receiving: true });
+
+  await service.from('store_order_status_history').insert({
+    store_order_id: storeOrderId,
+    status: parte.status,
+    notes: input.damaged
+      ? 'Logística recibió esta parte en la bahía, con novedad'
+      : 'Logística recibió esta parte en la bahía',
+    changed_by: actor.userId,
+  });
+
+  await avisarSiLlegoMal(service, actor, pedido, parte, input.observation, newlyDamaged);
+
+  if (!consolidated) return { order: await getLogisticsOrder(service, actor, pedido.id), deliveryError: null };
 
   const { data: perfil } = await service.from('profiles').select('phone').eq('id', actor.userId).maybeSingle();
   const { error: deliveryError } = await requestCourierIfReady(
@@ -274,6 +394,30 @@ export async function receivePart(
   );
 
   return { order: await getLogisticsOrder(service, actor, pedido.id), deliveryError };
+}
+
+/**
+ * Agrega fotos o cambia la observación de una parte ya recibida, mientras
+ * siga en la plaza. Las fotos no se borran: si una salió mal, se sube otra.
+ */
+export async function updateEvidence(
+  service: SupabaseClient<any>,
+  actor: StaffActor,
+  storeOrderId: string,
+  body: unknown
+): Promise<LogisticsOrder> {
+  const { pedido, parte } = await pedidoDeLaParte(service, actor, storeOrderId);
+
+  if (!parte.bayReceivedAt) throw new StaffError('Primero registra la recepción de esta parte.', 409);
+  if (!canEditEvidence(parte)) {
+    throw new StaffError('Esta parte ya salió de la plaza: su recepción ya no se puede cambiar.', 409);
+  }
+
+  const input = leerEvidencia(actor, body, false);
+  const { newlyDamaged } = await saveBayEvidence(service, { storeOrderId, userId: actor.userId, input, receiving: false });
+  await avisarSiLlegoMal(service, actor, pedido, parte, input.observation, newlyDamaged);
+
+  return getLogisticsOrder(service, actor, pedido.id);
 }
 
 /**
@@ -297,6 +441,13 @@ export async function dispatchOrder(
       .map((p) => p.storeName);
     throw new StaffError(`Todavía falta en la bahía: ${faltan.join(', ')}.`, 409);
   }
+
+  // Quién lo despachó desde la bahía: es lo que cuenta como servicio de logística.
+  await service
+    .from('orders')
+    .update({ logistics_dispatched_at: new Date().toISOString(), logistics_dispatched_by: actor.userId })
+    .eq('id', orderId)
+    .is('logistics_dispatched_at', null);
 
   for (const p of activeParts(pedido.parts)) {
     const { data: cambiada } = await service

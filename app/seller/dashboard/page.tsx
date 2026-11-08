@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardView } from './components/dashboard-view';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 
 export default function SellerDashboardPage() {
   const { stores, loading: storeLoading } = useSellerStore();

@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { Bike, PackageCheck, UserPlus, X } from 'lucide-react';
-import { Button, Input, cn } from '@/src/components/Shared';
-import { fmt } from '@/src/constants';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
+import { formatCOP } from '@/lib/utils/format';
 import { STAFF_ROLE_LABEL, type StaffRole } from '@/lib/marketplace-staff/actor';
 import type { MarketplaceStaffSettings } from '@/lib/marketplace-staff/admin';
 import { useMarketplaceStaff } from '../hooks/use-marketplace-staff';
@@ -225,7 +227,7 @@ export function MarketplaceStaffPanel({ marketplaceId, marketplaceName, enabled 
                 <div key={c.userId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                   <span className="text-mm-g font-bold truncate">{c.name}</span>
                   <span className="text-mm-txs whitespace-nowrap">
-                    {c.orders} {c.orders === 1 ? 'pedido' : 'pedidos'} · <b className="text-mm-g">{fmt(c.amount)}</b>
+                    {c.orders} {c.orders === 1 ? 'pedido' : 'pedidos'} · <b className="text-mm-g">{formatCOP(c.amount)}</b>
                   </span>
                 </div>
               ))}

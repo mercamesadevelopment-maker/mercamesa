@@ -1,146 +1,22 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { Database } from '../../../types/database_generated';
-import { uploadVariants } from '../../../lib/images/generate';
-import { getSupabaseImageUrl, PRESET_COVER_DETAIL, PRESET_LOGO } from '../../../lib/supabase/supabase-image';
-import { toE164 } from '@/lib/phone/phone';
-import { parseCategoryIds, setStoreCategories, CategoryLinksError, withFlatCategories } from '@/lib/stores/category-links';
-import { validateStoreFields } from '@/lib/stores/validate-store';
-import { parsePickupAddress } from '@/lib/stores/pickup-address';
-import { toPublicStore } from '@/lib/stores/public-store';
-
-type StoreInsert = Database['public']['Tables']['stores']['Insert'];
+import { listStores } from '@/lib/stores/store-listing';
+import { createStore } from '@/lib/stores/store-create';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
-  const { searchParams } = new URL(request.url);
-  const active = searchParams.get('is_active');
-  const marketplaceId = searchParams.get('marketplace_id');
-  const memberOnly = searchParams.get('member_only') === 'true';
-
   const { data: { user } } = await supabase.auth.getUser();
 
-  let selectStr = `
-    *,
-    marketplaces ( name ),
-    store_category_links ( store_categories ( id, name ) ),
-    store_reviews ( stars ),
-    store_members (
-      id,
-      role_id,
-      roles ( name, label ),
-      profiles!user_id ( id, full_name, email )
-    ),
-    store_documents (
-      id,
-      document_type_id,
-      status
-    )
-  `;
-
-  if (memberOnly && user) {
-    selectStr = `
-      *,
-      marketplaces ( name ),
-      store_category_links ( store_categories ( id, name ) ),
-      store_reviews ( stars ),
-      store_members!inner (
-        id,
-        role_id,
-        roles ( name, label ),
-        profiles!user_id ( id, full_name, email )
-      ),
-      store_documents (
-        id,
-        document_type_id,
-        status
-      )
-    `;
-  }
-
-  let query = supabase.from('stores').select(selectStr);
-  
-  if (active !== null) query = query.eq('is_active', active === 'true');
-  if (marketplaceId) query = query.eq('marketplace_id', marketplaceId);
-  if (memberOnly && user) query = query.eq('store_members.user_id', user.id);
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  // Fetch required document types
-  const { data: requiredDocumentTypes, error: typesError } = await supabase
-    .from('document_types')
-    .select('id, name, slug, is_required')
-    .eq('is_required', true);
-
-  if (typesError) {
-    return NextResponse.json({ error: typesError.message }, { status: 400 });
-  }
-
-  // Con sus categorías: el modal del admin se llena con esta respuesta, y sin
-  // ellas guardaba la lista vacía y le borraba las categorías a la tienda.
-  const dataWithUrls = data?.map(({ store_reviews, ...store }: any) => ({
-    ...withFlatCategories(store),
-    // La calificación sale de las reseñas, no de `reputation_score`: esa columna
-    // nace en 5.00, y el listado mostraba 5.0 en tiendas que nadie ha calificado.
-    ...resumenDeResenas(store_reviews),
-    logoSignedUrl: store.logo_url ? getSupabaseImageUrl('stores', store.logo_url, PRESET_LOGO) : null,
-    coverSignedUrl: store.cover_image_url ? getSupabaseImageUrl('stores', store.cover_image_url, PRESET_COVER_DETAIL) : null,
-  }));
-
-  /**
-   * Quién recibe la fila completa.
-   *
-   * Esta ruta la consumen el panel del admin, el del tendero y también páginas
-   * públicas (la lista de tiendas, las promociones, el filtro de pedidos), y a
-   * todos les devolvía lo mismo: cualquiera, sin sesión, recibía el correo de
-   * contacto y la dirección de recogida de cada tienda.
-   *
-   * La fila completa es para quien gestiona: el permiso `stores` (el mismo que
-   * protege /admin/stores) o las tiendas propias (`member_only`, que ya viene
-   * filtrado a las del usuario). El resto recibe la vista pública.
-   */
-  let gestiona = false;
-  if (user) {
-    if (memberOnly) {
-      gestiona = true;
-    } else {
-      const { data: puedeVerTiendas } = await supabase.rpc('has_permission', {
-        module_key: 'stores',
-        action_name: 'read',
-      });
-      gestiona = puedeVerTiendas === true;
-    }
-  }
-
-  if (!gestiona) {
-    return NextResponse.json(
-      { data: (dataWithUrls ?? []).map(toPublicStore), requiredDocumentTypes: [] },
-      { status: 200 }
-    );
-  }
-
-  return NextResponse.json({ data: dataWithUrls, requiredDocumentTypes }, { status: 200 });
-}
-
-/** Cuántas reseñas tiene una tienda y su promedio; `null` si no tiene ninguna. */
-function resumenDeResenas(reviews: { stars: number }[] | null | undefined) {
-  const lista = reviews ?? [];
-  if (lista.length === 0) return { reviewCount: 0, rating: null };
-
-  const suma = lista.reduce((acc, r) => acc + Number(r.stars), 0);
-  return { reviewCount: lista.length, rating: suma / lista.length };
+  const { status, body } = await listStores(supabase, new URL(request.url).searchParams, user?.id ?? null);
+  return NextResponse.json(body, { status });
 }
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -148,215 +24,14 @@ export async function POST(request: Request) {
     const denied = await requirePermission(supabase, 'stores', 'create', 'No tienes permisos para crear tiendas');
     if (denied) return denied;
 
-    const body = await request.json();
-    const storeId = (body.id as string) || crypto.randomUUID();
-
-    const name = body.name as string;
-    const slug = body.slug as string;
-    const marketplace_id = body.marketplace_id as string;
-    const description = (body.description as string) || null;
-    const contact_name = (body.contact_name as string) || null;
-    const contact_email = (body.contact_email as string) || null;
-    // Los teléfonos se guardan siempre en E.164 (+573001234567): Pibox recibe el
-    // indicativo aparte del número, y sin un formato fijo no hay cómo separarlos.
-    const phone = body.phone ? toE164(body.phone as string) : null;
-    const whatsapp = body.whatsapp ? toE164(body.whatsapp as string) : null;
-
-    if (body.phone && !phone) {
-      return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
-    }
-    if (body.whatsapp && !whatsapp) {
-      return NextResponse.json({ error: 'El WhatsApp no es un número válido.' }, { status: 400 });
-    }
-    const is_active = body.is_active === true || body.is_active === 'true';
-    const business_hours = body.business_hours || null;
-
-    // Las categorías van en `store_category_links`, después de crear la tienda.
-    // Una tienda puede ser mayorista y minorista a la vez, así que son dos
-    // banderas independientes; por defecto, al detal.
-    const is_wholesale = body.is_wholesale === true || body.is_wholesale === 'true';
-    const is_retail = body.is_retail === undefined
-      ? true
-      : body.is_retail === true || body.is_retail === 'true';
-
-    let categoryIds: string[] | null;
-    try {
-      categoryIds = parseCategoryIds(body.category_ids);
-    } catch (e) {
-      const message = e instanceof CategoryLinksError ? e.message : 'Categorías inválidas.';
-      return NextResponse.json({ error: message }, { status: 400 });
-    }
-
-    if (!name || !slug || !marketplace_id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    // Correo malformado o descripción sin límite: antes nada lo impedía, ni acá
-    // ni en el formulario, así que un dato malo podía guardarse sin aviso.
-    const fieldsError = validateStoreFields({ name, description, contactEmail: contact_email });
-    if (fieldsError) {
-      return NextResponse.json({ error: fieldsError }, { status: 400 });
-    }
-
-    // Dirección de recogida propia. Opcional: sin ella se recoge en la plaza.
-    const recogida = parsePickupAddress(body);
-    if (recogida.error) {
-      return NextResponse.json({ error: recogida.error }, { status: 400 });
-    }
-
-    if (contact_email) {
-      const { data: existingStore, error: checkError } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('contact_email', contact_email)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-      if (existingStore) {
-        return NextResponse.json({ error: 'El correo de contacto ya está registrado en otra tienda.' }, { status: 400 });
-      }
-    }
-
-    // El cliente ya subió el/los original(es) directo a Storage (evita el
-    // límite de payload de las funciones serverless); acá solo descargamos
-    // el buffer para generar los derivados con sharp.
-    let cover_image_url: string | null = null;
-    let logo_url: string | null = null;
-
-    if (body.cover_image_url) {
-      cover_image_url = body.cover_image_url as string;
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('stores')
-        .download(cover_image_url);
-      if (downloadError) throw downloadError;
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-      await uploadVariants(supabase, 'stores', cover_image_url, buffer, ['cover']);
-    }
-
-    if (body.logo_url) {
-      logo_url = body.logo_url as string;
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('stores')
-        .download(logo_url);
-      if (downloadError) throw downloadError;
-      const buffer = Buffer.from(await fileData.arrayBuffer());
-      await uploadVariants(supabase, 'stores', logo_url, buffer, ['logo']);
-    }
-
-    const insertData: StoreInsert = {
-      id: storeId,
-      name,
-      slug,
-      marketplace_id,
-      description,
-      contact_name,
-      contact_email,
-      phone,
-      whatsapp,
-      is_active,
-      is_verified: false,
-      is_wholesale,
-      is_retail,
-      cover_image_url,
-      logo_url,
-      business_hours,
-      ...recogida.fields,
-    };
-
-    const { data, error } = await supabase.from('stores').insert(insertData).select().single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    if (categoryIds !== null && categoryIds.length > 0) {
-      try {
-        await setStoreCategories(supabase, storeId, categoryIds);
-      } catch (e) {
-        // La tienda ya quedó creada: no se deshace por unas categorías, pero
-        // tampoco se calla, porque el admin no vería lo que eligió.
-        const message =
-          e instanceof CategoryLinksError
-            ? `La tienda se creó, pero sus categorías no se pudieron guardar: ${e.message}`
-            : 'La tienda se creó, pero sus categorías no se pudieron guardar.';
-        return NextResponse.json({ error: message }, { status: 400 });
-      }
-    }
-
-    // Auto-assign or invite contact email as store_owner
-    if (contact_email) {
-      // Buscar a otra persona por correo e invitarla es cosa del servidor: un
-      // usuario no lee perfiles ajenos ni invitaciones. El permiso para crear
-      // tiendas ya se comprobó arriba.
-      const service = createSupabaseServiceClient();
-      const { data: profile } = await service
-        .from('profiles')
-        .select('id')
-        .eq('email', contact_email)
-        .maybeSingle();
-
-      const storeOwnerRoleId = '5cd37ab3-c7e2-40a7-8677-363935b51e5a'; // store_owner
-
-      if (profile) {
-        // Create store_member row
-        await supabase.from('store_members').insert({
-          store_id: storeId,
-          user_id: profile.id,
-          role_id: storeOwnerRoleId,
-          invited_by: user.id
-        });
-
-        // Trigger edge function
-        try {
-          const origin = request.headers.get('origin') || '';
-          const edgeUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/notify-store-assignment`;
-          await fetch(edgeUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({
-              email: contact_email,
-              fullName: contact_name || 'Miembro',
-              storeName: name,
-              roleLabel: 'Dueño de Tienda',
-              loginUrl: `${origin}/seller/onboarding`
-            })
-          });
-        } catch (efErr) {
-          console.error('Error invoking notify-store-assignment edge function:', efErr);
-        }
-      } else {
-        // Invite new user and record invitation
-        try {
-          const origin = request.headers.get('origin') || '';
-          const { error: inviteError } = await service.auth.admin.inviteUserByEmail(contact_email, {
-            redirectTo: `${origin}/accept-invite`
-          });
-
-          if (!inviteError) {
-            // Record in invitations
-            const expires = new Date();
-            expires.setDate(expires.getDate() + 7);
-
-            await service.from('invitations').insert({
-              email: contact_email,
-              store_id: storeId,
-              role: storeOwnerRoleId,
-              invitation_type: 'store_member',
-              invited_by: user.id,
-              token: crypto.randomUUID(),
-              expires_at: expires.toISOString()
-            });
-          }
-        } catch (inviteErr) {
-          console.error('Error inviting user:', inviteErr);
-        }
-      }
-    }
-
-    return NextResponse.json({ data }, { status: 201 });
+    const { status, body } = await createStore(
+      supabase,
+      createSupabaseServiceClient(),
+      user.id,
+      await request.json(),
+      request.headers.get('origin') || ''
+    );
+    return NextResponse.json(body, { status });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ error: message }, { status: 500 });

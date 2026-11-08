@@ -10,7 +10,7 @@ export type StoreProduct = Database['public']['Tables']['store_products']['Row']
    * La oferta vigente, ya resuelta por el servidor con la misma regla con la que
    * cobra. `price_per_unit` sigue siendo el precio de lista.
    */
-  offer?: { id: string; finalPrice: number; label: string | null } | null;
+  offer?: { id: string; finalPrice: number; label: string | null; maxQtyPerOrder: number | null } | null;
 };
 
 /** Qué página de la vitrina se le pide al servidor. */

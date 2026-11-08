@@ -21,6 +21,8 @@ export interface PrecioResuelto {
   finalPrice: number;
   offerId: string | null;
   label: string | null;
+  /** El máximo por pedido de la oferta aplicada. `null` sin oferta o sin límite. */
+  maxQtyPerOrder: number | null;
 }
 
 /** Filas de `store_products` con lo mínimo para calcular un precio. */
@@ -51,7 +53,7 @@ export async function resolveOfferPrices(
       ? Number(p.wholesale_price || p.price_per_unit || 0)
       : Number(p.price_per_unit || 0);
 
-    resultado.set(p.id, { listPrice, finalPrice: listPrice, offerId: null, label: null });
+    resultado.set(p.id, { listPrice, finalPrice: listPrice, offerId: null, label: null, maxQtyPerOrder: null });
   }
 
   if (isWholesale || productos.length === 0) return resultado;
@@ -62,7 +64,7 @@ export async function resolveOfferPrices(
   // condiciones que aplica el carrito, y así no viajan ofertas que no importan.
   const { data: ofertas, error } = await supabase
     .from('store_offers')
-    .select('id, store_product_id, discount_pct, special_price, label, starts_at, ends_at, status')
+    .select('id, store_product_id, discount_pct, special_price, label, max_qty_per_order, starts_at, ends_at, status')
     .in('store_product_id', productos.map((p) => p.id))
     .eq('status', 'active')
     .lte('starts_at', ahora)
@@ -90,6 +92,7 @@ export async function resolveOfferPrices(
         finalPrice: precio,
         offerId: oferta.id,
         label: oferta.label ?? null,
+        maxQtyPerOrder: oferta.max_qty_per_order == null ? null : Number(oferta.max_qty_per_order),
       });
     }
   }

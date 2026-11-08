@@ -8,7 +8,9 @@ import { Table } from '@/components/ui/table/components/Table';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { useTable } from '@/components/ui/table/hooks/useTable';
-import { Button, Badge, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/form-fields';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function StoreCategoriesTab() {

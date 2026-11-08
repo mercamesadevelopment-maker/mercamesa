@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Trash2, Users, Clock, ShieldCheck, Plus, RotateCw, AlertTriangle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal/modal';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 
 interface Profile {
   id: string;

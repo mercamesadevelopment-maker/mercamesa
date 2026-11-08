@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldAlert, Clock, Info } from 'lucide-react';
-import { Button, Input, cn } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
+import { cn } from '@/lib/utils/cn';
 import { validateNitCheckDigit } from '@/lib/identification/nit';
 import { PayoutAuthorization } from './payout-authorization';
 

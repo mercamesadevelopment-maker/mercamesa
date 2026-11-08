@@ -5,11 +5,12 @@ import {
 } from 'lucide-react';
 import { useSales } from '../hooks/use-sales';
 import { CustomerAutocomplete } from './customer-autocomplete';
-import { Button, Badge } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal/modal';
 import { Table } from '@/components/ui/table/components/Table';
-import { fmt } from '@/src/constants';
-import { Product } from '@/src/types';
+import { formatCOP } from '@/lib/utils/format';
+import { Product } from '@/features/products/types/product.types';
 
 export function SalesView() {
   const {
@@ -60,7 +61,7 @@ export function SalesView() {
     {
       key: 'total',
       label: 'Total',
-      render: (item: any) => <span className="font-bold text-mm-g">{fmt(item.total)}</span>
+      render: (item: any) => <span className="font-bold text-mm-g">{formatCOP(item.total)}</span>
     }
   ];
 
@@ -147,7 +148,7 @@ export function SalesView() {
                       {product.code && (
                         <p className="text-[10px] text-mm-txw font-mono truncate w-full mb-0.5">{product.code}</p>
                       )}
-                      <p className="text-xs font-bold text-blue font-mono">{fmt(product.retailPrice)}</p>
+                      <p className="text-xs font-bold text-blue font-mono">{formatCOP(product.retailPrice)}</p>
                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="w-8 h-8 rounded-full bg-mm-g text-white flex items-center justify-center shadow-lg">
                           <Plus className="w-5 h-5" />
@@ -182,7 +183,7 @@ export function SalesView() {
                  <TrendingUp className="w-6 h-6" />
                </div>
                <div>
-                 <p className="text-2xl font-bold text-mm-g leading-none">{fmt(todayTotal)}</p>
+                 <p className="text-2xl font-bold text-mm-g leading-none">{formatCOP(todayTotal)}</p>
                  <p className="text-[10px] font-black uppercase text-mm-txw tracking-widest mt-1">Total del Día</p>
                </div>
             </div>
@@ -229,7 +230,7 @@ export function SalesView() {
                     </div>
                     <div className="flex-grow min-w-0">
                       <p className="text-sm font-bold text-mm-g truncate">{item.product.name}</p>
-                      <p className="text-xs text-mm-txw font-mono">{fmt(item.product.retailPrice)}</p>
+                      <p className="text-xs text-mm-txw font-mono">{formatCOP(item.product.retailPrice)}</p>
                     </div>
                     <div className="flex items-center gap-1 bg-mm-gbg/50 p-1 rounded-xl">
                       <input 
@@ -253,7 +254,7 @@ export function SalesView() {
                       )}
                     </div>
                     <div className="text-right min-w-[70px]">
-                      <p className="text-sm font-bold text-mm-g font-mono">{fmt(item.product.retailPrice * item.qty)}</p>
+                      <p className="text-sm font-bold text-mm-g font-mono">{formatCOP(item.product.retailPrice * item.qty)}</p>
                     </div>
                     <button 
                       type="button"
@@ -275,7 +276,7 @@ export function SalesView() {
               <div className="space-y-3 pt-4 border-t border-mm-crd/50">
                 <div className="flex justify-between items-center text-mm-g">
                   <span className="text-sm font-bold">Total a Cobrar</span>
-                  <span className="text-3xl font-display tabular-nums">{fmt(total)}</span>
+                  <span className="text-3xl font-display tabular-nums">{formatCOP(total)}</span>
                 </div>
               </div>
 

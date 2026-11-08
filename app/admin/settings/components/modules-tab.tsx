@@ -7,7 +7,9 @@ import { ModuleRow } from '../types/settings.types';
 import { ModuleReadRolesField } from './module-read-roles-field';
 import { Table } from '@/components/ui/table/components/Table';
 import { useTable } from '@/components/ui/table/hooks/useTable';
-import { Button, Badge, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/form-fields';
 import { motion, AnimatePresence } from 'motion/react';
 
 /** Con más, la fila se desborda; el resto va en el `title` del contador. */

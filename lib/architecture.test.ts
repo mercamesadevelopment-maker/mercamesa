@@ -3,10 +3,10 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * La dirección de las dependencias: la interfaz (`src/`, `app/`, `components/`)
+ * La dirección de las dependencias: la interfaz (`features/`, `app/`, `components/`)
  * puede importar de `lib/`, pero no al revés. Y `app/api/` es servidor: tampoco
- * importa de la interfaz. Así `lib/` se prueba sin React y `src/` se puede
- * mover o borrar sin romper el servidor.
+ * importa de la interfaz. Así `lib/` se prueba sin React y la interfaz se
+ * puede mover o borrar sin romper el servidor.
  */
 const ROOT = resolve(__dirname, '..');
 
@@ -18,7 +18,7 @@ function sourceFiles(dir: string): string[] {
     .map((f) => join(dir, f));
 }
 
-/** La carpeta del repo a la que apunta un import (`src`, `app/api`…), o null si es un paquete. */
+/** La carpeta del repo a la que apunta un import (`features`, `app/api`…), o null si es un paquete. */
 function target(file: string, spec: string): string | null {
   if (spec.startsWith('@/')) return spec.slice(2);
   if (spec.startsWith('.')) return relative(ROOT, resolve(ROOT, dirname(file), spec)).replace(/\\/g, '/');
@@ -40,10 +40,10 @@ function violations(dir: string, forbidden: (path: string) => boolean): string[]
   return found;
 }
 
-const isUi = (path: string) => /^(src|app|components)(\/|$)/.test(path);
+const isUi = (path: string) => /^(features|app|components)(\/|$)/.test(path);
 
 describe('dirección de las dependencias', () => {
-  it('lib/ no importa de src/, app/ ni components/', () => {
+  it('lib/ no importa de features/, app/ ni components/', () => {
     expect(violations('lib', isUi)).toEqual([]);
   });
 

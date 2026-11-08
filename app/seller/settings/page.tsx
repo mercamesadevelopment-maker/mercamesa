@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Clock, FileText, Loader2, Star, Store, Info, Landmark } from 'lucide-react';
-import { useSellerStore } from '@/app/hooks/use-seller-store';
+import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { StoreHoursTab } from './components/store-hours-tab';
 import { StoreProfileTab } from './components/store-profile-tab';
 import { StoreReputationTab } from './components/store-reputation-tab';

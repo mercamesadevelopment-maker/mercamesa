@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useApp } from '@/src/store';
 import { paymentsService } from '../services/payments.service';
 import type { PaymentMethodInsert, PaymentMethodRow } from '../types/payment.types';
 
 export function usePayments() {
-  const { dispatch } = useApp();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,27 +15,12 @@ export function usePayments() {
       setError(null);
       const data = await paymentsService.getAll();
       setPaymentMethods(data);
-      // Sync store so other parts of the app see updated list
-      dispatch({
-        type: 'UPDATE_BUYER_PROFILE',
-        profile: {
-          payments: data.map((p) => ({
-            id: p.id,
-            type: p.type as 'card' | 'nequi' | 'daviplata',
-            label: p.label,
-            brand: p.brand ?? undefined,
-            last4: p.last4 ?? undefined,
-            exp: p.exp ?? undefined,
-            isDefault: p.is_default,
-          })),
-        },
-      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error cargando medios de pago');
     } finally {
       setLoading(false);
     }
-  }, [dispatch]);
+  }, []);
 
   const updatePaymentMethod = useCallback(
     async (id: string, form: Partial<PaymentMethodInsert>) => {

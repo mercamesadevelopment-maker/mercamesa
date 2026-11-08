@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/modal/modal';
-import { Button, Input } from '@/src/components/Shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/form-fields';
 import { ArrowUpRight, ArrowDownLeft, Sliders, Loader2 } from 'lucide-react';
 
 interface StockMovementModalProps {

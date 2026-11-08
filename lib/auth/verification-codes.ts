@@ -23,9 +23,11 @@ export type CodePurpose =
   | 'password_change'
   | 'email_change'
   | 'password_reset'
-  | 'signup_email';
+  | 'signup_email'
+  /** El usuario lo manda por WhatsApp a Carolina (Meteor); ver `lib/phone/verification.ts`. */
+  | 'phone_verification';
 
-export type CodeKey = { column: 'user_id' | 'email'; value: string };
+export type CodeKey = { column: 'user_id' | 'email' | 'phone'; value: string };
 
 export const CODE_EXPIRES_MINUTES = 10;
 export const RESEND_COOLDOWN_SECONDS = 30;

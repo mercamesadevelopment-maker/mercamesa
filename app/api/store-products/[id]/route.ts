@@ -4,7 +4,7 @@ import { Database } from '../../../../types/database_generated';
 import {
   PRODUCT_CODE_UNIQUE_INDEX,
   duplicateProductCodeMessage,
-  normalizeProductCode,
+  productCodeOrNull,
   validateProductCode,
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
@@ -108,14 +108,13 @@ export async function PUT(
     if (body.store_id !== undefined) updateData.store_id = body.store_id;
     if (body.catalog_product_id !== undefined) updateData.catalog_product_id = body.catalog_product_id;
 
-    // El código es obligatorio también al editar: es la vía por la que los
-    // productos publicados antes de existir la columna van quedando completos.
+    // Vaciarlo al editar va como null y la base le asigna uno nuevo (`MM-000123`).
     if (body.code !== undefined) {
       const codeError = validateProductCode(body.code);
       if (codeError) {
         return NextResponse.json({ error: codeError }, { status: 400 });
       }
-      updateData.code = normalizeProductCode(body.code);
+      updateData.code = productCodeOrNull(body.code);
     }
 
     if (body.is_featured !== undefined) {

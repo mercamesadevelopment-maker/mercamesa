@@ -28,3 +28,21 @@ export function getResendFromEmail(): string {
   if (!email) throw new Error('Missing RESEND_FROM_EMAIL');
   return email;
 }
+/**
+ * El token con el que Meteor llama al MCP (`/api/mcp`), uno distinto por
+ * entorno. Sin él el MCP no responde: `null` en vez de lanzar, para que la ruta
+ * conteste 503 y no un error.
+ */
+export function getMeteorMcpToken(): string | null {
+  return process.env.METEOR_MCP_TOKEN || null;
+}
+
+/**
+ * Los números de WhatsApp de Meteor, a los que el usuario manda el código que
+ * verifica su teléfono. Son dos líneas: la de compradores y la de tenderos. Sin
+ * la que le toca no se puede verificar: `null`, y la ruta responde 503.
+ */
+export function getMeteorWhatsappNumber(line: 'compradores' | 'tenderos'): string | null {
+  const numero = line === 'tenderos' ? process.env.METEOR_WHATSAPP_SELLERS_NUMBER : process.env.METEOR_WHATSAPP_BUYERS_NUMBER;
+  return numero || null;
+}

@@ -5,7 +5,7 @@ import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '../../../lib/supabase/
 import { createNotification } from '../../../lib/notifications/create-notification';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { parseAmount, validateOffer } from '@/lib/offers/validate-offer';
+import { parseAmount, parseMaxQty, validateOffer } from '@/lib/offers/validate-offer';
 import { findOverlappingOffer } from '@/lib/offers/find-overlapping-offer';
 
 type StoreOfferInsert = Database['public']['Tables']['store_offers']['Insert'];
@@ -100,9 +100,10 @@ export async function POST(request: Request) {
 
     const discountPct = parseAmount(body.discount_pct);
     const specialPrice = parseAmount(body.special_price);
+    const maxQtyPerOrder = parseMaxQty(body.max_qty_per_order);
 
     const invalid = validateOffer(
-      { discountPct, specialPrice, startsAt: body.starts_at, endsAt: body.ends_at || null },
+      { discountPct, specialPrice, startsAt: body.starts_at, endsAt: body.ends_at || null, maxQtyPerOrder },
       { pricePerUnit: Number(storeProduct.price_per_unit) }
     );
     if (invalid) {
@@ -124,6 +125,7 @@ export async function POST(request: Request) {
       label: body.label || null,
       discount_pct: discountPct,
       special_price: specialPrice,
+      max_qty_per_order: maxQtyPerOrder,
       starts_at: body.starts_at,
       ends_at: body.ends_at || null,
       status: 'pending',

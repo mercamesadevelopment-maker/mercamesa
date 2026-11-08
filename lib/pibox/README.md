@@ -5,7 +5,7 @@ Pibox es la API logística de Picap: MercaMesa la usa para cotizar el domicilio 
 ## Recorrido de un pedido
 
 1. **Canasta: cotizar.** `POST /api/checkout/quote` arma la misma reserva que se haría al despachar (`loadQuoteContext` → `buildBookingPayload`) y la manda a `POST /bookings/eta`. No crea nada ni contacta a nadie.
-2. **Tienda: «Listo Recogida».** Al cambiar el estado a `at_collection`, el navegador llama `POST /api/pibox/bookings` (`src/features/orders/services/update-order-status.service.ts`). La ruta:
+2. **Tienda: «Listo Recogida».** Al cambiar el estado a `at_collection`, el navegador llama `POST /api/pibox/bookings` (`features/orders/services/update-order-status.service.ts`). La ruta:
    - exige que quien llama sea de la tienda o admin;
    - **exige el pago aprobado**: no hay contraentrega;
    - no crea una segunda reserva si ya hay una vigente;

@@ -4,6 +4,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { invitePasswordError } from '@/lib/auth/password-rules';
 import { getPersonTypeRules, validateIdentificationPair } from '@/lib/identification/validate';
 import { toE164 } from '@/lib/phone/phone';
+import { PHONE_IN_USE_MESSAGE, isPhoneTakenByOther } from '@/lib/auth/signup-conflicts';
 import { authErrorMessage } from '@/lib/auth/auth-error-messages';
 
 /**
@@ -128,6 +129,12 @@ export async function POST(request: Request) {
     const phoneE164 = phone ? toE164(String(phone)) : null;
     if (phone && !phoneE164) {
       return NextResponse.json({ error: 'El teléfono no es un número válido.' }, { status: 400 });
+    }
+
+    // Un número es de una sola cuenta (con él se identifica a quien escribe por
+    // WhatsApp). Va antes de tocar la contraseña, como el resto de validaciones.
+    if (phoneE164 && (await isPhoneTakenByOther(serviceSupabase, phoneE164, user.id))) {
+      return NextResponse.json({ error: PHONE_IN_USE_MESSAGE, code: 'phone_in_use' }, { status: 400 });
     }
 
     // ------------------------------------------------------------------

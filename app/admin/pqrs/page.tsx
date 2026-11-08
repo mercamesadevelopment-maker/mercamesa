@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { PqrsView } from '@/src/features/pqrs/components/PqrsView';
+import { PqrsView } from '@/features/pqrs/components/PqrsView';
 
 export default function AdminPqrsPage() {
   return (

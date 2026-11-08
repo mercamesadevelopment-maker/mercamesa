@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { cn } from '@/src/components/Shared';
+import { cn } from '@/lib/utils/cn';
 
 /**
  * Un producto que flota en bucle, con su sombra en el piso.
