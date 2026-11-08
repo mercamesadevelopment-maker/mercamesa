@@ -401,7 +401,7 @@ export function OrderDetailModal({
               {/* Billing breakdown */}
               <div className="space-y-3 border-t border-mm-crd/40 pt-4 text-xs font-semibold text-mm-txw">
                 <div className="flex justify-between">
-                  <span>Subtotal Tienda</span>
+                  <span>Productos de terceros</span>
                   <span className="text-mm-g font-bold">{formatCOP(order.subtotal || order.total)}</span>
                 </div>
 
@@ -412,32 +412,33 @@ export function OrderDetailModal({
                   </div>
                 )}
 
-                {/* Mismos conceptos que la factura, para que el vendedor pueda
-                    explicarle al comprador de dónde sale cada peso. */}
+                {/* El detalle de lo que en la factura va como «Domicilio», para que
+                    el vendedor pueda explicarle al comprador de dónde sale cada
+                    peso. Nunca «servicio»: un servicio lleva IVA. */}
                 {order.serviceCommission !== undefined && order.serviceCommission > 0 && (
                   <div className="flex justify-between">
-                    <span>Comisión de Servicio</span>
+                    <span>Gastos administrativos</span>
                     <span className="text-mm-g font-bold">{formatCOP(order.serviceCommission)}</span>
                   </div>
                 )}
 
                 {order.messagesAmount !== undefined && order.messagesAmount > 0 && (
                   <div className="flex justify-between">
-                    <span>Mensajes de Seguimiento</span>
+                    <span>Gastos operativos (mensajes)</span>
                     <span className="text-mm-g font-bold">{formatCOP(order.messagesAmount)}</span>
                   </div>
                 )}
 
                 {order.deliveryFee !== undefined && order.deliveryFee > 0 && (
                   <div className="flex justify-between">
-                    <span>Costo de Envío</span>
+                    <span>Domicilio</span>
                     <span className="text-mm-g font-bold">{formatCOP(order.deliveryFee)}</span>
                   </div>
                 )}
 
                 {order.platformCommission !== undefined && order.platformCommission > 0 && (
                   <div className="flex justify-between">
-                    <span>Servicio MercaMesa</span>
+                    <span>Gastos administrativos (sobre el neto)</span>
                     <span className="text-mm-g font-bold">{formatCOP(order.platformCommission)}</span>
                   </div>
                 )}

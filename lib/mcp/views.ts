@@ -1,5 +1,6 @@
 import { PQRS_OUTCOME_LABELS, PQRS_STATUS_LABELS, type PqrsDetail, type PqrsSummary } from '@/lib/pqrs/types';
 import type { toStorefrontItem } from '@/lib/store-products/storefront';
+import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 
 /**
  * Lo que sale del MCP hacia Meteor, recortado a propósito: cada vista nombra
@@ -82,12 +83,11 @@ export function toOrderSummaryView(o: OrderSummary) {
 export function toOrderDetailView(o: OrderDetail) {
   return {
     ...toOrderSummaryView(o),
+    // Los dos conceptos de la factura: lo del tendero y todo lo de MercaMesa
+    // (domicilio, gastos administrativos y operativos). Nunca «servicio».
     valores: {
-      productos: o.subtotal,
-      domicilio: o.deliveryFee,
-      comision_de_servicio: o.serviceCommission,
-      mensajes: o.messagesAmount,
-      servicio_mercamesa: o.platformCommission,
+      productos_de_terceros: buyerInvoiceConcepts(o.subtotal, o.total).thirdPartyProducts,
+      domicilio: buyerInvoiceConcepts(o.subtotal, o.total).delivery,
       descuento: o.discount,
       saldo_a_favor_usado: o.creditApplied,
       total: o.total,

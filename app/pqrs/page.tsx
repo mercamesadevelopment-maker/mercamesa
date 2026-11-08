@@ -7,7 +7,7 @@ export default function BuyerPqrsPage() {
   return (
     <PqrsView
       scope="buyer"
-      title="PQRS"
+      title="PQRSF"
       subtitle="Tus peticiones, quejas, reclamos y sugerencias, y lo que te hemos respondido."
     />
   );

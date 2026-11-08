@@ -375,7 +375,7 @@ export function OrderCard({
         <p className="px-4 sm:px-6 pb-4 text-sm text-mm-txs" role="status">
           Radicamos tu caso <span className="font-bold text-mm-g">{reportedCode}</span>.{' '}
           <Link href="/pqrs" className="font-bold text-mm-g underline underline-offset-2">
-            Ver mis PQRS
+            Ver mis PQRSF
           </Link>
         </p>
       )}

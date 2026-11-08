@@ -34,7 +34,7 @@ export function PricingTab() {
     messages_per_order: '',
     platform_commission_rate: '',
     siigo_delivery_product_code: '',
-    siigo_platform_product_code: '',
+    siigo_third_party_product_code: '',
     notes: '',
   });
 
@@ -49,8 +49,8 @@ export function PricingTab() {
       message_unit_price: current ? String(current.message_unit_price) : '120',
       messages_per_order: current ? String(current.messages_per_order) : '6',
       platform_commission_rate: current ? String(current.platform_commission_rate) : '0.15',
-      siigo_delivery_product_code: current?.siigo_delivery_product_code ?? 'DOMICILIO',
-      siigo_platform_product_code: current?.siigo_platform_product_code ?? 'SERVICIOMERCAMESA',
+      siigo_delivery_product_code: current?.siigo_delivery_product_code ?? 'Domicilios',
+      siigo_third_party_product_code: current?.siigo_third_party_product_code ?? 'Productos-de-Terceros',
       notes: '',
     });
     setFormError(null);
@@ -68,7 +68,7 @@ export function PricingTab() {
         messages_per_order: Number(formData.messages_per_order),
         platform_commission_rate: Number(formData.platform_commission_rate),
         siigo_delivery_product_code: formData.siigo_delivery_product_code,
-        siigo_platform_product_code: formData.siigo_platform_product_code,
+        siigo_third_party_product_code: formData.siigo_third_party_product_code,
         notes: formData.notes,
       });
       setIsModalOpen(false);
@@ -100,18 +100,21 @@ export function PricingTab() {
     platformCommissionRate: Number(isModalOpen ? formData.platform_commission_rate : current?.platform_commission_rate ?? 0),
   });
 
+  const tasaServicio = isModalOpen ? formData.service_commission_rate : current?.service_commission_rate ?? 0;
+  const tasaNeto = isModalOpen ? formData.platform_commission_rate : current?.platform_commission_rate ?? 0;
+
   const previewRows = (
     <div className="space-y-1.5 text-sm">
       <div className="flex justify-between text-mm-txs">
-        <span>Productos (los recibe el tendero)</span>
+        <span>Productos (ingresos de terceros)</span>
         <span className="font-bold">{formatCOP(preview.productsSubtotal)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
-        <span>+ comisión de servicio</span>
+        <span>+ Gastos administrativos ({pct(Number(tasaServicio))})</span>
         <span>{formatCOP(preview.serviceCommission)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
-        <span>+ mensajes</span>
+        <span>+ Gastos operativos (mensajes)</span>
         <span>{formatCOP(preview.messagesAmount)}</span>
       </div>
       <div className="flex justify-between text-mm-txs pt-1.5 border-t border-mm-crd/50">
@@ -119,7 +122,7 @@ export function PricingTab() {
         <span className="font-bold">{formatCOP(preview.netPurchase)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
-        <span>+ servicio MercaMesa</span>
+        <span>+ Gastos administrativos ({pct(Number(tasaNeto))} del neto)</span>
         <span>{formatCOP(preview.platformCommission)}</span>
       </div>
       <div className="flex justify-between text-mm-txw">
@@ -146,7 +149,7 @@ export function PricingTab() {
     },
     {
       key: 'service_commission_rate',
-      label: 'Comisión servicio',
+      label: 'Gastos administrativos',
       sortable: true,
       render: (item: PricingSettingsRow) => (
         <span className="font-bold text-mm-g">{pct(item.service_commission_rate)}</span>
@@ -154,7 +157,7 @@ export function PricingTab() {
     },
     {
       key: 'platform_commission_rate',
-      label: 'Servicio MercaMesa',
+      label: 'Gastos adm. sobre el neto',
       sortable: true,
       render: (item: PricingSettingsRow) => (
         <span className="font-bold text-mm-g">{pct(item.platform_commission_rate)}</span>
@@ -162,7 +165,7 @@ export function PricingTab() {
     },
     {
       key: 'message_unit_price',
-      label: 'Mensajes',
+      label: 'Gastos operativos (mensajes)',
       render: (item: PricingSettingsRow) => (
         <span className="text-sm text-mm-txs">
           {item.messages_per_order} × {formatCOP(item.message_unit_price)}
@@ -229,17 +232,26 @@ export function PricingTab() {
               </p>
               <div className="space-y-2 text-sm text-mm-txs">
                 <div className="flex justify-between gap-3">
+                  <span>Productos de terceros</span>
+                  <code className="text-xs bg-white px-2 py-0.5 rounded-lg border border-mm-crd">
+                    {current.siigo_third_party_product_code || 'Sin configurar'}
+                  </code>
+                </div>
+                <div className="flex justify-between gap-3">
                   <span>Domicilio</span>
                   <code className="text-xs bg-white px-2 py-0.5 rounded-lg border border-mm-crd">{current.siigo_delivery_product_code}</code>
                 </div>
-                <div className="flex justify-between gap-3">
-                  <span>Servicio MercaMesa</span>
-                  <code className="text-xs bg-white px-2 py-0.5 rounded-lg border border-mm-crd">{current.siigo_platform_product_code}</code>
-                </div>
               </div>
               <p className="text-xs text-mm-txw mt-3 leading-relaxed">
-                Estos productos deben existir en Siigo; si no, no se puede emitir ninguna factura.
+                La factura lleva una línea por producto con el código de productos de terceros, y una línea
+                «Domicilio» con el domicilio y los gastos administrativos y operativos. Estos productos deben
+                existir en Siigo; si no, no se puede emitir ninguna factura.
               </p>
+              {!current.siigo_third_party_product_code && (
+                <p className="text-xs font-bold text-r mt-2">
+                  Falta el código de Productos de terceros: crea un ajuste nuevo para poder facturar.
+                </p>
+              )}
               <Button size="sm" variant="outline" className="mt-3" onClick={handleEnsureSiigo} disabled={isEnsuring}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isEnsuring ? 'animate-spin' : ''}`} />
                 {isEnsuring ? 'Verificando...' : 'Crear / verificar en Siigo'}
@@ -291,21 +303,21 @@ export function PricingTab() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Comisión de servicio (0,0299 = 2,99%)"
+                label="Gastos administrativos (0,0299 = 2,99%)"
                 type="number" min="0" max="1" step="0.0001"
                 value={formData.service_commission_rate}
                 onChange={(e) => setFormData({ ...formData, service_commission_rate: e.target.value })}
                 required
               />
               <Input
-                label="Servicio MercaMesa (0,15 = 15%)"
+                label="Gastos administrativos sobre el neto (0,15 = 15%)"
                 type="number" min="0" max="1" step="0.0001"
                 value={formData.platform_commission_rate}
                 onChange={(e) => setFormData({ ...formData, platform_commission_rate: e.target.value })}
                 required
               />
               <Input
-                label="Mensajes por pedido"
+                label="Gastos operativos: mensajes por pedido"
                 type="number" min="0" step="1"
                 value={formData.messages_per_order}
                 onChange={(e) => setFormData({ ...formData, messages_per_order: e.target.value })}
@@ -319,15 +331,15 @@ export function PricingTab() {
                 required
               />
               <Input
-                label="Código en Siigo del domicilio"
+                label="Código en Siigo de Domicilio"
                 value={formData.siigo_delivery_product_code}
                 onChange={(e) => setFormData({ ...formData, siigo_delivery_product_code: e.target.value })}
                 required
               />
               <Input
-                label="Código en Siigo del servicio"
-                value={formData.siigo_platform_product_code}
-                onChange={(e) => setFormData({ ...formData, siigo_platform_product_code: e.target.value })}
+                label="Código en Siigo de Productos de terceros"
+                value={formData.siigo_third_party_product_code}
+                onChange={(e) => setFormData({ ...formData, siigo_third_party_product_code: e.target.value })}
                 required
               />
             </div>
@@ -344,7 +356,7 @@ export function PricingTab() {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Ej: Se ajusta la comisión de plataforma por acuerdo con el cliente"
+                placeholder="Ej: Se ajustan los gastos administrativos por acuerdo con el cliente"
                 className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none text-sm text-mm-g min-h-[80px]"
                 required
               />

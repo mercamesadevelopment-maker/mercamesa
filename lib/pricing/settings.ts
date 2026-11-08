@@ -2,13 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PricingSettings } from './compute-order-pricing';
 
 /**
- * Tarifas vigentes más los códigos de Siigo con los que se facturan el domicilio
- * y la comisión de plataforma.
+ * Tarifas vigentes más los códigos de Siigo de los dos conceptos de la factura:
+ * «Productos de terceros» (lo del tendero) y «Domicilio» (todo lo de MercaMesa).
  */
 export interface PricingConfig extends PricingSettings {
   id: string;
   siigoDeliveryProductCode: string;
-  siigoPlatformProductCode: string;
+  siigoThirdPartyProductCode: string | null;
+  /** El de la antigua línea «Servicio MercaMesa». Solo para notas crédito de facturas viejas. */
+  siigoPlatformProductCode: string | null;
 }
 
 /**
@@ -34,7 +36,8 @@ export async function loadPricingSettings(
     .from('pricing_settings_history')
     .select(
       `id, service_commission_rate, message_unit_price, messages_per_order,
-       platform_commission_rate, siigo_delivery_product_code, siigo_platform_product_code`
+       platform_commission_rate, siigo_delivery_product_code, siigo_third_party_product_code,
+       siigo_platform_product_code`
     )
     .order('created_at', { ascending: false })
     .limit(1)
@@ -57,7 +60,8 @@ export async function loadPricingSettings(
     messagesPerOrder: Number(data.messages_per_order),
     platformCommissionRate: Number(data.platform_commission_rate),
     siigoDeliveryProductCode: data.siigo_delivery_product_code,
-    siigoPlatformProductCode: data.siigo_platform_product_code,
+    siigoThirdPartyProductCode: data.siigo_third_party_product_code ?? null,
+    siigoPlatformProductCode: data.siigo_platform_product_code ?? null,
   };
 }
 

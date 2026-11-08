@@ -142,6 +142,11 @@ describe('detalle_pedido no deja salir lo que no va por el chat', () => {
     expect(texto).not.toMatch(/validation|phone|telefono/i);
     expect(vista.partes[0].domicilio).toMatchObject({ conductor: 'Conductor', placa: 'ABC123' });
   });
+
+  it('los valores van en los dos conceptos de la factura, sin «servicio»', () => {
+    expect(vista.valores).toMatchObject({ productos_de_terceros: 20000, domicilio: 10000, total: 30000 });
+    expect(Object.keys(vista.valores).join(' ')).not.toMatch(/servicio|comision/);
+  });
 });
 
 describe('consultar_caso', () => {

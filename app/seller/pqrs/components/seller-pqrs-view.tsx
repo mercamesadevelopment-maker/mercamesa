@@ -14,7 +14,7 @@ export function SellerPqrsView() {
   return (
     <PqrsView
       scope="seller"
-      title="PQRS"
+      title="PQRSF"
       subtitle="Los reclamos de tus compradores y las solicitudes que le haces a MercaMesa."
       storeId={storeId}
       headerExtra={

@@ -51,7 +51,7 @@ export function PqrsDetailModal({ pqrsId, onClose, onChanged }: PqrsDetailModalP
   } = usePqrsDetail(pqrsId, onChanged);
 
   return (
-    <Modal isOpen={Boolean(pqrsId)} onClose={onClose} title={detail?.code ?? 'PQRS'} maxWidth="max-w-2xl">
+    <Modal isOpen={Boolean(pqrsId)} onClose={onClose} title={detail?.code ?? 'PQRSF'} maxWidth="max-w-2xl">
       {error ? (
         <p className="text-sm text-r py-6 text-center">{error}</p>
       ) : loading || !detail ? (
