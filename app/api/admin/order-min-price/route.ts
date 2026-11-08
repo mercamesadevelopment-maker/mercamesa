@@ -77,6 +77,7 @@ export async function POST(request: Request) {
         messages_per_order: vigente.messages_per_order,
         platform_commission_rate: vigente.platform_commission_rate,
         siigo_delivery_product_code: vigente.siigo_delivery_product_code,
+        siigo_third_party_product_code: vigente.siigo_third_party_product_code,
         siigo_platform_product_code: vigente.siigo_platform_product_code,
         order_min_price: Number(min_price),
         change_type: 'order_min_price',

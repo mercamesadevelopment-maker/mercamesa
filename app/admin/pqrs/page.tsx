@@ -7,7 +7,7 @@ export default function AdminPqrsPage() {
   return (
     <PqrsView
       scope="admin"
-      title="PQRS"
+      title="PQRSF"
       subtitle="Todos los casos de compradores y tiendas. Los que están «en revisión» esperan tu decisión."
     />
   );

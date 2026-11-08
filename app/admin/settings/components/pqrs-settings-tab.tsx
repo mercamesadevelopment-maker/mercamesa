@@ -106,7 +106,7 @@ export function PqrsSettingsTab() {
         </div>
       )}
 
-      <Modal isOpen={abierto} onClose={() => setAbierto(false)} title="Plazos de PQRS" maxWidth="max-w-lg">
+      <Modal isOpen={abierto} onClose={() => setAbierto(false)} title="Plazos de PQRSF" maxWidth="max-w-lg">
         <div className="space-y-5 p-6">
           <p className="text-xs text-mm-txs">
             Los casos ya radicados conservan el plazo con el que nacieron; el cambio aplica a los nuevos.

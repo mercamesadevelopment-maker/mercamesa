@@ -54,7 +54,7 @@ export function CreditNotesTab({ query, pagination }: AccountingTabProps) {
     },
     {
       key: 'order',
-      label: 'Pedido y PQRS',
+      label: 'Pedido y PQRSF',
       render: (n: CreditNoteRow) => (
         <div className="text-xs">
           <p className="whitespace-nowrap font-mono font-bold text-mm-g">{n.orderCode ?? '—'}</p>

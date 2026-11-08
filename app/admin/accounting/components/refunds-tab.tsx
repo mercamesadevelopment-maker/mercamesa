@@ -60,7 +60,7 @@ export function RefundsTab({ query, pagination }: AccountingTabProps) {
     },
     {
       key: 'order',
-      label: 'Pedido y PQRS',
+      label: 'Pedido y PQRSF',
       render: (r: RefundRow) => (
         <div className="text-xs">
           <p className="whitespace-nowrap font-mono font-bold text-mm-g">{r.orderCode ?? '—'}</p>

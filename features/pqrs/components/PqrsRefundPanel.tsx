@@ -107,8 +107,8 @@ export function PqrsRefundPanel({ viewer, refund, preview, working, onAction }: 
       {refund.breakdown && (
         <dl className="text-sm space-y-1 border-t border-mm-crd/60 pt-3">
           <Fila etiqueta="Productos" valor={refund.breakdown.products} />
-          <Fila etiqueta="Comisión de servicio" valor={refund.breakdown.serviceCommission} />
-          <Fila etiqueta="Servicio MercaMesa" valor={refund.breakdown.platformCommission} />
+          <Fila etiqueta="Gastos administrativos" valor={refund.breakdown.serviceCommission} />
+          <Fila etiqueta="Gastos administrativos (sobre el neto)" valor={refund.breakdown.platformCommission} />
           <Fila etiqueta="Mensajes" valor={refund.breakdown.messages} />
           <Fila etiqueta="Domicilio" valor={refund.breakdown.delivery} />
           <p className="text-xs text-mm-txw pt-1">

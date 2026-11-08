@@ -10,7 +10,7 @@
  * alguien edita.
  */
 
-export type PqrsKind = 'peticion' | 'queja' | 'reclamo' | 'sugerencia';
+export type PqrsKind = 'peticion' | 'queja' | 'reclamo' | 'sugerencia' | 'felicitacion';
 export type PqrsOpener = 'buyer' | 'seller';
 export type PqrsLiable = 'store' | 'logistics' | 'platform' | 'buyer';
 type Requirement = 'none' | 'optional' | 'required';
@@ -192,6 +192,24 @@ export const PQRS_REASONS: PqrsReason[] = [
     defaultLiable: null,
     refund: 'none',
   },
+  {
+    // Si es sobre un pedido, la tienda la ve y recibe el aviso. No pide
+    // respuesta ni devolución: el admin la cierra.
+    key: 'felicitacion',
+    label: 'Felicitación',
+    help: 'Cuéntanos qué te gustó. Si es sobre un pedido, elígelo y se lo hacemos llegar a la tienda.',
+    kind: 'felicitacion',
+    openedBy: 'buyer',
+    order: 'optional',
+    items: 'none',
+    photo: false,
+    claimWindow: false,
+    requiresPaid: false,
+    routesToStore: false,
+    storeSees: true,
+    defaultLiable: null,
+    refund: 'none',
+  },
 
   // --- Tendero -----------------------------------------------------------
   {
@@ -328,7 +346,30 @@ export const PQRS_KIND_LABELS: Record<PqrsKind, string> = {
   queja: 'Queja',
   reclamo: 'Reclamo',
   sugerencia: 'Sugerencia',
+  felicitacion: 'Felicitación',
 };
+
+/** El orden de la sigla PQRSF: así se muestran los tipos en el formulario. */
+export const PQRS_KINDS: PqrsKind[] = ['peticion', 'queja', 'reclamo', 'sugerencia', 'felicitacion'];
+
+/** Una línea por tipo, para que quien radica elija sin conocer la sigla. */
+export const PQRS_KIND_HELP: Record<PqrsKind, string> = {
+  peticion: 'Necesitas algo: tu factura, tus datos, tu cuenta.',
+  queja: 'Algo no te gustó: la atención, la calidad.',
+  reclamo: 'Algo salió mal con un pedido o un cobro y quieres que se corrija.',
+  sugerencia: 'Una idea para mejorar MercaMesa.',
+  felicitacion: 'Algo te gustó y quieres que lo sepamos.',
+};
+
+/** Los tipos que tienen al menos un motivo en la lista, en el orden de la sigla. */
+export function kindsOf(reasons: { kind: PqrsKind }[]): PqrsKind[] {
+  return PQRS_KINDS.filter((k) => reasons.some((r) => r.kind === k));
+}
+
+/** Los tipos que le aparecen a quien radica: el tendero solo ve los que tienen motivos suyos. */
+export function kindsFor(opener: PqrsOpener): PqrsKind[] {
+  return kindsOf(reasonsFor(opener));
+}
 
 export const PQRS_LIABLE_LABELS: Record<PqrsLiable, string> = {
   store: 'La tienda',

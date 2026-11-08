@@ -5,8 +5,8 @@ import {
   SIIGO_FV_DOCUMENT_ID,
   SIIGO_MAIL_SEND,
   SIIGO_PAYMENT_TYPE_CREDIT,
-  SIIGO_PLATFORM_PRODUCT_CODE,
   SIIGO_SELLER_ID,
+  SIIGO_THIRD_PARTY_PRODUCT_CODE,
   SIIGO_STAMP_SEND,
   toSiigoPaymentTypeId,
 } from '../config';
@@ -38,23 +38,21 @@ export interface OrderInvoiceContext {
   serviceCommission: number;
   /** Mensajes de seguimiento cobrados al comprador. */
   messagesAmount: number;
-  /** Comisión de plataforma (15% del neto). Va como línea propia en la factura. */
+  /** Comisión de plataforma (15% del neto). En la factura va dentro de «Domicilio». */
   platformCommission: number;
   paymentMethod: string | null;
   /** Lo que el comprador pagó con saldo a favor. El resto entró por la pasarela. */
   creditApplied: number;
   /** Centro de costo de la plaza donde se vendió. Siigo lo exige para la FV. */
   costCenterId: number;
-  /** Códigos de Siigo con los que se facturan el domicilio y el servicio. */
+  /** Códigos de Siigo de los dos conceptos de la factura. */
   deliveryProductCode: string;
-  platformProductCode: string;
+  thirdPartyProductCode: string;
   buyer: BuyerForSiigo;
   items: {
     description: string;
     quantity: number;
     unitPrice: number;
-    siigoCode: string | null;
-    syncedAt: string | null;
   }[];
 }
 
@@ -88,10 +86,7 @@ export async function loadOrderInvoiceContext(
          identification_types ( siigo_id_type ),
          person_types ( requires_business_name )
        ),
-       order_items (
-         catalog_name, unit_name, quantity, unit_price,
-         store_products ( catalog_products ( siigo_id, siigo_synced_at ) )
-       ),
+       order_items ( catalog_name, unit_name, quantity, unit_price ),
        payments ( status, payment_method ),
        store_orders ( stores ( marketplaces ( siigo_cost_center_id ) ) )`
     )
@@ -116,16 +111,11 @@ export async function loadOrderInvoiceContext(
     );
   }
 
-  const items = ((order as any).order_items ?? []).map((item: any) => {
-    const catalog = item.store_products?.catalog_products;
-    return {
-      description: item.catalog_name,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unit_price),
-      siigoCode: catalog?.siigo_id ?? null,
-      syncedAt: catalog?.siigo_synced_at ?? null,
-    };
-  });
+  const items = ((order as any).order_items ?? []).map((item: any) => ({
+    description: item.catalog_name,
+    quantity: Number(item.quantity),
+    unitPrice: Number(item.unit_price),
+  }));
 
   if (items.length === 0) {
     throw new SiigoDataError('El pedido no tiene ítems.');
@@ -145,12 +135,11 @@ export async function loadOrderInvoiceContext(
       .map((so: any) => so.stores?.marketplaces?.siigo_cost_center_id)
       .find((id: number | null | undefined) => id != null) ?? SIIGO_DEFAULT_COST_CENTER_ID;
 
-  // Los códigos de los productos de servicio se parametrizan desde la
-  // plataforma; las variables de entorno quedan solo como respaldo para no
-  // romper si la tabla de tarifas todavía no existe.
+  // Los códigos de los dos conceptos se parametrizan desde la plataforma; las
+  // variables de entorno quedan solo como respaldo.
   const { data: pricingRow } = await supabase
     .from('pricing_settings_history')
-    .select('siigo_delivery_product_code, siigo_platform_product_code')
+    .select('siigo_delivery_product_code, siigo_third_party_product_code')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -167,8 +156,8 @@ export async function loadOrderInvoiceContext(
     platformCommission: Number((order as any).platform_commission_amount ?? 0),
     deliveryProductCode:
       pricingRow?.siigo_delivery_product_code || SIIGO_DELIVERY_PRODUCT_CODE,
-    platformProductCode:
-      pricingRow?.siigo_platform_product_code || SIIGO_PLATFORM_PRODUCT_CODE,
+    thirdPartyProductCode:
+      pricingRow?.siigo_third_party_product_code || SIIGO_THIRD_PARTY_PRODUCT_CODE,
     paymentMethod: approvedPayment?.payment_method ?? null,
     creditApplied: Number((order as any).credit_applied ?? 0),
     costCenterId,
@@ -192,130 +181,68 @@ function money(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+/** Lo que va en la línea «Domicilio» con lo que cobró el pedido, sin redondeo. */
+export function mercamesaCharges(ctx: Pick<OrderInvoiceContext, 'deliveryFee' | 'serviceCommission' | 'messagesAmount' | 'platformCommission'>): number {
+  return ctx.deliveryFee + ctx.serviceCommission + ctx.messagesAmount + ctx.platformCommission;
+}
+
+/** Diferencia máxima, en pesos, que se acepta como redondeo entre lo cobrado y la factura. */
+const TOLERANCIA_REDONDEO = 1;
+
 export function buildInvoicePayload(ctx: OrderInvoiceContext): SiigoInvoicePayload {
-  const missing = ctx.items.filter((item) => !item.siigoCode);
-  if (missing.length > 0) {
-    throw new SiigoDataError(
-      `${missing.length} producto(s) del pedido no tienen código de Siigo: ${missing
-        .map((m) => m.description)
-        .join(', ')}.`
-    );
-  }
-
-  const notSynced = ctx.items.filter((item) => !item.syncedAt);
-  if (notSynced.length > 0) {
-    // Se detiene acá a propósito: Siigo respondería `invalid_code` y el motivo
-    // real —que el producto nunca se subió— quedaría enterrado en el error crudo.
-    throw new SiigoDataError(
-      `${notSynced.length} producto(s) no están sincronizados con Siigo: ${notSynced
-        .map((m) => m.description)
-        .join(', ')}. Ejecuta la sincronización de productos antes de facturar.`
-    );
-  }
-
   /**
-   * La factura lleva tres clases de línea, según lo definió el cliente:
+   * La factura lleva dos conceptos, definidos con los contadores:
    *
-   *   ÍTEM 1  producto + comisión 2,99% + mensajes  (una línea por producto)
-   *   ÍTEM 2  domicilio
-   *   ÍTEM 3  servicio MercaMesa (comisión de plataforma)
+   *   PRODUCTOS DE TERCEROS  una línea por producto, con su nombre y su precio
+   *                          real, todas con el mismo código de Siigo. Es lo
+   *                          del tendero.
+   *   DOMICILIO              una línea con todo lo de MercaMesa: el domicilio,
+   *                          los gastos administrativos (2,99 % y 15 %) y los
+   *                          gastos operativos (mensajes).
    *
-   * Sin IVA en ninguna: según el tributarista del cliente, el impuesto se paga
-   * en el momento de la dispersión de fondos, no en esta factura.
+   * No hay línea de «servicio»: un servicio lleva IVA. Sin IVA en ninguna: según
+   * el tributarista del cliente, el impuesto se paga en la dispersión de fondos.
    */
-
-  // El neto de compra se reparte entre los productos escalando cada línea, para
-  // que el comprador siga viendo qué compró en vez de un total agregado. Los
-  // mensajes se cobran por pedido, no por producto, así que el reparto es
-  // proporcional al valor de cada línea.
-  const netPurchase = ctx.subtotal + ctx.serviceCommission + ctx.messagesAmount;
-  const scale = ctx.subtotal > 0 ? netPurchase / ctx.subtotal : 1;
+  if (!ctx.thirdPartyProductCode) {
+    throw new SiigoDataError(
+      'No hay código de Siigo para «Productos de terceros». Configúralo en Parametrización → Tarifas y Comisiones.'
+    );
+  }
 
   const items: SiigoInvoiceItem[] = ctx.items.map((item) => ({
-    code: item.siigoCode as string,
+    code: ctx.thirdPartyProductCode,
     description: item.description,
     quantity: item.quantity,
-    // `taxed_price` es el precio unitario. Se escala el unitario y no el total
-    // de la línea porque Siigo multiplica por la cantidad.
-    taxed_price: money(item.unitPrice * scale),
+    // `taxed_price` es el precio unitario: Siigo multiplica por la cantidad.
+    taxed_price: money(item.unitPrice),
   }));
 
-  // Se guardan las referencias para poder ajustar el redondeo más abajo sin
-  // adivinar cuál línea es cuál.
-  let deliveryLine: SiigoInvoiceItem | null = null;
-  let platformLine: SiigoInvoiceItem | null = null;
+  const productos = items.reduce((sum, item) => sum + (item.taxed_price ?? 0) * item.quantity, 0);
 
-  // El domicilio se cobró al comprador, así que tiene que estar en la factura:
-  // si no, el total no cuadraría con el pago y Siigo devolvería
-  // `invalid_total_payments`.
-  if (ctx.deliveryFee > 0) {
+  // «Domicilio» es el total menos los productos: así absorbe los centavos del
+  // redondeo y la factura cuadra con el pago. Pero tiene que corresponder a lo
+  // que se cobró: si no (un descuento del pedido, un cargo que no se refleja),
+  // se detiene antes que esconder la diferencia dentro del domicilio.
+  const domicilio = money(ctx.total - productos);
+  const cobrado = money(mercamesaCharges(ctx));
+  if (Math.abs(domicilio - cobrado) > TOLERANCIA_REDONDEO) {
+    throw new SiigoDataError(
+      `El total del pedido ($${money(ctx.total)}) no cuadra con los productos ($${money(productos)}) más el domicilio y los gastos ($${cobrado}). Revisar descuentos o cargos que no se estén reflejando en la factura.`
+    );
+  }
+
+  if (domicilio > 0) {
+    // Se cobró al comprador, así que tiene que estar en la factura: si no, el
+    // total no cuadraría con el pago y Siigo devolvería `invalid_total_payments`.
     if (!ctx.deliveryProductCode) {
       throw new SiigoDataError(
-        `El pedido cobró $${ctx.deliveryFee} de domicilio y no hay producto de Siigo configurado para facturarlo. Configúralo en Parametrización → Tarifas y Comisiones.`
+        `El pedido cobró $${domicilio} de domicilio y gastos y no hay código de Siigo para «Domicilio». Configúralo en Parametrización → Tarifas y Comisiones.`
       );
     }
-
-    deliveryLine = {
-      code: ctx.deliveryProductCode,
-      description: 'Domicilio',
-      quantity: 1,
-      taxed_price: money(ctx.deliveryFee),
-    };
-    items.push(deliveryLine);
+    items.push({ code: ctx.deliveryProductCode, description: 'Domicilio', quantity: 1, taxed_price: domicilio });
   }
 
-  // Comisión de plataforma, como línea propia y con nombre entendible para el
-  // comprador.
-  if (ctx.platformCommission > 0) {
-    if (!ctx.platformProductCode) {
-      throw new SiigoDataError(
-        `El pedido cobró $${ctx.platformCommission} de servicio MercaMesa y no hay producto de Siigo configurado para facturarlo. Configúralo en Parametrización → Tarifas y Comisiones.`
-      );
-    }
-
-    platformLine = {
-      code: ctx.platformProductCode,
-      description: 'Servicio MercaMesa',
-      quantity: 1,
-      taxed_price: money(ctx.platformCommission),
-    };
-    items.push(platformLine);
-  }
-
-  /**
-   * Ajuste del residuo de redondeo.
-   *
-   * Escalar el precio unitario y redondearlo a dos decimales deja una diferencia
-   * de centavos que crece con la cantidad: 7 unidades pueden desviarse hasta
-   * 3,5 centavos. No se puede corregir en la línea del producto, porque volver a
-   * repartir el ajuste entre una cantidad fraccionaria reintroduce el mismo
-   * error.
-   *
-   * Se absorbe entonces en una línea de cantidad 1 —el servicio o el domicilio—,
-   * donde cualquier valor de dos decimales es exacto. Son centavos sobre un
-   * concepto de Mercamesa, no sobre lo que se le liquida al tendero.
-   */
-  // Se prefiere el servicio sobre el domicilio: el domicilio es un valor que el
-  // operador logístico cobra tal cual y conviene dejarlo intacto.
-  const adjustable = platformLine ?? deliveryLine;
-
-  const preAdjustTotal = items.reduce(
-    (sum, item) => sum + (item.taxed_price ?? 0) * item.quantity,
-    0
-  );
-  const residual = money(ctx.total - preAdjustTotal);
-  if (residual !== 0 && adjustable) {
-    adjustable.taxed_price = money((adjustable.taxed_price ?? 0) + residual);
-  }
-
-  const itemsTotal = items.reduce(
-    (sum, item) => sum + (item.taxed_price ?? 0) * item.quantity,
-    0
-  );
-
-  // El descuento del pedido no se puede repartir por ítem sin inventar criterios,
-  // así que si existe se detiene: emitir una factura descuadrada es peor que no
-  // emitirla.
+  const itemsTotal = items.reduce((sum, item) => sum + (item.taxed_price ?? 0) * item.quantity, 0);
   if (money(itemsTotal) !== money(ctx.total)) {
     throw new SiigoDataError(
       `El total de los ítems ($${money(itemsTotal)}) no coincide con el total del pedido ($${money(
