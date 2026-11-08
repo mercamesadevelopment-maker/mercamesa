@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createNotification } from '@/lib/notifications/create-notification';
+import { activeAdminIds, storeTeamIds } from '@/lib/notifications/recipients';
 import { pqrsUpdateEmail, sendEmail } from '@/lib/email/resend';
 
 /**
@@ -24,19 +25,8 @@ async function recipientsOf(
   audience: PqrsAudience
 ): Promise<string[]> {
   if (audience === 'opener') return [pqrs.opened_by];
-
-  if (audience === 'store') {
-    if (!pqrs.store_id) return [];
-    const { data } = await service.from('store_members').select('user_id').eq('store_id', pqrs.store_id);
-    return (data ?? []).map((m: any) => m.user_id);
-  }
-
-  const { data } = await service
-    .from('profiles')
-    .select('id, roles!inner ( name )')
-    .in('roles.name', ['admin', 'superadmin'])
-    .eq('is_active', true);
-  return (data ?? []).map((p: any) => p.id);
+  if (audience === 'store') return storeTeamIds(service, pqrs.store_id);
+  return activeAdminIds(service);
 }
 
 export async function notifyPqrs(

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { LogisticsOrder } from '@/lib/logistics/orders';
-import { logisticsService, type LogisticsScope } from '../services/logistics.service';
+import { logisticsService, type LogisticsScope, type ReceptionForm } from '../services/logistics.service';
 
 /** Cada cuánto se vuelve a consultar: van llegando partes y mensajeros. */
 const REFRESCO_MS = 30_000;
@@ -43,15 +43,27 @@ export function useLogisticsOrders() {
   const reemplazar = (order: LogisticsOrder) =>
     setOrders((actuales) => actuales.map((o) => (o.orderId === order.orderId ? order : o)));
 
-  const receive = async (storeOrderId: string) => {
+  /**
+   * Recibir o completar la evidencia. Lanza si falla: el formulario se queda
+   * abierto con el mensaje, para no perder las fotos elegidas.
+   */
+  const receive = async (storeOrderId: string, form: ReceptionForm) => {
     try {
       setBusyId(storeOrderId);
       setError(null);
-      const { order, deliveryError: fallo } = await logisticsService.receive(storeOrderId);
+      const { order, deliveryError: fallo } = await logisticsService.receive(storeOrderId, form);
       reemplazar(order);
       if (fallo) setDeliveryError({ code: order.code, message: fallo });
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'No se pudo registrar la recepción.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const updateEvidence = async (storeOrderId: string, form: ReceptionForm) => {
+    try {
+      setBusyId(storeOrderId);
+      setError(null);
+      reemplazar(await logisticsService.updateEvidence(storeOrderId, form));
     } finally {
       setBusyId(null);
     }
@@ -79,6 +91,7 @@ export function useLogisticsOrders() {
     deliveryError,
     dismissDeliveryError: () => setDeliveryError(null),
     receive,
+    updateEvidence,
     dispatch,
     refresh: () => fetchOrders(),
   };

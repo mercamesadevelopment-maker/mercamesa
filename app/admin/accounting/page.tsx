@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { Calculator, CreditCard, FileMinus, Banknote, Undo2, Scale } from 'lucide-react';
+import { Calculator, CreditCard, FileMinus, Banknote, Undo2, Scale, Warehouse } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { PAGE_SIZES, useAccountingFilters, type AccountingTab } from './hooks/use-accounting-filters';
 import { useAccountingOptions } from './hooks/use-accounting-options';
@@ -11,12 +11,14 @@ import { CreditNotesTab } from './components/credit-notes-tab';
 import { RefundsTab } from './components/refunds-tab';
 import { PayoutsSection } from './components/payouts/payouts-section';
 import { BalanceTab } from './components/balance/balance-tab';
+import { LogisticsTab } from './components/logistics/logistics-tab';
 
 const TABS: { key: AccountingTab; label: string; icon: React.ElementType }[] = [
   { key: 'payments', label: 'Pagos', icon: CreditCard },
   { key: 'credit-notes', label: 'Notas crédito', icon: FileMinus },
   { key: 'payouts', label: 'Dispersiones', icon: Banknote },
   { key: 'refunds', label: 'Devoluciones de dinero', icon: Undo2 },
+  { key: 'logistics', label: 'Logística', icon: Warehouse },
   { key: 'balance', label: 'Balance de prueba', icon: Scale },
 ];
 
@@ -93,6 +95,7 @@ function Accounting() {
       {f.tab === 'payments' && <PaymentsTab {...tabProps} />}
       {f.tab === 'credit-notes' && <CreditNotesTab {...tabProps} />}
       {f.tab === 'refunds' && <RefundsTab {...tabProps} />}
+      {f.tab === 'logistics' && <LogisticsTab query={f.filterQuery} />}
       {f.tab === 'balance' && <BalanceTab />}
       {f.tab === 'payouts' && (
         <div className="rounded-3xl border border-mm-crd bg-white p-6">

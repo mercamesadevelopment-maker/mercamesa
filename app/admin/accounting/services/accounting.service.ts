@@ -9,6 +9,7 @@ import type {
   RefundTotals,
 } from '@/lib/accounting/types';
 import type { BalanceReport } from '@/lib/accounting/test-balance';
+import type { LogisticsReport } from '@/lib/accounting/logistics-report';
 
 async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
@@ -66,3 +67,6 @@ export async function markRefundPaidService(id: string, reference: string): Prom
     throw new Error(result?.error || 'No se pudo registrar el pago.');
   }
 }
+
+export const fetchLogisticsReport = (query: string) =>
+  getJson<LogisticsReport>(`/api/admin/accounting/logistics${query}`);

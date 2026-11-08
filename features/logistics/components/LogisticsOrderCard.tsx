@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, KeyRound, MapPin, Package, Truck } from 'lucide-react';
+import { Camera, CheckCircle2, Clock, KeyRound, MapPin, Package, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { fechaCompleta } from '@/lib/dates/relative-time';
 import { formatCOP } from '@/lib/utils/format';
 import type { LogisticsOrder, LogisticsPart } from '@/lib/logistics/orders';
+import { PartItems } from './PartItems';
+import { PartReception } from './PartReception';
 
 const ETAPA: Record<LogisticsOrder['stage'], { label: string; variant: 'default' | 'success' | 'warning' | 'info' | 'oro' }> = {
   preparing: { label: 'Faltan partes', variant: 'warning' },
@@ -38,12 +40,15 @@ function estadoDeParte(part: LogisticsPart, order: LogisticsOrder): { label: str
 interface LogisticsOrderCardProps {
   order: LogisticsOrder;
   busyId: string | null;
-  onReceive: (storeOrderId: string) => void;
+  /** Abre el formulario de recepción, con fotos. */
+  onReceive: (part: LogisticsPart) => void;
+  /** Abre el formulario para agregar fotos o cambiar la observación. */
+  onEditEvidence: (part: LogisticsPart) => void;
   onDispatch: (order: LogisticsOrder) => void;
 }
 
 /** Un pedido en la bahía: qué partes llegaron, cómo vienen empacadas y el mensajero. */
-export function LogisticsOrderCard({ order, busyId, onReceive, onDispatch }: LogisticsOrderCardProps) {
+export function LogisticsOrderCard({ order, busyId, onReceive, onEditEvidence, onDispatch }: LogisticsOrderCardProps) {
   const etapa = ETAPA[order.stage];
 
   return (
@@ -86,12 +91,12 @@ export function LogisticsOrderCard({ order, busyId, onReceive, onDispatch }: Log
 
                 {part.canReceive ? (
                   <Button
-                    onClick={() => onReceive(part.storeOrderId)}
+                    onClick={() => onReceive(part)}
                     loading={busyId === part.storeOrderId}
                     disabled={busyId !== null}
-                    className="px-4 py-2 text-sm"
+                    className="px-4 py-2 text-sm flex items-center gap-1.5"
                   >
-                    Recibido
+                    <Camera className="w-4 h-4" /> {order.consolidated ? 'Recibido' : 'Registrar recepción'}
                   </Button>
                 ) : (
                   <span className={cn('flex items-center gap-1.5 text-xs font-bold', estado.listo ? 'text-ok' : 'text-mm-txw')}>
@@ -100,6 +105,10 @@ export function LogisticsOrderCard({ order, busyId, onReceive, onDispatch }: Log
                   </span>
                 )}
               </div>
+
+              <PartItems part={part} />
+
+              <PartReception part={part} busy={busyId !== null} onEdit={() => onEditEvidence(part)} />
 
               {part.packingNotes ? (
                 <p className="flex items-start gap-1.5 rounded-2xl bg-mm-gbg/40 px-3 py-2 text-xs text-mm-g">

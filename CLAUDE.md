@@ -355,6 +355,18 @@ Cada plaza decide cómo se junta (Plazas → detalle → «Pedidos de varias tie
   el patinador, logística y el domiciliario, en la indicación del paquete de Pibox.
 - `orders` y `store_orders` **no tienen RLS**: todo lo del equipo de la plaza pasa por el
   servidor con el cliente de servicio, después de comprobar quién pregunta.
+- **Recepción en la bahía** (`lib/logistics/reception-rules.ts`, `bay-reception.ts`): logística ve
+  los productos de cada parte y la recibe con al menos una foto (bucket privado `logistica`,
+  tabla `store_order_bay_photos`), una observación y la marca de mal estado, que avisa al
+  tendero y a los admins sin bloquear el pedido. En un pedido de una sola tienda es «Registrar
+  recepción» y el despacho no la espera. Se completa mientras la parte siga en la plaza. La ven
+  el tendero de esa parte y el admin en el detalle del pedido; el comprador no.
+- **Servicios de logística** (Contabilidad → Logística): un pedido que salió de la bahía y en el
+  que logística recibió alguna parte o lo despachó (`orders.logistics_dispatched_at`) cuenta
+  uno, el día en que salió en hora de Colombia (`logistics_services_by_day`).
+- Las fotos privadas (PQRS, bahía) usan `lib/storage/private-photos.ts`: subida firmada a
+  `tmp/<usuario>/` y después a su carpeta. En la interfaz, `PhotoPicker` y `PhotoGrid` de
+  `components/ui`.
 
 ## Marca
 
