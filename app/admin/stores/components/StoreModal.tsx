@@ -134,6 +134,8 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     }));
   };
 
+  const plazaElegida = marketplaces.find((m) => m.id === formData.marketplace_id) ?? null;
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) { setLogoFile(file); setLogoPreview(URL.createObjectURL(file)); }
@@ -274,13 +276,13 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         {/* Horario de atención */}
         <WeeklyHoursEditor value={businessHours} onChange={setBusinessHours} />
 
-        {/* Dónde recoge el mensajero. Vacío = se recoge en la plaza. */}
+        {/* Dónde recoge el mensajero: la bahía de la plaza o la dirección propia. */}
         <StorePickupFields
+          key={initialData?.id ?? 'nueva'}
           values={pickup}
           onChange={setPickup}
-          marketplaceName={
-            marketplaces.find((m) => m.id === formData.marketplace_id)?.name ?? null
-          }
+          marketplaceName={plazaElegida?.name ?? null}
+          marketplaceHasAddress={plazaElegida ? Boolean(plazaElegida.address?.trim()) : undefined}
         />
 
         {/* Contacto, teléfono y WhatsApp: el mismo bloque que edita el tendero
