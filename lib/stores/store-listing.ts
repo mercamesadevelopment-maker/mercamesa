@@ -119,7 +119,7 @@ export async function getStore(supabase: SupabaseClient<any>, storeId: string, u
     .from('stores')
     .select(`
       *,
-      marketplaces ( name ),
+      marketplaces ( name, address ),
       store_category_links ( store_categories ( id, name ) ),
       store_members (
         id,

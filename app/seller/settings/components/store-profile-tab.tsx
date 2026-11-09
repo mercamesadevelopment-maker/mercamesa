@@ -276,8 +276,9 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
           </p>
         </div>
 
-        {/* Dónde recoge el mensajero. Vacío = se recoge en la plaza. */}
+        {/* Dónde recoge el mensajero: la bahía de la plaza o la dirección propia. */}
         <StorePickupFields
+          key={store?.id ?? 'cargando'}
           className="sm:col-span-2"
           values={pickup}
           onChange={(next) => {
@@ -286,6 +287,7 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
             setPickup(next);
           }}
           marketplaceName={store?.marketplaces?.name ?? null}
+          marketplaceHasAddress={store?.marketplaces ? Boolean(store.marketplaces.address?.trim()) : undefined}
           error={pickupError}
         />
 
