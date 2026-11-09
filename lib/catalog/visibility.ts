@@ -57,19 +57,88 @@ export interface CatalogAccess {
   proposedByStoreId: string | null;
 }
 
-/** La misma regla en memoria, para validar filas ya cargadas sin volver a la base. */
+/** Por qué una tienda no puede publicar un producto. */
+export type CatalogDenial = 'in_review' | 'other_group';
+
+/** La regla en memoria: `null` si la tienda puede publicarlo, o el motivo si no. */
+export function catalogDenialReason(
+  product: CatalogAccess,
+  store: { id: string; groupId: string | null }
+): CatalogDenial | null {
+  if (product.reviewStatus === 'pending') return product.proposedByStoreId === store.id ? null : 'in_review';
+  if (!product.ownerGroupId) return null;
+  return product.ownerGroupId === store.groupId ? null : 'other_group';
+}
+
+/** La misma regla, como sí o no, para validar filas ya cargadas sin volver a la base. */
 export function canStoreUseCatalogProduct(
   product: CatalogAccess,
   store: { id: string; groupId: string | null }
 ): boolean {
-  if (product.reviewStatus === 'pending') return product.proposedByStoreId === store.id;
-  if (!product.ownerGroupId) return true;
-  return product.ownerGroupId === store.groupId;
+  return catalogDenialReason(product, store) === null;
 }
 
-/** Mensaje único para que el vendedor entienda por qué se rechazó el producto. */
+/** Mensaje genérico, para cuando no se pueden dar nombres (el archivo de importación, varias tiendas). */
 export const EXCLUSIVE_PRODUCT_MESSAGE =
   'Este producto del catálogo es exclusivo de otra tienda y no puedes publicarlo.';
+
+/**
+ * El rechazo con nombres. El genérico decía «de otra tienda» también cuando
+ * el producto era del grupo de la propia tienda y a ella le faltaba estar en
+ * el grupo: así no había cómo saber qué arreglar.
+ */
+export function catalogDenialMessage(params: {
+  reason: CatalogDenial;
+  storeName: string | null;
+  ownerGroupName: string | null;
+}): string {
+  if (params.reason === 'in_review') {
+    return 'Este producto del catálogo todavía está en revisión: solo lo puede publicar la tienda que lo propuso.';
+  }
+  if (!params.ownerGroupName) return EXCLUSIVE_PRODUCT_MESSAGE;
+
+  const tienda = params.storeName ? `la tienda «${params.storeName}»` : 'esta tienda';
+  return (
+    `Este producto del catálogo es exclusivo del grupo «${params.ownerGroupName}» y ${tienda} no pertenece a ese grupo. ` +
+    'Un administrador puede agregarla al grupo en Parametrización → Grupos de tiendas.'
+  );
+}
+
+/**
+ * Explica por qué esa tienda no puede publicar ese producto, con el nombre del
+ * grupo dueño y de la tienda. Quien llama ya sabe que hay un rechazo; si algo
+ * falla al leer, devuelve el mensaje genérico en vez de ocultar el rechazo.
+ */
+export async function explainCatalogDenial(
+  supabase: SupabaseClient<any>,
+  pair: { storeId: string; catalogProductId: string }
+): Promise<string> {
+  const [{ data: producto }, { data: tienda }] = await Promise.all([
+    supabase
+      .from('catalog_products')
+      .select('owner_group_id, review_status, proposed_by_store_id, store_groups!owner_group_id ( name )')
+      .eq('id', pair.catalogProductId)
+      .maybeSingle(),
+    supabase.from('stores').select('name, store_group_id').eq('id', pair.storeId).maybeSingle(),
+  ]);
+  if (!producto) return EXCLUSIVE_PRODUCT_MESSAGE;
+
+  const reason = catalogDenialReason(
+    {
+      ownerGroupId: producto.owner_group_id ?? null,
+      reviewStatus: producto.review_status ?? null,
+      proposedByStoreId: producto.proposed_by_store_id ?? null,
+    },
+    { id: pair.storeId, groupId: tienda?.store_group_id ?? null }
+  );
+  if (!reason) return EXCLUSIVE_PRODUCT_MESSAGE;
+
+  return catalogDenialMessage({
+    reason,
+    storeName: tienda?.name ?? null,
+    ownerGroupName: (producto as any).store_groups?.name ?? null,
+  });
+}
 
 /**
  * PostgREST manda los ids del `in.(...)` en la URL y la puerta de enlace de

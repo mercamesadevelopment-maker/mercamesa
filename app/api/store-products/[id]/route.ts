@@ -8,7 +8,7 @@ import {
   validateProductCode,
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
-import { EXCLUSIVE_PRODUCT_MESSAGE, findExclusivityViolations } from '@/lib/catalog/visibility';
+import { explainCatalogDenial, findExclusivityViolations } from '@/lib/catalog/visibility';
 
 type StoreProductUpdate = Database['public']['Tables']['store_products']['Update'];
 
@@ -88,11 +88,10 @@ export async function PUT(
       targetStoreId !== current.store_id ||
       targetCatalogProductId !== current.catalog_product_id
     ) {
-      const violations = await findExclusivityViolations(supabase, [
-        { storeId: targetStoreId, catalogProductId: targetCatalogProductId },
-      ]);
+      const par = { storeId: targetStoreId, catalogProductId: targetCatalogProductId };
+      const violations = await findExclusivityViolations(supabase, [par]);
       if (violations.length > 0) {
-        return NextResponse.json({ error: EXCLUSIVE_PRODUCT_MESSAGE }, { status: 403 });
+        return NextResponse.json({ error: await explainCatalogDenial(supabase, par) }, { status: 403 });
       }
     }
 
