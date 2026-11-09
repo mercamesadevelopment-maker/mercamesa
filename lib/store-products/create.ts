@@ -7,7 +7,7 @@ import {
   validateProductCode,
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
-import { EXCLUSIVE_PRODUCT_MESSAGE, findExclusivityViolations } from '@/lib/catalog/visibility';
+import { EXCLUSIVE_PRODUCT_MESSAGE, explainCatalogDenial, findExclusivityViolations } from '@/lib/catalog/visibility';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
 
@@ -87,6 +87,9 @@ export async function assignToStores(
     items.map((item) => ({ storeId: item.store_id, catalogProductId: item.catalog_product_id }))
   );
   if (violations.length > 0) {
+    if (items.length === 1) {
+      return falla(403, await explainCatalogDenial(supabase, { storeId: items[0].store_id, catalogProductId: items[0].catalog_product_id }));
+    }
     return falla(
       403,
       violations.length === items.length
@@ -116,10 +119,9 @@ export async function createStoreProduct(
     return falla(403, 'No tienes permisos sobre esta tienda.');
   }
 
-  const violations = await findExclusivityViolations(supabase, [
-    { storeId: body.store_id, catalogProductId: body.catalog_product_id },
-  ]);
-  if (violations.length > 0) return falla(403, EXCLUSIVE_PRODUCT_MESSAGE);
+  const par = { storeId: body.store_id, catalogProductId: body.catalog_product_id };
+  const violations = await findExclusivityViolations(supabase, [par]);
+  if (violations.length > 0) return falla(403, await explainCatalogDenial(supabase, par));
 
   const codeError = validateProductCode(body.code);
   if (codeError) return falla(400, codeError);
