@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, Images, X } from 'lucide-react';
 import { PHOTO_MAX_BYTES, PHOTO_TYPES } from '@/lib/storage/photo-rules';
+import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
 
 interface PhotoPickerProps {
   files: File[];
@@ -16,15 +17,25 @@ interface PhotoPickerProps {
 
 const ACCEPT = Object.keys(PHOTO_TYPES).join(',');
 
+const BOTON =
+  'w-20 h-20 rounded-xl border-1.5 border-dashed border-mm-crd text-mm-txw hover:border-mm-g hover:text-mm-g transition-colors flex flex-col items-center justify-center gap-1 text-[11px] font-medium';
+
 /**
- * Elegir fotos con su vista previa (PQRS, recepción en la bahía). En el
- * celular abre la cámara o la galería.
+ * Elegir fotos con su vista previa (PQRS, recepción en la bahía).
+ *
+ * En una pantalla táctil hay dos botones: «Tomar foto» abre la cámara
+ * (`capture`) y «Galería» las fotos guardadas. Antes había uno solo, sin
+ * `capture` y con los tipos sueltos en `accept`, y en varios Android abría el
+ * explorador de archivos sin ofrecer la cámara. En el escritorio `capture` no
+ * hace nada, así que queda solo «Galería».
  *
  * No sube nada: las fotos se suben al enviar. Así, cerrar el formulario sin
  * enviar no deja archivos sueltos.
  */
 export function PhotoPicker({ files, onChange, max, required, label = 'Fotos' }: PhotoPickerProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galeriaRef = useRef<HTMLInputElement>(null);
+  const camaraRef = useRef<HTMLInputElement>(null);
+  const tactil = useMediaQuery('(pointer: coarse)');
   const [error, setError] = useState<string | null>(null);
 
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
@@ -73,18 +84,26 @@ export function PhotoPicker({ files, onChange, max, required, label = 'Fotos' }:
         ))}
 
         {files.length < max && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="w-20 h-20 rounded-xl border-1.5 border-dashed border-mm-crd text-mm-txw hover:border-mm-g hover:text-mm-g transition-colors flex flex-col items-center justify-center gap-1 text-[11px] font-medium"
-          >
-            <Camera className="w-5 h-5" />
-            Agregar
-          </button>
+          <>
+            {tactil && (
+              <button type="button" onClick={() => camaraRef.current?.click()} className={BOTON}>
+                <Camera className="w-5 h-5" />
+                Tomar foto
+              </button>
+            )}
+            <button type="button" onClick={() => galeriaRef.current?.click()} className={BOTON}>
+              <Images className="w-5 h-5" />
+              {tactil ? 'Galería' : 'Agregar'}
+            </button>
+          </>
         )}
       </div>
 
-      <input ref={inputRef} type="file" accept={ACCEPT} multiple hidden onChange={handleFiles} />
+      {/* `image/*` y no la lista de tipos: con la lista, algunos Android no
+          ofrecen la cámara. La validación de abajo descarta lo que no sea
+          JPG, PNG o WebP; la cámara entrega JPEG. */}
+      <input ref={camaraRef} type="file" accept="image/*" capture="environment" hidden onChange={handleFiles} />
+      <input ref={galeriaRef} type="file" accept={ACCEPT} multiple hidden onChange={handleFiles} />
 
       {error && <p className="text-xs text-r ml-1 mt-1.5">{error}</p>}
     </div>

@@ -21,7 +21,8 @@ export interface StoreProfile {
   cover_image_url: string | null;
   logoSignedUrl: string | null;
   coverSignedUrl: string | null;
-  marketplaces?: { name: string } | null;
+  /** La dirección de la plaza: sin ella, despachar desde la plaza no tiene de dónde pedir el mensajero. */
+  marketplaces?: { name: string; address: string | null } | null;
 }
 
 export interface StoreCategory {
