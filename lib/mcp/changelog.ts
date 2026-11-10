@@ -45,6 +45,32 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.1.0',
+    fecha: '2026-11-10',
+    resumen:
+      'Los códigos de Pibox llegan como avisos, cada uno a quien le corresponde, y cada aviso dice el rol de su destinatario.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'Avisos · codigo_recogida',
+        detalle:
+          'Cuando Pibox da el código de recogida, un aviso por la línea `tenderos` para cada persona que le entrega el paquete al mensajero: el equipo de la tienda; o, si el pedido sale de la bahía de la plaza, logística o el patinador. Trae `destinatario.telefono`, `pedido.codigo`, `parte` (código y tienda; `null` en la bahía), `tiendas` y `recogida` (`codigo`, `conductor` y `placa` si ya están asignados, y `lugar`: `tienda` o `bahia`).',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Avisos · domicilio_recogido',
+        detalle:
+          'Cuando el mensajero recoge y va hacia el comprador, un aviso para él por la línea `compradores`, como `domicilio_en_camino` y además `domicilio.codigo_entrega`, el código que le da al mensajero al recibir.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Avisos',
+        detalle:
+          'Todos los avisos traen `destinatario.rol`: `comprador`, `tendero`, `logistica` o `patinador`. `linea` sigue diciendo desde qué número escribir.',
+      },
+    ],
+  },
+  {
     version: '2.0.0',
     fecha: '2026-11-08',
     resumen:

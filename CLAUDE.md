@@ -393,6 +393,13 @@ está en `development`; producción, lo que está en `main`.
 - El chequeo no ve un cambio que llega por otra carpeta. Ejemplo: una función de `lib/pricing` que usa
   `lib/mcp/views.ts`. Si tocas algo que `lib/mcp/views.ts` importa, revisa si cambia lo que sale.
 - `docs/mcp-meteor.md`, fuera de git, es la guía completa que se le entrega a Meteor.
+- **Avisos por rol** (`lib/whatsapp-events/`):
+  - cada aviso dice a quién va (`destinatario.rol`) y desde qué línea se escribe (`linea`);
+  - los códigos de Pibox salen solo en su aviso y solo a quien le corresponde:
+    - el de recogida (`codigo_recogida`) a quien entrega el paquete: la tienda o, en la bahía, logística o
+      el patinador (`pickupHandlerRole`);
+    - el de entrega (`domicilio_recogido`) al comprador.
+  - Las herramientas del MCP nunca dan códigos.
 
 ## Marca
 

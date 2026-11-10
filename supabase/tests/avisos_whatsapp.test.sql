@@ -1,11 +1,11 @@
 -- Avisos del pedido para Meteor: qué evento deja cada cambio, que no se repitan,
 -- la entrega única del pedido de varias tiendas, quién puede leerlos y la
 -- limpieza a los 7 días.
--- Migración: 20261104212325_avisos_whatsapp.sql
+-- Migraciones: 20261104212325_avisos_whatsapp.sql y 20261110195043_avisos_codigos_pibox.sql
 
 begin;
 \ir _helpers/fixtures.inc
-select plan(12);
+select plan(19);
 
 -- Pedido de una tienda (…300) y pedido de varias tiendas (…310).
 insert into public.orders (id, buyer_id, consecutive)
@@ -48,6 +48,37 @@ update public.pibox_bookings set tracking_link = 'https://seguimiento/1' where b
 select is(pg_temp.avisos('00000000-0000-0000-0000-000000000300', 'domicilio_en_camino'), 1::bigint, 'con el enlace, sí');
 update public.pibox_bookings set tracking_link = 'https://seguimiento/2' where booking_id = 'reserva-aviso';
 select is(pg_temp.avisos('00000000-0000-0000-0000-000000000300', 'domicilio_en_camino'), 1::bigint, 'un enlace nuevo no lo repite');
+
+-- --- Código de recogida (la reserva de arriba aún no tiene)
+select is(pg_temp.avisos('00000000-0000-0000-0000-000000000300', 'codigo_recogida'), 0::bigint, 'sin código de recogida no avisa');
+update public.pibox_bookings set pickup_validation_code = '4821' where booking_id = 'reserva-aviso';
+select results_eq(
+  $$ select store_order_id from public.whatsapp_events
+     where order_id = '00000000-0000-0000-0000-000000000300' and event_type = 'codigo_recogida' $$,
+  $$ values ('00000000-0000-0000-0000-000000000301'::uuid) $$,
+  'con el código, avisa una vez, con la parte de la reserva');
+update public.pibox_bookings set pickup_validation_code = '9999' where booking_id = 'reserva-aviso';
+select is(pg_temp.avisos('00000000-0000-0000-0000-000000000300', 'codigo_recogida'), 1::bigint, 'si el webhook lo repite o lo cambia, no se repite');
+
+-- --- El mensajero recogió (status_cd 6)
+update public.pibox_bookings set status_cd = 5 where booking_id = 'reserva-aviso';
+select is(pg_temp.avisos('00000000-0000-0000-0000-000000000300', 'domicilio_recogido'), 0::bigint, '«recogiendo» todavía no');
+update public.pibox_bookings set status_cd = 6 where booking_id = 'reserva-aviso';
+update public.pibox_bookings set status_cd = 6 where booking_id = 'reserva-aviso';
+select is(pg_temp.avisos('00000000-0000-0000-0000-000000000300', 'domicilio_recogido'), 1::bigint, '«a bordo» avisa al comprador, una vez');
+
+-- La reserva de un pedido de varias tiendas es del pedido, sin parte.
+insert into public.pibox_bookings (order_id, booking_id, pickup_validation_code, status_cd)
+values ('00000000-0000-0000-0000-000000000310', 'reserva-bahia', '1357', 6);
+select results_eq(
+  $$ select event_type, store_order_id from public.whatsapp_events
+     where order_id = '00000000-0000-0000-0000-000000000310' and event_type in ('codigo_recogida', 'domicilio_recogido')
+     order by event_type $$,
+  $$ values ('codigo_recogida'::text, null::uuid), ('domicilio_recogido'::text, null::uuid) $$,
+  'varias tiendas: los dos avisos son del pedido completo');
+select is(
+  (select count(*) from public.whatsapp_events where order_id = '00000000-0000-0000-0000-000000000310' and event_type = 'domicilio_en_camino'),
+  0::bigint, 'sin enlace de seguimiento, la reserva nueva no avisa el domicilio');
 
 -- --- Varias tiendas: una sola entrega, cuando termina la última parte
 update public.store_orders set status = 'delivered' where id = '00000000-0000-0000-0000-000000000311';
