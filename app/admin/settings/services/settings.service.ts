@@ -9,6 +9,7 @@ import {
   PersonTypeRow, PersonTypeInsert, PersonTypeUpdate,
   IdentificationTypeRow, IdentificationTypeInsert, IdentificationTypeUpdate,
 } from '../types/settings.types';
+import type { CategoryBatchRow, CategoryErrors } from '@/lib/categories/batch';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   const result = await res.json();
@@ -33,6 +34,25 @@ export async function saveCategoryService(id: string | null, payload: CategoryIn
     body: JSON.stringify(payload),
   });
   return handleResponse<CategoryRow>(res);
+}
+
+/** El servidor rechazó el lote; si fue por celdas, trae cuáles. */
+export class CategoryBatchError extends Error {
+  constructor(message: string, public errors?: CategoryErrors) {
+    super(message);
+  }
+}
+
+/** Guarda de una vez lo editado en la tabla (`PATCH /api/admin/categories/batch`). */
+export async function saveCategoriesBatchService(rows: CategoryBatchRow[]): Promise<{ saved: number }> {
+  const res = await fetch('/api/admin/categories/batch', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rows }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new CategoryBatchError(json.error || 'No se pudieron guardar las categorías.', json.errors);
+  return { saved: Number(json.saved ?? 0) };
 }
 
 export async function deleteCategoryService(id: string): Promise<void> {
