@@ -6,6 +6,7 @@ import { removeImageAndVariants } from '../../../../lib/images/generate';
 import { PRODUCT_IMAGE_VARIANTS } from '../../../../lib/images/variants';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { generateCatalogImageVariants, removePreviousCatalogImage } from '@/lib/catalog-images/server';
+import { IVA_INVALIDO, parseIvaRate } from '@/lib/pricing/iva';
 
 type ProductUpdate = Database['public']['Tables']['catalog_products']['Update'];
 
@@ -87,6 +88,12 @@ export async function PUT(
           body[field as string] === true || body[field as string] === 'true';
       }
     });
+
+    if (body.iva_rate !== undefined) {
+      const iva = parseIvaRate(body.iva_rate);
+      if (iva === null) return NextResponse.json({ error: IVA_INVALIDO }, { status: 400 });
+      updateData.iva_rate = iva;
+    }
 
     // El cliente ya subió el original directo a Storage (evita el límite de
     // payload de las funciones serverless); acá solo descargamos el buffer

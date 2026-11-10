@@ -6,6 +6,7 @@ import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
 import { BulkImportModal } from './components/BulkImportModal';
+import { BulkIvaAction } from './components/BulkIvaAction';
 import { ImageBulkUploadModal } from '@/features/catalog-images/components/ImageBulkUploadModal';
 import { MergeProductModal } from './components/MergeProductModal';
 import { usePendingReview } from './hooks/usePendingReview';
@@ -422,6 +423,13 @@ export default function ProductsAdmin() {
           <Button size="sm" onClick={() => setIsGroupConfirmOpen(true)} disabled={isApplyingGroup}>
             {isApplyingGroup ? 'Aplicando...' : 'Aplicar'}
           </Button>
+          <BulkIvaAction
+            selectedIds={Array.from(selectedIds, String)}
+            onApplied={() => {
+              setSelectedIds(new Set());
+              recargar();
+            }}
+          />
           <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
             Quitar selección
           </Button>

@@ -14,6 +14,7 @@ import {
   type CatalogField,
 } from './constants';
 import type { CategoryOption, StoreGroupOption, UnitOption } from './types';
+import { IVA_RATES, ivaLabel } from '@/lib/pricing/iva';
 
 export interface CatalogTemplateInput {
   categories: CategoryOption[];
@@ -44,6 +45,7 @@ export async function buildCatalogTemplate(input: CatalogTemplateInput): Promise
     [LIST_NAMES.categories]: input.categories.map((category) => category.path),
     [LIST_NAMES.units]: input.units.map((unit) => unit.label),
     [LIST_NAMES.yesNo]: ['Sí', 'No'],
+    [LIST_NAMES.iva]: IVA_RATES.map(ivaLabel),
   };
 
   // Sin grupos creados no hay lista que ofrecer, y un rango vacío produce una
@@ -65,6 +67,12 @@ export async function buildCatalogTemplate(input: CatalogTemplateInput): Promise
     rows: TEMPLATE_BLANK_ROWS,
     allowBlank: false,
     message: 'Elige una unidad de la lista. Están todas en la hoja "Listas".',
+  });
+  addListValidation(sheet, columnOf('iva'), ranges[LIST_NAMES.iva], {
+    rows: TEMPLATE_BLANK_ROWS,
+    // Vacío es 0 %, lo normal hoy.
+    allowBlank: true,
+    message: 'Elige la tarifa de IVA, o déjala vacía para 0 %.',
   });
   for (const field of ['ancestral', 'medicinal', 'nonFood'] as CatalogField[]) {
     addListValidation(sheet, columnOf(field), ranges[LIST_NAMES.yesNo], {
@@ -88,11 +96,12 @@ export async function buildCatalogTemplate(input: CatalogTemplateInput): Promise
     `4. Cuando el nombre de una subcategoría se repite bajo varios padres (por ejemplo "Hojas"), hay que usar la ruta completa "Padre > Subcategoría". Por eso la lista las muestra así.`,
     `5. "${CATALOG_HEADERS.ancestral}", "${CATALOG_HEADERS.medicinal}" y "${CATALOG_HEADERS.nonFood}" aceptan "Sí" o "No"; si las dejas vacías quedan en "No".`,
     `6. "${CATALOG_HEADERS.description}", "${CATALOG_HEADERS.daneCode}" y "${CATALOG_HEADERS.daneUnit}" son opcionales.`,
-    `7. "${CATALOG_HEADERS.ownerGroup}" es para los productos que aporta una tienda con sus propias fotos: solo las tiendas de ese grupo podrán publicarlos. Déjala vacía y el producto queda público para todas.`,
-    '8. Si el nombre ya existe en el catálogo, esa fila se omite y te decimos en qué categoría está el existente.',
-    '9. Los productos se crean SIN imagen y activos. La foto se agrega después editando cada producto.',
-    `10. Puedes cargar hasta ${MAX_CATALOG_ROWS} productos por archivo. La plantilla trae ${TEMPLATE_BLANK_ROWS} filas con desplegable; si necesitas más, copia el formato hacia abajo.`,
-    '11. Guarda como Excel (.xlsx) o CSV y súbelo desde Catálogo Maestro → Carga masiva.',
+    `7. "${CATALOG_HEADERS.iva}" es opcional: ${IVA_RATES.map(ivaLabel).join(', ')}. Vacía queda en 0 %. El precio que pone cada tienda ya incluye el IVA. Para cambiar el IVA de productos que ya existen, selecciónalos en el catálogo y usa «Cambiar IVA».`,
+    `8. "${CATALOG_HEADERS.ownerGroup}" es para los productos que aporta una tienda con sus propias fotos: solo las tiendas de ese grupo podrán publicarlos. Déjala vacía y el producto queda público para todas.`,
+    '9. Si el nombre ya existe en el catálogo, esa fila se omite y te decimos en qué categoría está el existente.',
+    '10. Los productos se crean SIN imagen y activos. La foto se agrega después editando cada producto.',
+    `11. Puedes cargar hasta ${MAX_CATALOG_ROWS} productos por archivo. La plantilla trae ${TEMPLATE_BLANK_ROWS} filas con desplegable; si necesitas más, copia el formato hacia abajo.`,
+    '12. Guarda como Excel (.xlsx) o CSV y súbelo desde Catálogo Maestro → Carga masiva.',
   ]);
 
   const buffer = await workbook.xlsx.writeBuffer();

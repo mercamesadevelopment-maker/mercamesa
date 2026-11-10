@@ -22,6 +22,8 @@ export interface ValidatedCatalogRow {
   isNonFood: boolean;
   /** `null` = producto público; con id, solo lo publican las tiendas de ese grupo. */
   ownerGroupId: string | null;
+  /** Tarifa de IVA (0, 0.05 o 0.19), incluida en el precio de cada tienda. */
+  ivaRate: number;
 }
 
 export interface CategoryOption {

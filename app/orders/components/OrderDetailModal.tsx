@@ -244,6 +244,12 @@ export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDeta
             <span>Domicilio</span>
             <span className="font-bold">{formatCurrency(delivery)}</span>
           </div>
+          {/* Informativo: el IVA ya va dentro del precio de los productos, así que
+              no se suma al total (`lib/pricing/iva.ts`). Hoy todos están en 0 %. */}
+          <div className="flex justify-between text-sm text-mm-txs">
+            <span>IVA (incluido)</span>
+            <span className="font-bold">{formatCurrency(Number(order.order_iva_total ?? 0))}</span>
+          </div>
           {creditApplied > 0 && (
             <div className="flex justify-between text-sm text-mm-txs">
               <span>Saldo a favor</span>

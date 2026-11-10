@@ -51,6 +51,11 @@ export interface DraftItem {
   catalog_name: string;
   unit_name: string;
   notes: string | null;
+  /**
+   * La tarifa de IVA del producto, copiada al comprar: una reforma no cambia los
+   * pedidos viejos. Va incluida en el precio (`lib/pricing/iva.ts`).
+   */
+  iva_rate: number;
 }
 
 /** La parte del pedido que le toca a una tienda. Será un `store_orders`. */
@@ -107,7 +112,7 @@ export async function buildOrderDraft(
     .from('store_products')
     .select(
       `id, price_per_unit, wholesale_price, store_id, stock,
-       catalog_products ( name ),
+       catalog_products ( name, iva_rate ),
        measurement_units ( abbreviation ),
        stores ( name, pickup_group )`
     )
@@ -155,6 +160,7 @@ export async function buildOrderDraft(
       catalog_name: producto.catalog_products?.name || item.catalog_name || 'Producto',
       unit_name: producto.measurement_units?.abbreviation || item.unit_name || 'und',
       notes: item.notes || null,
+      iva_rate: Number(producto.catalog_products?.iva_rate ?? 0),
     };
   });
 
