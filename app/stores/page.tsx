@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import { normalizeText } from '@/lib/utils/text';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 import { usePublicStores } from './hooks/usePublicStores';
-import { usePublicMarketplaces } from '../../marketplaces/hooks/usePublicMarketplaces';
+import { usePublicMarketplaces } from '@/app/marketplaces/hooks/usePublicMarketplaces';
 import { useSession } from '@/features/auth/session-context';
 import { useFavorites } from '@/features/favorites/hooks/use-favorites';
 import { StoreCard } from './components/StoreCard';
