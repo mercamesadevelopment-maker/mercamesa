@@ -377,6 +377,7 @@ export type Database = {
           is_ancestral_food: boolean
           is_medicinal_plant: boolean
           is_non_food: boolean
+          iva_rate: number
           name: string
           owner_group_id: string | null
           proposed_by_store_id: string | null
@@ -401,6 +402,7 @@ export type Database = {
           is_ancestral_food?: boolean
           is_medicinal_plant?: boolean
           is_non_food?: boolean
+          iva_rate?: number
           name: string
           owner_group_id?: string | null
           proposed_by_store_id?: string | null
@@ -425,6 +427,7 @@ export type Database = {
           is_ancestral_food?: boolean
           is_medicinal_plant?: boolean
           is_non_food?: boolean
+          iva_rate?: number
           name?: string
           owner_group_id?: string | null
           proposed_by_store_id?: string | null
@@ -1186,6 +1189,7 @@ export type Database = {
           catalog_name: string
           created_at: string
           id: string
+          iva_rate: number
           list_unit_price: number | null
           notes: string | null
           order_id: string
@@ -1199,6 +1203,7 @@ export type Database = {
           catalog_name: string
           created_at?: string
           id?: string
+          iva_rate?: number
           list_unit_price?: number | null
           notes?: string | null
           order_id: string
@@ -1212,6 +1217,7 @@ export type Database = {
           catalog_name?: string
           created_at?: string
           id?: string
+          iva_rate?: number
           list_unit_price?: number | null
           notes?: string | null
           order_id?: string
@@ -4334,6 +4340,7 @@ export type Database = {
           neighborhood: string | null
           order_code: string | null
           order_id: string | null
+          order_iva_total: number | null
           order_subtotal: number | null
           order_total: number | null
           parent_code: string | null

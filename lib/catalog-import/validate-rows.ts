@@ -4,6 +4,7 @@ import type { ImportRowResult } from '@/lib/spreadsheet/report';
 import { CATALOG_HEADERS, MAX_CATALOG_ROWS, type CatalogField } from './constants';
 import { normalizeLookupKey } from './lookups';
 import { uniqueSlug } from './slug';
+import { IVA_RATES, ivaLabel, parseIvaRate } from '@/lib/pricing/iva';
 import type { CatalogLookups, ValidatedCatalogRow } from './types';
 
 export type CatalogRow = RawRow<CatalogField>;
@@ -164,6 +165,14 @@ export function validateCatalogRows(
       continue;
     }
 
+    // Vacío es 0 %. La lista ofrece «0 %», «5 %» y «19 %», pero se aceptan
+    // también «19», «19%» o «0,19»: es lo que alguien pega desde otra hoja.
+    const ivaRate = parseIvaRate(row.iva);
+    if (ivaRate === null) {
+      fail(`La columna "${CATALOG_HEADERS.iva}" solo acepta ${IVA_RATES.map(ivaLabel).join(', ')}, o vacía (0 %).`);
+      continue;
+    }
+
     // El id se genera acá porque el siigo_id se deriva de él, y esa columna es
     // NOT NULL, UNIQUE y con CHECK de formato, sin default en la base.
     const id = crypto.randomUUID();
@@ -184,6 +193,7 @@ export function validateCatalogRows(
       isMedicinalPlant: flags.isMedicinalPlant!,
       isNonFood: flags.isNonFood!,
       ownerGroupId,
+      ivaRate,
     });
   }
 

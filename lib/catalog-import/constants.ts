@@ -6,6 +6,8 @@ export const CATALOG_HEADERS = {
   name: 'Nombre del producto',
   category: 'Categoría',
   unit: 'Unidad de medida',
+  // Vacío = 0 %. Va incluido en el precio de cada tienda (lib/pricing/iva.ts).
+  iva: 'IVA',
   description: 'Descripción',
   daneCode: 'Código DANE',
   daneUnit: 'Unidad DANE',
@@ -23,6 +25,7 @@ export const CATALOG_COLUMN_WIDTHS: Record<CatalogField, number> = {
   name: 38,
   category: 42,
   unit: 24,
+  iva: 10,
   description: 46,
   daneCode: 16,
   daneUnit: 20,
@@ -36,6 +39,7 @@ export const CATALOG_COLUMN_WIDTHS: Record<CatalogField, number> = {
 export const LIST_FIELDS: CatalogField[] = [
   'category',
   'unit',
+  'iva',
   'ancestral',
   'medicinal',
   'nonFood',
@@ -48,6 +52,7 @@ export const LIST_NAMES = {
   units: 'Unidades de medida',
   yesNo: 'Sí / No',
   storeGroups: 'Grupos de tiendas',
+  iva: 'Tarifas de IVA',
 } as const;
 
 /** Filas de la plantilla que llevan desplegable y formato listo para llenar. */

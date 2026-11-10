@@ -9,6 +9,7 @@ import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { requirePermission } from '@/lib/auth/require-permission';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { applyCatalogVisibility, getStoreGroupId } from '@/lib/catalog/visibility';
+import { IVA_INVALIDO, parseIvaRate } from '@/lib/pricing/iva';
 
 type ProductInsert = Database['public']['Tables']['catalog_products']['Insert'];
 
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
         // le sirve a nadie en el cliente. El resto es exactamente lo que `*`
         // devolvía antes.
         `
-          id, category_id, default_unit_id, name, slug, description, image_url, is_ancestral_food, is_medicinal_plant, is_non_food, is_active, created_by, created_at, updated_at, dane_unit_code, dane_unit_name, siigo_id, owner_group_id, siigo_synced_at, review_status, proposed_by_store_id,
+          id, category_id, default_unit_id, name, slug, description, image_url, is_ancestral_food, is_medicinal_plant, is_non_food, is_active, created_by, created_at, updated_at, dane_unit_code, dane_unit_name, siigo_id, owner_group_id, siigo_synced_at, review_status, proposed_by_store_id, iva_rate,
           categories ( name ),
           measurement_units ( abbreviation ),
           proposed_by:stores!proposed_by_store_id ( name )
@@ -191,6 +192,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Va incluido en el precio de cada tienda. Sin el campo, 0 %.
+    const iva_rate = parseIvaRate(body.iva_rate);
+    if (iva_rate === null) {
+      return NextResponse.json({ error: IVA_INVALIDO }, { status: 400 });
+    }
+
     let image_url: string | null = null;
 
     // El cliente ya subió el original directo a Storage (evita el límite de
@@ -221,6 +228,7 @@ export async function POST(request: Request) {
       dane_unit_code: dane_unit_code || null,
       dane_unit_name: dane_unit_name || null,
       owner_group_id,
+      iva_rate,
       created_by: user.id,
       siigo_id: generateSiigoCode(productId),
     };
