@@ -4447,6 +4447,7 @@ export type Database = {
       }
       fn_is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       generar_codigo_producto: { Args: { p_store: string }; Returns: string }
+      guardar_categorias: { Args: { p_filas: Json }; Returns: Json }
       has_permission: {
         Args: { action_name: string; module_key: string }
         Returns: boolean
