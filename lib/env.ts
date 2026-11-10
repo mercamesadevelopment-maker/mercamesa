@@ -46,3 +46,17 @@ export function getMeteorWhatsappNumber(line: 'compradores' | 'tenderos'): strin
   const numero = line === 'tenderos' ? process.env.METEOR_WHATSAPP_SELLERS_NUMBER : process.env.METEOR_WHATSAPP_BUYERS_NUMBER;
   return numero || null;
 }
+
+export type DeploymentEnv = 'produccion' | 'staging' | 'local';
+
+/**
+ * En qué entorno corre esta copia de la app, según Vercel: `production` es
+ * producción y cualquier vista previa (`development` y los PR) es staging, que
+ * es a donde apuntan sus variables. Fuera de Vercel, local.
+ */
+export function getDeploymentEnv(): DeploymentEnv {
+  const env = process.env.VERCEL_ENV;
+  if (env === 'production') return 'produccion';
+  if (env === 'preview') return 'staging';
+  return 'local';
+}

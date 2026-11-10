@@ -372,6 +372,28 @@ Cada plaza decide cómo se junta (Plazas → detalle → «Pedidos de varias tie
   `tmp/<usuario>/` y después a su carpeta. En la interfaz, `PhotoPicker` y `PhotoGrid` de
   `components/ui`.
 
+## MCP de Meteor: cada cambio se publica
+
+Meteor ve qué cambió en el MCP (`app/api/mcp`, `lib/mcp/`) y en los avisos (`app/api/meteor`,
+`lib/whatsapp-events/`) en la página pública **`/mcp/cambios`**, sin cuenta. Staging muestra lo que
+está en `development`; producción, lo que está en `main`.
+
+- La fuente es `lib/mcp/changelog.ts`. Todo PR que cambie lo que recibe Meteor agrega ahí una
+  versión arriba, con fecha y cada cambio (`donde`, `detalle` y `rompe` si algo deja de funcionar).
+  `serverInfo.version` del servidor sale de ahí.
+- **Versión:**
+  - lo que rompe sube el primer número;
+  - lo nuevo, el segundo;
+  - una corrección, el tercero.
+
+  Lo comprueba `lib/mcp/changelog.test.ts`.
+- **El chequeo** `.github/workflows/mcp-cambios.yml` (`scripts/ci/check-mcp-changelog.sh`) falla si
+  el PR toca esas carpetas sin cambiar el archivo. Si Meteor no nota nada (un refactor), la etiqueta
+  `mcp-sin-cambios` lo deja pasar.
+- El chequeo no ve un cambio que llega por otra carpeta. Ejemplo: una función de `lib/pricing` que usa
+  `lib/mcp/views.ts`. Si tocas algo que `lib/mcp/views.ts` importa, revisa si cambia lo que sale.
+- `docs/mcp-meteor.md`, fuera de git, es la guía completa que se le entrega a Meteor.
+
 ## Marca
 
 Caso de marca: `docs/cotizacionFase2/MercaMesa_Branding_Case.pdf`.
