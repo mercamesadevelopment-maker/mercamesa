@@ -13,7 +13,7 @@ import { maxQtyFor, offerLimitLabel } from '@/lib/offers/offer-limit';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/features/products/utils/share-link';
 import { ShareLinkButton } from '@/features/products/components/ShareLinkButton';
-import type { StoreProduct } from '@/app/sections/products/hooks/usePublicProducts';
+import type { StoreProduct } from '@/app/products/hooks/usePublicProducts';
 
 interface ProductCardProps {
   product: StoreProduct;

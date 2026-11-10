@@ -10,7 +10,7 @@ import {
   fetchProductoCompartido,
   CONSULTA_INICIAL,
   type StoreProduct,
-} from '@/app/sections/products/hooks/usePublicProducts';
+} from '@/app/products/hooks/usePublicProducts';
 import { useSession } from '@/features/auth/session-context';
 import { useFavorites } from '@/features/favorites/hooks/use-favorites';
 import { ProductCard } from '@/features/products/components/ProductCard';
@@ -179,7 +179,7 @@ export default function StoreDetailPage() {
   return (
     <div className="px-4 lg:px-8 max-w-7xl mx-auto py-8 animate-fade-up pb-24">
       <button 
-        onClick={() => router.push('/sections/stores')}
+        onClick={() => router.push('/stores')}
         className="flex items-center gap-2 text-mm-g font-bold mb-6 hover:translate-x-1 transition-transform"
       >
         <ArrowLeft className="w-5 h-5" /> Volver a tiendas
