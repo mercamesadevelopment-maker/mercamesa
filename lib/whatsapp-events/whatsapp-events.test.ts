@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { toOrderDetail, type DetailRows } from '@/lib/orders/buyer-orders';
-import { toAviso } from './build-payload';
+import { toAviso, toPickupCodeAviso, type BookingCodes } from './build-payload';
 import {
+  avisoId,
   FEED_MAX_LIMIT,
+  lineaFor,
+  pickupHandlerRole,
   feedWindow,
   isNotifiable,
   nextCursor,
@@ -90,7 +93,7 @@ describe('el aviso', () => {
   it('trae lo que necesita la plantilla', () => {
     expect(aviso).toMatchObject({
       id: 'e1', seq: 7, tipo: 'domicilio_en_camino', linea: 'compradores',
-      destinatario: { telefono: '+573001112233', nombre: 'Ana' },
+      destinatario: { telefono: '+573001112233', nombre: 'Ana', rol: 'comprador' },
       parte: { codigo: 'MM-2026-000100-1', tienda: 'Frutas Ana' },
       domicilio: { seguimiento: 'https://seguimiento', conductor: 'Luis', placa: 'ABC123' },
     });
@@ -98,7 +101,7 @@ describe('el aviso', () => {
     expect(aviso.pedido.partes[0].productos[0]).toMatchObject({ nombre: 'Papa criolla', cantidad: 2, unidad: 'kg' });
   });
 
-  it('nunca lleva los códigos del domicilio, el teléfono del conductor ni el historial', () => {
+  it('fuera de «domicilio recogido» no lleva los códigos del domicilio, el teléfono del conductor ni el historial', () => {
     const texto = JSON.stringify(aviso);
     expect(texto).not.toMatch(/4321|8765|573009999999|historial/);
   });
@@ -107,5 +110,71 @@ describe('el aviso', () => {
     const cambio = toAviso({ ...ev, event_type: 'parte_estado', status_to: 'delivered' }, toOrderDetail(rows), r, 'MM-2026-000100-1');
     expect(cambio.estado_nuevo).toEqual({ estado: 'delivered', estado_texto: 'Entregado' });
     expect(cambio.domicilio).toBeNull();
+  });
+
+  it('«domicilio recogido» le lleva al comprador su código de entrega, y no el de recogida', () => {
+    const codes: BookingCodes = { pickup_validation_code: '8765', validation_code: '4321', driver_name: 'Luis', vehicle_plates: 'ABC123' };
+    const recogido = toAviso({ ...ev, event_type: 'domicilio_recogido' }, toOrderDetail(rows), r, 'MM-2026-000100-1', codes);
+    expect(recogido.domicilio).toMatchObject({ codigo_entrega: '4321', conductor: 'Luis', placa: 'ABC123' });
+    expect(JSON.stringify(recogido)).not.toMatch(/8765|573009999999/);
+    // El de «en camino» no lo lleva aunque la reserva ya lo tenga.
+    expect(toAviso(ev, toOrderDetail(rows), r, 'MM-2026-000100-1', codes).domicilio).not.toHaveProperty('codigo_entrega');
+  });
+});
+
+describe('códigos de Pibox', () => {
+  const sinNada = { runnerRequired: false, logisticsRequired: false };
+
+  it('el código de recogida va a quien entrega el paquete al mensajero', () => {
+    expect(pickupHandlerRole('store', { runnerRequired: true, logisticsRequired: true })).toBe('tendero');
+    expect(pickupHandlerRole('consolidated', { runnerRequired: true, logisticsRequired: true })).toBe('logistica');
+    expect(pickupHandlerRole('consolidated', { runnerRequired: false, logisticsRequired: true })).toBe('logistica');
+    expect(pickupHandlerRole('consolidated', { runnerRequired: true, logisticsRequired: false })).toBe('patinador');
+    expect(pickupHandlerRole('consolidated', sinNada)).toBe('tendero');
+  });
+
+  it('la línea: compradores para el comprador, tenderos para el resto', () => {
+    expect(lineaFor('comprador')).toBe('compradores');
+    for (const rol of ['tendero', 'logistica', 'patinador'] as const) expect(lineaFor(rol)).toBe('tenderos');
+  });
+
+  it('el id de un aviso repartido es un UUID estable, distinto por persona, sin el id de la cuenta', () => {
+    const a = avisoId('e1', 'u1');
+    expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(avisoId('e1', 'u1')).toBe(a);
+    expect(avisoId('e1', 'u2')).not.toBe(a);
+    expect(a).not.toContain('u1');
+  });
+
+  const booking: BookingCodes = {
+    pickup_validation_code: '8765', validation_code: '4321', driver_name: 'Luis', vehicle_plates: 'ABC123',
+  };
+  const ev: EventRow = { seq: 9, id: 'e9', event_type: 'codigo_recogida', order_id: 'o1', store_order_id: 'so1', status_to: null, created_at: '2026-11-05T14:20:00Z' };
+  const tendero = { id: 'u7', rol: 'tendero' as const, full_name: 'Ana', phone: '+573005556677', phone_verified_at: '2026-11-04', whatsapp_notifications: true, is_active: true };
+
+  it('el aviso de recogida trae lo que pidió Meteor y nada del comprador', () => {
+    const aviso = toPickupCodeAviso(ev, tendero, {
+      orderCode: 'MM-2026-000100', part: { codigo: 'MM-2026-000100-1', tienda: 'Frutas Ana' }, tiendas: ['Frutas Ana'], booking,
+    });
+    expect(aviso).toMatchObject({
+      seq: 9, tipo: 'codigo_recogida', linea: 'tenderos',
+      destinatario: { telefono: '+573005556677', nombre: 'Ana', rol: 'tendero' },
+      pedido: { codigo: 'MM-2026-000100' },
+      parte: { codigo: 'MM-2026-000100-1', tienda: 'Frutas Ana' },
+      recogida: { codigo: '8765', conductor: 'Luis', placa: 'ABC123', lugar: 'tienda' },
+    });
+    expect(aviso.id).toBe(avisoId('e9', 'u7'));
+    expect(JSON.stringify(aviso)).not.toMatch(/4321|direccion|valores|u7/);
+  });
+
+  it('en la bahía: sin parte, con todas las tiendas, y sin conductor si aún no hay', () => {
+    const aviso = toPickupCodeAviso({ ...ev, store_order_id: null }, { ...tendero, rol: 'logistica' }, {
+      orderCode: 'MM-2026-000100', part: null, tiendas: ['Frutas Ana', 'Carnes Luis'],
+      booking: { ...booking, driver_name: null, vehicle_plates: null },
+    });
+    expect(aviso.parte).toBeNull();
+    expect(aviso.tiendas).toEqual(['Frutas Ana', 'Carnes Luis']);
+    expect(aviso.recogida).toEqual({ codigo: '8765', conductor: null, placa: null, lugar: 'bahia' });
+    expect(aviso.destinatario.rol).toBe('logistica');
   });
 });

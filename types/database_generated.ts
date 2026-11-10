@@ -4530,6 +4530,10 @@ export type Database = {
         Args: { p_by: string; p_notes: string; p_refund: string }
         Returns: undefined
       }
+      whatsapp_pedido_de_reserva: {
+        Args: { p_order: string; p_store_order: string }
+        Returns: string
+      }
     }
     Enums: {
       app_language: "es" | "en"
