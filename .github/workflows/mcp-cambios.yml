@@ -1,0 +1,44 @@
+name: Cambios del MCP
+
+# Meteor se entera de lo que cambia en el MCP por la página pública
+# `/mcp/cambios`, que sale de `lib/mcp/changelog.ts`. Este chequeo no deja fusionar
+# un PR que cambie lo que Meteor recibe sin anotar ahí la versión nueva.
+#
+# Cuenta como cambio para Meteor cualquier archivo (sin contar pruebas) de:
+#   lib/mcp/  app/api/mcp/  app/api/meteor/  lib/whatsapp-events/
+#
+# Si el cambio no lo nota Meteor (un refactor, un comentario), la etiqueta
+# `mcp-sin-cambios` en el PR deja pasar el chequeo.
+#
+# Límite: si lo que sale hacia Meteor cambia por una función de otra carpeta (como
+# `buyerInvoiceConcepts`, que usa `lib/mcp/views.ts`), este chequeo no lo ve. Eso
+# queda en manos de quien hace el cambio.
+#
+# Va aparte de ci.yml para que poner o quitar la etiqueta no vuelva a correr todo
+# el CI.
+
+on:
+  pull_request:
+    branches: [main, development]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: mcp-cambios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cambios:
+    name: Cambios del MCP anotados
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Si cambia el MCP, cambia lib/mcp/changelog.ts
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SIN_CAMBIOS: ${{ contains(github.event.pull_request.labels.*.name, 'mcp-sin-cambios') }}
+        run: bash scripts/ci/check-mcp-changelog.sh "$BASE_SHA" HEAD

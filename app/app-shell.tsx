@@ -11,6 +11,7 @@ import { useSession } from '@/features/auth/session-context';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
 import { LegalGate } from '@/features/legal/components/LegalGate';
+import { isPublicPath } from '@/lib/auth/public-paths';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,7 +23,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
-  const isNoLayoutPage = pathname === '/' || pathname === '/accept-invite';
+  const isNoLayoutPage = isPublicPath(pathname);
 
   // Evita que el drawer móvil quede abierto tras navegar a otra ruta.
   useEffect(() => {

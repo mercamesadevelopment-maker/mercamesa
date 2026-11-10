@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-
-const PUBLIC_PATHS = ['/', '/accept-invite']
+import { isPublicPath } from '@/lib/auth/public-paths'
 
 // Únicos destinos a los que puede apuntar un link compartido (producto o
 // tienda). Se preserva solo para estos, para no mandar de vuelta a alguien sin
@@ -55,7 +54,7 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = normalize(request.nextUrl.pathname)
 
-  const isPublic = PUBLIC_PATHS.includes(pathname)
+  const isPublic = isPublicPath(pathname)
   const isApiRoute = pathname.startsWith('/api')
 
   // Las rutas de API manejan su propio 401 en cada route.ts; un redirect
