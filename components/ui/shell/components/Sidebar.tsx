@@ -49,9 +49,9 @@ export function Sidebar({
     string
   > = {
     home: '/marketplaces',
-    all_plazas: '/sections/marketplaces',
-    all_stores: '/sections/stores',
-    all_products: '/sections/products',
+    all_plazas: '/marketplaces',
+    all_stores: '/stores',
+    all_products: '/products',
     promotions: '/promotions',
     orders: '/orders',
     profile: '/profile',

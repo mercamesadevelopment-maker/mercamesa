@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { usePublicOffers } from '@/app/marketplaces/hooks/usePublicOffers';
-import { usePublicStores } from '@/app/sections/stores/hooks/usePublicStores';
+import { usePublicStores } from '@/app/stores/hooks/usePublicStores';
 import { OfferCard } from '@/app/marketplaces/components/OfferCard';
 import { OfferDetailModal } from '@/app/marketplaces/components/OfferDetailModal';
 import { StoreOffer } from '@/features/offers/types/offer.types';
