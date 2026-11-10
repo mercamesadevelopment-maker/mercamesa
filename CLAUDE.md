@@ -281,6 +281,10 @@ Inventario actual:
 - `table/` — tabla reutilizable, ya dividida en `components/Table.tsx`, `hooks/useTable.ts`
   y `types/index.ts`. Es la referencia a seguir para cualquier componente de UI con algo
   de lógica propia.
+- `editable-grid/` — `EditableGrid`, tabla que se edita como una hoja de cálculo: escribir
+  sobre la celda, flechas/Tab/Enter/Escape (`hooks/useGridNavigation.ts`), pegar desde
+  Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa
+  (ejemplo: la pestaña de categorías, con `lib/categories/batch.ts`).
 - `shell/` — layout de shell (sidebar, permisos), dividido igual en `components/` y
   `hooks/usePermissions.ts`. El `Sidebar` es responsive: a partir de `lg` (1024px) es el
   riel colapsable de siempre (`collapsed`/`w-20`/`w-64`); por debajo de `lg` se ignora
