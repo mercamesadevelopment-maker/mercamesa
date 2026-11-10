@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/form-fields';
 import { Database } from '../../../../types/database_generated';
 import { uploadImageDirect, removeImageDirect } from '@/lib/supabase/client-upload';
 import { slugify } from '@/lib/catalog-import/slug';
+import { IVA_RATES, ivaLabel } from '@/lib/pricing/iva';
 
 type Product = Database['public']['Tables']['catalog_products']['Row'] & {
   imageSignedUrl?: string | null;
@@ -29,9 +30,9 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
   const [formData, setFormData] = useState({
     name: '', slug: '', category_id: '', default_unit_id: '', description: '',
     is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false,
-    owner_group_id: '',
+    owner_group_id: '', iva_rate: '0',
   });
-  
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   // El motivo real del fallo, en pantalla. Antes solo llegaba a la consola.
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
         is_medicinal_plant: initialData.is_medicinal_plant,
         is_non_food: initialData.is_non_food,
         owner_group_id: initialData.owner_group_id || '',
+        iva_rate: String(Number(initialData.iva_rate ?? 0)),
       });
       setImagePreview(initialData.imageSignedUrl || null);
     } else {
@@ -64,6 +66,7 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
         is_active: true, is_ancestral_food: false, is_medicinal_plant: false, is_non_food: false,
         // Vacío = producto público, que es lo normal.
         owner_group_id: '',
+        iva_rate: '0',
       });
       setImagePreview(null);
     }
@@ -222,6 +225,19 @@ export function ProductModal({ isOpen, onClose, onSave, initialData }: ProductMo
           <p className="text-xs text-mm-txw ml-1">
             Si el producto lo aporta una tienda con sus propias fotos, elige su grupo: solo las
             tiendas de ese grupo podrán publicarlo.
+          </p>
+        </div>
+
+        {/* IVA: va incluido en el precio de cada tienda (lib/pricing/iva.ts). */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-mm-txs ml-1">IVA</label>
+          <select name="iva_rate" value={formData.iva_rate} onChange={handleChange}
+            className="px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm">
+            {IVA_RATES.map(rate => <option key={rate} value={String(rate)}>{ivaLabel(rate)}</option>)}
+          </select>
+          <p className="text-xs text-mm-txw ml-1">
+            Va incluido en el precio que pone cada tienda. Hoy la factura no discrimina IVA: antes de
+            poner 5 % o 19 %, confirmarlo con contabilidad.
           </p>
         </div>
 

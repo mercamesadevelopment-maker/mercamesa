@@ -35,6 +35,7 @@ function toInsert(row: ValidatedCatalogRow, createdBy: string): CatalogProductIn
     is_medicinal_plant: row.isMedicinalPlant,
     is_non_food: row.isNonFood,
     owner_group_id: row.ownerGroupId,
+    iva_rate: row.ivaRate,
     // Se crean activos y sin imagen: la foto se agrega después editando cada uno.
     is_active: true,
     image_url: null,
