@@ -19,8 +19,12 @@ insert into public.catalog_products (id, name, slug, siigo_id, category_id) valu
   ('00000000-0000-0000-0000-000000000722', 'Champiñón prueba', 'champinon-prueba', 'P722', '00000000-0000-0000-0000-000000000702'),
   ('00000000-0000-0000-0000-000000000723', 'Cirio prueba', 'cirio-prueba', 'P723', '00000000-0000-0000-0000-000000000710');
 
+-- En el CI la base no tiene unidades: se crea una.
+insert into public.measurement_units (id, name, abbreviation)
+values ('00000000-0000-0000-0000-000000000730', 'Unidad de prueba', 'up');
+
 insert into public.store_products (store_id, catalog_product_id, unit_id, price_per_unit, is_active)
-select '00000000-0000-0000-0000-000000000101', cp.id, (select id from public.measurement_units limit 1), 1000, true
+select '00000000-0000-0000-0000-000000000101', cp.id, '00000000-0000-0000-0000-000000000730', 1000, true
 from public.catalog_products cp where cp.id::text like '00000000-0000-0000-0000-00000000072%';
 
 update public.stores set is_active = true where id = '00000000-0000-0000-0000-000000000101';
