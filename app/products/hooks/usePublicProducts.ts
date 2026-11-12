@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Database } from '@/types/database_generated';
+import type { VitrinaCategoria } from '@/lib/store-products/category-tree';
 
 export type StoreProduct = Database['public']['Tables']['store_products']['Row'] & {
   catalog_products?: { name: string; image_url: string | null; categories?: { name: string } | null } | null;
@@ -19,8 +20,10 @@ export interface VitrinaQuery {
   pageSize: number;
   /** Ya normalizado con `normalizeText`: minúscula y sin tildes. */
   search: string;
-  /** Nombre de la categoría, o vacío para todas. */
+  /** Nombre de la categoría (la madre), o vacío para todas. */
   category: string;
+  /** Nombre de la subcategoría dentro de `category`, o vacío para todas. */
+  subcategory?: string;
   minPrice: number | '';
   maxPrice: number | '';
   sort: 'name' | 'price' | null;
@@ -96,6 +99,7 @@ export function usePublicProducts(storeId?: string, options: Options = {}) {
         if (storeId) params.set('store_id', storeId);
         if (query.search) params.set('search', query.search);
         if (query.category) params.set('category', query.category);
+        if (query.subcategory) params.set('subcategory', query.subcategory);
         if (query.minPrice !== '') params.set('min_price', String(query.minPrice));
         if (query.maxPrice !== '') params.set('max_price', String(query.maxPrice));
         if (query.sort) {
@@ -151,7 +155,7 @@ export async function fetchProductoCompartido(
 
 /** Las categorías que de verdad tienen productos publicados, para el carrusel. */
 export function useVitrinaCategorias(storeId?: string, enabled = true) {
-  const [categorias, setCategorias] = useState<string[]>([]);
+  const [categorias, setCategorias] = useState<VitrinaCategoria[]>([]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -163,7 +167,7 @@ export function useVitrinaCategorias(storeId?: string, enabled = true) {
       .then((res) => res.json())
       .then((json) => {
         if (cancelled) return;
-        setCategorias((json.data ?? []).map((c: { name: string }) => c.name));
+        setCategorias((json.data ?? []) as VitrinaCategoria[]);
       })
       // Sin categorías el carrusel se queda en "Todas", que sigue siendo
       // utilizable: no hay razón para tumbar la página por esto.

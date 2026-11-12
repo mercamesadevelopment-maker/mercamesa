@@ -83,8 +83,12 @@ export async function listStorefront(
     // guarda el nombre igual, así que "platano" encuentra "plátano".
     if (search) query = query.ilike('product_search_text', `%${search}%`);
 
+    // Dos niveles: `category` es la categoría (la madre) y `subcategory`, la
+    // categoría directa del producto.
     const category = params.get('category');
-    if (category) query = query.eq('category_name', category);
+    if (category) query = query.eq('parent_category_name', category);
+    const subcategory = params.get('subcategory');
+    if (subcategory) query = query.eq('category_name', subcategory);
 
     const minPrice = params.get('min_price');
     if (minPrice) query = query.gte('price_per_unit', Number(minPrice));

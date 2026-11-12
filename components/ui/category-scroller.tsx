@@ -8,6 +8,10 @@ interface CategoryScrollerProps {
   categories: string[];
   activeCategory: string;
   onSelect: (category: string) => void;
+  /** `sm` para una segunda fila (las subcategorías de la categoría elegida). */
+  size?: 'md' | 'sm';
+  /** Nombre de la tira para lectores de pantalla. */
+  ariaLabel?: string;
 }
 
 const SCROLL_STEP = 240;
@@ -25,7 +29,7 @@ const SCROLL_STEP = 240;
  * aplican. Además la rueda vertical del mouse desplaza en horizontal, que es lo
  * que la gente intenta por instinto.
  */
-export function CategoryScroller({ categories, activeCategory, onSelect }: CategoryScrollerProps) {
+export function CategoryScroller({ categories, activeCategory, onSelect, size = 'md', ariaLabel }: CategoryScrollerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -52,6 +56,22 @@ export function CategoryScroller({ categories, activeCategory, onSelect }: Categ
 
     return () => observer.disconnect();
   }, [categories, updateArrows]);
+
+  // La elegida siempre a la vista: si quedó fuera del recorrido, la categoría
+  // activa no se ve y no se sabe qué filtro está puesto. Se mueve solo la tira
+  // (no `scrollIntoView`, que también desplazaría la página).
+  useEffect(() => {
+    const el = scrollRef.current;
+    const activa = el?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!el || !activa) return;
+    const izquierda = activa.offsetLeft - el.offsetLeft;
+    const derecha = izquierda + activa.offsetWidth;
+    if (izquierda < el.scrollLeft) {
+      el.scrollTo({ left: Math.max(0, izquierda - 16), behavior: 'smooth' });
+    } else if (derecha > el.scrollLeft + el.clientWidth) {
+      el.scrollTo({ left: derecha - el.clientWidth + 16, behavior: 'smooth' });
+    }
+  }, [activeCategory, categories]);
 
   const scrollBy = (offset: number) => {
     scrollRef.current?.scrollBy({ left: offset, behavior: 'smooth' });
@@ -90,6 +110,8 @@ export function CategoryScroller({ categories, activeCategory, onSelect }: Categ
         ref={scrollRef}
         onScroll={updateArrows}
         onWheel={handleWheel}
+        role="group"
+        aria-label={ariaLabel}
         className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide flex-grow px-2"
       >
         {categories.map((category) => (
@@ -97,10 +119,14 @@ export function CategoryScroller({ categories, activeCategory, onSelect }: Categ
             key={category}
             type="button"
             onClick={() => onSelect(category)}
+            aria-pressed={activeCategory === category}
             className={cn(
-              'px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap',
+              'rounded-full font-bold transition-all whitespace-nowrap',
+              size === 'sm' ? 'px-4 py-1.5 text-xs' : 'px-5 py-2.5 text-sm',
               activeCategory === category
-                ? 'bg-mm-g text-white shadow-md'
+                ? size === 'sm'
+                  ? 'bg-salvia text-white'
+                  : 'bg-mm-g text-white shadow-md'
                 : 'bg-white border border-mm-crd text-mm-txs hover:border-mm-g'
             )}
           >

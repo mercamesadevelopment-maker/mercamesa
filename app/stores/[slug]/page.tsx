@@ -19,7 +19,8 @@ import { RatingModal } from '@/features/stores/components/RatingModal';
 import { ReviewsPanel } from '@/features/stores/components/ReviewsPanel';
 import { StoreHeader } from '@/features/stores/components/StoreHeader';
 import { Pagination } from '@/app/orders/components/Pagination';
-import { CategoryScroller } from '@/components/ui/category-scroller';
+import { CategoryFilter } from '@/features/products/components/CategoryFilter';
+import { useCategoryFilter } from '@/features/products/hooks/use-category-filter';
 
 const PRODUCTS_PER_PAGE = 20;
 
@@ -50,7 +51,7 @@ export default function StoreDetailPage() {
   const categories = useVitrinaCategorias(storeId, Boolean(storeId));
 
   const [search, setSearch] = useState('');
-  const [activeCat, setActiveCat] = useState('Todas');
+  const filtro = useCategoryFilter();
   const [page, setPage] = useState(1);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isReviewsPanelOpen, setIsReviewsPanelOpen] = useState(false);
@@ -119,7 +120,7 @@ export default function StoreDetailPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, activeCat]);
+  }, [search, filtro.category, filtro.subcategory]);
 
   useEffect(() => {
     if (!storeId) return;
@@ -133,12 +134,13 @@ export default function StoreDetailPage() {
           // El servidor compara contra `search_text`, que la base guarda en
           // minúscula y sin tildes; el término tiene que ir igual.
           search: normalizeText(search),
-          category: activeCat === 'Todas' ? '' : activeCat,
+          category: filtro.category,
+          subcategory: filtro.subcategory,
         }),
       350
     );
     return () => clearTimeout(t);
-  }, [storeId, page, search, activeCat, fetchProducts]);
+  }, [storeId, page, search, filtro.category, filtro.subcategory, fetchProducts]);
 
   /**
    * El producto de un enlace compartido se pide aparte y se muestra arriba.
@@ -215,10 +217,12 @@ export default function StoreDetailPage() {
             </div>
           </div>
           
-          <CategoryScroller
-            categories={['Todas', ...categories]}
-            activeCategory={activeCat}
-            onSelect={setActiveCat}
+          <CategoryFilter
+            categories={categories}
+            category={filtro.category}
+            subcategory={filtro.subcategory}
+            onCategoryChange={filtro.setCategory}
+            onSubcategoryChange={filtro.setSubcategory}
           />
         </div>
 
