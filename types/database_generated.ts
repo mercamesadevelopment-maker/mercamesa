@@ -4385,6 +4385,7 @@ export type Database = {
           is_featured: boolean | null
           marketplace_id: string | null
           marketplace_name: string | null
+          parent_category_name: string | null
           price_per_unit: number | null
           product_image_url: string | null
           product_name: string | null
@@ -4519,6 +4520,14 @@ export type Database = {
       }
       tienda_de_producto: { Args: { p_store_product: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
+      vitrina_arbol_categorias: {
+        Args: { p_store_id?: string }
+        Returns: {
+          categoria: string
+          subcategoria: string
+          total: number
+        }[]
+      }
       vitrina_categorias: {
         Args: { p_store_id?: string }
         Returns: {
