@@ -8,7 +8,8 @@ import {
   CONSULTA_INICIAL,
   type VitrinaQuery,
 } from './hooks/usePublicProducts';
-import { CategoryScroller } from '@/components/ui/category-scroller';
+import { CategoryFilter } from '@/features/products/components/CategoryFilter';
+import { useCategoryFilter } from '@/features/products/hooks/use-category-filter';
 
 import { Button } from '@/components/ui/button';
 import { normalizeText } from '@/lib/utils/text';
@@ -33,7 +34,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
-  const [activeCat, setActiveCat] = useState('Todas');
+  const filtro = useCategoryFilter();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<OrdenUI>('');
 
@@ -51,7 +52,7 @@ export default function ProductsPage() {
   // búsqueda que ahora tiene 2 páginas mostraría un vacío.
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, minPrice, maxPrice, activeCat, sortBy]);
+  }, [search, minPrice, maxPrice, filtro.category, filtro.subcategory, sortBy]);
 
   useEffect(() => {
     const orden = sortBy ? ORDEN[sortBy] : null;
@@ -62,7 +63,8 @@ export default function ProductsPage() {
       // El servidor compara contra `search_text`, que la base guarda en
       // minúscula y sin tildes; el término tiene que ir igual.
       search: normalizeText(search),
-      category: activeCat === 'Todas' ? '' : activeCat,
+      category: filtro.category,
+      subcategory: filtro.subcategory,
       minPrice,
       maxPrice,
       sort: orden?.sort ?? null,
@@ -72,7 +74,7 @@ export default function ProductsPage() {
     // Se espera a que deje de escribir: sin esto sale una petición por tecla.
     const t = setTimeout(() => fetchProducts(query), 350);
     return () => clearTimeout(t);
-  }, [search, minPrice, maxPrice, activeCat, sortBy, currentPage, fetchProducts]);
+  }, [search, minPrice, maxPrice, filtro.category, filtro.subcategory, sortBy, currentPage, fetchProducts]);
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
@@ -140,10 +142,12 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <CategoryScroller
-          categories={['Todas', ...categorias]}
-          activeCategory={activeCat}
-          onSelect={setActiveCat}
+        <CategoryFilter
+          categories={categorias}
+          category={filtro.category}
+          subcategory={filtro.subcategory}
+          onCategoryChange={filtro.setCategory}
+          onSubcategoryChange={filtro.setSubcategory}
         />
       </div>
 

@@ -1,9 +1,55 @@
+import { createHash } from 'node:crypto';
+import { carrierOf, receiverOf, type ConsolidationConfig } from '@/lib/orders/consolidation';
+
 /**
  * Las reglas de los avisos que Meteor consulta para enviar por WhatsApp. Puras:
  * sin base, para probarlas. La lectura está en `feed.ts`.
  */
 
-export type AvisoTipo = 'pedido_confirmado' | 'parte_estado' | 'domicilio_en_camino';
+export type AvisoTipo =
+  | 'pedido_confirmado'
+  | 'parte_estado'
+  | 'domicilio_en_camino'
+  | 'codigo_recogida'
+  | 'domicilio_recogido';
+
+/** A quién va el aviso, en el lenguaje de Meteor. */
+export type RolDestinatario = 'comprador' | 'tendero' | 'logistica' | 'patinador';
+
+/** La línea de WhatsApp desde la que escribe Meteor: compradores, o todos los demás. */
+export function lineaFor(rol: RolDestinatario): 'compradores' | 'tenderos' {
+  return rol === 'comprador' ? 'compradores' : 'tenderos';
+}
+
+/** Los avisos que van a quien entrega el paquete al mensajero, no al comprador. */
+export const PICKUP_AVISOS = new Set<AvisoTipo>(['codigo_recogida']);
+
+/**
+ * Quién le entrega el paquete al mensajero, y por eso recibe el código de
+ * recogida. Un pedido de una tienda lo entrega la tienda. Uno de varias tiendas
+ * sale de la bahía: lo entrega logística si la plaza la tenía al crear el pedido;
+ * si no, el patinador que dejó las partes; si no hay ninguno, los tenderos, que
+ * las llevaron ellos mismos (`lib/orders/consolidation.ts`).
+ */
+export function pickupHandlerRole(
+  fulfillment: string | null,
+  cfg: ConsolidationConfig
+): Exclude<RolDestinatario, 'comprador'> {
+  if (fulfillment !== 'consolidated') return 'tendero';
+  if (receiverOf(cfg) === 'logistics') return 'logistica';
+  return carrierOf(cfg) === 'runner' ? 'patinador' : 'tendero';
+}
+
+/**
+ * El `id` de un aviso que sale para varias personas (un evento, un aviso por
+ * destinatario). Un UUID que siempre da lo mismo para el mismo par, para que
+ * Meteor no lo envíe dos veces en un reintento, y que no deja ver el id de la
+ * cuenta.
+ */
+export function avisoId(eventId: string, userId: string): string {
+  const h = createHash('sha1').update(`${eventId}:${userId}`).digest('hex');
+  return [h.slice(0, 8), h.slice(8, 12), `5${h.slice(13, 16)}`, ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16) + h.slice(17, 20), h.slice(20, 32)].join('-');
+}
 
 export interface EventRow {
   seq: number;
@@ -77,7 +123,7 @@ export interface Recipient {
   is_active: boolean;
 }
 
-/** Por qué no se le avisa a este comprador, o `null` si sí. */
+/** Por qué no se le avisa a esta persona, o `null` si sí. Igual para compradores y tenderos. */
 export function skipReason(r: Recipient | null): 'sin_cuenta' | 'sin_telefono_verificado' | 'avisos_apagados' | null {
   if (!r || !r.is_active) return 'sin_cuenta';
   if (!r.phone || !r.phone_verified_at) return 'sin_telefono_verificado';

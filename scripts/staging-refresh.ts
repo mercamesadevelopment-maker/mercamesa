@@ -89,6 +89,30 @@ function main() {
     return;
   }
 
+  // 0. El reset remoto borra las tablas pero no las secuencias sueltas (las que
+  // no son de ninguna columna, como `store_product_code_seq`): la migración que
+  // las crea fallaría con «already exists». Se borran antes.
+  const limpieza = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'staging-')), 'secuencias.sql');
+  fs.writeFileSync(
+    limpieza,
+    `do $$
+declare s record;
+begin
+  for s in
+    select c.relname from pg_class c
+    where c.relkind = 'S' and c.relnamespace = 'public'::regnamespace
+      and not exists (select 1 from pg_depend d where d.objid = c.oid and d.deptype in ('a', 'i'))
+  loop
+    execute format('drop sequence public.%I cascade', s.relname);
+  end loop;
+end $$`
+  );
+  try {
+    supabase(['db', 'query', '--db-url', dbUrl, '-f', limpieza]);
+  } finally {
+    fs.rmSync(path.dirname(limpieza), { recursive: true, force: true });
+  }
+
   // 1. Esquema y datos: mismo orden que `[db.seed]` en config.toml, sin local.sql.
   supabase([
     'db', 'reset', '--db-url', dbUrl, '--yes',

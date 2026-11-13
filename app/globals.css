@@ -47,6 +47,24 @@
   --color-mm-txw: #6A7C74;
   --color-mm-crd: #E2E6DD;
 
+  /*
+   * Tonos del diseño de la página de inicio (docs/design/MercaMesa · Home.html),
+   * que no estaban en la paleta. Se usan con los valores exactos del cliente.
+   */
+  --color-niebla: #F2F5F1;      /* fondo de píldoras y globos */
+  --color-linea: #E5EAE5;       /* bordes de tarjetas */
+  --color-tinta-texto: #34524A; /* párrafos */
+  --color-tinta-suave: #4C6A60; /* subtítulos y pie */
+  --color-tinta-lima: #24453A;  /* texto secundario sobre lima */
+  --color-tinta-hover: #1F5A47; /* enlaces al pasar el mouse */
+
+  /* Sombras del mismo diseño: `shadow-tarjeta`, `shadow-sello`, `shadow-play`… */
+  --shadow-tarjeta: 0 16px 30px -24px rgb(14 59 47 / 0.4);
+  --shadow-sello: 0 14px 24px -12px rgb(0 0 0 / 0.45);
+  --shadow-play: 0 0 0 14px rgb(195 240 63 / 0.2);
+  --shadow-play-sm: 0 0 0 12px rgb(195 240 63 / 0.2);
+  --text-shadow-hero: 0 2px 18px rgb(14 59 47 / 0.55);
+
   --color-ok: #1F6B47;
   --color-okl: #DDF3E4;
   --color-r: #B4322A;
