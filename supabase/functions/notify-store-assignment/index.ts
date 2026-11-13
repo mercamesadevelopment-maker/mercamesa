@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
+// El logo lo sirve la app (`public/brand/`). Antes venía del WordPress de
+// mercamesa.com, que ya no existe, y el correo llegaba con la imagen rota.
+const APP_URL = 'https://www.mercamesa.com'
+
 serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -32,7 +36,8 @@ serve(async (req) => {
       })
     }
 
-    const appRedirectUrl = loginUrl || 'https://mercamesa.com'
+    // El dominio de la app: `mercamesa.com` redirige a `www`.
+    const appRedirectUrl = loginUrl || APP_URL
 
     // HTML Email Template
     const htmlContent = `
@@ -132,7 +137,7 @@ serve(async (req) => {
     <body>
       <div class="container">
         <div class="header">
-          <img src="https://mercamesa.com/wp-content/uploads/2025/09/logo-mercamesa-opt.png" alt="Mercamesa Logo">
+          <img src="${APP_URL}/brand/logo-mercamesa-oscuro.png" alt="MercaMesa" width="286" height="50">
         </div>
         <div class="content">
           <h2 class="title">¡Hola, ${fullName}!</h2>
