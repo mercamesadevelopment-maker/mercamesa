@@ -9,9 +9,9 @@
  *
  * Uso (sin `--`: pnpm lo pasaría como un argumento literal más):
  *   pnpm pibox:hooks list
- *   pnpm pibox:hooks register https://mercamesa.vercel.app
+ *   pnpm pibox:hooks register https://www.mercamesa.com
  *   pnpm pibox:hooks delete <HOOK_ID>
- *   pnpm pibox:hooks sync https://mercamesa.vercel.app   (borra y recrea)
+ *   pnpm pibox:hooks sync https://www.mercamesa.com   (borra y recrea)
  *
  * Requiere PIBOX_API_TOKEN y, para registrar, PIBOX_WEBHOOK_SECRET.
  */
@@ -48,7 +48,7 @@ function printHooks(hooks: PiboxHook[]) {
 
 function assertBaseUrl(baseUrl: string | undefined): string {
   if (!baseUrl) {
-    console.error('Falta la URL base. Ej: pnpm pibox:hooks register https://mercamesa.vercel.app');
+    console.error('Falta la URL base. Ej: pnpm pibox:hooks register https://www.mercamesa.com');
     process.exit(1);
   }
   if (!baseUrl.startsWith('https://')) {
@@ -121,7 +121,7 @@ async function main() {
   sync     <URL_BASE>  Elimina todos y vuelve a registrar
 
 Ejemplo:
-  pnpm pibox:hooks register https://mercamesa.vercel.app`);
+  pnpm pibox:hooks register https://www.mercamesa.com`);
       process.exit(command ? 1 : 0);
   }
 }
