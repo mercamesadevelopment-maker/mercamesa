@@ -132,6 +132,8 @@ export const config = {
   matcher: [
     // La app instalable (sw.js, manifiesto, offline.html) no necesita sesión:
     // pasarla por acá solo le sumaría una consulta a Supabase en cada carga.
-    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Tampoco los archivos estáticos: imágenes y el video de la página de inicio,
+    // que ve un visitante sin sesión.
+    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp4)$).*)',
   ],
 }
