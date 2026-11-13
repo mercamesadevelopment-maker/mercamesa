@@ -131,7 +131,11 @@ Reglas:
 - **Supabase está conectado al repositorio** (directorio de trabajo `.`, ramas de vista
   previa apagadas). Con «Deploy to production» encendido, al fusionar a `main` Supabase
   aplica en producción las migraciones de `supabase/migrations` que no estén en su
-  registro. Por eso una migración solo se fusiona cuando ya pasó por local y por el CI.
+  registro y despliega las funciones de borde de `supabase/functions`. Por eso una
+  migración o una función solo se fusiona cuando ya pasó por local y por el CI.
+- **Los datos no viajan con el código.** Lo que se carga o se reorganiza desde la interfaz
+  en staging (categorías, parámetros, productos) no llega a producción al fusionar: hay que
+  hacerlo otra vez allá. Ejemplo: las categorías comerciales de noviembre de 2026.
 
 ### Pruebas
 
@@ -188,7 +192,7 @@ rama de trabajo ──PR──▶ development ──(fusión)──▶ STAGING �
 | Al fusionar en | Base de datos | Funciones de borde | Aplicación |
 |---|---|---|---|
 | `development` | `.github/workflows/deploy-staging.yml` corre `supabase db push` contra staging | El mismo workflow las despliega en staging | Vercel publica la vista previa de `development` |
-| `main` | La integración de Supabase con GitHub aplica las migraciones en producción | **A mano**, con autorización | Vercel publica producción |
+| `main` | La integración de Supabase con GitHub aplica las migraciones en producción | La misma integración las despliega en producción | Vercel publica producción |
 
 El proyecto de staging **no** se conecta a la integración de GitHub de Supabase: esa
 integración aplica lo que llega a `main`, y conectada a staging le aplicaría lo de
