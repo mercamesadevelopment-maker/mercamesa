@@ -182,6 +182,10 @@ rama de trabajo ──PR──▶ development ──(fusión)──▶ STAGING �
 - `main` solo recibe PRs desde `development`, salvo un arreglo urgente (`hotfix/*`), que
   después se fusiona también en `development` para que no se pierda.
 - Ninguna de las dos admite push directo; el CI tiene que estar en verde para fusionar.
+- **El push lo hace el usuario.** Al terminar un cambio: rama salida de `development` y
+  commit, sin push. En el chat va siempre el comando exacto, por ejemplo
+  `git push -u origin feat/planilla-ordenar-columnas`. El usuario lo corre, abre el PR a
+  `development` y después lleva `development` a `main`.
 
 ### Qué pasa al fusionar
 
@@ -291,6 +295,8 @@ Inventario actual:
   `collapsed` y pasa a ser un drawer a todo el ancho que se despliega desde abajo del
   Topbar (`mobileOpen`/`onMobileClose`), con backdrop y cierre automático al navegar.
 - `business-hours/` — editor de horarios de tienda.
+- `image-viewer/` — `ImageViewer`, una foto en grande a pantalla completa con zoom al tocarla
+  (`hooks/useImageZoom.ts`). Lo usa la tarjeta del producto.
 - `map-picker/` — selector de ubicación en mapa (Leaflet).
 - `quantity-stepper/` — stepper de cantidad.
 - `category-scroller.tsx`, `searchable-select.tsx` — componentes de un solo archivo,

@@ -19,7 +19,7 @@ serve(async (req) => {
     const usuario = Deno.env.get('ZONAPAGOS_USUARIO')
     const clave = Deno.env.get('ZONAPAGOS_CLAVE')
     const codigoServicio = Deno.env.get('ZONAPAGOS_CODIGO_SERVICIO')
-    const appUrl = Deno.env.get('ZONAPAGOS_APP_URL') || 'https://mercamesa.vercel.app/'
+    const appUrl = Deno.env.get('ZONAPAGOS_APP_URL') || 'https://www.mercamesa.com'
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
