@@ -9,6 +9,7 @@ import { useCart } from '@/features/cart/hooks/use-cart';
 import { discountPct } from '@/features/cart/utils/cart-savings';
 import { useSession } from '@/features/auth/session-context';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
+import { ImageViewer } from '@/components/ui/image-viewer/components/ImageViewer';
 import { maxQtyFor, offerLimitLabel } from '@/lib/offers/offer-limit';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
 import { getProductShareUrl } from '@/features/products/utils/share-link';
@@ -27,6 +28,7 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   const session = useSession();
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,6 +100,10 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
   };
 
   const unit = product.measurement_units?.abbreviation || 'und';
+  const productName = product.catalog_products?.name || 'Producto';
+  // En grande va el original: el derivado `card` es de 480 px y se ve borroso.
+  const originalPath = product.catalog_products?.image_url;
+  const largeSrc = originalPath ? getSupabaseImageUrl('products', originalPath) : imgSrc;
 
   return (
     // Caso de marca, lámina 16: foto sobre fondo hueso, nombre, unidad en mono,
@@ -128,20 +134,40 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           />
         )}
         {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt={product.catalog_products?.name || 'Producto'}
-            className="mm-lift-img absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
-            decoding="async"
-            width={320}
-            height={256}
-            onError={handleImageError}
-          />
+          // Hermano del botón de compartir, no lo envuelve: compartir no abre la foto.
+          <button
+            type="button"
+            onClick={() => setViewerOpen(true)}
+            aria-label={`Ver foto de ${productName} en grande`}
+            className="absolute inset-0 cursor-zoom-in"
+          >
+            <img
+              src={imgSrc}
+              alt={productName}
+              className="mm-lift-img h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+              width={320}
+              height={256}
+              onError={handleImageError}
+            />
+          </button>
         ) : (
           <span className="absolute inset-0 flex items-center justify-center text-5xl">📦</span>
         )}
       </div>
+
+      {/* Se monta solo abierto: un listado tiene cien tarjetas. */}
+      {viewerOpen && largeSrc && (
+        <ImageViewer
+          isOpen
+          onClose={() => setViewerOpen(false)}
+          src={largeSrc}
+          placeholderSrc={imgSrc}
+          alt={productName}
+          caption={productName}
+        />
+      )}
 
       <div className="flex flex-grow flex-col items-center px-3 pt-3 pb-2 text-center">
         <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-tinta sm:text-base">
