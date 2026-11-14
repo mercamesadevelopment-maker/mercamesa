@@ -182,6 +182,10 @@ rama de trabajo ──PR──▶ development ──(fusión)──▶ STAGING �
 - `main` solo recibe PRs desde `development`, salvo un arreglo urgente (`hotfix/*`), que
   después se fusiona también en `development` para que no se pierda.
 - Ninguna de las dos admite push directo; el CI tiene que estar en verde para fusionar.
+- **El push lo hace el usuario.** Al terminar un cambio: rama salida de `development` y
+  commit, sin push. En el chat va siempre el comando exacto, por ejemplo
+  `git push -u origin feat/planilla-ordenar-columnas`. El usuario lo corre, abre el PR a
+  `development` y después lleva `development` a `main`.
 
 ### Qué pasa al fusionar
 
