@@ -122,7 +122,7 @@ export function ProductsView() {
   );
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-10">
+    <div className="p-6 lg:p-10 space-y-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
