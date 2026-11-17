@@ -30,7 +30,7 @@ type TabKey =
 const TABS: { key: TabKey; label: string; icon: React.ElementType; description: string }[] = [
   {
     key: 'categories',
-    label: 'Categorías',
+    label: 'Categorías del producto',
     icon: FolderTree,
     description: 'Catálogo de categorías y subcategorías de productos',
   },
