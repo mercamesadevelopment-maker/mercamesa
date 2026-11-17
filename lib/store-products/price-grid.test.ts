@@ -7,6 +7,7 @@ import {
   parsePriceBatchBody,
   priceValueFromPaste,
   rowFromDraft,
+  splitCategoryChanges,
   validateRow,
   type PriceValues,
 } from './price-grid';
@@ -132,5 +133,52 @@ describe('parsePriceBatchBody', () => {
     expect('error' in parsePriceBatchBody({ rows: [] })).toBe(true);
     expect('error' in parsePriceBatchBody({ rows: [{ id: 'a', price_per_unit: '10' }] })).toBe(true);
     expect('error' in parsePriceBatchBody({ rows: [{ id: 'a' }, { id: 'a' }] })).toBe(true);
+  });
+});
+
+describe('categoría (solo admin)', () => {
+  const cats = [
+    { id: 'c-ff', name: 'Frutas frescas', label: 'Frutas y verduras › Frutas frescas' },
+    { id: 'c-vh', name: 'Verduras y hortalizas', label: 'Frutas y verduras › Verduras y hortalizas' },
+  ];
+  const o = draftFromValues('s1', { ...actual, categoryId: 'c-ff' });
+
+  it('se pega por «Madre › Sub» o por la sub', () => {
+    expect(priceValueFromPaste('category', 'Frutas y verduras > Verduras y hortalizas', [], cats)).toEqual({ ok: true, value: 'c-vh' });
+    expect(priceValueFromPaste('category', 'frutas frescas', [], cats)).toEqual({ ok: true, value: 'c-ff' });
+    expect(priceValueFromPaste('category', 'Juguetes', [], cats).ok).toBe(false);
+  });
+
+  it('cambiarla manda category_id; vaciarla es error', () => {
+    expect(rowFromDraft(o, { ...o, category: 'c-vh' }, actual).row).toEqual({ id: 's1', category_id: 'c-vh' });
+    expect(rowFromDraft(o, { ...o, category: '' }, actual).errors.category).toBeDefined();
+  });
+
+  it('separa la categoría (al catálogo) del resto (a la tienda)', () => {
+    const catalogo: Record<string, string> = { s1: 'p1', s2: 'p1', s3: 'p2' };
+    const r = splitCategoryChanges(
+      [
+        { id: 's1', category_id: 'c-vh', stock: 5 },
+        { id: 's2', category_id: 'c-vh' },
+        { id: 's3', price_per_unit: 100 },
+      ],
+      (id) => catalogo[id]
+    );
+    expect(r.catalogRows).toEqual([{ id: 'p1', category_id: 'c-vh' }]);
+    expect(r.storeRows).toEqual([{ id: 's1', stock: 5 }, { id: 's3', price_per_unit: 100 }]);
+    expect(r.rowsByCatalog.get('p1')).toEqual(['s1', 's2']);
+    expect(r.errors).toEqual({});
+  });
+
+  it('el mismo producto en dos filas con categorías distintas es error', () => {
+    const r = splitCategoryChanges(
+      [
+        { id: 's1', category_id: 'c-vh' },
+        { id: 's2', category_id: 'c-ff' },
+      ],
+      () => 'p1'
+    );
+    expect(r.catalogRows).toEqual([]);
+    expect(Object.keys(r.errors)).toEqual(['s1', 's2']);
   });
 });

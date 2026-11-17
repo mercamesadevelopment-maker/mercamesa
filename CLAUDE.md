@@ -293,11 +293,13 @@ Inventario actual:
   Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa.
   Para editar filas que ya existen, `hooks/useGridDrafts.ts` pone lo común (borradores, qué cambió,
   errores, pegar respetando el orden de las columnas, guardar en lote, aviso al salir) y
-  `components/GridSaveBar.tsx` la barra de Guardar/Descartar; las reglas van en `lib/`. Ejemplos:
+  `components/GridSaveBar.tsx` la barra de Guardar/Descartar y `components/GridPager.tsx` la paginación
+  (filas por página); las reglas van en `lib/`. Ejemplos:
   - categorías (`lib/categories/batch.ts`);
   - precios de tienda: `PriceGrid` de `features/store-products/`, que usan el tendero y Inventarios
     consolidados (`lib/store-products/price-grid.ts`, `PATCH /api/store-products/batch`, deja cada
-    cambio de stock en la bitácora);
+    cambio de stock en la bitácora). En Inventarios también se edita la categoría, que es del
+    catálogo maestro: se guarda aparte por `PATCH /api/products/batch` (`splitCategoryChanges`);
   - catálogo maestro (`lib/catalog/master-grid.ts`, `PATCH /api/products/batch`).
   Lo pegado se lee con `lib/utils/pasted-cells.ts`.
 - `shell/` — layout de shell (sidebar, permisos), dividido igual en `components/` y

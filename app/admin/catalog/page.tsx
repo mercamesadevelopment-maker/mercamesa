@@ -12,6 +12,7 @@ import { PriceGrid } from '@/features/store-products/components/PriceGrid';
 import { usePriceGrid } from '@/features/store-products/hooks/usePriceGrid';
 import type { UnitOption } from '@/lib/store-products/price-grid';
 import { toPriceGridRow } from './utils/price-grid-row';
+import { leafCategoryOptions } from '@/lib/categories/picker';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
 export default function CatalogAdmin() {
@@ -115,7 +116,9 @@ export default function CatalogAdmin() {
   // producto para que las tiendas de un mismo producto queden juntas.
   const reload = useCallback(() => fetchStoreProducts(), [fetchStoreProducts]);
   const gridRows = useMemo(() => storeProducts.map(toPriceGridRow), [storeProducts]);
-  const grid = usePriceGrid(gridRows, units, reload);
+  // La categoría se edita en la tabla; es del catálogo maestro (todas las tiendas).
+  const categoryOptions = useMemo(() => leafCategoryOptions(categories), [categories]);
+  const grid = usePriceGrid(gridRows, units, reload, categoryOptions);
   const byId = useMemo(() => new Map(storeProducts.map((p) => [p.id, p])), [storeProducts]);
   const visibleRows = useMemo(() => {
     const filas = filteredStoreProducts.map(toPriceGridRow);
@@ -252,7 +255,15 @@ export default function CatalogAdmin() {
         </div>
       </div>
 
-      <PriceGrid rows={visibleRows} grid={grid} units={units} rowActions={rowActions} showStore selection={selection} />
+      <PriceGrid
+        rows={visibleRows}
+        grid={grid}
+        units={units}
+        rowActions={rowActions}
+        showStore
+        selection={selection}
+        categories={categoryOptions}
+      />
 
       {isModalOpen && (
         <StoreProductModal

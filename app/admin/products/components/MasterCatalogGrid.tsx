@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { EditableGrid } from '@/components/ui/editable-grid/components/EditableGrid';
 import { GridSaveBar } from '@/components/ui/editable-grid/components/GridSaveBar';
+import { GridPager } from '@/components/ui/editable-grid/components/GridPager';
 import type { GridColumn } from '@/components/ui/editable-grid/types';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { IVA_OPTIONS, type MasterField, type MasterOptions } from '@/lib/catalog/master-grid';
 import type { useMasterGrid } from '../hooks/use-master-grid';
 
@@ -31,6 +31,8 @@ interface MasterCatalogGridProps<T extends MasterGridProduct> {
   onPageChange: (page: number) => void;
   rowsPerPage: number;
   onRowsPerPageChange: (n: number) => void;
+  /** Total de productos con los filtros puestos. */
+  total?: number;
 }
 
 const EDITABLES = new Set<string>(['name', 'category', 'unit', 'iva', 'group', 'isActive', 'description']);
@@ -51,6 +53,7 @@ export function MasterCatalogGrid<T extends MasterGridProduct>({
   onPageChange,
   rowsPerPage,
   onRowsPerPageChange,
+  total,
 }: MasterCatalogGridProps<T>) {
   const columns = useMemo<GridColumn<T>[]>(
     () => [
@@ -161,33 +164,14 @@ export function MasterCatalogGrid<T extends MasterGridProduct>({
         emptyMessage="No se encontraron productos."
         maxHeight="65vh"
       />
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-mm-txs">
-        <label className="flex items-center gap-2">
-          Filas por página
-          <select
-            value={rowsPerPage}
-            onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
-            className="rounded-lg border border-mm-crd bg-white px-2 py-1 text-tinta"
-          >
-            {[20, 50, 100, 200].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-mono text-xs">
-            {page} / {totalPages}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <GridPager
+        page={page}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={onRowsPerPageChange}
+        total={total}
+      />
     </div>
   );
 }
