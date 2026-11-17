@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/form-fields';
 import { Database } from '../../../../types/database_generated';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { PRODUCT_CODE_MAX_LENGTH } from '@/lib/products/product-code';
+import { resolveCategory, splitCategory, type CategoryChoice, type PickerCategory } from '@/lib/categories/picker';
+import { CategoryPicker } from './CategoryPicker';
+import { updateCatalogCategory } from '../services/catalog-category';
 
 type StoreProduct = Database['public']['Tables']['store_products']['Row'];
 type CatalogProduct = Database['public']['Tables']['catalog_products']['Row'];
@@ -23,6 +26,11 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
   const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [categories, setCategories] = useState<PickerCategory[]>([]);
+  // La categoría es del producto del catálogo, no de la tienda: se elige acá y,
+  // si cambia, se guarda en el catálogo maestro (vale para todas las tiendas).
+  const [categoria, setCategoria] = useState<CategoryChoice>({ parentId: '', subId: '' });
+  const [categoriaError, setCategoriaError] = useState<string | undefined>();
   
   const [formData, setFormData] = useState({
     catalog_product_id: '',
@@ -42,7 +50,16 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
     fetch('/api/products').then(res => res.json()).then(data => { if (data.data) setCatalogProducts(data.data); });
     fetch('/api/stores').then(res => res.json()).then(data => { if (data.data) setStores(data.data); });
     fetch('/api/measurement-units').then(res => res.json()).then(data => { if (data.data) setUnits(data.data); });
+    fetch('/api/categories').then(res => res.json()).then(data => { if (data.data) setCategories(data.data); });
   }, []);
+
+  // La categoría guardada del producto elegido.
+  const productoElegido = catalogProducts.find((p) => p.id === formData.catalog_product_id);
+  const categoriaGuardada = productoElegido?.category_id ?? null;
+  useEffect(() => {
+    setCategoria(splitCategory(categories, categoriaGuardada));
+    setCategoriaError(undefined);
+  }, [categories, categoriaGuardada, formData.catalog_product_id]);
 
   useEffect(() => {
     if (initialData) {
@@ -103,6 +120,23 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
     e.preventDefault();
     setLoading(true);
     try {
+      // Primero la categoría del catálogo, si cambió: si falla, no se guarda nada más.
+      if (productoElegido) {
+        const nueva = resolveCategory(categories, categoria);
+        if (nueva !== categoriaGuardada) {
+          if (!nueva) {
+            setCategoriaError('Elige la subcategoría.');
+            return;
+          }
+          try {
+            await updateCatalogCategory(productoElegido.id, nueva);
+          } catch (err) {
+            setCategoriaError(err instanceof Error ? err.message : 'No se pudo cambiar la categoría.');
+            return;
+          }
+          setCatalogProducts((prev) => prev.map((p) => (p.id === productoElegido.id ? { ...p, category_id: nueva } : p)));
+        }
+      }
       const success = await onSave(initialData?.id || null, formData as unknown as Partial<StoreProduct>);
       if (success) onClose();
     } catch (err) {
@@ -140,6 +174,24 @@ export function StoreProductModal({ isOpen, onClose, onSave, initialData }: Stor
             </select>
           </div>
         </div>
+
+        {productoElegido && (
+          <div className="space-y-1.5">
+            <CategoryPicker
+              categories={categories}
+              value={categoria}
+              onChange={(v) => {
+                setCategoria(v);
+                setCategoriaError(undefined);
+              }}
+              error={categoriaError}
+            />
+            <p className="text-xs text-mm-txw ml-1">
+              La categoría es del producto en el catálogo maestro: si la cambias, cambia en todas las tiendas que
+              lo venden.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <Input
