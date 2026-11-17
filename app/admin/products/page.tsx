@@ -13,6 +13,7 @@ import { usePendingReview } from './hooks/usePendingReview';
 import { MasterCatalogGrid } from './components/MasterCatalogGrid';
 import { useMasterGrid } from './hooks/use-master-grid';
 import type { MasterOptions } from '@/lib/catalog/master-grid';
+import { leafCategoryOptions } from '@/lib/categories/picker';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { normalizeText } from '@/lib/utils/text';
@@ -229,17 +230,7 @@ export default function ProductsAdmin() {
    * productos: las subcategorías activas («Madre › Sub») y las madres sin hijas.
    */
   const gridOptions = React.useMemo<MasterOptions>(() => {
-    const conHijas = new Set(categories.map((c) => c.parent_id).filter(Boolean));
-    const nombre = new Map(categories.map((c) => [c.id, c.name]));
-    const opciones = categories
-      .filter((c) => !conHijas.has(c.id))
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        label: c.parent_id ? `${nombre.get(c.parent_id) ?? ''} › ${c.name}` : c.name,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
-    return { categories: opciones, units, groups: storeGroups };
+    return { categories: leafCategoryOptions(categories), units, groups: storeGroups };
   }, [categories, units, storeGroups]);
 
   const recargarAsync = React.useCallback(async () => recargar(), [recargar]);
@@ -457,6 +448,7 @@ export default function ProductsAdmin() {
         onPageChange={setPage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
+        total={total}
       />
       </div>
 

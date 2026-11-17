@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { EditableGrid } from '@/components/ui/editable-grid/components/EditableGrid';
 import { GridSaveBar } from '@/components/ui/editable-grid/components/GridSaveBar';
+import { GridPager } from '@/components/ui/editable-grid/components/GridPager';
 import type { GridColumn } from '@/components/ui/editable-grid/types';
 import { Badge } from '@/components/ui/badge';
-import type { PriceField, UnitOption } from '@/lib/store-products/price-grid';
+import type { CategoryOption, PriceField, UnitOption } from '@/lib/store-products/price-grid';
 import type { usePriceGrid } from '../hooks/usePriceGrid';
 import type { PriceGridRow } from '../types';
 
@@ -19,9 +20,15 @@ interface PriceGridProps {
   showStore?: boolean;
   /** Casilla de selección por fila (p. ej. «Asignar seleccionados»). */
   selection?: { selected: Set<string>; toggle: (id: string) => void };
+  /**
+   * Columna «Categoría» editable (solo el admin). Es del catálogo maestro: el
+   * cambio vale para todas las tiendas del producto. Requiere `usePriceGrid`
+   * con las mismas categorías.
+   */
+  categories?: CategoryOption[];
 }
 
-const EDITABLES = new Set<string>(['unit', 'price', 'wsPrice', 'wsMin', 'stock', 'isActive']);
+const EDITABLES = new Set<string>(['category', 'unit', 'price', 'wsPrice', 'wsMin', 'stock', 'isActive']);
 const pct = (rate: number) => `${Math.round(rate * 100)} %`;
 
 /**
@@ -30,7 +37,18 @@ const pct = (rate: number) => `${Math.round(rate * 100)} %`;
  * publicado— hasta la descripción. Producto, IVA y descripción son del catálogo
  * maestro y se editan en `/admin/products`.
  */
-export function PriceGrid({ rows, grid, units, rowActions, showStore, selection }: PriceGridProps) {
+export function PriceGrid({ rows, grid, units, rowActions, showStore, selection, categories }: PriceGridProps) {
+  // Paginación en el navegador: las filas ya están todas acá. Si cambian los
+  // filtros (y con ellos las filas), vuelve a la primera página.
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
+  useEffect(() => setPage(1), [rows.length, rowsPerPage]);
+  const totalPages = rowsPerPage === 0 ? 1 : Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  const pageRows = useMemo(
+    () => (rowsPerPage === 0 ? rows : rows.slice((page - 1) * rowsPerPage, page * rowsPerPage)),
+    [rows, page, rowsPerPage]
+  );
+
   const columns = useMemo(() => {
     const cols: GridColumn<PriceGridRow>[] = [];
     if (selection) {
@@ -97,6 +115,15 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection 
         render: (r) => <span className="block truncate text-xs text-mm-txs">{r.storeName ?? '—'}</span>,
       });
     }
+    if (categories) {
+      cols.push({
+        key: 'category',
+        label: 'Categoría',
+        type: 'select',
+        width: '15rem',
+        options: [{ value: '', label: 'Sin categoría' }, ...categories.map((c) => ({ value: c.id, label: c.label }))],
+      });
+    }
     cols.push(
       {
         key: 'unit',
@@ -130,9 +157,9 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection 
       }
     );
     return cols;
-  }, [units, showStore, selection]);
+  }, [units, showStore, selection, categories]);
 
-  const visibleIds = rows.map((r) => r.id);
+  const visibleIds = pageRows.map((r) => r.id);
   const columnKeys = columns.map((c) => c.key);
 
   return (
@@ -142,12 +169,12 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection 
         ayuda={
           <>
             Escribe sobre la celda o pega columnas desde Excel. Flechas, Tab y Enter para moverte. Decimales con coma:{' '}
-            <span className="font-mono">2,5</span>. Producto, IVA y descripción se cambian en el catálogo maestro.
+            <span className="font-mono">2,5</span>. Producto, IVA y descripción se cambian en el catálogo maestro. Los cambios se guardan aunque cambies de página.
           </>
         }
       />
       <EditableGrid<PriceGridRow>
-        rows={rows}
+        rows={pageRows}
         columns={columns}
         getRowKey={(r) => r.id}
         getValue={(r, key) => {
@@ -162,6 +189,15 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection 
         rowActions={rowActions}
         emptyMessage="No se encontraron productos con estos filtros."
         maxHeight="70vh"
+      />
+      <GridPager
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={setRowsPerPage}
+        total={rows.length}
+        allowAll
       />
     </div>
   );

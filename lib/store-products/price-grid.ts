@@ -1,6 +1,7 @@
 import { parseNumber } from '@/lib/product-import/parse-number';
 import { parsePastedBoolean } from '@/lib/utils/pasted-cells';
 import { normalizeText } from '@/lib/utils/text';
+import { masterValueFromPaste } from '@/lib/catalog/master-grid';
 
 /**
  * La tabla de productos del tendero, que se edita como una hoja de cálculo:
@@ -10,10 +11,23 @@ import { normalizeText } from '@/lib/utils/text';
  * la ruta que guarda (`save-price-batch.ts`), que no confía en el navegador.
  */
 
-export type PriceField = 'unit' | 'price' | 'wsPrice' | 'wsMin' | 'stock' | 'isActive';
+export type PriceField = 'category' | 'unit' | 'price' | 'wsPrice' | 'wsMin' | 'stock' | 'isActive';
 
 /** Los campos editables, en el orden de las columnas. */
 export const PRICE_FIELDS: PriceField[] = ['unit', 'price', 'wsPrice', 'wsMin', 'stock', 'isActive'];
+
+/**
+ * Con la categoría (solo el admin, en Inventarios consolidados). La categoría
+ * es del producto en el catálogo maestro: se guarda aparte, en el catálogo.
+ */
+export const PRICE_FIELDS_WITH_CATEGORY: PriceField[] = ['category', ...PRICE_FIELDS];
+
+/** Una categoría elegible (subcategoría, o madre sin subcategorías), como «Madre › Sub». */
+export interface CategoryOption {
+  id: string;
+  name: string;
+  label: string;
+}
 
 /** Una unidad de medida, para la lista y para leer lo pegado. */
 export interface UnitOption {
@@ -24,6 +38,8 @@ export interface UnitOption {
 
 /** Los valores guardados de un producto. */
 export interface PriceValues {
+  /** La categoría del producto en el catálogo (solo se edita en el admin). */
+  categoryId?: string | null;
   /** `store_products.unit_id`. */
   unitId: string | null;
   price: number;
@@ -36,6 +52,8 @@ export interface PriceValues {
 /** Una fila mientras se edita: los números van como texto, tal cual se escriben. */
 export interface PriceDraft {
   id: string;
+  /** Id de la categoría del catálogo, o vacío. */
+  category: string;
   /** Id de la unidad, o vacío. */
   unit: string;
   price: string;
@@ -48,6 +66,8 @@ export interface PriceDraft {
 /** Lo que se manda a guardar: solo los campos que cambiaron. */
 export interface PriceBatchRow {
   id: string;
+  /** No va a la ruta de la tienda: se guarda en el catálogo (ver `splitCategoryChanges`). */
+  category_id?: string;
   unit_id?: string;
   price_per_unit?: number;
   wholesale_price?: number | null;
@@ -66,6 +86,7 @@ const texto = (n: number | null) => (n === null ? '' : String(n));
 export function draftFromValues(id: string, v: PriceValues): PriceDraft {
   return {
     id,
+    category: v.categoryId ?? '',
     unit: v.unitId ?? '',
     price: texto(v.price),
     wsPrice: texto(v.wsPrice),
@@ -81,7 +102,7 @@ export function draftFromValues(id: string, v: PriceValues): PriceDraft {
  */
 export function changedFields(original: PriceDraft | undefined, draft: PriceDraft): PriceField[] {
   if (!original) return [];
-  return PRICE_FIELDS.filter((f) => original[f] !== draft[f]);
+  return PRICE_FIELDS_WITH_CATEGORY.filter((f) => original[f] !== draft[f]);
 }
 
 /** Un número escrito en la celda: vacío es `null`; lo que no se entiende, `NaN`. */
@@ -136,6 +157,11 @@ export function rowFromDraft(
   for (const campo of campos) {
     if (campo === 'isActive') {
       row.is_active = draft.isActive;
+      continue;
+    }
+    if (campo === 'category') {
+      if (!draft.category) errors.category = 'Elige una subcategoría.';
+      else row.category_id = draft.category;
       continue;
     }
     if (campo === 'unit') {
@@ -193,8 +219,17 @@ export type PastedPrice = { ok: true; value: string | boolean } | { ok: false; e
  * Una celda pegada desde Excel. Los números se guardan ya normalizados
  * («$ 1.200» queda «1200»), para que la tabla los muestre como se van a guardar.
  */
-export function priceValueFromPaste(field: PriceField, texto: string, units: UnitOption[] = []): PastedPrice {
+export function priceValueFromPaste(
+  field: PriceField,
+  texto: string,
+  units: UnitOption[] = [],
+  categories: CategoryOption[] = []
+): PastedPrice {
   const limpio = texto.trim();
+  if (field === 'category') {
+    const r = masterValueFromPaste('category', limpio, { categories, units: [], groups: [] });
+    return r;
+  }
   if (field === 'unit') {
     const unidad = findUnit(limpio, units);
     return unidad ? { ok: true, value: unidad.id } : { ok: false, error: `No hay una unidad «${limpio}».` };
@@ -206,6 +241,47 @@ export function priceValueFromPaste(field: PriceField, texto: string, units: Uni
   if (limpio === '') return { ok: true, value: '' };
   const n = parseNumber(limpio);
   return n === null ? { ok: false, error: `«${limpio}» no es un número.` } : { ok: true, value: String(n) };
+}
+
+/**
+ * Separa los cambios de categoría (van al catálogo maestro, por producto del
+ * catálogo) del resto (van a la tienda). Dos filas del mismo producto en
+ * tiendas distintas no pueden pedir categorías distintas: es una sola.
+ */
+export function splitCategoryChanges(
+  rows: PriceBatchRow[],
+  catalogIdOf: (storeProductId: string) => string | undefined
+): {
+  storeRows: PriceBatchRow[];
+  catalogRows: { id: string; category_id: string }[];
+  /** Para cada producto del catálogo, las filas de tienda que pidieron el cambio. */
+  rowsByCatalog: Map<string, string[]>;
+  errors: PriceErrors;
+} {
+  const storeRows: PriceBatchRow[] = [];
+  const pedidas = new Map<string, Set<string>>();
+  const rowsByCatalog = new Map<string, string[]>();
+  for (const r of rows) {
+    const { category_id, ...resto } = r;
+    if (category_id !== undefined) {
+      const cat = catalogIdOf(r.id);
+      if (cat) {
+        (pedidas.get(cat) ?? pedidas.set(cat, new Set()).get(cat)!).add(category_id);
+        (rowsByCatalog.get(cat) ?? rowsByCatalog.set(cat, []).get(cat)!).push(r.id);
+      }
+    }
+    if (Object.keys(resto).length > 1) storeRows.push(resto);
+  }
+  const errors: PriceErrors = {};
+  const catalogRows: { id: string; category_id: string }[] = [];
+  for (const [cat, valores] of pedidas) {
+    if (valores.size > 1) {
+      for (const id of rowsByCatalog.get(cat) ?? []) {
+        errors[id] = { category: 'Este producto está en varias filas con categorías distintas: es una sola para todas las tiendas.' };
+      }
+    } else catalogRows.push({ id: cat, category_id: [...valores][0] });
+  }
+  return { storeRows, catalogRows, rowsByCatalog, errors };
 }
 
 /** Una unidad por su id, su abreviatura o su nombre, sin tildes ni mayúsculas. */

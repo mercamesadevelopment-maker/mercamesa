@@ -7,6 +7,8 @@ import type { PriceValues } from '@/lib/store-products/price-grid';
 export interface PriceGridRow {
   /** `store_products.id`. */
   id: string;
+  /** `catalog_products.id`: a dónde va un cambio de categoría. */
+  catalogProductId?: string;
   code: string;
   name: string;
   image?: string | null;
