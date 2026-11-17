@@ -45,19 +45,6 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
-    version: '2.2.0',
-    fecha: '2026-11-17',
-    resumen: '`buscar_productos` encuentra aunque el comprador escriba con errores de ortografía.',
-    cambios: [
-      {
-        tipo: 'cambio',
-        donde: 'buscar_productos',
-        detalle:
-          '`texto` ya no tiene que estar escrito igual que el producto. Encuentra lo que suena igual («bino» → vino, «hagua» → agua, «aros» → arroz: b/v, h muda, s/z/c, ll/y, rr/r) y, si con eso no hay nada, los productos que más se parecen («aguacte» → aguacate). Cada palabra del texto se busca por separado. La respuesta tiene la misma forma; si llegaron por parecido, conviene confirmarle al comprador que es lo que buscaba.',
-      },
-    ],
-  },
-  {
     version: '2.1.0',
     fecha: '2026-11-10',
     resumen:

@@ -30,12 +30,6 @@ export interface Product {
   ws20: number;
   ws50: number;
   wsMin: number;
-  /** El precio mayorista guardado, sin el 80 % de relleno de `wsPrice`. `null` si no tiene. */
-  wholesalePrice?: number | null;
-  /** El mínimo mayorista guardado. `null` si no tiene. */
-  wholesaleMinQty?: number | null;
-  /** IVA del catálogo maestro (0, 0.05 o 0.19). */
-  ivaRate?: number;
   stock: number;
   minStock: number;
   masterId?: number | string;
