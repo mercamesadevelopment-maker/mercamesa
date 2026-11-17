@@ -121,6 +121,8 @@ Reglas:
 - Los secretos (Vault, llaves) nunca van en una migración. Cada entorno crea los suyos.
 - Los módulos nuevos se crean con `is_active = false` y se activan desde
   Parametrización cuando el código ya está desplegado.
+- Un módulo puede ser solo de permisos, sin pantalla (`master-catalog`: el permiso de escritura del
+  catálogo). Se deja sin `path`: el menú no pinta un módulo sin ruta (`lib/navigation/module-route.ts`).
 
 ### Integración continua y despliegue de migraciones
 
@@ -289,9 +291,15 @@ Inventario actual:
 - `editable-grid/` — `EditableGrid`, tabla que se edita como una hoja de cálculo: escribir
   sobre la celda, flechas/Tab/Enter/Escape (`hooks/useGridNavigation.ts`), pegar desde
   Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa.
-  Ejemplos: la pestaña de categorías (`lib/categories/batch.ts`) y los productos del tendero
-  (`lib/store-products/price-grid.ts`, que guarda en lote por `PATCH /api/store-products/batch`
-  y deja cada cambio de stock en la bitácora). Lo pegado se lee con `lib/utils/pasted-cells.ts`.
+  Para editar filas que ya existen, `hooks/useGridDrafts.ts` pone lo común (borradores, qué cambió,
+  errores, pegar respetando el orden de las columnas, guardar en lote, aviso al salir) y
+  `components/GridSaveBar.tsx` la barra de Guardar/Descartar; las reglas van en `lib/`. Ejemplos:
+  - categorías (`lib/categories/batch.ts`);
+  - precios de tienda: `PriceGrid` de `features/store-products/`, que usan el tendero y Inventarios
+    consolidados (`lib/store-products/price-grid.ts`, `PATCH /api/store-products/batch`, deja cada
+    cambio de stock en la bitácora);
+  - catálogo maestro (`lib/catalog/master-grid.ts`, `PATCH /api/products/batch`).
+  Lo pegado se lee con `lib/utils/pasted-cells.ts`.
 - `shell/` — layout de shell (sidebar, permisos), dividido igual en `components/` y
   `hooks/usePermissions.ts`. El `Sidebar` es responsive: a partir de `lg` (1024px) es el
   riel colapsable de siempre (`collapsed`/`w-20`/`w-64`); por debajo de `lg` se ignora

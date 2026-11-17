@@ -1,5 +1,6 @@
 import { parseNumber } from '@/lib/product-import/parse-number';
 import { parsePastedBoolean } from '@/lib/utils/pasted-cells';
+import { normalizeText } from '@/lib/utils/text';
 
 /**
  * La tabla de productos del tendero, que se edita como una hoja de cálculo:
@@ -9,13 +10,22 @@ import { parsePastedBoolean } from '@/lib/utils/pasted-cells';
  * la ruta que guarda (`save-price-batch.ts`), que no confía en el navegador.
  */
 
-export type PriceField = 'price' | 'wsPrice' | 'wsMin' | 'stock' | 'isActive';
+export type PriceField = 'unit' | 'price' | 'wsPrice' | 'wsMin' | 'stock' | 'isActive';
 
-/** El orden de las columnas editables: así se reparte lo pegado desde Excel. */
-export const PRICE_FIELDS: PriceField[] = ['price', 'wsPrice', 'wsMin', 'stock', 'isActive'];
+/** Los campos editables, en el orden de las columnas. */
+export const PRICE_FIELDS: PriceField[] = ['unit', 'price', 'wsPrice', 'wsMin', 'stock', 'isActive'];
+
+/** Una unidad de medida, para la lista y para leer lo pegado. */
+export interface UnitOption {
+  id: string;
+  name: string;
+  abbreviation: string;
+}
 
 /** Los valores guardados de un producto. */
 export interface PriceValues {
+  /** `store_products.unit_id`. */
+  unitId: string | null;
   price: number;
   wsPrice: number | null;
   wsMin: number | null;
@@ -26,6 +36,8 @@ export interface PriceValues {
 /** Una fila mientras se edita: los números van como texto, tal cual se escriben. */
 export interface PriceDraft {
   id: string;
+  /** Id de la unidad, o vacío. */
+  unit: string;
   price: string;
   wsPrice: string;
   wsMin: string;
@@ -36,6 +48,7 @@ export interface PriceDraft {
 /** Lo que se manda a guardar: solo los campos que cambiaron. */
 export interface PriceBatchRow {
   id: string;
+  unit_id?: string;
   price_per_unit?: number;
   wholesale_price?: number | null;
   wholesale_min_qty?: number | null;
@@ -53,6 +66,7 @@ const texto = (n: number | null) => (n === null ? '' : String(n));
 export function draftFromValues(id: string, v: PriceValues): PriceDraft {
   return {
     id,
+    unit: v.unitId ?? '',
     price: texto(v.price),
     wsPrice: texto(v.wsPrice),
     wsMin: texto(v.wsMin),
@@ -124,6 +138,11 @@ export function rowFromDraft(
       row.is_active = draft.isActive;
       continue;
     }
+    if (campo === 'unit') {
+      if (!draft.unit) errors.unit = 'Elige una unidad de medida.';
+      else row.unit_id = draft.unit;
+      continue;
+    }
     const n = leerNumero(draft[campo]);
     if (Number.isNaN(n)) {
       noEsNumero(campo);
@@ -174,8 +193,12 @@ export type PastedPrice = { ok: true; value: string | boolean } | { ok: false; e
  * Una celda pegada desde Excel. Los números se guardan ya normalizados
  * («$ 1.200» queda «1200»), para que la tabla los muestre como se van a guardar.
  */
-export function priceValueFromPaste(field: PriceField, texto: string): PastedPrice {
+export function priceValueFromPaste(field: PriceField, texto: string, units: UnitOption[] = []): PastedPrice {
   const limpio = texto.trim();
+  if (field === 'unit') {
+    const unidad = findUnit(limpio, units);
+    return unidad ? { ok: true, value: unidad.id } : { ok: false, error: `No hay una unidad «${limpio}».` };
+  }
   if (field === 'isActive') {
     const v = parsePastedBoolean(limpio);
     return v === null ? { ok: false, error: `«${limpio}» no es Sí ni No.` } : { ok: true, value: v };
@@ -183,6 +206,18 @@ export function priceValueFromPaste(field: PriceField, texto: string): PastedPri
   if (limpio === '') return { ok: true, value: '' };
   const n = parseNumber(limpio);
   return n === null ? { ok: false, error: `«${limpio}» no es un número.` } : { ok: true, value: String(n) };
+}
+
+/** Una unidad por su id, su abreviatura o su nombre, sin tildes ni mayúsculas. */
+export function findUnit(texto: string, units: UnitOption[]): UnitOption | null {
+  const t = normalizeText(texto.trim());
+  if (!t) return null;
+  return (
+    units.find((u) => u.id === texto.trim()) ??
+    units.find((u) => normalizeText(u.abbreviation) === t) ??
+    units.find((u) => normalizeText(u.name) === t) ??
+    null
+  );
 }
 
 /** Lee el cuerpo del guardado sin confiar en él: forma, tipos y tope. */
@@ -198,6 +233,10 @@ export function parsePriceBatchBody(body: unknown): { rows: PriceBatchRow[] } | 
     if (!r || typeof r.id !== 'string' || vistos.has(r.id)) return { error: 'Hay una fila sin id o repetida.' };
     vistos.add(r.id);
     const row: PriceBatchRow = { id: r.id };
+    if (r.unit_id !== undefined) {
+      if (typeof r.unit_id !== 'string' || !r.unit_id) return { error: 'Unidad inválida.' };
+      row.unit_id = r.unit_id;
+    }
     if (r.price_per_unit !== undefined) {
       if (typeof r.price_per_unit !== 'number') return { error: 'Precio inválido.' };
       row.price_per_unit = r.price_per_unit;

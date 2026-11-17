@@ -48,13 +48,14 @@ export async function savePriceBatch(
   for (const parte of chunks(ids, CHUNK)) {
     const { data, error } = await supabase
       .from('store_products')
-      .select('id, store_id, price_per_unit, wholesale_price, wholesale_min_qty, stock, is_active')
+      .select('id, store_id, unit_id, price_per_unit, wholesale_price, wholesale_min_qty, stock, is_active')
       .in('id', parte);
     if (error) throw new Error(error.message);
     for (const p of data ?? []) {
       actuales.set(p.id, {
         storeId: p.store_id,
         values: {
+          unitId: p.unit_id ?? null,
           price: Number(p.price_per_unit),
           wsPrice: p.wholesale_price === null ? null : Number(p.wholesale_price),
           wsMin: p.wholesale_min_qty === null ? null : Number(p.wholesale_min_qty),
@@ -76,9 +77,19 @@ export async function savePriceBatch(
     }
   }
 
+  // Las unidades pedidas tienen que existir.
+  const unidades = [...new Set(rows.map((r) => r.unit_id).filter((u): u is string => Boolean(u)))];
+  const unidadesValidas = new Set<string>();
+  if (unidades.length > 0) {
+    const { data, error } = await supabase.from('measurement_units').select('id').in('id', unidades);
+    if (error) throw new Error(error.message);
+    for (const u of data ?? []) unidadesValidas.add(u.id);
+  }
+
   const invalidos: PriceErrors = {};
   for (const row of rows) {
     const e = validateRow(row, actuales.get(row.id)!.values);
+    if (row.unit_id && !unidadesValidas.has(row.unit_id)) e.unit = 'Esa unidad de medida no existe.';
     if (Object.keys(e).length > 0) invalidos[row.id] = e;
   }
   if (Object.keys(invalidos).length > 0) return { status: 'invalid', errors: invalidos };
@@ -95,6 +106,7 @@ export async function savePriceBatch(
     if (row.wholesale_price !== undefined) update.wholesale_price = row.wholesale_price;
     if (row.wholesale_min_qty !== undefined) update.wholesale_min_qty = row.wholesale_min_qty;
     if (row.stock !== undefined) update.stock = row.stock;
+    if (row.unit_id !== undefined) update.unit_id = row.unit_id;
     if (row.is_active !== undefined) update.is_active = row.is_active;
     if (row.price_per_unit !== undefined || row.wholesale_price !== undefined) update.last_price_update = ahora;
     if (Object.keys(update).length === 0) return;

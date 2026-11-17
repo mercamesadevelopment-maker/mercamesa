@@ -87,6 +87,7 @@ export function useProducts() {
         wsMin: Number(item.wholesale_min_qty || 10),
         wholesalePrice: item.wholesale_price == null ? null : Number(item.wholesale_price),
         wholesaleMinQty: item.wholesale_min_qty == null ? null : Number(item.wholesale_min_qty),
+        ivaRate: Number(item.catalog_products?.iva_rate ?? 0),
         stock: Number(item.stock),
         minStock: Number(item.min_order_qty || 1),
         masterId: item.catalog_product_id,
