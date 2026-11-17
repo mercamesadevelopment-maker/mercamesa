@@ -348,6 +348,16 @@ Convención para agregar uno nuevo:
 
 ---
 
+## Productos exclusivos de un grupo de tiendas
+
+Un producto del catálogo con `owner_group_id` es de ese grupo. Solo las tiendas del grupo lo pueden
+vender (`lib/catalog/visibility.ts`), y **la base se lo asigna solo a cada una**: sin publicar, con
+precio 0 y stock 0 (`asignar_productos_de_grupo` y sus triggers en `catalog_products` y `stores`). La
+tienda le pone precio y lo publica.
+
+Nada se publica con precio 0: lo impide el `check` `store_products_publicado_con_precio`, y la
+aplicación lo dice antes con `publishesWithoutPrice()` de `lib/store-products/price-grid.ts`.
+
 ## Pedidos de varias tiendas, patinador y logística
 
 Un comprador puede juntar en un pedido tiendas de una misma plaza que despachan desde

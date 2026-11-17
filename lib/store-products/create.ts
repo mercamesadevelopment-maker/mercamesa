@@ -7,6 +7,7 @@ import {
   validateProductCode,
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
+import { publishesWithoutPrice, UNPRICED_PUBLISH_MESSAGE } from '@/lib/store-products/price-grid';
 import { EXCLUSIVE_PRODUCT_MESSAGE, explainCatalogDenial, findExclusivityViolations } from '@/lib/catalog/visibility';
 
 type StoreProductInsert = Database['public']['Tables']['store_products']['Insert'];
@@ -79,6 +80,11 @@ export async function assignToStores(
   const tiendas = assignmentStoreIds(items);
   if ('message' in tiendas) return falla(400, tiendas.message);
 
+  const filas = items.map(toAssignmentInsert);
+  if (filas.some((f) => publishesWithoutPrice(f.is_active ?? true, f.price_per_unit))) {
+    return falla(400, UNPRICED_PUBLISH_MESSAGE);
+  }
+
   const allowed = await Promise.all(tiendas.storeIds.map((storeId) => canManageStore(supabase, storeId, userId)));
   if (allowed.some((ok) => !ok)) return falla(403, 'No tienes permisos sobre alguna de las tiendas.');
 
@@ -98,7 +104,7 @@ export async function assignToStores(
     );
   }
 
-  const { data, error } = await supabase.from('store_products').insert(items.map(toAssignmentInsert)).select();
+  const { data, error } = await supabase.from('store_products').insert(filas).select();
   if (error) return falla(400, error.message);
   return { ok: true, data };
 }
@@ -126,6 +132,9 @@ export async function createStoreProduct(
   const codeError = validateProductCode(body.code);
   if (codeError) return falla(400, codeError);
 
+  const fila = toStoreProductInsert(body, new Date());
+  if (publishesWithoutPrice(fila.is_active ?? true, fila.price_per_unit)) return falla(400, UNPRICED_PUBLISH_MESSAGE);
+
   if (body.is_featured === true) {
     const { count, error } = await supabase
       .from('store_products')
@@ -138,7 +147,7 @@ export async function createStoreProduct(
 
   const { data, error } = await supabase
     .from('store_products')
-    .insert(toStoreProductInsert(body, new Date()))
+    .insert(fila)
     .select()
     .single();
 

@@ -78,6 +78,18 @@ export interface PriceBatchRow {
 
 export type PriceErrors = Record<string, Partial<Record<PriceField, string>>>;
 
+/**
+ * Un producto publicado necesita precio. Los que la base asigna solos a las
+ * tiendas de un grupo llegan con precio 0 y sin publicar: hay que ponerles
+ * precio antes de publicarlos. La base lo exige también (`check` en
+ * `store_products`); esto es para decirlo en la celda y no con su error.
+ */
+export const UNPRICED_PUBLISH_MESSAGE = 'Ponle precio antes de publicarlo.';
+
+export function publishesWithoutPrice(isActive: boolean, price: number): boolean {
+  return isActive && Number.isFinite(price) && price <= 0;
+}
+
 /** Tope de filas por guardado. */
 export const MAX_BATCH_ROWS = 2000;
 
@@ -134,6 +146,10 @@ export function validateRow(row: PriceBatchRow, actual: PriceValues): Partial<Re
   }
   if (row.stock !== undefined && !(Number.isFinite(row.stock) && row.stock >= 0)) {
     errores.stock = 'El stock tiene que ser 0 o más.';
+  }
+  // Con un precio nuevo inválido ya hay error en el precio: no se repite acá.
+  if (!errores.price && publishesWithoutPrice(row.is_active ?? actual.isActive, precio)) {
+    errores.isActive = UNPRICED_PUBLISH_MESSAGE;
   }
   return errores;
 }

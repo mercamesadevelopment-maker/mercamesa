@@ -48,6 +48,10 @@ where id in (
 -- `order_min_price_history` se pasa acá. Se quita cuando se borre esa tabla.
 select public.copiar_precio_minimo_al_historial();
 
+-- Los productos exclusivos de un grupo, en cada tienda del grupo, sin publicar,
+-- como hizo la migración en producción. Va antes de los códigos.
+select public.asignar_productos_de_grupo();
+
 -- Los productos sin código reciben uno generado (`MM-000123`), como hizo la
 -- migración en producción. La copia se carga sin triggers, así que acá no lo
 -- pone el de `store_products`.
