@@ -99,7 +99,8 @@ El ciclo de un cambio de esquema:
 
 1. `supabase migration new <nombre>`: crea el archivo en `supabase/migrations`.
 2. `pnpm db:reset`: lo prueba sobre una base limpia con datos reales.
-3. `pnpm gen:types:local`: regenera `types/database_generated.ts`.
+3. `pnpm gen:types:local`: regenera `types/database_generated.ts`. Usa la CLI 2.117.0, la misma
+   del CI: otra versión formatea distinto y el CI falla aunque no haya cambios.
 4. PR con la migración, los tipos y el código que la usa.
 5. `supabase db push` a staging y después a producción.
 
@@ -444,6 +445,11 @@ lo mismo y reúsalo. En particular:
 - Cliente Supabase → los helpers de `lib/supabase/`, no `createClient(...)` inline.
 - Clases condicionales → `cn()` de `lib/utils/cn.ts`, no template strings a mano.
 - Comparar o buscar texto sin tildes → `normalizeText()` de `lib/utils/text.ts`.
+- Buscar con tolerancia a errores de ortografía («bino» → vino, «aros» → arroz) → en el navegador,
+  `fuzzyFilter()` / `fuzzyMatches()` de `lib/search/fuzzy.ts`; en el servidor, `applyProductSearch()` y
+  `findSimilarProductIds()` de `lib/search/server.ts` (columnas `search_text` y `search_phonetic`).
+  La clave fonética existe dos veces —`phoneticKey` y `public.clave_fonetica`—: si cambia una regla,
+  cambian las dos, y las prueban los mismos casos (`lib/search/phonetic.cases.ts`).
 - Mostrar pesos → `formatCOP()` de `lib/utils/format.ts`, no otro `toLocaleString('es-CO')`.
 - Rol de la interfaz y a dónde va al entrar → `resolveRoleKey()` y `ROLE_ROUTES` de `lib/auth/roles.ts`.
 - Modales/confirmaciones/tablas/selects → los componentes de `components/ui/`, no
