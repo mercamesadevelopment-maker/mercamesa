@@ -190,7 +190,7 @@ export default function CatalogAdmin() {
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 animate-fade-up">
+    <div className="p-4 sm:p-8 space-y-6 animate-fade-up">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-display text-mm-g">Inventarios Consolidados</h2>
