@@ -99,7 +99,8 @@ El ciclo de un cambio de esquema:
 
 1. `supabase migration new <nombre>`: crea el archivo en `supabase/migrations`.
 2. `pnpm db:reset`: lo prueba sobre una base limpia con datos reales.
-3. `pnpm gen:types:local`: regenera `types/database_generated.ts`.
+3. `pnpm gen:types:local`: regenera `types/database_generated.ts`. Usa la CLI 2.117.0, la misma
+   del CI: otra versión formatea distinto y el CI falla aunque no haya cambios.
 4. PR con la migración, los tipos y el código que la usa.
 5. `supabase db push` a staging y después a producción.
 
@@ -120,6 +121,8 @@ Reglas:
 - Los secretos (Vault, llaves) nunca van en una migración. Cada entorno crea los suyos.
 - Los módulos nuevos se crean con `is_active = false` y se activan desde
   Parametrización cuando el código ya está desplegado.
+- Un módulo puede ser solo de permisos, sin pantalla (`master-catalog`: el permiso de escritura del
+  catálogo). Se deja sin `path`: el menú no pinta un módulo sin ruta (`lib/navigation/module-route.ts`).
 
 ### Integración continua y despliegue de migraciones
 
@@ -287,8 +290,16 @@ Inventario actual:
   de lógica propia.
 - `editable-grid/` — `EditableGrid`, tabla que se edita como una hoja de cálculo: escribir
   sobre la celda, flechas/Tab/Enter/Escape (`hooks/useGridNavigation.ts`), pegar desde
-  Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa
-  (ejemplo: la pestaña de categorías, con `lib/categories/batch.ts`).
+  Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa.
+  Para editar filas que ya existen, `hooks/useGridDrafts.ts` pone lo común (borradores, qué cambió,
+  errores, pegar respetando el orden de las columnas, guardar en lote, aviso al salir) y
+  `components/GridSaveBar.tsx` la barra de Guardar/Descartar; las reglas van en `lib/`. Ejemplos:
+  - categorías (`lib/categories/batch.ts`);
+  - precios de tienda: `PriceGrid` de `features/store-products/`, que usan el tendero y Inventarios
+    consolidados (`lib/store-products/price-grid.ts`, `PATCH /api/store-products/batch`, deja cada
+    cambio de stock en la bitácora);
+  - catálogo maestro (`lib/catalog/master-grid.ts`, `PATCH /api/products/batch`).
+  Lo pegado se lee con `lib/utils/pasted-cells.ts`.
 - `shell/` — layout de shell (sidebar, permisos), dividido igual en `components/` y
   `hooks/usePermissions.ts`. El `Sidebar` es responsive: a partir de `lg` (1024px) es el
   riel colapsable de siempre (`collapsed`/`w-20`/`w-64`); por debajo de `lg` se ignora
@@ -442,6 +453,11 @@ lo mismo y reúsalo. En particular:
 - Cliente Supabase → los helpers de `lib/supabase/`, no `createClient(...)` inline.
 - Clases condicionales → `cn()` de `lib/utils/cn.ts`, no template strings a mano.
 - Comparar o buscar texto sin tildes → `normalizeText()` de `lib/utils/text.ts`.
+- Buscar con tolerancia a errores de ortografía («bino» → vino, «aros» → arroz) → en el navegador,
+  `fuzzyFilter()` / `fuzzyMatches()` de `lib/search/fuzzy.ts`; en el servidor, `applyProductSearch()` y
+  `findSimilarProductIds()` de `lib/search/server.ts` (columnas `search_text` y `search_phonetic`).
+  La clave fonética existe dos veces —`phoneticKey` y `public.clave_fonetica`—: si cambia una regla,
+  cambian las dos, y las prueban los mismos casos (`lib/search/phonetic.cases.ts`).
 - Mostrar pesos → `formatCOP()` de `lib/utils/format.ts`, no otro `toLocaleString('es-CO')`.
 - Rol de la interfaz y a dónde va al entrar → `resolveRoleKey()` y `ROLE_ROUTES` de `lib/auth/roles.ts`.
 - Modales/confirmaciones/tablas/selects → los componentes de `components/ui/`, no

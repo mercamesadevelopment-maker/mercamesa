@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Product, MasterProduct } from '@/features/products/types/product.types';
 import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { validateProductCode } from '@/lib/products/product-code';
+import { fuzzyFilter } from '@/lib/search/fuzzy';
 
 export function useProducts() {
   const { stores, storeId, storeName, selectStore } = useSellerStore();
@@ -84,6 +85,9 @@ export function useProducts() {
         ws20: Number(item.price_per_unit * 0.75),
         ws50: Number(item.price_per_unit * 0.7),
         wsMin: Number(item.wholesale_min_qty || 10),
+        wholesalePrice: item.wholesale_price == null ? null : Number(item.wholesale_price),
+        wholesaleMinQty: item.wholesale_min_qty == null ? null : Number(item.wholesale_min_qty),
+        ivaRate: Number(item.catalog_products?.iva_rate ?? 0),
         stock: Number(item.stock),
         minStock: Number(item.min_order_qty || 1),
         masterId: item.catalog_product_id,
@@ -331,23 +335,18 @@ export function useProducts() {
   };
 
   const filteredProducts = useMemo(() => {
-    return myProducts.filter((p) => {
-      // 1. Search Query: matches product name or description
-      const term = search.toLowerCase();
-      const matchesSearch =
-        !search ||
-        p.name.toLowerCase().includes(term) ||
-        p.desc.toLowerCase().includes(term) ||
-        (p.code || '').toLowerCase().includes(term);
-
+    const filtrados = myProducts.filter((p) => {
       // 2. Store: matches store ID
       const matchesStore = !selectedStore || p.storeId === selectedStore;
 
       // 3. Category: matches category ID
       const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
 
-      return matchesSearch && matchesStore && matchesCategory;
+      return matchesStore && matchesCategory;
     });
+    // 1. La búsqueda: nombre, código y descripción, tolerante a errores de
+    // ortografía («bino» → vino). Los que mejor coinciden, primero.
+    return fuzzyFilter(filtrados, search, (p) => [p.name, p.code, p.desc]);
   }, [myProducts, search, selectedStore, selectedCategory]);
 
   const scopedProducts = useMemo(() => {
@@ -379,6 +378,8 @@ export function useProducts() {
   );
 
   return {
+    /** Todos, sin filtrar: la tabla guarda los cambios aunque un filtro oculte la fila. */
+    allProducts: myProducts,
     filteredProducts,
     outOfStockProducts,
     lowestStockProducts,

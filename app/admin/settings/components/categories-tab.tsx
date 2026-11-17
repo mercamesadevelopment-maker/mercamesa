@@ -10,7 +10,7 @@ import type { GridColumn } from '@/components/ui/editable-grid/types';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import { Button } from '@/components/ui/button';
-import { normalizeText } from '@/lib/utils/text';
+import { fuzzyMatches } from '@/lib/search/fuzzy';
 import type { CategoryDraft, CategoryField } from '@/lib/categories/batch';
 
 /**
@@ -48,9 +48,10 @@ export function CategoriesTab() {
   // El filtro solo oculta: lo editado en las filas ocultas sigue ahí. Las filas
   // nuevas siempre se ven.
   const visibles = useMemo(() => {
-    const q = normalizeText(searchTerm.trim());
-    if (!q) return grid.drafts;
-    return grid.drafts.filter((d) => grid.isNew(d.key) || normalizeText(d.name).includes(q) || (d.slug ?? '').includes(q));
+    // Tolerante a errores de ortografía, pero sin reordenar: es una tabla que se
+    // está editando.
+    if (!searchTerm.trim()) return grid.drafts;
+    return grid.drafts.filter((d) => grid.isNew(d.key) || fuzzyMatches(searchTerm, [d.name, d.slug]));
   }, [grid.drafts, searchTerm, grid]);
 
   // Solo una categoría raíz puede ser madre (dos niveles).
