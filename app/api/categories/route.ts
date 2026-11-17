@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+import { listActiveCategories } from '@/lib/categories/active';
 
+/** Las categorías que se pueden elegir en el formulario de producto: solo las activas. */
 export async function GET() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('categories').select('*').order('name');
-  
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  try {
+    const data = await listActiveCategories(supabase);
+    return NextResponse.json({ data }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
-
-  return NextResponse.json({ data }, { status: 200 });
 }
