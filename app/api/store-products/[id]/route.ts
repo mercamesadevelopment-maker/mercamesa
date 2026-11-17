@@ -9,6 +9,7 @@ import {
 } from '@/lib/products/product-code';
 import { canManageStore } from '@/lib/auth/can-manage-store';
 import { explainCatalogDenial, findExclusivityViolations } from '@/lib/catalog/visibility';
+import { publishesWithoutPrice, UNPRICED_PUBLISH_MESSAGE } from '@/lib/store-products/price-grid';
 
 type StoreProductUpdate = Database['public']['Tables']['store_products']['Update'];
 
@@ -19,6 +20,8 @@ interface CurrentRow {
   store_id: string;
   catalog_product_id: string;
   is_featured: boolean;
+  is_active: boolean;
+  price_per_unit: number;
 }
 
 /**
@@ -34,7 +37,7 @@ async function loadAndAuthorize(
 ): Promise<{ current: CurrentRow } | { response: NextResponse }> {
   const { data: current, error } = await supabase
     .from('store_products')
-    .select('store_id, catalog_product_id, is_featured')
+    .select('store_id, catalog_product_id, is_featured, is_active, price_per_unit')
     .eq('id', id)
     .single();
 
@@ -106,6 +109,15 @@ export async function PUT(
     if (body.unit_id !== undefined) updateData.unit_id = body.unit_id;
     if (body.store_id !== undefined) updateData.store_id = body.store_id;
     if (body.catalog_product_id !== undefined) updateData.catalog_product_id = body.catalog_product_id;
+
+    if (
+      publishesWithoutPrice(
+        updateData.is_active ?? current.is_active,
+        Number(updateData.price_per_unit ?? current.price_per_unit)
+      )
+    ) {
+      return NextResponse.json({ error: UNPRICED_PUBLISH_MESSAGE }, { status: 400 });
+    }
 
     // Vaciarlo al editar va como null y la base le asigna uno nuevo (`MM-000123`).
     if (body.code !== undefined) {

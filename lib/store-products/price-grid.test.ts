@@ -9,6 +9,7 @@ import {
   rowFromDraft,
   splitCategoryChanges,
   validateRow,
+  UNPRICED_PUBLISH_MESSAGE,
   type PriceValues,
 } from './price-grid';
 
@@ -68,6 +69,15 @@ describe('validateRow', () => {
     expect(validateRow({ id: 'x', wholesale_min_qty: 1.5 }, actual).wsMin).toBeDefined();
     expect(validateRow({ id: 'x', stock: -1 }, actual).stock).toBeDefined();
     expect(validateRow({ id: 'x', price_per_unit: 6000, wholesale_price: 6000, stock: 0, wholesale_min_qty: null }, actual)).toEqual({});
+  });
+
+  it('no deja publicar sin precio (los productos que llegan solos por el grupo)', () => {
+    const sinPrecio = { ...actual, price: 0, isActive: false };
+    expect(validateRow({ id: 'x', is_active: true }, sinPrecio).isActive).toBe(UNPRICED_PUBLISH_MESSAGE);
+    expect(validateRow({ id: 'x', is_active: true, price_per_unit: 4500 }, sinPrecio)).toEqual({});
+    expect(validateRow({ id: 'x', stock: 10 }, sinPrecio)).toEqual({});
+    // Un precio nuevo inválido ya tiene su error: no se repite en Publicado.
+    expect(validateRow({ id: 'x', is_active: true, price_per_unit: 0 }, sinPrecio).isActive).toBeUndefined();
   });
 });
 
