@@ -26,6 +26,8 @@ interface PriceGridProps {
    * con las mismas categorías.
    */
   categories?: CategoryOption[];
+  /** La descripción del catálogo, de solo lectura (la tabla del tendero). */
+  showDescription?: boolean;
 }
 
 const EDITABLES = new Set<string>(['category', 'unit', 'price', 'wsPrice', 'wsMin', 'stock', 'isActive']);
@@ -34,10 +36,10 @@ const pct = (rate: number) => `${Math.round(rate * 100)} %`;
 /**
  * Productos de tienda como una hoja de cálculo. Orden: código y producto (solo
  * lectura), tienda (admin), y de ahí lo editable —unidad, precios, stock,
- * publicado— hasta la descripción. Producto, IVA y descripción son del catálogo
+ * publicado— y, en la del tendero, la descripción. Producto, IVA y descripción son del catálogo
  * maestro y se editan en `/admin/products`.
  */
-export function PriceGrid({ rows, grid, units, rowActions, showStore, selection, categories }: PriceGridProps) {
+export function PriceGrid({ rows, grid, units, rowActions, showStore, selection, categories, showDescription }: PriceGridProps) {
   // Paginación en el navegador: las filas ya están todas acá. Si cambian los
   // filtros (y con ellos las filas), vuelve a la primera página.
   const [page, setPage] = useState(1);
@@ -143,8 +145,10 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
         width: '5rem',
         render: (r) => <span className="whitespace-nowrap font-mono text-xs text-mm-txs">{pct(r.ivaRate)}</span>,
       },
-      { key: 'isActive', label: 'Publicado', type: 'checkbox', width: '6rem' },
-      {
+      { key: 'isActive', label: 'Publicado', type: 'checkbox', width: '6rem' }
+    );
+    if (showDescription) {
+      cols.push({
         key: 'description',
         label: 'Descripción',
         type: 'readonly',
@@ -154,10 +158,10 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
             {r.description || '—'}
           </span>
         ),
-      }
-    );
+      });
+    }
     return cols;
-  }, [units, showStore, selection, categories]);
+  }, [units, showStore, selection, categories, showDescription]);
 
   const visibleIds = pageRows.map((r) => r.id);
   const columnKeys = columns.map((c) => c.key);
@@ -169,7 +173,7 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
         ayuda={
           <>
             Escribe sobre la celda o pega columnas desde Excel. Flechas, Tab y Enter para moverte. Decimales con coma:{' '}
-            <span className="font-mono">2,5</span>. Producto, IVA y descripción se cambian en el catálogo maestro. Los cambios se guardan aunque cambies de página.
+            <span className="font-mono">2,5</span>. Producto e IVA se cambian en el catálogo maestro. Los cambios se guardan aunque cambies de página.
           </>
         }
       />
