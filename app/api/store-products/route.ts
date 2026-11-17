@@ -53,8 +53,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { data, count, paginated, sugerido } = await listStorefront(supabase, searchParams, storeId);
-    return NextResponse.json(paginated ? { data, count, sugerido } : { data, sugerido }, { status: 200 });
+    const { data, count, paginated } = await listStorefront(supabase, searchParams, storeId);
+    return NextResponse.json(paginated ? { data, count } : { data }, { status: 200 });
   } catch (error: unknown) {
     return NextResponse.json({ error: mensaje(error, 'Error consultando el catálogo') }, { status: 400 });
   }

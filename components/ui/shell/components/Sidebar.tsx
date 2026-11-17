@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { cn } from '@/lib/utils/cn';
-import { moduleRoute, visibleMenuModules } from '@/lib/navigation/module-route';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from '@/features/auth/session-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -45,8 +44,41 @@ export function Sidebar({
   const [openMenus, setOpenMenus] =
     useState<string[]>([]);
 
-  // Un módulo sin ruta (solo permisos, como `master-catalog`) no se pinta.
-  const getRoute = (m: { key: string; path?: string | null }) => moduleRoute(m) ?? '';
+  const keyToRoute: Record<
+    string,
+    string
+  > = {
+    home: '/marketplaces',
+    all_plazas: '/marketplaces',
+    all_stores: '/stores',
+    all_products: '/products',
+    promotions: '/promotions',
+    orders: '/orders',
+    profile: '/profile',
+    profile_ratings: '/profile',
+    profile_account: '/profile',
+    support: '/support',
+    dashboard: '/seller/dashboard',
+    products: '/seller/products',
+    reputation: '/seller/settings',
+    analytics: '/seller/dashboard',
+    sales: '/seller/sales',
+    sales_history:
+      '/seller/sales-history',
+    clients: '/seller/clients',
+    admin_plazas:
+      '/admin/marketplaces',
+    admin_stores: '/admin/stores',
+    admin_products:
+      '/admin/products',
+    admin_offers: '/admin/offers',
+    admin_orders: '/admin/orders',
+    admin_notifs:
+      '/admin/notifications',
+  };
+
+  const getRoute = (key: string) =>
+    keyToRoute[key] || `/${key}`;
 
   const toggleMenu = (id: string) => {
     setOpenMenus(prev =>
@@ -77,16 +109,14 @@ export function Sidebar({
     );
   };
 
-  const menuModules = visibleMenuModules(modules);
-
-  const rootModules = menuModules.filter(
+  const rootModules = modules.filter(
     m => !m.parent_id
   );
 
   const getChildren = (
     parentId: string
   ) =>
-    menuModules.filter(
+    modules.filter(
       m => m.parent_id === parentId
     );
 
@@ -143,7 +173,8 @@ export function Sidebar({
               openMenus.includes(item.id);
 
             const route =
-              getRoute(item);
+              item.path ||
+              getRoute(item.key);
 
             const isActive =
               pathname === route ||
@@ -151,7 +182,8 @@ export function Sidebar({
                 subItems.some(
                   s =>
                     pathname ===
-                    getRoute(s)
+                    (s.path ||
+                      getRoute(s.key))
                 ));
 
             const Icon = renderIcon(
@@ -232,7 +264,10 @@ export function Sidebar({
                             );
 
                           const subRoute =
-                            getRoute(sub);
+                            sub.path ||
+                            getRoute(
+                              sub.key
+                            );
 
                           return (
                             <button

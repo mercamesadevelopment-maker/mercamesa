@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { applyProductSearch } from '@/lib/search/server';
 import type { Database } from '@/types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '@/lib/supabase/supabase-image';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -39,23 +38,20 @@ export async function listForManagement(
     let query = withOrderCount
       ? supabase.from('store_products').select(`
           *,
-          catalog_products!inner ( name, image_url, description, category_id, review_status, iva_rate, categories ( id, name, parent_id ) ),
+          catalog_products!inner ( name, image_url, description, category_id, review_status, categories ( id, name, parent_id ) ),
           stores!inner ( name, slug, is_active, marketplaces ( name ) ),
           measurement_units ( abbreviation ),
           order_items ( count )
         `)
       : supabase.from('store_products').select(`
           *,
-          catalog_products!inner ( name, image_url, description, category_id, iva_rate, categories ( id, name, parent_id ) ),
+          catalog_products!inner ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
           stores!inner ( name, slug, is_active, marketplaces ( name ) ),
           measurement_units ( abbreviation )
         `);
 
     if (storeId) query = query.eq('store_id', storeId);
-    // Tolerante a errores de ortografía («bino» → vino), sobre la tabla embebida.
-    if (search) {
-      query = applyProductSearch(query, search, { text: 'search_text', phonetic: 'search_phonetic' }, 'catalog_products');
-    }
+    if (search) query = query.ilike('catalog_products.search_text', `%${search}%`);
 
     return query
       .order('is_featured', { ascending: false })

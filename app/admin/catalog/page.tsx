@@ -1,18 +1,32 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Package, Edit2, Trash2, Store as StoreIcon, ChevronRight, Search } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useStoreProducts, StoreProduct } from './hooks/useStoreProducts';
 import { StoreProductModal } from './components/StoreProductModal';
 import { BatchAssignModal } from './components/BatchAssignModal';
+import { Table } from '../../../components/ui/table/components/Table';
+import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button } from '@/components/ui/button';
-import { fuzzyFilter } from '@/lib/search/fuzzy';
-import { PriceGrid } from '@/features/store-products/components/PriceGrid';
-import { usePriceGrid } from '@/features/store-products/hooks/usePriceGrid';
-import type { UnitOption } from '@/lib/store-products/price-grid';
-import { toPriceGridRow } from './utils/price-grid-row';
+import { Badge } from '@/components/ui/badge';
+import { normalizeText } from '@/lib/utils/text';
+import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
+import { formatCOP } from '@/lib/utils/format';
+
+// Grouped data type for the table
+type GroupedProduct = {
+  id: string; // catalog_product_id
+  name: string;
+  cat: string;
+  image_url: string | null;
+  imageSignedUrl: string | null;
+  items: StoreProduct[];
+  totalStock: number;
+  avgPrice: number;
+  unit: string;
+};
 
 export default function CatalogAdmin() {
   const { storeProducts, loading, error, fetchStoreProducts, deleteStoreProduct, saveStoreProduct } = useStoreProducts();
@@ -32,7 +46,6 @@ export default function CatalogAdmin() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [categories, setCategories] = useState<Database['public']['Tables']['categories']['Row'][]>([]);
   const [stores, setStores] = useState<Database['public']['Tables']['stores']['Row'][]>([]);
-  const [units, setUnits] = useState<UnitOption[]>([]);
 
   useEffect(() => {
     fetchStoreProducts();
@@ -46,13 +59,6 @@ export default function CatalogAdmin() {
         if (data.data) setCategories(data.data);
       })
       .catch((err) => console.error('Error fetching categories:', err));
-
-    fetch('/api/measurement-units')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data) setUnits(data.data);
-      })
-      .catch((err) => console.error('Error fetching units:', err));
 
     fetch('/api/stores')
       .then((res) => res.json())
@@ -94,7 +100,13 @@ export default function CatalogAdmin() {
 
   // Filter raw storeProducts by selected filters
   const filteredStoreProducts = useMemo(() => {
-    const filtrados = storeProducts.filter((item) => {
+    return storeProducts.filter((item) => {
+      // 1. Search Query: matches catalog product name or description
+      const matchesSearch =
+        !searchQuery ||
+        normalizeText(item.catalog_products?.name || '').includes(normalizeText(searchQuery)) ||
+        normalizeText(item.catalog_products?.description || '').includes(normalizeText(searchQuery));
+
       // 2. Store: matches store ID
       const matchesStore = !selectedStore || item.store_id === selectedStore;
 
@@ -103,71 +115,168 @@ export default function CatalogAdmin() {
         !selectedCategory ||
         (item.catalog_products?.category_id && selectedCategoryIds.includes(item.catalog_products.category_id));
 
-      return matchesStore && matchesCategory;
+      return matchesSearch && matchesStore && matchesCategory;
     });
-    // 1. La búsqueda, tolerante a errores de ortografía («bino» → vino), y los
-    // que mejor coinciden primero.
-    return fuzzyFilter(filtrados, searchQuery, (item) => [item.catalog_products?.name, item.catalog_products?.description]);
   }, [storeProducts, searchQuery, selectedStore, selectedCategory, selectedCategoryIds]);
 
-  // La tabla tipo Excel: una fila por producto en cada tienda. Trabaja sobre
-  // todos (un filtro no borra los cambios) y pinta los filtrados, ordenados por
-  // producto para que las tiendas de un mismo producto queden juntas.
-  const reload = useCallback(() => fetchStoreProducts(), [fetchStoreProducts]);
-  const gridRows = useMemo(() => storeProducts.map(toPriceGridRow), [storeProducts]);
-  const grid = usePriceGrid(gridRows, units, reload);
-  const byId = useMemo(() => new Map(storeProducts.map((p) => [p.id, p])), [storeProducts]);
-  const visibleRows = useMemo(() => {
-    const filas = filteredStoreProducts.map(toPriceGridRow);
-    return searchQuery.trim() ? filas : filas.sort((a, b) => a.name.localeCompare(b.name, 'es') || (a.storeName ?? '').localeCompare(b.storeName ?? '', 'es'));
-  }, [filteredStoreProducts, searchQuery]);
-
-  // «Asignar seleccionados» trabaja con productos del catálogo: marcar una fila
-  // marca su producto en todas sus tiendas.
-  const selection = useMemo(
-    () => ({
-      selected: new Set(
-        storeProducts.filter((p) => selectedProductIds.has(p.catalog_product_id)).map((p) => p.id)
-      ),
-      toggle: (id: string) => {
-        const cat = byId.get(id)?.catalog_product_id;
-        if (!cat) return;
-        setSelectedProductIds((prev) => {
-          const next = new Set(prev);
-          if (next.has(cat)) next.delete(cat);
-          else next.add(cat);
-          return next;
+  // Group the filtered storeProducts by catalog_product_id synchronously
+  const groupedProducts = useMemo(() => {
+    const groups = new Map<string, GroupedProduct>();
+    
+    for (const item of filteredStoreProducts) {
+      const catId = item.catalog_product_id;
+      if (!groups.has(catId)) {
+        const publicUrl = item.catalog_products?.image_url
+          ? getSupabaseImageUrl('products', item.catalog_products.image_url, PRESET_THUMBNAIL)
+          : null;
+        
+        groups.set(catId, {
+          id: catId,
+          name: item.catalog_products?.name || 'Desconocido',
+          cat: item.catalog_products?.categories?.name || 'Sin categoría',
+          image_url: item.catalog_products?.image_url || null,
+          imageSignedUrl: publicUrl,
+          items: [],
+          totalStock: 0,
+          avgPrice: 0,
+          unit: item.measurement_units?.abbreviation || '',
         });
-      },
-    }),
-    [storeProducts, selectedProductIds, byId]
-  );
+      }
+      
+      const group = groups.get(catId)!;
+      group.items.push(item);
+      group.totalStock += item.stock;
+    }
 
-  const rowActions = (row: { id: string }) => {
-    const storeProd = byId.get(row.id);
-    if (!storeProd) return null;
-    return (
-      <div className="flex gap-1">
-        <button
-          className="rounded-lg p-1.5 text-mm-txw transition-all hover:bg-mm-gbg hover:text-mm-g"
-          title="Editar (código, destacado…)"
-          onClick={() => {
-            setEditingProduct(storeProd);
-            setIsModalOpen(true);
-          }}
-        >
-          <Edit2 className="h-3.5 w-3.5" />
-        </button>
-        <button
-          className="rounded-lg p-1.5 text-mm-txw transition-all hover:bg-mm-gbg hover:text-r"
-          title="Quitar de la tienda"
-          onClick={() => setDeleteTarget(storeProd)}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    );
-  };
+    // Calculate averages
+    for (const group of groups.values()) {
+      if (group.items.length > 0) {
+        const sum = group.items.reduce((acc, curr) => acc + curr.price_per_unit, 0);
+        group.avgPrice = Math.round(sum / group.items.length);
+      }
+    }
+
+    return Array.from(groups.values());
+  }, [filteredStoreProducts]);
+
+  const {
+    page, setPage, rowsPerPage, setRowsPerPage, sortKey, sortOrder, handleSort, paginatedData, totalPages
+  } = useTable({ initialData: groupedProducts });
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStore, selectedCategory, setPage]);
+
+
+  const columns = [
+    {
+      key: 'name',
+      label: 'Producto',
+      sortable: true,
+      render: (item: GroupedProduct) => (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-mm-gbg rounded-lg flex items-center justify-center text-mm-txw overflow-hidden shrink-0 border border-mm-crd">
+            {item.imageSignedUrl ? (
+              <img
+                src={item.imageSignedUrl}
+                alt={item.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Red de seguridad: si el derivado WebP aún no existe, cae al original.
+                  const img = e.currentTarget;
+                  if (img.dataset.fallback) return;
+                  img.dataset.fallback = '1';
+                  img.src = item.image_url ? getSupabaseImageUrl('products', item.image_url) : '';
+                }}
+              />
+            ) : (
+              <Package className="w-6 h-6 text-mm-txw" />
+            )}
+          </div>
+          <div>
+            <span className="font-bold text-mm-g block leading-none mb-1">{item.name}</span>
+            <span className="text-[10px] text-mm-txw font-bold uppercase">{item.cat}</span>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'items',
+      label: 'Tiendas',
+      render: (item: GroupedProduct) => (
+        <div className="flex items-center gap-2">
+          <ChevronRight className="w-4 h-4 text-mm-txw group-hover/row:text-mm-g transition-colors" />
+          <span className="text-xs font-bold text-mm-txs">
+            {item.items.length} {item.items.length === 1 ? 'tienda' : 'tiendas'}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: 'avgPrice',
+      label: 'Precio Prom.',
+      sortable: true,
+      render: (item: GroupedProduct) => (
+        <span className="text-sm font-bold text-mm-g">{formatCOP(item.avgPrice)}</span>
+      )
+    },
+    {
+      key: 'totalStock',
+      label: 'Stock Total',
+      sortable: true,
+      render: (item: GroupedProduct) => (
+        <Badge variant="oro" className="px-3 py-1 font-mono">
+          {item.totalStock} {item.unit}
+        </Badge>
+      )
+    }
+  ];
+
+  const renderExpandableContent = (item: GroupedProduct) => (
+    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {item.items.map(storeProd => (
+        <div key={storeProd.id} className="bg-white p-4 rounded-2xl border border-mm-crd/60 flex items-center justify-between hover:border-mm-g/40 transition-all shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-mm-gbg rounded-lg flex items-center justify-center text-lg border border-mm-crd/30">
+              <StoreIcon className="w-4 h-4 text-mm-txw" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold text-mm-g leading-tight">{storeProd.stores?.name}</p>
+                {(storeProd as any).is_featured && (
+                  <Badge variant="oro" className="text-[8px] px-1.5 py-0">Destacado</Badge>
+                )}
+              </div>
+              <p className="text-[9px] text-mm-txw font-bold uppercase tracking-tighter">
+                {storeProd.stores?.marketplaces?.name}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right flex flex-col items-end mr-2">
+              <p className="text-sm font-bold text-mm-g">{formatCOP(storeProd.price_per_unit)}</p>
+              <p className="text-[10px] text-mm-txw font-bold">{storeProd.stock} {storeProd.measurement_units?.abbreviation}</p>
+            </div>
+            <div className="flex gap-1">
+              <button 
+                className="p-1.5 hover:bg-mm-gbg rounded-lg text-mm-txw hover:text-mm-g border border-transparent hover:border-mm-crd/50 transition-all"
+                onClick={() => { setEditingProduct(storeProd); setIsModalOpen(true); }}
+              >
+                <Edit2 className="w-3 h-3" />
+              </button>
+              <button
+                className="p-1.5 hover:bg-mm-gbg rounded-lg text-mm-txw hover:text-r border border-transparent hover:border-mm-crd/50 transition-all"
+                onClick={() => setDeleteTarget(storeProd)}
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -187,7 +296,7 @@ export default function CatalogAdmin() {
   if (error) return <div className="p-8 text-center text-r">Error: {error}</div>;
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 animate-fade-up">
+    <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-display text-mm-g">Inventarios Consolidados</h2>
@@ -252,7 +361,22 @@ export default function CatalogAdmin() {
         </div>
       </div>
 
-      <PriceGrid rows={visibleRows} grid={grid} units={units} rowActions={rowActions} showStore selection={selection} />
+      <Table
+        data={paginatedData}
+        columns={columns}
+        sortKey={sortKey}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={setRowsPerPage}
+        expandableContent={renderExpandableContent}
+        selectedKeys={selectedProductIds}
+        onSelectionChange={setSelectedProductIds}
+        getRowKey={(item) => item.id}
+      />
 
       {isModalOpen && (
         <StoreProductModal
