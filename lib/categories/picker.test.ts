@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parentCategories, resolveCategory, splitCategory, subcategoriesOf } from './picker';
+import { leafCategoryOptions, parentCategories, resolveCategory, splitCategory, subcategoriesOf } from './picker';
 
 const cats = [
   { id: 'fv', name: 'Frutas y verduras', parent_id: null },
@@ -27,5 +27,15 @@ describe('picker de categorías', () => {
     expect(resolveCategory(cats, { parentId: 'fv', subId: 'otra' })).toBeNull();
     expect(resolveCategory(cats, { parentId: 've', subId: '' })).toBe('ve');
     expect(resolveCategory(cats, { parentId: '', subId: '' })).toBeNull();
+  });
+});
+
+describe('leafCategoryOptions', () => {
+  it('subcategorías y madres sin hijas, como «Madre › Sub»', () => {
+    expect(leafCategoryOptions(cats).map((c) => c.label)).toEqual([
+      'Frutas y verduras › Frutas frescas',
+      'Frutas y verduras › Verduras y hortalizas',
+      'Velas',
+    ]);
   });
 });

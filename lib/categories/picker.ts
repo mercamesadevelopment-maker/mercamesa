@@ -45,3 +45,20 @@ export function resolveCategory(categories: PickerCategory[], choice: CategoryCh
   if (subs.length === 0) return choice.parentId;
   return subs.some((s) => s.id === choice.subId) ? choice.subId : null;
 }
+
+/**
+ * Las categorías donde puede ir un producto, para una sola lista: las
+ * subcategorías y las madres sin subcategorías, como «Madre › Sub», en orden.
+ */
+export function leafCategoryOptions(categories: PickerCategory[]): { id: string; name: string; label: string }[] {
+  const conHijas = new Set(categories.map((c) => c.parent_id).filter(Boolean));
+  const nombre = new Map(categories.map((c) => [c.id, c.name]));
+  return categories
+    .filter((c) => !conHijas.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      label: c.parent_id ? `${nombre.get(c.parent_id) ?? ''} › ${c.name}` : c.name,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+}
