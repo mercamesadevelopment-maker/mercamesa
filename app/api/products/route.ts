@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { applyProductSearch, findSimilarProductIds } from '@/lib/search/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '../../../lib/supabase/supabase-image';
@@ -53,6 +54,9 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const page = Number(params.get('page')) || 0;
   const paginado = page > 0;
+  const search = (params.get('search') || '').trim();
+  // La segunda red de la búsqueda (`findSimilarProductIds`): estos ids en vez del término.
+  let parecidos: string[] | null = null;
 
   const construirConsulta = (from: number, to: number) => {
     let query = supabase
@@ -77,10 +81,9 @@ export async function GET(request: Request) {
     if (storeId) query = applyCatalogVisibility(query, storeGroupId, storeId) as typeof query;
 
     if (paginado) {
-      // El término llega ya en minúscula y sin tildes desde `normalizeText`;
-      // `search_text` guarda el nombre y la descripción igual.
-      const search = (params.get('search') || '').trim();
-      if (search) query = query.ilike('search_text', `%${search}%`);
+      // Tolerante a errores de ortografía: «bino» encuentra «vino» (lib/search).
+      if (parecidos) query = query.in('id', parecidos);
+      else if (search) query = applyProductSearch(query, search, { text: 'search_text', phonetic: 'search_phonetic' });
 
       const categoryIds = (params.get('category_ids') || '').split(',').filter(Boolean);
       if (categoryIds.length > 0) query = query.in('category_id', categoryIds);
@@ -113,11 +116,22 @@ export async function GET(request: Request) {
 
   let data: any[];
   let count: number | null = null;
+  let sugerido = false;
 
   if (paginado) {
     const pageSize = Math.min(Math.max(Number(params.get('pageSize')) || 20, 1), 200);
     const from = (page - 1) * pageSize;
-    const { data: filas, count: total, error } = await construirConsulta(from, from + pageSize - 1);
+    let { data: filas, count: total, error } = await construirConsulta(from, from + pageSize - 1);
+
+    // Nada escrito ni que suene igual: los que más se parecen («aguacte» → aguacate).
+    if (!error && search && (filas ?? []).length === 0 && page === 1) {
+      const ids = await findSimilarProductIds(supabase, search);
+      if (ids.length > 0) {
+        parecidos = ids;
+        ({ data: filas, count: total, error } = await construirConsulta(from, from + pageSize - 1));
+        sugerido = (filas ?? []).length > 0;
+      }
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -145,7 +159,7 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json(
-    paginado ? { data: productsWithPublicUrls, count } : { data: productsWithPublicUrls },
+    paginado ? { data: productsWithPublicUrls, count, sugerido } : { data: productsWithPublicUrls },
     { status: 200 }
   );
 }

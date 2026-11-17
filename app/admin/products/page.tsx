@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Package, Edit2, Trash2, Search, Upload, Check, Merge, Clock, ImagePlus } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Upload, Check, Merge, Clock, ImagePlus } from 'lucide-react';
 import { Database } from '../../../types/database_generated';
 import { useProducts } from './hooks/useProducts';
 import { ProductModal } from './components/ProductModal';
@@ -10,9 +10,10 @@ import { BulkIvaAction } from './components/BulkIvaAction';
 import { ImageBulkUploadModal } from '@/features/catalog-images/components/ImageBulkUploadModal';
 import { MergeProductModal } from './components/MergeProductModal';
 import { usePendingReview } from './hooks/usePendingReview';
-import { Table } from '../../../components/ui/table/components/Table';
+import { MasterCatalogGrid } from './components/MasterCatalogGrid';
+import { useMasterGrid } from './hooks/use-master-grid';
+import type { MasterOptions } from '@/lib/catalog/master-grid';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import { normalizeText } from '@/lib/utils/text';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
@@ -98,6 +99,17 @@ export default function ProductsAdmin() {
     [storeGroups]
   );
 
+  // Unidades de medida, para la columna «Unidad» de la tabla.
+  const [units, setUnits] = useState<MasterOptions['units']>([]);
+  useEffect(() => {
+    fetch('/api/measurement-units')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data) setUnits(data.data);
+      })
+      .catch((err) => console.error('Error fetching units:', err));
+  }, []);
+
   // Fetch categories for filtering dropdown
   useEffect(() => {
     fetch('/api/categories')
@@ -176,16 +188,6 @@ export default function ProductsAdmin() {
     if (!loading) yaCargoUnaVez.current = true;
   }, [loading]);
 
-  const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortOrder('asc');
-    }
-    setPage(1);
-  };
-
   const bulkGroupName = bulkGroupId ? groupNameById.get(bulkGroupId) : null;
 
   const bulkGroupMessage = bulkGroupName
@@ -222,76 +224,77 @@ export default function ProductsAdmin() {
     }
   };
 
-  const columns = [
-    {
-      key: 'name',
-      label: 'Producto',
-      sortable: true,
-      render: (item: Product) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-mm-gbg rounded-lg flex items-center justify-center text-2xl overflow-hidden border border-mm-crd shrink-0 relative">
-            {item.imageSignedUrl ? (
-              <img
-                src={item.imageSignedUrl}
-                alt={item.name}
-                className="absolute inset-0 w-full h-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <Package className="w-6 h-6 text-mm-txw" />
-            )}
-          </div>
-          <span className="font-bold text-mm-g">{item.name}</span>
-        </div>
-      )
-    },
-    {
-      key: 'category',
-      label: 'Categoría',
-      sortable: true,
-      render: (item: Product) => (
-        <Badge variant="default">
-          {item.categories?.name || 'Sin Categoría'}
-        </Badge>
-      )
-    },
-    {
-      key: 'default_unit',
-      label: 'Unidad Defecto',
-      sortable: true,
-      render: (item: Product) => (
-        <span className="text-sm text-mm-txs font-medium">
-          {item.measurement_units?.abbreviation || 'N/A'}
-        </span>
-      )
-    },
-    {
-      key: 'owner_group_id',
-      label: 'Exclusivo de',
-      sortable: true,
-      render: (item: Product) =>
-        item.owner_group_id ? (
-          <Badge variant="oro">{groupNameById.get(item.owner_group_id) || 'Grupo'}</Badge>
-        ) : (
-          <span className="text-mm-txw italic text-sm">Público</span>
-        )
-    },
-    {
-      key: 'is_active',
-      label: 'Estado',
-      sortable: true,
-      render: (item: Product) => (
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant={item.is_active ? 'success' : 'warning'}>
-            {item.is_active ? 'Activo' : 'Inactivo'}
-          </Badge>
-          {item.review_status === 'pending' && (
-            <Badge variant="oro">En revisión{item.proposed_by?.name ? ` · ${item.proposed_by.name}` : ''}</Badge>
-          )}
-        </div>
-      )
-    }
-  ];
+  /**
+   * La tabla tipo Excel. Las opciones de categoría son las que pueden tener
+   * productos: las subcategorías activas («Madre › Sub») y las madres sin hijas.
+   */
+  const gridOptions = React.useMemo<MasterOptions>(() => {
+    const conHijas = new Set(categories.map((c) => c.parent_id).filter(Boolean));
+    const nombre = new Map(categories.map((c) => [c.id, c.name]));
+    const opciones = categories
+      .filter((c) => !conHijas.has(c.id))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        label: c.parent_id ? `${nombre.get(c.parent_id) ?? ''} › ${c.name}` : c.name,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+    return { categories: opciones, units, groups: storeGroups };
+  }, [categories, units, storeGroups]);
+
+  const recargarAsync = React.useCallback(async () => recargar(), [recargar]);
+  const grid = useMasterGrid(products, gridOptions, recargarAsync);
+
+  const selection = React.useMemo(
+    () => ({
+      selected: selectedIds,
+      toggle: (id: string) =>
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        }),
+    }),
+    [selectedIds]
+  );
+
+  const rowActions = (item: Product) => (
+    <div className="flex gap-1">
+      {item.review_status === 'pending' && (
+        <>
+          <button
+            onClick={() => review.approve(item.id, item.name).then(recargar)}
+            title="Aprobar: pasa al catálogo de todas las tiendas"
+            className="p-1.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-ok transition-colors"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setMergeTarget(item)}
+            title="Unir con un producto que ya existe"
+            className="p-1.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+          >
+            <Merge className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
+      <button
+        onClick={() => { setEditingProduct(item); setIsModalOpen(true); }}
+        title="Editar (foto y banderas)"
+        className="p-1.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+      >
+        <Edit2 className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={() => setDeleteTarget(item)}
+        title="Eliminar"
+        className="p-1.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -324,7 +327,7 @@ export default function ProductsAdmin() {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6 animate-fade-up">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 animate-fade-up">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-display text-mm-g">Catálogo Maestro</h2>
@@ -443,54 +446,17 @@ export default function ProductsAdmin() {
       )}
 
       <div className={loading ? 'pointer-events-none opacity-60 transition-opacity' : 'transition-opacity'}>
-      <Table
-        data={products}
-        columns={columns}
-        selectedKeys={selectedIds}
-        onSelectionChange={setSelectedIds}
-        getRowKey={(item: Product) => item.id}
-        sortKey={sortKey}
-        sortOrder={sortOrder}
-        onSort={handleSort}
+      <MasterCatalogGrid
+        products={products}
+        grid={grid}
+        options={gridOptions}
+        rowActions={rowActions}
+        selection={selection}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
-        actions={(item: Product) => (
-          <div className="flex gap-2">
-            {item.review_status === 'pending' && (
-              <>
-                <button
-                  onClick={() => review.approve(item.id, item.name).then(recargar)}
-                  title="Aprobar: pasa al catálogo de todas las tiendas"
-                  className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-ok transition-colors"
-                >
-                  <Check className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setMergeTarget(item)}
-                  title="Unir con un producto que ya existe"
-                  className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-                >
-                  <Merge className="w-4 h-4" />
-                </button>
-              </>
-            )}
-            <button 
-              onClick={() => { setEditingProduct(item); setIsModalOpen(true); }}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setDeleteTarget(item)}
-              className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       />
       </div>
 

@@ -14,6 +14,7 @@ import { useCategoryFilter } from '@/features/products/hooks/use-category-filter
 import { Button } from '@/components/ui/button';
 import { normalizeText } from '@/lib/utils/text';
 import { ProductCard } from '@/features/products/components/ProductCard';
+import { SimilarResultsNotice } from '@/features/products/components/SimilarResultsNotice';
 
 /** Lo que muestra el selector, y cómo se traduce a lo que entiende el servidor. */
 type OrdenUI = '' | 'asc' | 'desc' | 'price_asc' | 'price_desc';
@@ -28,7 +29,7 @@ const ORDEN: Record<Exclude<OrdenUI, ''>, { sort: 'name' | 'price'; dir: 'asc' |
 const ITEMS_PER_PAGE = 20;
 
 export default function ProductsPage() {
-  const { products, total, loading, error, fetchProducts } = usePublicProducts();
+  const { products, total, sugerido, loading, error, fetchProducts } = usePublicProducts();
   const categorias = useVitrinaCategorias();
 
   const [search, setSearch] = useState('');
@@ -150,6 +151,8 @@ export default function ProductsPage() {
           onSubcategoryChange={filtro.setSubcategory}
         />
       </div>
+
+      {sugerido && search.trim() && <SimilarResultsNotice search={search} />}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
         {products.map(product => (
