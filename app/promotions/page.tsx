@@ -7,7 +7,6 @@ import { usePublicStores } from '@/app/stores/hooks/usePublicStores';
 import { OfferCard } from '@/app/marketplaces/components/OfferCard';
 import { OfferDetailModal } from '@/app/marketplaces/components/OfferDetailModal';
 import { StoreOffer } from '@/features/offers/types/offer.types';
-import { fuzzyFilter } from '@/lib/search/fuzzy';
 
 export default function PromotionsPage() {
   const { offers, loading: loadingOffers } = usePublicOffers();
@@ -19,11 +18,20 @@ export default function PromotionsPage() {
   const [selectedOffer, setSelectedOffer] = useState<StoreOffer | null>(null);
 
   const filteredOffers = useMemo(() => {
-    const deLaTienda = offers.filter(
-      (offer) => storeId === 'all' || offer.store_products?.store_id === storeId
-    );
-    // Tolerante a errores de ortografía, y las que mejor coinciden primero.
-    return fuzzyFilter(deLaTienda, search, (offer) => [offer.store_products?.catalog_products?.name, offer.label]);
+    return offers.filter(offer => {
+      const product = offer.store_products?.catalog_products;
+
+      const matchSearch =
+        product?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        offer.label?.toLowerCase().includes(search.toLowerCase()) ||
+        false;
+
+      const matchStore =
+        storeId === 'all' ||
+        offer.store_products?.store_id === storeId;
+
+      return matchSearch && matchStore;
+    });
   }, [offers, search, storeId]);
 
   if (loadingOffers || loadingStores) {

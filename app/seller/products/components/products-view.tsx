@@ -1,25 +1,27 @@
 import React from 'react';
-import { Search, Plus, Edit2, Trash2, AlertCircle, CheckCircle2, Zap, History, Upload, ImagePlus } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Activity, AlertCircle, CheckCircle2, Zap, History, Upload, Eye, EyeOff, ImagePlus } from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
+} from 'recharts';
 import { useProducts } from '../hooks/use-products';
-import { useProductsGrid } from '../hooks/use-products-grid';
-import { ProductsGrid } from './products-grid';
-import { StockChart } from './stock-chart';
 import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
 import { StockMovementModal } from './StockMovementModal';
 import { BulkImportModal } from './bulk-import-modal';
 import { ImageBulkUploadModal } from '@/features/catalog-images/components/ImageBulkUploadModal';
 import { useHasImageTargets } from '@/features/catalog-images/hooks/use-has-image-targets';
+import { Table } from '@/components/ui/table/components/Table';
+import { useTable } from '@/components/ui/table/hooks/useTable';
 import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
 import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 import type { Product } from '@/features/products/types/product.types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
+import { formatCOP } from '@/lib/utils/format';
 
 export function ProductsView() {
   const {
-    allProducts,
     filteredProducts,
     outOfStockProducts,
     lowestStockProducts,
@@ -59,7 +61,97 @@ export function ProductsView() {
   const [selectedProductForMovement, setSelectedProductForMovement] = React.useState<any | null>(null);
   const [isMovementOpen, setIsMovementOpen] = React.useState(false);
 
-  const grid = useProductsGrid(allProducts, fetchStoreProducts);
+  const {
+    page,
+    setPage,
+    rowsPerPage,
+    setRowsPerPage,
+    sortKey,
+    sortOrder,
+    handleSort,
+    paginatedData,
+    totalPages,
+  } = useTable({ initialData: filteredProducts, initialRowsPerPage: 10 });
+
+  // Columns for the shared Table
+  const columns = [
+    {
+      key: 'name',
+      label: 'Producto',
+      render: (item: any) => (
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-mm-gbg rounded-xl flex items-center justify-center text-2xl overflow-hidden shrink-0 border border-mm-crd">
+            {item.image ? (
+              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl">{item.emoji}</span>
+            )}
+          </div>
+          <span className="font-bold text-mm-g">{item.name}</span>
+        </div>
+      )
+    },
+    {
+      key: 'code',
+      label: 'Código',
+      render: (item: any) => (
+        item.code
+          ? <span className="text-sm font-mono text-mm-txs">{item.code}</span>
+          : <span className="text-sm text-mm-txw" title="Este producto aún no tiene código. Edítalo para agregarlo.">—</span>
+      )
+    },
+    {
+      key: 'cat',
+      label: 'Categoría',
+      render: (item: any) => <span className="text-sm text-mm-txs">{item.cat}</span>
+    },
+    {
+      key: 'retailPrice',
+      label: 'Precio Retail',
+      render: (item: any) => <span className="text-sm font-bold text-mm-g">{formatCOP(item.retailPrice)}</span>
+    },
+    {
+      key: 'wsPrice',
+      label: 'Precio Mayorista',
+      render: (item: any) => <span className="text-sm font-bold text-blue">{formatCOP(item.wsPrice)}</span>
+    },
+    {
+      key: 'stock',
+      label: 'Stock',
+      render: (item: any) => (
+        <Badge variant={item.stock <= 0 ? 'error' : 'success'}>
+          {item.stock <= 0 ? 'Agotado' : `${item.stock} ${item.unit}s`}
+        </Badge>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      render: (item: any) => (
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={item.status === 'active' ? 'success' : 'default'}>
+            {item.status === 'active' ? 'Activo' : 'Inactivo'}
+          </Badge>
+          {item.isFeatured && <Badge variant="oro">Destacado</Badge>}
+          {/* Producto nuevo: ya se vende, pero el catálogo todavía no lo aprueba. */}
+          {item.inReview && <Badge variant="warning">En revisión</Badge>}
+        </div>
+      )
+    }
+  ];
+
+  /**
+   * Retirar o publicar el producto. El error se muestra en el mismo modal de
+   * aviso que el del borrado, para no inventar un segundo canal.
+   */
+  const [errorEstado, setErrorEstado] = React.useState<string | null>(null);
+  const cambiarEstado = async (item: Product) => {
+    try {
+      await toggleProductActive(item.id, item.status !== 'active');
+    } catch (e: unknown) {
+      setErrorEstado(e instanceof Error ? e.message : 'No se pudo cambiar el estado');
+    }
+  };
 
   /**
    * La papelera hace una de dos cosas según el producto.
@@ -77,7 +169,7 @@ export function ProductsView() {
       : handleDeleteProduct(item.id)
   );
 
-  const actions = (item: Product) => (
+  const actions = (item: any) => (
     <div className="flex gap-2">
       <button 
         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
@@ -104,6 +196,15 @@ export function ProductsView() {
         onClick={() => handleOpenEdit(item)}
       >
         <Edit2 className="w-4 h-4" />
+      </button>
+      {/* Publicar o retirar. Sin esto, un producto desactivado no tiene forma de
+          volver y la columna "Estado" sería de solo lectura para siempre. */}
+      <button
+        className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-mm-g transition-colors"
+        onClick={() => cambiarEstado(item)}
+        title={item.status === 'active' ? 'Retirar de la tienda' : 'Publicar en la tienda'}
+      >
+        {item.status === 'active' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
       <button 
         className="p-2 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
@@ -191,8 +292,63 @@ export function ProductsView() {
 
       {/* Analytics Section */}
       <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <StockChart products={filteredProducts} />
+        <div className="lg:col-span-2 bg-white p-8 rounded-[40px] border border-mm-crd shadow-sm h-[400px] flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-display text-mm-g flex items-center gap-2">
+              Niveles de Stock <Activity className="w-5 h-5 text-mm-txw" />
+            </h3>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-mm-g" />
+                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Con stock</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-r" />
+                <span className="text-[10px] font-bold text-mm-txw uppercase tracking-wider">Agotado</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-grow">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={filteredProducts} margin={{ bottom: 40, top: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 9, fill: '#6A7C74', fontWeight: 600 }}
+                  angle={-45}
+                  textAnchor="end"
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#6A7C74' }}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#EEF2E8', radius: 12 }}
+                  contentStyle={{ 
+                    borderRadius: '24px', 
+                    border: '1px solid #E2E6DD', 
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)',
+                    padding: '16px'
+                  }}
+                />
+                <Bar 
+                  dataKey="stock" 
+                  radius={[8, 8, 0, 0]} 
+                  barSize={40}
+                >
+                  {filteredProducts.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.stock <= 0 ? '#B4322A' : '#0E3B2F'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Stock Info Cards */}
@@ -268,8 +424,23 @@ export function ProductsView() {
         </div>
       </div>
 
-      {/* La tabla se edita como Excel: precio, mayorista, stock y publicado. */}
-      <ProductsGrid products={filteredProducts} grid={grid} rowActions={actions} />
+      {/* Products Table */}
+      <div className="bg-white rounded-[40px] border border-mm-crd shadow-sm overflow-hidden">
+        <Table 
+          data={paginatedData}
+          columns={columns}
+          actions={actions}
+          sortKey={sortKey}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={setRowsPerPage}
+          emptyMessage="No se encontraron productos registrados en el inventario."
+        />
+      </div>
 
       {/* Product Modal */}
       <ProductModal 
@@ -364,11 +535,17 @@ export function ProductsView() {
       />
 
       <ConfirmModal
-        isOpen={!!borrado.error}
-        onClose={borrado.dismissError}
-        onConfirm={borrado.dismissError}
+        isOpen={!!borrado.error || !!errorEstado}
+        onClose={() => {
+          borrado.dismissError();
+          setErrorEstado(null);
+        }}
+        onConfirm={() => {
+          borrado.dismissError();
+          setErrorEstado(null);
+        }}
         title="No se pudo completar"
-        message={borrado.error || ''}
+        message={borrado.error || errorEstado || ''}
         variant="warning"
         confirmText="Entendido"
         hideCancel

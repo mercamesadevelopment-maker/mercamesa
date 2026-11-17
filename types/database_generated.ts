@@ -382,7 +382,6 @@ export type Database = {
           owner_group_id: string | null
           proposed_by_store_id: string | null
           review_status: string
-          search_phonetic: string | null
           search_text: string | null
           siigo_id: string
           siigo_synced_at: string | null
@@ -408,7 +407,6 @@ export type Database = {
           owner_group_id?: string | null
           proposed_by_store_id?: string | null
           review_status?: string
-          search_phonetic?: string | null
           search_text?: string | null
           siigo_id: string
           siigo_synced_at?: string | null
@@ -434,7 +432,6 @@ export type Database = {
           owner_group_id?: string | null
           proposed_by_store_id?: string | null
           review_status?: string
-          search_phonetic?: string | null
           search_text?: string | null
           siigo_id?: string
           siigo_synced_at?: string | null
@@ -3942,13 +3939,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "store_products_catalog_product_id_fkey"
-            columns: ["catalog_product_id"]
-            isOneToOne: false
-            referencedRelation: "vitrina_productos"
-            referencedColumns: ["catalog_product_id"]
-          },
-          {
             foreignKeyName: "store_products_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
@@ -4388,7 +4378,6 @@ export type Database = {
       }
       vitrina_productos: {
         Row: {
-          catalog_product_id: string | null
           category_name: string | null
           featured_at: string | null
           has_active_offer: boolean | null
@@ -4400,7 +4389,6 @@ export type Database = {
           price_per_unit: number | null
           product_image_url: string | null
           product_name: string | null
-          product_search_phonetic: string | null
           product_search_text: string | null
           stock: number | null
           store_id: string | null
@@ -4452,17 +4440,9 @@ export type Database = {
         Returns: number
       }
       asignar_codigos_faltantes: { Args: never; Returns: undefined }
-      buscar_productos_parecidos: {
-        Args: { p_limite?: number; p_texto: string }
-        Returns: {
-          catalog_product_id: string
-          parecido: number
-        }[]
-      }
       buyer_credit_balance: { Args: { p_buyer: string }; Returns: number }
       call_app_cron: { Args: { path: string }; Returns: number }
       call_edge_cron: { Args: { fn: string }; Returns: number }
-      clave_fonetica: { Args: { texto: string }; Returns: string }
       copiar_precio_minimo_al_historial: { Args: never; Returns: undefined }
       create_order_refund: { Args: { p: Json }; Returns: string }
       email_registrado_en_auth: { Args: { p_email: string }; Returns: boolean }

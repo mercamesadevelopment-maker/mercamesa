@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { fuzzyFilter } from '@/lib/search/fuzzy';
+import { normalizeText } from '@/lib/utils/text';
 import { CategoryScroller } from '@/components/ui/category-scroller';
 import { usePublicStores } from './hooks/usePublicStores';
 import { usePublicMarketplaces } from '@/app/marketplaces/hooks/usePublicMarketplaces';
@@ -42,16 +42,20 @@ export default function StoresSectionPage() {
   }, [stores]);
 
   const filteredStores = useMemo(() => {
-    const filtradas = stores.filter((s) => {
+    // Sin tildes ni mayúsculas: «lacteos» encuentra «Lácteos».
+    const term = normalizeText(search.trim());
+
+    return stores.filter((s) => {
       const categorias = (s.categories ?? []).map((c) => c.name);
+
+      const matchesSearch =
+        !term ||
+        [s.name, s.description ?? '', ...categorias].some((texto) => normalizeText(texto).includes(term));
       const matchesPlaza = plazaId === 'all' || s.marketplace_id === plazaId;
       const matchesCat = activeCat === 'Todas' || categorias.includes(activeCat);
 
-      return matchesPlaza && matchesCat && matchesSalesType(s, salesType);
+      return matchesSearch && matchesPlaza && matchesCat && matchesSalesType(s, salesType);
     });
-    // Sin tildes y tolerante a errores de ortografía: «lacteos» y «lagteos»
-    // encuentran «Lácteos». Los que mejor coinciden, primero.
-    return fuzzyFilter(filtradas, search, (s) => [s.name, s.description, ...(s.categories ?? []).map((c) => c.name)]);
   }, [stores, search, plazaId, activeCat, salesType]);
 
   if (loading) return <div className="p-12 text-center text-mm-txs">Cargando tiendas...</div>;

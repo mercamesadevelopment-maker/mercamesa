@@ -72,8 +72,6 @@ export function usePublicProducts(storeId?: string, options: Options = {}) {
 
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [total, setTotal] = useState(0);
-  // La búsqueda no encontró nada y llegan los productos que más se parecen.
-  const [sugerido, setSugerido] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,7 +116,6 @@ export function usePublicProducts(storeId?: string, options: Options = {}) {
 
         setProducts(data.data ?? []);
         setTotal(data.count ?? 0);
-        setSugerido(Boolean(data.sugerido));
         setError(null);
       } catch (e: unknown) {
         if (miTurno !== peticionRef.current) return;
@@ -130,7 +127,7 @@ export function usePublicProducts(storeId?: string, options: Options = {}) {
     [storeId, enabled]
   );
 
-  return { products, total, sugerido, loading, error, fetchProducts };
+  return { products, total, loading, error, fetchProducts };
 }
 
 /**
