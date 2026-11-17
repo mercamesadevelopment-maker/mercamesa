@@ -12,3 +12,7 @@ seed/prod_data.sql
 
 # Archivos de Storage bajados de producción para la base local.
 .storage-cache
+
+# Respaldos de datos de staging y producción antes de un cambio a mano, con sus
+# scripts para deshacerlo. Traen datos reales.
+seed/respaldos/
