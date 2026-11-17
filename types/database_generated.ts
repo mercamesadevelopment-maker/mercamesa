@@ -4452,6 +4452,10 @@ export type Database = {
         Returns: number
       }
       asignar_codigos_faltantes: { Args: never; Returns: undefined }
+      asignar_productos_de_grupo: {
+        Args: { p_producto?: string; p_tienda?: string }
+        Returns: number
+      }
       buscar_productos_parecidos: {
         Args: { p_limite?: number; p_texto: string }
         Returns: {
