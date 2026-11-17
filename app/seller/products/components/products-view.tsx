@@ -1,8 +1,9 @@
 import React from 'react';
 import { Search, Plus, Edit2, Trash2, AlertCircle, CheckCircle2, Zap, History, Upload, ImagePlus } from 'lucide-react';
 import { useProducts } from '../hooks/use-products';
-import { useProductsGrid } from '../hooks/use-products-grid';
-import { ProductsGrid } from './products-grid';
+import { usePriceGrid } from '@/features/store-products/hooks/usePriceGrid';
+import { PriceGrid } from '@/features/store-products/components/PriceGrid';
+import { toPriceGridRow } from '../utils/price-grid-row';
 import { StockChart } from './stock-chart';
 import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
@@ -59,7 +60,12 @@ export function ProductsView() {
   const [selectedProductForMovement, setSelectedProductForMovement] = React.useState<any | null>(null);
   const [isMovementOpen, setIsMovementOpen] = React.useState(false);
 
-  const grid = useProductsGrid(allProducts, fetchStoreProducts);
+  // La tabla tipo Excel trabaja sobre todos los productos (un filtro no borra
+  // los cambios) y pinta los filtrados.
+  const gridRows = React.useMemo(() => allProducts.map(toPriceGridRow), [allProducts]);
+  const visibleRows = React.useMemo(() => filteredProducts.map(toPriceGridRow), [filteredProducts]);
+  const productById = React.useMemo(() => new Map(allProducts.map((p) => [String(p.id), p])), [allProducts]);
+  const grid = usePriceGrid(gridRows, units, fetchStoreProducts);
 
   /**
    * La papelera hace una de dos cosas según el producto.
@@ -269,7 +275,15 @@ export function ProductsView() {
       </div>
 
       {/* La tabla se edita como Excel: precio, mayorista, stock y publicado. */}
-      <ProductsGrid products={filteredProducts} grid={grid} rowActions={actions} />
+      <PriceGrid
+        rows={visibleRows}
+        grid={grid}
+        units={units}
+        rowActions={(row) => {
+          const p = productById.get(row.id);
+          return p ? actions(p) : null;
+        }}
+      />
 
       {/* Product Modal */}
       <ProductModal 

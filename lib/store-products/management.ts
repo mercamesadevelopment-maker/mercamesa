@@ -39,14 +39,14 @@ export async function listForManagement(
     let query = withOrderCount
       ? supabase.from('store_products').select(`
           *,
-          catalog_products!inner ( name, image_url, description, category_id, review_status, categories ( id, name, parent_id ) ),
+          catalog_products!inner ( name, image_url, description, category_id, review_status, iva_rate, categories ( id, name, parent_id ) ),
           stores!inner ( name, slug, is_active, marketplaces ( name ) ),
           measurement_units ( abbreviation ),
           order_items ( count )
         `)
       : supabase.from('store_products').select(`
           *,
-          catalog_products!inner ( name, image_url, description, category_id, categories ( id, name, parent_id ) ),
+          catalog_products!inner ( name, image_url, description, category_id, iva_rate, categories ( id, name, parent_id ) ),
           stores!inner ( name, slug, is_active, marketplaces ( name ) ),
           measurement_units ( abbreviation )
         `);

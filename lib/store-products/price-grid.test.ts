@@ -11,7 +11,7 @@ import {
   type PriceValues,
 } from './price-grid';
 
-const actual: PriceValues = { price: 5000, wsPrice: 4000, wsMin: 10, stock: 12, isActive: true };
+const actual: PriceValues = { unitId: 'u-kg', price: 5000, wsPrice: 4000, wsMin: 10, stock: 12, isActive: true };
 const original = draftFromValues('p1', actual);
 
 describe('draftFromValues y changedFields', () => {
@@ -102,6 +102,24 @@ describe('priceValueFromPaste', () => {
   });
 });
 
+describe('unidad de medida', () => {
+  const units = [
+    { id: 'u-kg', name: 'Kilogramo', abbreviation: 'kg' },
+    { id: 'u-lb', name: 'Libra', abbreviation: 'lb' },
+  ];
+
+  it('se pega por abreviatura o por nombre, sin tildes', () => {
+    expect(priceValueFromPaste('unit', 'LB', units)).toEqual({ ok: true, value: 'u-lb' });
+    expect(priceValueFromPaste('unit', 'kilogramo', units)).toEqual({ ok: true, value: 'u-kg' });
+    expect(priceValueFromPaste('unit', 'arroba', units).ok).toBe(false);
+  });
+
+  it('cambiarla manda unit_id; vaciarla es un error', () => {
+    expect(rowFromDraft(original, { ...original, unit: 'u-lb' }, actual).row).toEqual({ id: 'p1', unit_id: 'u-lb' });
+    expect(rowFromDraft(original, { ...original, unit: '' }, actual).errors.unit).toBeDefined();
+  });
+});
+
 describe('parsePriceBatchBody', () => {
   it('acepta lo bien formado', () => {
     expect(parsePriceBatchBody({ rows: [{ id: 'a', price_per_unit: 10, wholesale_price: null, is_active: false }] })).toEqual({
@@ -110,6 +128,7 @@ describe('parsePriceBatchBody', () => {
   });
 
   it('rechaza tipos raros, ids repetidos y lotes vacíos', () => {
+    expect('error' in parsePriceBatchBody({ rows: [{ id: 'a', unit_id: 3 }] })).toBe(true);
     expect('error' in parsePriceBatchBody({ rows: [] })).toBe(true);
     expect('error' in parsePriceBatchBody({ rows: [{ id: 'a', price_per_unit: '10' }] })).toBe(true);
     expect('error' in parsePriceBatchBody({ rows: [{ id: 'a' }, { id: 'a' }] })).toBe(true);
