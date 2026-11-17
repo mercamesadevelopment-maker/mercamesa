@@ -1,5 +1,6 @@
 import { normalizeText } from '@/lib/utils/text';
 import { uniqueSlug } from '@/lib/catalog-import/slug';
+import { parsePastedBoolean } from '@/lib/utils/pasted-cells';
 
 /**
  * Edición masiva de las categorías del catálogo, como en una hoja de cálculo:
@@ -217,16 +218,8 @@ export function mergeDrafts(originals: CategoryDraft[], cambios: CategoryDraft[]
 
 // ── Pegar desde Excel ───────────────────────────────────────────────────────
 
-/** El texto que Excel pone en el portapapeles: filas por salto de línea, celdas por tabulador. */
-export function parsePastedCells(texto: string): string[][] {
-  const filas = texto.replace(/\r\n?/g, '\n').split('\n');
-  // Excel termina lo copiado con un salto de línea: esa última fila vacía no es dato.
-  if (filas.length > 1 && filas[filas.length - 1] === '') filas.pop();
-  return filas.map((fila) => fila.split('\t'));
-}
-
-const SI = new Set(['si', 'sí', 'x', 'true', 'verdadero', '1', 'activa', 'activo']);
-const NO = new Set(['no', 'false', 'falso', '0', 'inactiva', 'inactivo', '']);
+/** Vive en `lib/utils/pasted-cells.ts`: la comparten las tablas tipo Excel. */
+export { parsePastedCells } from '@/lib/utils/pasted-cells';
 
 export type PastedValue = { ok: true; value: string | boolean } | { ok: false; error: string };
 
@@ -239,10 +232,8 @@ export function valueFromPaste(field: CategoryField, texto: string, drafts: Cate
   const limpio = texto.trim();
 
   if (field === 'isActive') {
-    const clave = normalizeText(limpio);
-    if (SI.has(clave)) return { ok: true, value: true };
-    if (NO.has(clave)) return { ok: true, value: false };
-    return { ok: false, error: `«${limpio}» no es Sí ni No.` };
+    const valor = parsePastedBoolean(limpio);
+    return valor === null ? { ok: false, error: `«${limpio}» no es Sí ni No.` } : { ok: true, value: valor };
   }
 
   if (field === 'parentKey') {
