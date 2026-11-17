@@ -7,6 +7,8 @@ export type StoreProduct = Database['public']['Tables']['store_products']['Row']
     image_url: string | null; 
     description: string | null;
     category_id: string | null;
+    review_status?: string | null;
+    iva_rate?: number | null;
     categories?: { name: string } | null;
   } | null;
   stores?: { name: string; marketplaces?: { name: string } | null } | null;
