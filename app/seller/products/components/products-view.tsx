@@ -279,6 +279,7 @@ export function ProductsView() {
         rows={visibleRows}
         grid={grid}
         units={units}
+        showDescription
         rowActions={(row) => {
           const p = productById.get(row.id);
           return p ? actions(p) : null;

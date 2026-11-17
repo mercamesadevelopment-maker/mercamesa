@@ -55,7 +55,8 @@ export function useMasterGrid(products: CatalogRow[], opts: MasterOptions, reloa
 
   return useGridDrafts<MasterDraft, MasterBatchRow>({
     originals,
-    fields: MASTER_FIELDS,
+    // La descripción no es columna de la tabla: se edita en «Editar».
+    fields: MASTER_FIELDS.filter((f) => f !== 'description'),
     parseCell: (field, texto) => masterValueFromPaste(field as MasterField, texto, opts),
     changedFields: (o, d) => changedMasterFields(o, d),
     build: (editadas) => buildMasterBatch(originals, editadas),

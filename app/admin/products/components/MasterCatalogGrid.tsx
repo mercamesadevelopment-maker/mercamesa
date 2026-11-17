@@ -35,12 +35,12 @@ interface MasterCatalogGridProps<T extends MasterGridProduct> {
   total?: number;
 }
 
-const EDITABLES = new Set<string>(['name', 'category', 'unit', 'iva', 'group', 'isActive', 'description']);
+const EDITABLES = new Set<string>(['name', 'category', 'unit', 'iva', 'group', 'isActive']);
 
 /**
  * El catálogo maestro como hoja de cálculo. Orden: código (no editable),
- * producto, categoría, unidad, IVA, exclusividad, activo y descripción.
- * La foto y las banderas siguen en «Editar».
+ * producto, categoría, unidad, IVA, exclusividad y activo.
+ * La descripción, la foto y las banderas siguen en «Editar».
  */
 export function MasterCatalogGrid<T extends MasterGridProduct>({
   products,
@@ -128,7 +128,6 @@ export function MasterCatalogGrid<T extends MasterGridProduct>({
         options: [{ value: '', label: 'Público' }, ...options.groups.map((g) => ({ value: g.id, label: g.name }))],
       },
       { key: 'isActive', label: 'Activo', type: 'checkbox', width: '5rem' },
-      { key: 'description', label: 'Descripción', type: 'text', width: '20rem', placeholder: 'Sin descripción' },
     ],
     [options, selection]
   );
