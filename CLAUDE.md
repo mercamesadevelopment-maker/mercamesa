@@ -287,8 +287,10 @@ Inventario actual:
   de lógica propia.
 - `editable-grid/` — `EditableGrid`, tabla que se edita como una hoja de cálculo: escribir
   sobre la celda, flechas/Tab/Enter/Escape (`hooks/useGridNavigation.ts`), pegar desde
-  Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa
-  (ejemplo: la pestaña de categorías, con `lib/categories/batch.ts`).
+  Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa.
+  Ejemplos: la pestaña de categorías (`lib/categories/batch.ts`) y los productos del tendero
+  (`lib/store-products/price-grid.ts`, que guarda en lote por `PATCH /api/store-products/batch`
+  y deja cada cambio de stock en la bitácora). Lo pegado se lee con `lib/utils/pasted-cells.ts`.
 - `shell/` — layout de shell (sidebar, permisos), dividido igual en `components/` y
   `hooks/usePermissions.ts`. El `Sidebar` es responsive: a partir de `lg` (1024px) es el
   riel colapsable de siempre (`collapsed`/`w-20`/`w-64`); por debajo de `lg` se ignora

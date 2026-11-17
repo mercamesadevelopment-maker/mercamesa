@@ -1,0 +1,224 @@
+import { parseNumber } from '@/lib/product-import/parse-number';
+import { parsePastedBoolean } from '@/lib/utils/pasted-cells';
+
+/**
+ * La tabla de productos del tendero, que se edita como una hoja de cálculo:
+ * precio, precio mayorista, mínimo mayorista, stock y si está publicado.
+ *
+ * Funciones puras: las usa la tabla (resaltar y avisar mientras se escribe) y
+ * la ruta que guarda (`save-price-batch.ts`), que no confía en el navegador.
+ */
+
+export type PriceField = 'price' | 'wsPrice' | 'wsMin' | 'stock' | 'isActive';
+
+/** El orden de las columnas editables: así se reparte lo pegado desde Excel. */
+export const PRICE_FIELDS: PriceField[] = ['price', 'wsPrice', 'wsMin', 'stock', 'isActive'];
+
+/** Los valores guardados de un producto. */
+export interface PriceValues {
+  price: number;
+  wsPrice: number | null;
+  wsMin: number | null;
+  stock: number;
+  isActive: boolean;
+}
+
+/** Una fila mientras se edita: los números van como texto, tal cual se escriben. */
+export interface PriceDraft {
+  id: string;
+  price: string;
+  wsPrice: string;
+  wsMin: string;
+  stock: string;
+  isActive: boolean;
+}
+
+/** Lo que se manda a guardar: solo los campos que cambiaron. */
+export interface PriceBatchRow {
+  id: string;
+  price_per_unit?: number;
+  wholesale_price?: number | null;
+  wholesale_min_qty?: number | null;
+  stock?: number;
+  is_active?: boolean;
+}
+
+export type PriceErrors = Record<string, Partial<Record<PriceField, string>>>;
+
+/** Tope de filas por guardado. */
+export const MAX_BATCH_ROWS = 2000;
+
+const texto = (n: number | null) => (n === null ? '' : String(n));
+
+export function draftFromValues(id: string, v: PriceValues): PriceDraft {
+  return {
+    id,
+    price: texto(v.price),
+    wsPrice: texto(v.wsPrice),
+    wsMin: texto(v.wsMin),
+    stock: texto(v.stock),
+    isActive: v.isActive,
+  };
+}
+
+/**
+ * Qué campos difieren de lo guardado. Se compara el texto: si no se tocó,
+ * sigue siendo el que salió de `draftFromValues`.
+ */
+export function changedFields(original: PriceDraft | undefined, draft: PriceDraft): PriceField[] {
+  if (!original) return [];
+  return PRICE_FIELDS.filter((f) => original[f] !== draft[f]);
+}
+
+/** Un número escrito en la celda: vacío es `null`; lo que no se entiende, `NaN`. */
+function leerNumero(valor: string): number | null {
+  if (valor.trim() === '') return null;
+  return parseNumber(valor) ?? Number.NaN;
+}
+
+/**
+ * Las reglas de una fila ya en números, contra lo que hay guardado (`actual`):
+ * un mayorista que se queda igual se compara con el precio nuevo.
+ */
+export function validateRow(row: PriceBatchRow, actual: PriceValues): Partial<Record<PriceField, string>> {
+  const errores: Partial<Record<PriceField, string>> = {};
+  const precio = row.price_per_unit ?? actual.price;
+  const mayorista = row.wholesale_price !== undefined ? row.wholesale_price : actual.wsPrice;
+
+  if (row.price_per_unit !== undefined && !(Number.isFinite(row.price_per_unit) && row.price_per_unit > 0)) {
+    errores.price = 'El precio tiene que ser mayor que 0.';
+  }
+  if (row.wholesale_price !== undefined && row.wholesale_price !== null && !(Number.isFinite(row.wholesale_price) && row.wholesale_price > 0)) {
+    errores.wsPrice = 'El precio mayorista tiene que ser mayor que 0, o quedar vacío.';
+  } else if (mayorista !== null && Number.isFinite(precio) && precio > 0 && mayorista > precio) {
+    // Con un precio inválido ya hay error en el precio: no se repite acá.
+    errores.wsPrice = 'El precio mayorista no puede ser mayor que el precio.';
+  }
+  if (row.wholesale_min_qty !== undefined && row.wholesale_min_qty !== null && !(Number.isInteger(row.wholesale_min_qty) && row.wholesale_min_qty >= 1)) {
+    errores.wsMin = 'El mínimo mayorista es un número entero de 1 o más, o vacío.';
+  }
+  if (row.stock !== undefined && !(Number.isFinite(row.stock) && row.stock >= 0)) {
+    errores.stock = 'El stock tiene que ser 0 o más.';
+  }
+  return errores;
+}
+
+/**
+ * Convierte una fila editada en lo que se guarda (solo lo cambiado) y dice qué
+ * celdas están mal. Una fila sin cambios no se valida: lo guardado no bloquea.
+ */
+export function rowFromDraft(
+  original: PriceDraft,
+  draft: PriceDraft,
+  actual: PriceValues
+): { row: PriceBatchRow | null; errors: Partial<Record<PriceField, string>> } {
+  const campos = changedFields(original, draft);
+  if (campos.length === 0) return { row: null, errors: {} };
+
+  const row: PriceBatchRow = { id: draft.id };
+  const errors: Partial<Record<PriceField, string>> = {};
+  const noEsNumero = (f: PriceField) => (errors[f] = `«${draft[f]}» no es un número.`);
+
+  for (const campo of campos) {
+    if (campo === 'isActive') {
+      row.is_active = draft.isActive;
+      continue;
+    }
+    const n = leerNumero(draft[campo]);
+    if (Number.isNaN(n)) {
+      noEsNumero(campo);
+      continue;
+    }
+    if (campo === 'price') {
+      if (n === null) errors.price = 'El precio no puede quedar vacío.';
+      else row.price_per_unit = n;
+    } else if (campo === 'stock') {
+      if (n === null) errors.stock = 'El stock no puede quedar vacío; escribe 0 si no hay.';
+      else row.stock = n;
+    } else if (campo === 'wsPrice') {
+      row.wholesale_price = n;
+    } else {
+      row.wholesale_min_qty = n;
+    }
+  }
+
+  return { row, errors: { ...validateRow(row, actual), ...errors } };
+}
+
+/** Todas las filas cambiadas, y los errores de cada una. */
+export function buildPriceBatch(
+  originals: Map<string, PriceDraft>,
+  drafts: PriceDraft[],
+  actuales: Map<string, PriceValues>
+): { rows: PriceBatchRow[]; errors: PriceErrors } {
+  const rows: PriceBatchRow[] = [];
+  const errors: PriceErrors = {};
+  for (const d of drafts) {
+    const original = originals.get(d.id);
+    const actual = actuales.get(d.id);
+    if (!original || !actual) continue;
+    const r = rowFromDraft(original, d, actual);
+    if (Object.keys(r.errors).length > 0) errors[d.id] = r.errors;
+    if (r.row) rows.push(r.row);
+  }
+  return { rows, errors };
+}
+
+export function countPriceErrors(errores: PriceErrors): number {
+  return Object.values(errores).reduce((n, porCampo) => n + Object.keys(porCampo).length, 0);
+}
+
+export type PastedPrice = { ok: true; value: string | boolean } | { ok: false; error: string };
+
+/**
+ * Una celda pegada desde Excel. Los números se guardan ya normalizados
+ * («$ 1.200» queda «1200»), para que la tabla los muestre como se van a guardar.
+ */
+export function priceValueFromPaste(field: PriceField, texto: string): PastedPrice {
+  const limpio = texto.trim();
+  if (field === 'isActive') {
+    const v = parsePastedBoolean(limpio);
+    return v === null ? { ok: false, error: `«${limpio}» no es Sí ni No.` } : { ok: true, value: v };
+  }
+  if (limpio === '') return { ok: true, value: '' };
+  const n = parseNumber(limpio);
+  return n === null ? { ok: false, error: `«${limpio}» no es un número.` } : { ok: true, value: String(n) };
+}
+
+/** Lee el cuerpo del guardado sin confiar en él: forma, tipos y tope. */
+export function parsePriceBatchBody(body: unknown): { rows: PriceBatchRow[] } | { error: string } {
+  const lista = (body as { rows?: unknown })?.rows;
+  if (!Array.isArray(lista) || lista.length === 0) return { error: 'No hay cambios para guardar.' };
+  if (lista.length > MAX_BATCH_ROWS) return { error: `Se pueden guardar hasta ${MAX_BATCH_ROWS} productos a la vez.` };
+
+  const numOrNull = (v: unknown) => v === null || typeof v === 'number';
+  const rows: PriceBatchRow[] = [];
+  const vistos = new Set<string>();
+  for (const r of lista as Record<string, unknown>[]) {
+    if (!r || typeof r.id !== 'string' || vistos.has(r.id)) return { error: 'Hay una fila sin id o repetida.' };
+    vistos.add(r.id);
+    const row: PriceBatchRow = { id: r.id };
+    if (r.price_per_unit !== undefined) {
+      if (typeof r.price_per_unit !== 'number') return { error: 'Precio inválido.' };
+      row.price_per_unit = r.price_per_unit;
+    }
+    if (r.wholesale_price !== undefined) {
+      if (!numOrNull(r.wholesale_price)) return { error: 'Precio mayorista inválido.' };
+      row.wholesale_price = r.wholesale_price as number | null;
+    }
+    if (r.wholesale_min_qty !== undefined) {
+      if (!numOrNull(r.wholesale_min_qty)) return { error: 'Mínimo mayorista inválido.' };
+      row.wholesale_min_qty = r.wholesale_min_qty as number | null;
+    }
+    if (r.stock !== undefined) {
+      if (typeof r.stock !== 'number') return { error: 'Stock inválido.' };
+      row.stock = r.stock;
+    }
+    if (r.is_active !== undefined) {
+      if (typeof r.is_active !== 'boolean') return { error: 'Publicado inválido.' };
+      row.is_active = r.is_active;
+    }
+    rows.push(row);
+  }
+  return { rows };
+}

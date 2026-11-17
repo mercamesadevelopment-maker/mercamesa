@@ -84,6 +84,8 @@ export function useProducts() {
         ws20: Number(item.price_per_unit * 0.75),
         ws50: Number(item.price_per_unit * 0.7),
         wsMin: Number(item.wholesale_min_qty || 10),
+        wholesalePrice: item.wholesale_price == null ? null : Number(item.wholesale_price),
+        wholesaleMinQty: item.wholesale_min_qty == null ? null : Number(item.wholesale_min_qty),
         stock: Number(item.stock),
         minStock: Number(item.min_order_qty || 1),
         masterId: item.catalog_product_id,
@@ -379,6 +381,8 @@ export function useProducts() {
   );
 
   return {
+    /** Todos, sin filtrar: la tabla guarda los cambios aunque un filtro oculte la fila. */
+    allProducts: myProducts,
     filteredProducts,
     outOfStockProducts,
     lowestStockProducts,
