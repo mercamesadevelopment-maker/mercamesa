@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '@/lib/supabase/supabase-image';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
 import { resolveOfferPrices, type PrecioResuelto } from '@/lib/offers/resolve-offer-prices';
+import { applyProductSearch, findSimilarProductIds } from '@/lib/search/server';
 
 /** Lo que se ordena en la vitrina, y con qué columna de la vista. */
 const ORDEN_VITRINA: Record<string, string> = {
@@ -44,9 +45,18 @@ export async function listStorefront(
   supabase: SupabaseClient<any>,
   params: URLSearchParams,
   storeId: string | null
-): Promise<{ data: ReturnType<typeof toStorefrontItem>[]; count: number | null; paginated: boolean }> {
+): Promise<{
+  data: ReturnType<typeof toStorefrontItem>[];
+  count: number | null;
+  paginated: boolean;
+  /** No hubo coincidencias y se muestran los productos que más se parecen a lo buscado. */
+  sugerido: boolean;
+}> {
   const page = Number(params.get('page')) || 0;
   const paginated = page > 0;
+  const search = (params.get('search') || '').trim();
+  // Con la segunda red (`findSimilarProductIds`): en vez del término, estos ids.
+  let parecidos: string[] | null = null;
 
   const construirConsulta = (from: number, to: number) => {
     let query = supabase
@@ -78,10 +88,11 @@ export async function listStorefront(
     const productId = params.get('product_id');
     if (productId) query = query.eq('id', productId);
 
-    const search = (params.get('search') || '').trim();
-    // El término llega ya normalizado (minúscula, sin tildes) y `search_text`
-    // guarda el nombre igual, así que "platano" encuentra "plátano".
-    if (search) query = query.ilike('product_search_text', `%${search}%`);
+    // Tolerante a errores de ortografía: «bino» encuentra «vino» (lib/search).
+    if (parecidos) query = query.in('catalog_product_id', parecidos);
+    else if (search) {
+      query = applyProductSearch(query, search, { text: 'product_search_text', phonetic: 'product_search_phonetic' });
+    }
 
     // Dos niveles: `category` es la categoría (la madre) y `subcategory`, la
     // categoría directa del producto.
@@ -122,21 +133,33 @@ export async function listStorefront(
     return query.order('id');
   };
 
-  let filas: StorefrontRow[];
-  let count: number | null = null;
-
-  if (paginated) {
-    const pageSize = Math.min(Math.max(Number(params.get('pageSize')) || 20, 1), 200);
-    const from = (page - 1) * pageSize;
-    const { data, count: total, error } = await construirConsulta(from, from + pageSize - 1);
-    if (error) throw new Error(error.message);
-    filas = (data ?? []) as StorefrontRow[];
-    count = total ?? 0;
-  } else {
+  const consultar = async (): Promise<{ filas: StorefrontRow[]; count: number | null }> => {
+    if (paginated) {
+      const pageSize = Math.min(Math.max(Number(params.get('pageSize')) || 20, 1), 200);
+      const from = (page - 1) * pageSize;
+      const { data, count: total, error } = await construirConsulta(from, from + pageSize - 1);
+      if (error) throw new Error(error.message);
+      return { filas: (data ?? []) as StorefrontRow[], count: total ?? 0 };
+    }
     // Sin paginar hay que recorrerla entera: PostgREST corta en 1.000 filas sin
     // avisar y hay 3.746 productos publicados. Eso llevaba tiempo escondiéndole
     // 2.746 productos al comprador.
-    filas = await fetchAllRows<StorefrontRow>((from, to) => construirConsulta(from, to) as any);
+    return { filas: await fetchAllRows<StorefrontRow>((from, to) => construirConsulta(from, to) as any), count: null };
+  };
+
+  let { filas, count } = await consultar();
+
+  // Segunda red: si lo buscado no está ni escrito ni sonando igual, se muestran
+  // los productos que más se parecen («aguacte» → aguacate). Solo en la primera
+  // página: en las siguientes, sin resultados, ya no hay nada que sugerir.
+  let sugerido = false;
+  if (search && filas.length === 0 && page <= 1) {
+    const ids = await findSimilarProductIds(supabase, search);
+    if (ids.length > 0) {
+      parecidos = ids;
+      ({ filas, count } = await consultar());
+      sugerido = filas.length > 0;
+    }
   }
 
   /**
@@ -158,7 +181,7 @@ export async function listStorefront(
     precios = new Map();
   }
 
-  return { data: filas.map((fila) => toStorefrontItem(fila, precios.get(fila.id))), count, paginated };
+  return { data: filas.map((fila) => toStorefrontItem(fila, precios.get(fila.id))), count, paginated, sugerido };
 }
 
 /**

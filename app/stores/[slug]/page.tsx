@@ -14,6 +14,7 @@ import {
 import { useSession } from '@/features/auth/session-context';
 import { useFavorites } from '@/features/favorites/hooks/use-favorites';
 import { ProductCard } from '@/features/products/components/ProductCard';
+import { SimilarResultsNotice } from '@/features/products/components/SimilarResultsNotice';
 import { useStoreReviews } from '@/features/stores/hooks/use-store-reviews';
 import { RatingModal } from '@/features/stores/components/RatingModal';
 import { ReviewsPanel } from '@/features/stores/components/ReviewsPanel';
@@ -42,6 +43,7 @@ export default function StoreDetailPage() {
   const {
     products,
     total,
+    sugerido,
     loading: loadingProducts,
     fetchProducts,
   } = usePublicProducts(storeId, { enabled: Boolean(storeId) });
@@ -230,6 +232,11 @@ export default function StoreDetailPage() {
           <div className="py-12 text-center text-mm-txs">Cargando productos...</div>
         ) : productosVisibles.length > 0 ? (
           <>
+            {sugerido && search.trim() && (
+              <div className="mb-4">
+                <SimilarResultsNotice search={search} />
+              </div>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
               {productosVisibles.map(product => (
                 <ProductCard

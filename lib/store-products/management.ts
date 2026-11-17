@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { applyProductSearch } from '@/lib/search/server';
 import type { Database } from '@/types/database_generated';
 import { getSupabaseImageUrl, PRESET_PRODUCT_CARD } from '@/lib/supabase/supabase-image';
 import { fetchAllRows } from '@/lib/supabase/fetch-all';
@@ -51,7 +52,10 @@ export async function listForManagement(
         `);
 
     if (storeId) query = query.eq('store_id', storeId);
-    if (search) query = query.ilike('catalog_products.search_text', `%${search}%`);
+    // Tolerante a errores de ortografía («bino» → vino), sobre la tabla embebida.
+    if (search) {
+      query = applyProductSearch(query, search, { text: 'search_text', phonetic: 'search_phonetic' }, 'catalog_products');
+    }
 
     return query
       .order('is_featured', { ascending: false })

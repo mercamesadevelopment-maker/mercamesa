@@ -10,7 +10,7 @@ import { Table } from '../../../components/ui/table/components/Table';
 import { useTable } from '../../../components/ui/table/hooks/useTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { normalizeText } from '@/lib/utils/text';
+import { fuzzyFilter } from '@/lib/search/fuzzy';
 import { getSupabaseImageUrl, PRESET_THUMBNAIL } from '@/lib/supabase/supabase-image';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 import { formatCOP } from '@/lib/utils/format';
@@ -100,13 +100,7 @@ export default function CatalogAdmin() {
 
   // Filter raw storeProducts by selected filters
   const filteredStoreProducts = useMemo(() => {
-    return storeProducts.filter((item) => {
-      // 1. Search Query: matches catalog product name or description
-      const matchesSearch =
-        !searchQuery ||
-        normalizeText(item.catalog_products?.name || '').includes(normalizeText(searchQuery)) ||
-        normalizeText(item.catalog_products?.description || '').includes(normalizeText(searchQuery));
-
+    const filtrados = storeProducts.filter((item) => {
       // 2. Store: matches store ID
       const matchesStore = !selectedStore || item.store_id === selectedStore;
 
@@ -115,8 +109,11 @@ export default function CatalogAdmin() {
         !selectedCategory ||
         (item.catalog_products?.category_id && selectedCategoryIds.includes(item.catalog_products.category_id));
 
-      return matchesSearch && matchesStore && matchesCategory;
+      return matchesStore && matchesCategory;
     });
+    // 1. La búsqueda, tolerante a errores de ortografía («bino» → vino), y los
+    // que mejor coinciden primero.
+    return fuzzyFilter(filtrados, searchQuery, (item) => [item.catalog_products?.name, item.catalog_products?.description]);
   }, [storeProducts, searchQuery, selectedStore, selectedCategory, selectedCategoryIds]);
 
   // Group the filtered storeProducts by catalog_product_id synchronously
