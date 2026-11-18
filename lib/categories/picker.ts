@@ -62,3 +62,37 @@ export function leafCategoryOptions(categories: PickerCategory[]): { id: string;
     }))
     .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 }
+
+/**
+ * Las opciones de un filtro por categoría: todas, como «Madre > Sub», en orden.
+ * Elegir una madre filtra también sus subcategorías (`categoryWithDescendants`).
+ */
+export function categoryFilterOptions(categories: PickerCategory[]): { id: string; displayName: string }[] {
+  const nombre = new Map(categories.map((c) => [c.id, c.name]));
+  return categories
+    .map((c) => ({
+      id: c.id,
+      displayName: c.parent_id ? `${nombre.get(c.parent_id) ?? ''} > ${c.name}` : c.name,
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, 'es'));
+}
+
+/** La categoría y todas sus descendientes, para filtrar. Vacío si no hay ninguna elegida. */
+export function categoryWithDescendants(categories: PickerCategory[], categoryId: string): string[] {
+  if (!categoryId) return [];
+  const result = [categoryId];
+  for (let i = 0; i < result.length; i++) {
+    for (const c of categories) {
+      if (c.parent_id === result[i] && !result.includes(c.id)) result.push(c.id);
+    }
+  }
+  return result;
+}
+
+/** «Madre › Sub» de la categoría de un producto, o la madre sola. Vacío si no se conoce. */
+export function categoryLabel(categories: PickerCategory[], categoryId: string | null | undefined): string {
+  const c = categoryId ? categories.find((x) => x.id === categoryId) : undefined;
+  if (!c) return '';
+  const madre = c.parent_id ? categories.find((x) => x.id === c.parent_id) : undefined;
+  return madre ? `${madre.name} › ${c.name}` : c.name;
+}

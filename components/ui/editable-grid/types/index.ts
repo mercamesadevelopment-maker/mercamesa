@@ -18,6 +18,8 @@ export interface GridColumn<TRow> {
   render?: (row: TRow) => React.ReactNode;
   /** Texto pequeño debajo del valor (p. ej. el slug). */
   hint?: (row: TRow) => React.ReactNode;
+  /** El encabezado ordena (avisa con `onSort`; ordenar es de quien usa la tabla). */
+  sortable?: boolean;
 }
 
 /** Errores por fila y columna: el mensaje se muestra en la celda. */
@@ -44,6 +46,11 @@ export interface EditableGridProps<TRow> {
   emptyMessage?: string;
   /** Alto máximo del área con scroll. Default: `'65vh'`. */
   maxHeight?: string;
+  /** Por qué columna está ordenada, para pintar la flecha. Igual que en `Table`. */
+  sortKey?: string | null;
+  sortOrder?: 'asc' | 'desc';
+  /** Clic en el encabezado de una columna `sortable`. */
+  onSort?: (columnKey: string) => void;
 }
 
 /** La celda activa: fila y columna por posición. */

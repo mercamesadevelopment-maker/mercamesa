@@ -3,6 +3,7 @@ import { Product, MasterProduct } from '@/features/products/types/product.types'
 import { useSellerStore } from '@/app/seller/hooks/use-seller-store';
 import { validateProductCode } from '@/lib/products/product-code';
 import { fuzzyFilter } from '@/lib/search/fuzzy';
+import { categoryFilterOptions, categoryWithDescendants, type PickerCategory } from '@/lib/categories/picker';
 
 export function useProducts() {
   const { stores, storeId, storeName, selectStore } = useSellerStore();
@@ -16,7 +17,7 @@ export function useProducts() {
 
   const [selectedStore, setSelectedStore] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<PickerCategory[]>([]);
 
   // Sync selectedStore filter with active storeId initially and on change
   useEffect(() => {
@@ -334,28 +335,35 @@ export function useProducts() {
     await fetchStoreProducts();
   };
 
+  // El filtro, igual que en el admin: «Madre > Sub», y una madre trae sus subcategorías.
+  const categoryOptions = useMemo(() => categoryFilterOptions(categories), [categories]);
+  const selectedCategoryIds = useMemo(
+    () => new Set(categoryWithDescendants(categories, selectedCategory)),
+    [categories, selectedCategory]
+  );
+
   const filteredProducts = useMemo(() => {
     const filtrados = myProducts.filter((p) => {
       // 2. Store: matches store ID
       const matchesStore = !selectedStore || p.storeId === selectedStore;
 
       // 3. Category: matches category ID
-      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+      const matchesCategory = !selectedCategory || selectedCategoryIds.has(p.categoryId ?? '');
 
       return matchesStore && matchesCategory;
     });
     // 1. La búsqueda: nombre, código y descripción, tolerante a errores de
     // ortografía («bino» → vino). Los que mejor coinciden, primero.
     return fuzzyFilter(filtrados, search, (p) => [p.name, p.code, p.desc]);
-  }, [myProducts, search, selectedStore, selectedCategory]);
+  }, [myProducts, search, selectedStore, selectedCategory, selectedCategoryIds]);
 
   const scopedProducts = useMemo(() => {
     return myProducts.filter(p => {
       const matchesStore = !selectedStore || p.storeId === selectedStore;
-      const matchesCategory = !selectedCategory || p.categoryId === selectedCategory;
+      const matchesCategory = !selectedCategory || selectedCategoryIds.has(p.categoryId ?? '');
       return matchesStore && matchesCategory;
     });
-  }, [myProducts, selectedStore, selectedCategory]);
+  }, [myProducts, selectedStore, selectedCategory, selectedCategoryIds]);
 
   // Agotado es un hecho; "stock bajo" no, porque store_products no tiene una
   // columna de stock mínimo. `minStock` es en realidad `min_order_qty`, el
@@ -391,6 +399,7 @@ export function useProducts() {
     selectedCategory,
     setSelectedCategory,
     categories,
+    categoryOptions,
     isModalOpen,
     setIsModalOpen,
     editingProduct,

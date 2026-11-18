@@ -8,6 +8,8 @@ import {
   parseMasterBatchBody,
   type MasterOptions,
   type MasterValues,
+  isMasterSortField,
+  masterSortField,
 } from './master-grid';
 
 const v: MasterValues = {
@@ -99,5 +101,23 @@ describe('buildMasterBatch y parseMasterBatchBody', () => {
     });
     expect('error' in parseMasterBatchBody({ rows: [{ id: 'a', iva_rate: '19' }] })).toBe(true);
     expect('error' in parseMasterBatchBody({ rows: [] })).toBe(true);
+  });
+});
+
+describe('orden del catálogo maestro', () => {
+  it('cada columna ordenable va a su campo; categoría y unidad no', () => {
+    expect(masterSortField('code')).toBe('siigo_id');
+    expect(masterSortField('iva')).toBe('iva_rate');
+    expect(masterSortField('category')).toBeNull();
+    expect(masterSortField('unit')).toBeNull();
+    expect(masterSortField('toString')).toBeNull();
+    expect(masterSortField(null)).toBeNull();
+  });
+
+  it('el servidor solo acepta esos campos', () => {
+    expect(isMasterSortField('siigo_id')).toBe(true);
+    expect(isMasterSortField('name')).toBe(true);
+    expect(isMasterSortField('created_by')).toBe(false);
+    expect(isMasterSortField(null)).toBe(false);
   });
 });
