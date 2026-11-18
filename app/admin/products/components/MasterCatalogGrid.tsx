@@ -7,7 +7,7 @@ import { GridSaveBar } from '@/components/ui/editable-grid/components/GridSaveBa
 import { GridPager } from '@/components/ui/editable-grid/components/GridPager';
 import type { GridColumn } from '@/components/ui/editable-grid/types';
 import { Badge } from '@/components/ui/badge';
-import { IVA_OPTIONS, type MasterField, type MasterOptions } from '@/lib/catalog/master-grid';
+import { IVA_OPTIONS, masterSortField, type MasterField, type MasterOptions } from '@/lib/catalog/master-grid';
 import type { useMasterGrid } from '../hooks/use-master-grid';
 
 /** Lo mínimo que la tabla necesita de cada producto del catálogo. */
@@ -33,6 +33,10 @@ interface MasterCatalogGridProps<T extends MasterGridProduct> {
   onRowsPerPageChange: (n: number) => void;
   /** Total de productos con los filtros puestos. */
   total?: number;
+  /** El orden lo hace el servidor (pagina allá): la tabla solo avisa el clic. */
+  sortKey: string | null;
+  sortOrder: 'asc' | 'desc';
+  onSort: (columnKey: string) => void;
 }
 
 const EDITABLES = new Set<string>(['name', 'category', 'unit', 'iva', 'group', 'isActive']);
@@ -54,6 +58,9 @@ export function MasterCatalogGrid<T extends MasterGridProduct>({
   rowsPerPage,
   onRowsPerPageChange,
   total,
+  sortKey,
+  sortOrder,
+  onSort,
 }: MasterCatalogGridProps<T>) {
   const columns = useMemo<GridColumn<T>[]>(
     () => [
@@ -128,7 +135,7 @@ export function MasterCatalogGrid<T extends MasterGridProduct>({
         options: [{ value: '', label: 'Público' }, ...options.groups.map((g) => ({ value: g.id, label: g.name }))],
       },
       { key: 'isActive', label: 'Activo', type: 'checkbox', width: '5rem' },
-    ],
+    ].map((c) => (masterSortField(c.key) ? { ...c, sortable: true } : c)) as GridColumn<T>[],
     [options, selection]
   );
 
@@ -158,6 +165,9 @@ export function MasterCatalogGrid<T extends MasterGridProduct>({
         onCellChange={(id, key, value) => grid.updateCell(id, key, value)}
         onPaste={(id, key, texto) => grid.paste(visibleIds, id, key, texto, columnKeys)}
         isChanged={grid.isChanged}
+        sortKey={sortKey}
+        sortOrder={sortOrder}
+        onSort={onSort}
         errors={grid.errores}
         rowActions={rowActions}
         emptyMessage="No se encontraron productos."

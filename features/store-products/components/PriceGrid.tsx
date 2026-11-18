@@ -8,6 +8,7 @@ import type { GridColumn } from '@/components/ui/editable-grid/types';
 import { Badge } from '@/components/ui/badge';
 import type { CategoryOption, PriceField, UnitOption } from '@/lib/store-products/price-grid';
 import type { usePriceGrid } from '../hooks/usePriceGrid';
+import { nextSort, sortRows, type SortState, type SortValue } from '@/lib/utils/sort-rows';
 import type { PriceGridRow } from '../types';
 
 interface PriceGridProps {
@@ -26,29 +27,62 @@ interface PriceGridProps {
    * con las mismas categorías.
    */
   categories?: CategoryOption[];
-  /** La descripción del catálogo, de solo lectura (la tabla del tendero). */
-  showDescription?: boolean;
+  /** Columna «Categoría» de solo lectura, «Categoría › Subcategoría» (la tabla del tendero). */
+  showCategory?: boolean;
 }
 
 const EDITABLES = new Set<string>(['category', 'unit', 'price', 'wsPrice', 'wsMin', 'stock', 'isActive']);
 const pct = (rate: number) => `${Math.round(rate * 100)} %`;
 
+/** Columnas que no ordenan: la selección. Las acciones no son columna. */
+const NO_ORDENAN = new Set<string>(['select']);
+
 /**
  * Productos de tienda como una hoja de cálculo. Orden: código y producto (solo
- * lectura), tienda (admin), y de ahí lo editable —unidad, precios, stock,
- * publicado— y, en la del tendero, la descripción. Producto, IVA y descripción son del catálogo
- * maestro y se editan en `/admin/products`.
+ * lectura), tienda (admin), categoría, y de ahí lo editable —unidad, precios,
+ * stock, publicado—. Producto e IVA son del catálogo maestro y se editan en
+ * `/admin/products`.
+ *
+ * Se ordena por columna con el encabezado, por lo guardado y no por lo que se
+ * está escribiendo: una fila no salta de lugar a mitad de la edición.
  */
-export function PriceGrid({ rows, grid, units, rowActions, showStore, selection, categories, showDescription }: PriceGridProps) {
+export function PriceGrid({ rows, grid, units, rowActions, showStore, selection, categories, showCategory }: PriceGridProps) {
+  const [sort, setSort] = useState<SortState>({ key: null, order: 'asc' });
+
+  const unitName = useMemo(() => new Map(units.map((u) => [u.id, u.abbreviation || u.name])), [units]);
+  const categoryName = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c.label])), [categories]);
+  const conCategoria = Boolean(categories) || Boolean(showCategory);
+
+  const sorted = useMemo(() => {
+    if (!sort.key) return rows;
+    const valueOf = (r: PriceGridRow): SortValue => {
+      switch (sort.key) {
+        case 'code': return r.code;
+        case 'name': return r.name;
+        case 'store': return r.storeName;
+        case 'category': return categories ? categoryName.get(r.values.categoryId ?? '') : r.categoryLabel;
+        case 'unit': return unitName.get(r.values.unitId ?? '');
+        case 'price': return r.values.price;
+        case 'wsPrice': return r.values.wsPrice;
+        case 'wsMin': return r.values.wsMin;
+        case 'stock': return r.values.stock;
+        case 'iva': return r.ivaRate;
+        case 'isActive': return r.values.isActive;
+        default: return null;
+      }
+    };
+    return sortRows(rows, valueOf, sort.order);
+  }, [rows, sort, categories, categoryName, unitName]);
+
   // Paginación en el navegador: las filas ya están todas acá. Si cambian los
-  // filtros (y con ellos las filas), vuelve a la primera página.
+  // filtros o el orden, vuelve a la primera página.
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
-  useEffect(() => setPage(1), [rows.length, rowsPerPage]);
-  const totalPages = rowsPerPage === 0 ? 1 : Math.max(1, Math.ceil(rows.length / rowsPerPage));
+  useEffect(() => setPage(1), [rows.length, rowsPerPage, sort]);
+  const totalPages = rowsPerPage === 0 ? 1 : Math.max(1, Math.ceil(sorted.length / rowsPerPage));
   const pageRows = useMemo(
-    () => (rowsPerPage === 0 ? rows : rows.slice((page - 1) * rowsPerPage, page * rowsPerPage)),
-    [rows, page, rowsPerPage]
+    () => (rowsPerPage === 0 ? sorted : sorted.slice((page - 1) * rowsPerPage, page * rowsPerPage)),
+    [sorted, page, rowsPerPage]
   );
 
   const columns = useMemo(() => {
@@ -96,7 +130,7 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
             <div className="min-w-0">
               <p className="truncate font-semibold text-tinta">{r.name}</p>
               <p className="flex items-center gap-1 truncate text-[10px] font-mono text-mm-txw">
-                {r.cat}
+                {!conCategoria && r.cat}
                 {r.inReview && (
                   <Badge variant="warning" className="px-1 py-0 text-[9px]">
                     En revisión
@@ -125,6 +159,18 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
         width: '15rem',
         options: [{ value: '', label: 'Sin categoría' }, ...categories.map((c) => ({ value: c.id, label: c.label }))],
       });
+    } else if (showCategory) {
+      cols.push({
+        key: 'category',
+        label: 'Categoría',
+        type: 'readonly',
+        width: '15rem',
+        render: (r) => (
+          <span className="block truncate text-xs text-mm-txs" title={r.categoryLabel}>
+            {r.categoryLabel || 'Sin categoría'}
+          </span>
+        ),
+      });
     }
     cols.push(
       {
@@ -147,21 +193,8 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
       },
       { key: 'isActive', label: 'Publicado', type: 'checkbox', width: '6rem' }
     );
-    if (showDescription) {
-      cols.push({
-        key: 'description',
-        label: 'Descripción',
-        type: 'readonly',
-        width: '16rem',
-        render: (r) => (
-          <span className="block truncate text-xs text-mm-txs" title={r.description}>
-            {r.description || '—'}
-          </span>
-        ),
-      });
-    }
-    return cols;
-  }, [units, showStore, selection, categories, showDescription]);
+    return cols.map((c) => (NO_ORDENAN.has(c.key) ? c : { ...c, sortable: true }));
+  }, [units, showStore, selection, categories, showCategory, conCategoria]);
 
   const visibleIds = pageRows.map((r) => r.id);
   const columnKeys = columns.map((c) => c.key);
@@ -193,6 +226,9 @@ export function PriceGrid({ rows, grid, units, rowActions, showStore, selection,
         rowActions={rowActions}
         emptyMessage="No se encontraron productos con estos filtros."
         maxHeight="70vh"
+        sortKey={sort.key}
+        sortOrder={sort.order}
+        onSort={(key) => setSort((actual) => nextSort(actual, key))}
       />
       <GridPager
         page={page}

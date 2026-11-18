@@ -12,8 +12,9 @@ import { MergeProductModal } from './components/MergeProductModal';
 import { usePendingReview } from './hooks/usePendingReview';
 import { MasterCatalogGrid } from './components/MasterCatalogGrid';
 import { useMasterGrid } from './hooks/use-master-grid';
-import type { MasterOptions } from '@/lib/catalog/master-grid';
-import { leafCategoryOptions } from '@/lib/categories/picker';
+import { masterSortField, type MasterOptions } from '@/lib/catalog/master-grid';
+import { leafCategoryOptions, categoryFilterOptions, categoryWithDescendants } from '@/lib/categories/picker';
+import { nextSort, type SortState } from '@/lib/utils/sort-rows';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { normalizeText } from '@/lib/utils/text';
@@ -57,8 +58,8 @@ export default function ProductsAdmin() {
 
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(20);
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  // El orden de la tabla, por columna; lo hace el servidor (`masterSortField`).
+  const [sort, setSort] = useState<SortState>({ key: null, order: 'asc' });
 
   // States for search and filtering
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,35 +122,12 @@ export default function ProductsAdmin() {
       .catch((err) => console.error('Error fetching categories:', err));
   }, []);
 
-  // Helper to get selected category and all its subcategories recursively
-  const selectedCategoryIds = React.useMemo(() => {
-    if (!selectedCategory) return [];
-    const result = [selectedCategory];
-    const queue = [selectedCategory];
-    while (queue.length > 0) {
-      const currentId = queue.shift();
-      const children = categories.filter(c => c.parent_id === currentId).map(c => c.id);
-      for (const childId of children) {
-        if (!result.includes(childId)) {
-          result.push(childId);
-          queue.push(childId);
-        }
-      }
-    }
-    return result;
-  }, [selectedCategory, categories]);
-
-  // Sort and build hierarchy paths for categories dropdown
-  const sortedCategories = React.useMemo(() => {
-    return [...categories]
-      .map(c => ({
-        ...c,
-        displayName: c.parent_id 
-          ? `${categories.find(p => p.id === c.parent_id)?.name || ''} > ${c.name}` 
-          : c.name
-      }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [categories]);
+  // La categoría elegida y sus subcategorías, y las opciones «Madre > Sub».
+  const selectedCategoryIds = React.useMemo(
+    () => categoryWithDescendants(categories, selectedCategory),
+    [selectedCategory, categories]
+  );
+  const sortedCategories = React.useMemo(() => categoryFilterOptions(categories), [categories]);
 
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
 
@@ -157,7 +135,7 @@ export default function ProductsAdmin() {
   // en la página 7 de un resultado que ahora tiene dos es quedarse en blanco.
   useEffect(() => {
     setPage(1);
-  }, [searchAplicada, selectedCategory, selectedGroupFilter, reviewFilter, rowsPerPage]);
+  }, [searchAplicada, selectedCategory, selectedGroupFilter, reviewFilter, rowsPerPage, sort]);
 
   /**
    * La única consulta al servidor. Se vuelve a lanzar cuando cambia cualquier
@@ -172,13 +150,13 @@ export default function ProductsAdmin() {
       categoryIds: selectedCategoryIds,
       group: selectedGroupFilter,
       review: reviewFilter,
-      sort: sortKey,
-      dir: sortOrder,
+      sort: masterSortField(sort.key),
+      dir: sort.order,
     });
     review.refreshCount();
   }, [
     fetchProducts, page, rowsPerPage, searchAplicada,
-    selectedCategoryIds, selectedGroupFilter, reviewFilter, sortKey, sortOrder, review.refreshCount,
+    selectedCategoryIds, selectedGroupFilter, reviewFilter, sort, review.refreshCount,
   ]);
 
   useEffect(() => {
@@ -449,6 +427,9 @@ export default function ProductsAdmin() {
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={setRowsPerPage}
         total={total}
+        sortKey={sort.key}
+        sortOrder={sort.order}
+        onSort={(key) => setSort((actual) => nextSort(actual, key))}
       />
       </div>
 

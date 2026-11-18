@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { leafCategoryOptions, parentCategories, resolveCategory, splitCategory, subcategoriesOf } from './picker';
+import {
+  categoryFilterOptions,
+  categoryLabel,
+  categoryWithDescendants,
+  leafCategoryOptions, parentCategories, resolveCategory, splitCategory, subcategoriesOf } from './picker';
 
 const cats = [
   { id: 'fv', name: 'Frutas y verduras', parent_id: null },
@@ -37,5 +41,29 @@ describe('leafCategoryOptions', () => {
       'Frutas y verduras › Verduras y hortalizas',
       'Velas',
     ]);
+  });
+});
+
+describe('filtro y etiqueta de categoría', () => {
+  it('opciones «Madre > Sub» en orden', () => {
+    expect(categoryFilterOptions(cats).map((c) => c.displayName)).toEqual([
+      'Frutas y verduras',
+      'Frutas y verduras > Frutas frescas',
+      'Frutas y verduras > Verduras y hortalizas',
+      'Velas',
+    ]);
+  });
+
+  it('la madre trae sus subcategorías; una sub, solo ella', () => {
+    expect(categoryWithDescendants(cats, 'fv')).toEqual(['fv', 'ff', 'vh']);
+    expect(categoryWithDescendants(cats, 'ff')).toEqual(['ff']);
+    expect(categoryWithDescendants(cats, '')).toEqual([]);
+  });
+
+  it('etiqueta «Madre › Sub», o la madre sola', () => {
+    expect(categoryLabel(cats, 'vh')).toBe('Frutas y verduras › Verduras y hortalizas');
+    expect(categoryLabel(cats, 've')).toBe('Velas');
+    expect(categoryLabel(cats, 'borrada')).toBe('');
+    expect(categoryLabel(cats, null)).toBe('');
   });
 });
