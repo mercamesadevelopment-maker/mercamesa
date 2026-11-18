@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isMasterSortField } from '@/lib/catalog/master-grid';
 import { applyProductSearch, findSimilarProductIds } from '@/lib/search/server';
 import { createClient } from '../../../lib/supabase/server';
 import { Database } from '../../../types/database_generated';
@@ -97,13 +98,13 @@ export async function GET(request: Request) {
       if (group === '__public__') query = query.is('owner_group_id', null);
       else if (group) query = query.eq('owner_group_id', group);
 
-      // Lista cerrada: un `sort` que venga de fuera no puede nombrar cualquier
-      // columna. `category` y `default_unit` no están porque viven en tablas
-      // embebidas y ordenar por ellas nunca funcionó en esta pantalla.
-      const ORDENABLES = ['name', 'is_active', 'owner_group_id'] as const;
-      const sort = params.get('sort') as (typeof ORDENABLES)[number] | null;
-      if (sort && ORDENABLES.includes(sort)) {
-        query = query.order(sort, { ascending: params.get('dir') !== 'desc' });
+      // Lista cerrada (`MASTER_SORT_FIELDS`): un `sort` que venga de fuera no
+      // puede nombrar cualquier columna. Categoría y unidad no están porque
+      // viven en tablas embebidas.
+      const sort = params.get('sort');
+      if (isMasterSortField(sort)) {
+        // Los vacíos al final en las dos direcciones, como `sortRows` en el navegador.
+        query = query.order(sort, { ascending: params.get('dir') !== 'desc', nullsFirst: false });
       }
     }
 

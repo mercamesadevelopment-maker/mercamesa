@@ -1,8 +1,9 @@
 import type { Product } from '@/features/products/types/product.types';
 import type { PriceGridRow } from '@/features/store-products/types';
+import { categoryLabel, type PickerCategory } from '@/lib/categories/picker';
 
-/** Un producto del tendero como fila de la tabla de precios. */
-export function toPriceGridRow(p: Product): PriceGridRow {
+/** Un producto del tendero como fila de la tabla de precios. Con las categorías, la de «Madre › Sub». */
+export function toPriceGridRow(p: Product, categories: PickerCategory[] = []): PriceGridRow {
   return {
     id: String(p.id),
     code: p.code ?? '',
@@ -10,6 +11,7 @@ export function toPriceGridRow(p: Product): PriceGridRow {
     image: p.image || null,
     emoji: p.emoji,
     cat: p.cat,
+    categoryLabel: categoryLabel(categories, p.categoryId) || (p.categoryId ? p.cat : ''),
     description: p.desc,
     ivaRate: p.ivaRate ?? 0,
     inReview: p.inReview,

@@ -237,3 +237,31 @@ export function parseMasterBatchBody(body: unknown): { rows: MasterBatchRow[] } 
   }
   return { rows };
 }
+
+/**
+ * Las columnas de la tabla que se pueden ordenar, y el campo de
+ * `catalog_products` por el que ordena el servidor (`GET /api/products`, que
+ * pagina). Categoría y unidad no están: viven en tablas embebidas y PostgREST no
+ * ordena el listado por ellas. «Exclusivo de» ordena por el id del grupo: los
+ * agrupa, sin orden alfabético.
+ */
+export const MASTER_SORT_FIELDS = {
+  code: 'siigo_id',
+  name: 'name',
+  iva: 'iva_rate',
+  group: 'owner_group_id',
+  isActive: 'is_active',
+} as const;
+
+export type MasterSortField = (typeof MASTER_SORT_FIELDS)[keyof typeof MASTER_SORT_FIELDS];
+
+/** El campo por el que ordenar una columna, o `null` si no se ordena. */
+export function masterSortField(columnKey: string | null): MasterSortField | null {
+  if (!columnKey || !Object.hasOwn(MASTER_SORT_FIELDS, columnKey)) return null;
+  return MASTER_SORT_FIELDS[columnKey as keyof typeof MASTER_SORT_FIELDS];
+}
+
+/** Lo que el servidor acepta en `sort`: lista cerrada, para no ordenar por cualquier columna. */
+export function isMasterSortField(value: string | null): value is MasterSortField {
+  return value !== null && (Object.values(MASTER_SORT_FIELDS) as string[]).includes(value);
+}

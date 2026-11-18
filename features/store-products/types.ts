@@ -15,6 +15,8 @@ export interface PriceGridRow {
   emoji?: string;
   /** Categoría, para mostrar bajo el nombre. */
   cat?: string;
+  /** «Categoría › Subcategoría», para la columna de solo lectura del tendero. */
+  categoryLabel?: string;
   /** Solo en el admin, que ve todas las tiendas. */
   storeName?: string;
   /** Del catálogo maestro: se muestran, no se editan acá. */

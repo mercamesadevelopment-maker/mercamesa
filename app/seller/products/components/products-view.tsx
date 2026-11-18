@@ -32,6 +32,7 @@ export function ProductsView() {
     selectedCategory,
     setSelectedCategory,
     categories,
+    categoryOptions,
     isModalOpen,
     setIsModalOpen,
     editingProduct,
@@ -62,8 +63,11 @@ export function ProductsView() {
 
   // La tabla tipo Excel trabaja sobre todos los productos (un filtro no borra
   // los cambios) y pinta los filtrados.
-  const gridRows = React.useMemo(() => allProducts.map(toPriceGridRow), [allProducts]);
-  const visibleRows = React.useMemo(() => filteredProducts.map(toPriceGridRow), [filteredProducts]);
+  const gridRows = React.useMemo(() => allProducts.map((p) => toPriceGridRow(p, categories)), [allProducts, categories]);
+  const visibleRows = React.useMemo(
+    () => filteredProducts.map((p) => toPriceGridRow(p, categories)),
+    [filteredProducts, categories]
+  );
   const productById = React.useMemo(() => new Map(allProducts.map((p) => [String(p.id), p])), [allProducts]);
   const grid = usePriceGrid(gridRows, units, fetchStoreProducts);
 
@@ -141,57 +145,6 @@ export function ProductsView() {
           <Button onClick={handleOpenAdd} className="shadow-lg shadow-mm-g/10">
             <Plus className="w-5 h-5 mr-1" /> Agregar
           </Button>
-        </div>
-      </div>
-
-      {/* Filtros de Búsqueda, Tienda y Categoría */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm animate-fade-up">
-        {/* Buscador */}
-        <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Buscar por producto, código o descripción..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"
-          />
-        </div>
-
-        {/* Tienda */}
-        <div>
-          <select
-            value={selectedStore}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedStore(val);
-              if (val) selectStore(val);
-            }}
-            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
-          >
-            <option value="" className="text-mm-txw">Todas las tiendas</option>
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Categoría */}
-        <div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
-          >
-            <option value="" className="text-mm-txw">Todas las categorías</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -274,17 +227,70 @@ export function ProductsView() {
         </div>
       </div>
 
-      {/* La tabla se edita como Excel: precio, mayorista, stock y publicado. */}
-      <PriceGrid
-        rows={visibleRows}
-        grid={grid}
-        units={units}
-        showDescription
-        rowActions={(row) => {
-          const p = productById.get(row.id);
-          return p ? actions(p) : null;
-        }}
-      />
+      {/* La tabla con sus filtros encima: búsqueda, tienda y categoría */}
+      <section className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-mm-crd shadow-sm animate-fade-up">
+          {/* Buscador */}
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-mm-txw absolute left-4 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar por producto, código o descripción..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g placeholder:text-mm-txw"
+            />
+          </div>
+
+          {/* Tienda */}
+          <div>
+            <select
+              value={selectedStore}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedStore(val);
+                if (val) selectStore(val);
+              }}
+              className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+            >
+              <option value="" className="text-mm-txw">Todas las tiendas</option>
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-mm-crd bg-white focus:border-mm-g outline-none transition-all text-sm text-mm-g cursor-pointer"
+            >
+              <option value="" className="text-mm-txw">Todas las categorías</option>
+              {categoryOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* La tabla se edita como Excel: precio, mayorista, stock y publicado. */}
+        <PriceGrid
+          rows={visibleRows}
+          grid={grid}
+          units={units}
+          showCategory
+          rowActions={(row) => {
+            const p = productById.get(row.id);
+            return p ? actions(p) : null;
+          }}
+        />
+      </section>
 
       {/* Product Modal */}
       <ProductModal 

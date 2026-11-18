@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useGridNavigation } from '../hooks/useGridNavigation';
 import type { EditableGridProps, GridColumn, GridPosition, GridValue } from '../types';
@@ -28,6 +28,9 @@ export function EditableGrid<TRow>({
   rowActions,
   emptyMessage = 'No hay filas.',
   maxHeight = '65vh',
+  sortKey,
+  sortOrder = 'asc',
+  onSort,
 }: EditableGridProps<TRow>) {
   const contenedorRef = useRef<HTMLDivElement>(null);
 
@@ -93,8 +96,29 @@ export function EditableGrid<TRow>({
                   key={col.key}
                   style={{ width: col.width }}
                   className="border-b border-l border-mm-crd px-3 py-2 text-left text-[11px] font-mono uppercase tracking-wider text-mm-txs"
+                  aria-sort={sortKey === col.key ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
-                  {col.label}
+                  {col.sortable && onSort ? (
+                    <button
+                      type="button"
+                      onClick={() => onSort(col.key)}
+                      className="group/sort flex w-full items-center gap-1 text-left uppercase hover:text-tinta"
+                      title="Ordenar"
+                    >
+                      <span>{col.label}</span>
+                      {sortKey === col.key ? (
+                        sortOrder === 'asc' ? (
+                          <ArrowUp className="h-3 w-3 shrink-0 text-tinta" />
+                        ) : (
+                          <ArrowDown className="h-3 w-3 shrink-0 text-tinta" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 shrink-0 opacity-30 group-hover/sort:opacity-70" />
+                      )}
+                    </button>
+                  ) : (
+                    col.label
+                  )}
                 </th>
               ))}
               {rowActions && <th className="w-16 border-b border-l border-mm-crd" />}

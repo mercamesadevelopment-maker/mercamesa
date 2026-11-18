@@ -12,7 +12,7 @@ import { PriceGrid } from '@/features/store-products/components/PriceGrid';
 import { usePriceGrid } from '@/features/store-products/hooks/usePriceGrid';
 import type { UnitOption } from '@/lib/store-products/price-grid';
 import { toPriceGridRow } from './utils/price-grid-row';
-import { leafCategoryOptions } from '@/lib/categories/picker';
+import { leafCategoryOptions, categoryFilterOptions, categoryWithDescendants } from '@/lib/categories/picker';
 import { ConfirmModal } from '../../../components/ui/confirm-modal/ConfirmModal';
 
 export default function CatalogAdmin() {
@@ -63,35 +63,12 @@ export default function CatalogAdmin() {
       .catch((err) => console.error('Error fetching stores:', err));
   }, []);
 
-  // Helper to get selected category and all its subcategories recursively
-  const selectedCategoryIds = useMemo(() => {
-    if (!selectedCategory) return [];
-    const result = [selectedCategory];
-    const queue = [selectedCategory];
-    while (queue.length > 0) {
-      const currentId = queue.shift();
-      const children = categories.filter(c => c.parent_id === currentId).map(c => c.id);
-      for (const childId of children) {
-        if (!result.includes(childId)) {
-          result.push(childId);
-          queue.push(childId);
-        }
-      }
-    }
-    return result;
-  }, [selectedCategory, categories]);
-
-  // Sort and build hierarchy paths for categories dropdown
-  const sortedCategories = useMemo(() => {
-    return [...categories]
-      .map(c => ({
-        ...c,
-        displayName: c.parent_id 
-          ? `${categories.find(p => p.id === c.parent_id)?.name || ''} > ${c.name}` 
-          : c.name
-      }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [categories]);
+  // La categoría elegida y sus subcategorías, y las opciones «Madre > Sub».
+  const selectedCategoryIds = useMemo(
+    () => categoryWithDescendants(categories, selectedCategory),
+    [selectedCategory, categories]
+  );
+  const sortedCategories = useMemo(() => categoryFilterOptions(categories), [categories]);
 
   // Filter raw storeProducts by selected filters
   const filteredStoreProducts = useMemo(() => {

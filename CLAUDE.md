@@ -290,7 +290,11 @@ Inventario actual:
   de lógica propia.
 - `editable-grid/` — `EditableGrid`, tabla que se edita como una hoja de cálculo: escribir
   sobre la celda, flechas/Tab/Enter/Escape (`hooks/useGridNavigation.ts`), pegar desde
-  Excel, celdas cambiadas y con error resaltadas. No valida ni guarda: lo hace quien la usa.
+  Excel, celdas cambiadas y con error resaltadas. No valida, no guarda ni ordena: lo hace quien la usa.
+  Ordenar por columna: `sortable` en la columna y `sortKey`/`sortOrder`/`onSort`, como `Table`; en el
+  navegador con `sortRows()`/`nextSort()` de `lib/utils/sort-rows.ts`, o en el servidor si la tabla
+  pagina allá (catálogo maestro, `MASTER_SORT_FIELDS`). Se ordena por lo guardado, no por lo que se
+  está escribiendo.
   Para editar filas que ya existen, `hooks/useGridDrafts.ts` pone lo común (borradores, qué cambió,
   errores, pegar respetando el orden de las columnas, guardar en lote, aviso al salir) y
   `components/GridSaveBar.tsx` la barra de Guardar/Descartar y `components/GridPager.tsx` la paginación
@@ -465,6 +469,8 @@ lo mismo y reúsalo. En particular:
 - Cliente Supabase → los helpers de `lib/supabase/`, no `createClient(...)` inline.
 - Clases condicionales → `cn()` de `lib/utils/cn.ts`, no template strings a mano.
 - Comparar o buscar texto sin tildes → `normalizeText()` de `lib/utils/text.ts`.
+- Filtro por categoría («Madre > Sub», y la madre trae sus subcategorías) → `categoryFilterOptions()` y
+  `categoryWithDescendants()` de `lib/categories/picker.ts`; la etiqueta «Madre › Sub», `categoryLabel()`.
 - Buscar con tolerancia a errores de ortografía («bino» → vino, «aros» → arroz) → en el navegador,
   `fuzzyFilter()` / `fuzzyMatches()` de `lib/search/fuzzy.ts`; en el servidor, `applyProductSearch()` y
   `findSimilarProductIds()` de `lib/search/server.ts` (columnas `search_text` y `search_phonetic`).
