@@ -45,6 +45,31 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.5.0',
+    fecha: '2026-11-19',
+    resumen: 'El tendero consulta por el chat sus pedidos, por urgencia, y su liquidación.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'pedidos_del_tendero',
+        detalle:
+          'Las partes de pedido de la tienda de la persona, pagadas, lo más urgente primero (por preparar, empacando, listas para recoger, en camino). Cada una con `estado_texto` como en el panel del tendero, `siguiente` (el paso que sigue), `productos` de su tienda, `notas_del_comprador`, `notas_de_empaque`, `refrigerado`, `varias_tiendas`, `venta_de_mostrador` y `domicilio` (estado, conductor y placa). Del comprador solo `comprador` (primer nombre) y `barrio`. Sin códigos. `incluir_cerrados` suma las entregadas, canceladas y devueltas. Hasta 30, con `hay_mas`.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'liquidacion_del_tendero',
+        detalle:
+          'Del periodo (`desde` y `hasta`, por defecto los últimos 30 días): `vendido`, `pagado` (con cada pago) y, a hoy, `proximo_pago` (`fecha_de_liquidacion`, martes o jueves; `valor`; `pedidos`; `descuentos` por devoluciones que asume la tienda) y `retenido` por razón con su `explicacion`. `retenciones` es `null`: el sistema no las calcula. A la tienda se le paga el valor de sus productos.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Herramientas del tendero',
+        detalle:
+          'Si la persona tiene varias tiendas, `tienda` (su nombre) dice cuál; sin ella responde `AMBIGUO` con la lista. Si no es de ninguna tienda, `NO_PERMITIDO`.',
+      },
+    ],
+  },
+  {
     version: '2.4.0',
     fecha: '2026-11-19',
     resumen: 'Carolina radica casos de PQRSF y les agrega mensajes y fotos, sin duplicarlos si reintenta.',

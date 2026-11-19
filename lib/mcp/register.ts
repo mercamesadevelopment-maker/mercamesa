@@ -9,6 +9,7 @@ import { registerEstadoPago } from './tools/estado-pago';
 import { registerReglasDeCompra } from './tools/reglas-de-compra';
 import { registerCobertura } from './tools/cobertura';
 import { registerCasos } from './tools/casos';
+import { registerTendero } from './tools/tendero';
 
 /**
  * Las herramientas de Carolina, el agente de Meteor. Consultan, salvo
@@ -26,4 +27,5 @@ export function registerMeteorTools(server: McpServer) {
   registerReglasDeCompra(server);
   registerCobertura(server);
   registerCasos(server);
+  registerTendero(server);
 }

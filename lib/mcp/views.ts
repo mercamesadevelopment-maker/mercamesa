@@ -178,3 +178,48 @@ export function toCoverageView(c: Coverage) {
     incompleto: c.truncated,
   };
 }
+
+type StoreQueuePart = import('@/lib/orders/store-queue').StoreQueuePart;
+type StoreStatement = import('@/lib/payouts/store-statement').StoreStatement;
+
+/** Una parte de pedido como la ve el tendero por el chat: sin contacto del comprador y sin códigos. */
+export function toStoreQueueView(p: StoreQueuePart) {
+  return {
+    codigo: p.code,
+    pedido: p.orderCode,
+    estado: p.status,
+    estado_texto: p.statusLabel,
+    siguiente: p.next ? { estado: p.next.status, texto: p.next.label } : null,
+    fecha: p.createdAt,
+    comprador: p.buyerFirstName,
+    barrio: p.neighborhood,
+    varias_tiendas: p.multiStore,
+    venta_de_mostrador: p.inStore,
+    refrigerado: p.refrigerated,
+    notas_del_comprador: p.buyerNotes,
+    notas_de_empaque: p.packingNotes,
+    valor: p.subtotal,
+    productos: p.products.map((i) => ({ nombre: i.name, cantidad: i.quantity, unidad: i.unit, total: i.total })),
+    domicilio: p.delivery
+      ? { estado: p.delivery.statusLabel, conductor: p.delivery.driverName, placa: p.delivery.vehiclePlates }
+      : null,
+  };
+}
+
+export function toStatementView(s: StoreStatement) {
+  return {
+    desde: s.from,
+    hasta: s.to,
+    vendido: { pedidos: s.sold.orders, valor: s.sold.amount },
+    pagado: { valor: s.paid.amount, pagos: s.paid.payouts.map((p) => ({ fecha: p.date, valor: p.amount })) },
+    proximo_pago: {
+      fecha_de_liquidacion: s.nextPayout.date,
+      valor: s.nextPayout.amount,
+      pedidos: s.nextPayout.orders,
+      descuentos: s.nextPayout.discounts,
+    },
+    retenido: s.held.map((h) => ({ razon: h.reason, explicacion: h.explanation, pedidos: h.orders, valor: h.amount })),
+    retenciones: s.withholdings,
+    nota: s.note,
+  };
+}

@@ -3,6 +3,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { OrderStatus } from '@/features/orders/types/order.types';
+import { STORE_STATUS_LABELS } from '@/lib/orders/status-labels';
 
 export interface OrderStatusConfig {
   label: string;
@@ -26,7 +27,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
   switch (status) {
     case 'pending':
       return {
-        label: 'Nuevo',
+        label: STORE_STATUS_LABELS.pending,
         icon: Bell,
         badgeColor: 'bg-mm-oro text-white',
         pillColor: 'bg-mm-orl text-mm-oro border-mm-oro/20',
@@ -36,7 +37,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'confirmed':
       return {
-        label: 'Confirmado',
+        label: STORE_STATUS_LABELS.confirmed,
         icon: CheckCircle2,
         badgeColor: 'bg-indigo-600 text-white',
         pillColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -46,7 +47,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'paid':
       return {
-        label: 'Pagado',
+        label: STORE_STATUS_LABELS.paid,
         icon: CheckCircle2,
         badgeColor: 'bg-emerald-600 text-white',
         pillColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -56,7 +57,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'packing':
       return {
-        label: 'Empacando',
+        label: STORE_STATUS_LABELS.packing,
         icon: Loader2,
         badgeColor: 'bg-blue text-white',
         pillColor: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -66,7 +67,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'at_collection':
       return {
-        label: 'Listo Recogida',
+        label: STORE_STATUS_LABELS.at_collection,
         icon: ClipboardList,
         badgeColor: 'bg-purple-600 text-white',
         pillColor: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -76,7 +77,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'dispatched':
       return {
-        label: 'En Camino',
+        label: STORE_STATUS_LABELS.dispatched,
         icon: Truck,
         badgeColor: 'bg-mm-g text-white',
         pillColor: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -86,7 +87,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'delivered':
       return {
-        label: 'Entregado',
+        label: STORE_STATUS_LABELS.delivered,
         icon: CheckCircle2,
         badgeColor: 'bg-mm-gbg text-mm-txs',
         pillColor: 'bg-green-50 text-green-700 border-green-200',
@@ -96,7 +97,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     case 'returned':
       return {
-        label: 'Devuelto',
+        label: STORE_STATUS_LABELS.returned,
         icon: History,
         badgeColor: 'bg-slate-500 text-white',
         pillColor: 'bg-slate-50 text-slate-700 border-slate-200',
@@ -106,7 +107,7 @@ export function getStatusConfig(status: OrderStatus): OrderStatusConfig {
       };
     default: // cancelled
       return {
-        label: 'Cancelado',
+        label: STORE_STATUS_LABELS.cancelled,
         icon: XCircle,
         badgeColor: 'bg-r text-white',
         pillColor: 'bg-red-50 text-red-700 border-red-200',
