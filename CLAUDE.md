@@ -429,6 +429,11 @@ está en `development`; producción, lo que está en `main`.
 - El chequeo no ve un cambio que llega por otra carpeta. Ejemplo: una función de `lib/pricing` que usa
   `lib/mcp/views.ts`. Si tocas algo que `lib/mcp/views.ts` importa, revisa si cambia lo que sale.
 - `docs/mcp-meteor.md`, fuera de git, es la guía completa que se le entrega a Meteor.
+- **Herramientas que escriben** (`lib/mcp/tools/escritura.ts`, `casos.ts`): llevan `clave_idempotencia`
+  y las que tocan pedidos o precios piden `confirmar: true`; sin él devuelven el resumen y no escriben.
+  Usan la misma función de `lib/` que la pantalla (`createOrder`, `changeStoreOrderStatus`,
+  `requestDeliveryForStoreOrder`, `savePriceBatch`, `cancelStorePart`, `createPqrs`), nunca un atajo, y
+  dejan «Por WhatsApp (Carolina)» en el historial. Carolina no cobra: el pago sigue en la app.
 - **Avisos por rol** (`lib/whatsapp-events/`):
   - cada aviso dice a quién va (`destinatario.rol`) y desde qué línea se escribe (`linea`);
   - los códigos de Pibox salen solo en su aviso y solo a quien le corresponde:

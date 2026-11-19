@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import {
-  createBooking,
-  loadBookingContext,
-  buildBookingPayload,
-  PiboxDataError,
-  isPiboxEnabled,
-} from '@/lib/pibox';
+import { PiboxDataError, isPiboxEnabled } from '@/lib/pibox';
+import { requestDeliveryForStoreOrder } from '@/lib/pibox/request-delivery';
 import { toDeliveryTimeline, toDeliveryView, type DeliveryViewer } from '@/lib/pibox/delivery-view';
 import { canManageStoreOrder } from '@/lib/pibox/authz';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { persistBookingSnapshot } from '@/lib/pibox/services/sync.service';
-import { requestCourierIfReady } from '@/lib/orders/consolidated-order';
-import { carrierOf, receiverOf } from '@/lib/orders/consolidation';
-import { notifyMarketplaceStaffOfOrder } from '@/lib/marketplace-staff/notify';
 import { canWorkMarketplace, loadStaffActor, StaffError } from '@/lib/marketplace-staff/actor';
 
 /**
@@ -50,89 +41,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const db = createSupabaseServiceClient();
-
-    const { data: parte } = await db
-      .from('store_orders')
-      .select('order_id, code, stores ( name ), orders ( fulfillment, runner_required, logistics_required )')
-      .eq('id', storeOrderId)
-      .maybeSingle();
-    const pedido = (parte as any)?.orders;
-
-    if (pedido?.fulfillment === 'consolidated') {
-      const cfg = { runnerRequired: Boolean(pedido.runner_required), logisticsRequired: Boolean(pedido.logistics_required) };
-      const tienda = (parte as any).stores?.name ?? 'Una tienda';
-
-      if (carrierOf(cfg) === 'runner') {
-        await notifyMarketplaceStaffOfOrder(
-          parte!.order_id,
-          'Pedido listo para recoger',
-          `${tienda} ya tiene lista su parte del pedido ${parte!.code}.`,
-          ['runner']
-        );
-      } else if (receiverOf(cfg) === 'logistics') {
-        await notifyMarketplaceStaffOfOrder(
-          parte!.order_id,
-          'Una tienda lleva su parte a la bahía',
-          `${tienda} tiene lista su parte del pedido ${parte!.code} y la lleva a la bahía.`,
-          ['logistics']
-        );
-      }
-
-      const { data: perfil } = await db.from('profiles').select('phone').eq('id', user.id).maybeSingle();
-      const outcome = await requestCourierIfReady(db as any, parte!.order_id, perfil?.phone ?? null, user.id);
-      if (outcome.error) {
-        return NextResponse.json({ error: outcome.error, consolidated: true }, { status: 502 });
-      }
-      return NextResponse.json(
-        { data: null, consolidated: true, requested: outcome.requested },
-        { status: 200 }
-      );
+    const r = await requestDeliveryForStoreOrder(createSupabaseServiceClient() as any, storeOrderId, user.id);
+    if (r.kind === 'consolidated') {
+      if (r.error) return NextResponse.json({ error: r.error, consolidated: true }, { status: 502 });
+      return NextResponse.json({ data: null, consolidated: true, requested: r.requested }, { status: 200 });
     }
-
-    // Idempotencia: si ya hay un domicilio vigente para este pedido, se devuelve
-    // ese en vez de despachar un segundo mensajero. Una reserva sin conductor o
-    // cancelada ya no es vigente (`is_active = false`), así que no bloquea.
-    const { data: existing } = await db
-      .from('pibox_bookings')
-      .select('*')
-      .eq('store_order_id', storeOrderId)
-      .eq('is_active', true)
-      // La base ya no admite dos activas por pedido (índice único); el
-      // `limit(1)` es por si acaso: `maybeSingle` con dos filas daba error.
-      .limit(1)
-      .maybeSingle();
-
-    if (existing) {
-      return NextResponse.json({ data: existing, already_exists: true }, { status: 200 });
-    }
-
-    // Con el cliente de servicio: el contexto trae el nombre, el teléfono y la
-    // dirección del comprador, que la tienda no lee directo en la base. El permiso
-    // sobre la parte ya se comprobó arriba.
-    const context = await loadBookingContext(createSupabaseServiceClient() as any, storeOrderId);
-
-    // Solo se despacha lo que está pagado: ya no hay contraentrega. El
-    // cotizador de la canasta usa el mismo armador del payload con el pago
-    // «pendiente», por eso la regla vive acá y no allá.
-    if (context.paymentStatus !== 'approved') {
-      throw new PiboxDataError(
-        'El pago de este pedido aún no está aprobado: no se puede pedir el domiciliario.'
-      );
-    }
-
-    const payload = buildBookingPayload(context);
-
-    const booking = await createBooking(payload);
-    await persistBookingSnapshot({ storeOrderId }, booking);
-
-    const { data: saved } = await db
-      .from('pibox_bookings')
-      .select('*')
-      .eq('booking_id', booking._id)
-      .maybeSingle();
-
-    return NextResponse.json({ data: saved, already_exists: false }, { status: 201 });
+    if (r.kind === 'existing') return NextResponse.json({ data: r.booking, already_exists: true }, { status: 200 });
+    return NextResponse.json({ data: r.booking, already_exists: false }, { status: 201 });
   } catch (error: unknown) {
     if (error instanceof PiboxDataError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

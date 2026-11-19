@@ -73,3 +73,18 @@ export function getDeploymentEnv(): DeploymentEnv {
   if (env === 'preview') return 'staging';
   return 'local';
 }
+
+/**
+ * La dirección pública de la app en este entorno, para los enlaces que salen
+ * por el chat de Meteor (pagar un pedido, por ejemplo).
+ */
+export function getPublicAppUrl(): string {
+  switch (getDeploymentEnv()) {
+    case 'produccion':
+      return 'https://www.mercamesa.com';
+    case 'staging':
+      return 'https://staging.mercamesa.com';
+    default:
+      return 'http://localhost:3000';
+  }
+}

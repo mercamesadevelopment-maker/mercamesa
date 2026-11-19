@@ -45,6 +45,44 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.6.0',
+    fecha: '2026-11-19',
+    resumen:
+      'Carolina escribe: crea pedidos (el pago sigue en la app), y el tendero avanza sus pedidos, cancela su parte y cambia precios y existencias. Todo pide confirmar.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'Herramientas que escriben',
+        detalle:
+          'crear_orden, modificar_orden, cambiar_estado_subpedido y actualizar_precio se llaman dos veces: sin `confirmar` devuelven `resumen` sin escribir nada; con `confirmar: true` y la misma `clave_idempotencia` escriben. Hay que mostrarle el resumen a la persona y esperar su sí. Lo que hacen queda en el historial como «Por WhatsApp (Carolina)».',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'crear_orden',
+        detalle:
+          'Con `productos` (`id` de buscar_productos y `cantidad`), `direccion_id`, `notas` y `usar_saldo`. El resumen trae productos con su precio, `productos_de_terceros`, `domicilio`, `total` y `saldo_a_favor_disponible`. Al confirmar devuelve `pedido` (`codigo`, `total`, `pago`), `enlace_pago` (Mis órdenes, donde se paga con «Pagar») y `que_sigue`. Carolina no cobra: el pedido queda pendiente de pago, salvo que el saldo a favor lo cubra. Aplican las reglas de reglas_de_compra; si no se cumplen, `DATOS_INVALIDOS` con el motivo.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'modificar_orden',
+        detalle:
+          '`accion: cancelar_parte`: la tienda cancela su parte de un pedido de varias tiendas (`parte`, `motivo`); al comprador se le abona como saldo a favor. El comprador no puede cambiar ni cancelar un pedido: responde `NO_PERMITIDO` con qué hacer (caso si ya pagó; si no, el pedido vence solo).',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'cambiar_estado_subpedido',
+        detalle:
+          'Avanza la parte de su tienda un paso (`estado`: confirmed, packing, at_collection, dispatched, delivered), como el botón del panel. Al pasar a at_collection pide el mensajero (`domicilio` dice qué pasó). En un pedido de varias tiendas, después de «Listo Recogida» no avanza la tienda.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'actualizar_precio',
+        detalle:
+          'Hasta 50 productos de su tienda por `codigo`: `precio`, `precio_mayorista`, `minimo_mayorista`, `stock` y `publicado`, con las reglas de la tabla del panel. El resumen trae `antes` y `despues` de cada uno. El cambio de stock queda en la bitácora como «Ajuste por WhatsApp».',
+      },
+    ],
+  },
+  {
     version: '2.5.0',
     fecha: '2026-11-19',
     resumen: 'El tendero consulta por el chat sus pedidos, por urgencia, y su liquidación.',
