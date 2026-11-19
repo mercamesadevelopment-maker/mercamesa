@@ -45,6 +45,43 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.4.0',
+    fecha: '2026-11-19',
+    resumen: 'Carolina radica casos de PQRSF y les agrega mensajes y fotos, sin duplicarlos si reintenta.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'registrar_caso',
+        detalle:
+          'Radica un caso a nombre de la persona (comprador, o tendero en los motivos de tienda): `motivo` (la llave; la lista con lo que pide cada uno está en la descripción de la herramienta), `descripcion`, `pedido` (la parte de una tienda, o el pedido si tiene una sola), `productos` por su nombre en el pedido (con `cantidad` opcional), `fotos` y `clave_idempotencia`. Devuelve `caso` (`codigo`, `estado`), `motivo`, `quien_atiende` y `repetido`. Si el pedido tiene varias tiendas y no se dice cuál, responde `DATOS_INVALIDOS` con las partes.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'agregar_a_caso',
+        detalle:
+          'Suma un `mensaje` y, si hay, `fotos` a un caso abierto por `codigo`, con `clave_idempotencia`. Un caso resuelto no recibe más.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Fotos',
+        detalle:
+          '`fotos` son URLs https del almacenamiento de medios de Meteor, hasta 5, JPG, PNG o WebP de hasta 8 MB. Solo se aceptan los dominios que MercaMesa tenga configurados: hay que enviarnos cuáles son. Mientras no estén, una llamada con fotos responde `DATOS_INVALIDOS`.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Idempotencia',
+        detalle:
+          '`clave_idempotencia` (8 a 120 caracteres, un UUID sirve) es obligatoria en las herramientas que escriben. La misma clave de la misma persona devuelve lo que ya se creó, con `repetido: true`.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Errores',
+        detalle:
+          '`DATOS_INVALIDOS`: falta algo o no cumple una regla (el mensaje dice qué decirle a la persona). `NO_PERMITIDO`: la persona no puede hacer eso (por ejemplo, un motivo de tienda sin ser de su equipo).',
+      },
+    ],
+  },
+  {
     version: '2.3.0',
     fecha: '2026-11-19',
     resumen:

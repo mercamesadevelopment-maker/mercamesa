@@ -13,6 +13,8 @@ export type McpErrorCode =
   | 'CODIGO_INVALIDO'
   | 'NO_EXISTE'
   | 'SIN_COTIZACION'
+  | 'DATOS_INVALIDOS'
+  | 'NO_PERMITIDO'
   | 'FALLO_CONSULTA';
 
 export function ok(data: Record<string, unknown>) {

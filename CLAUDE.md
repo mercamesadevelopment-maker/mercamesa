@@ -228,6 +228,9 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
   Meteor (compradores y tenderos), a las que el usuario manda el código que verifica su teléfono
   (`lib/phone/verification.ts`): +57 312 365 5225 y +57 313 744 5344. Sin la que le toca,
   verificar responde 503.
+- `METEOR_MEDIA_HOSTS`: los dominios del almacenamiento de medios de Meteor, separados por coma, desde
+  los que el MCP descarga las fotos de un caso (`lib/mcp/media.ts`: solo https, sin redirecciones). Sin
+  ella no se acepta ninguna foto por el chat.
 
 Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
 corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada

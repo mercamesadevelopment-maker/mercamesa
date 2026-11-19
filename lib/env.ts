@@ -47,6 +47,19 @@ export function getMeteorWhatsappNumber(line: 'compradores' | 'tenderos'): strin
   return numero || null;
 }
 
+/**
+ * Los dominios desde los que el MCP acepta fotos del chat (`registrar_caso`,
+ * `agregar_a_caso`): los del almacenamiento de medios de Meteor, separados por
+ * coma (`media.meteor.example,cdn.meteor.example`). Sin la variable no se acepta
+ * ninguna foto por URL: el servidor no descarga de cualquier sitio.
+ */
+export function getMeteorMediaHosts(): string[] {
+  return (process.env.METEOR_MEDIA_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export type DeploymentEnv = 'produccion' | 'staging' | 'local';
 
 /**

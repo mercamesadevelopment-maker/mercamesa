@@ -81,11 +81,22 @@ export async function createPqrs(
         ? new Date(Date.now() + settings.storeResponseHours * HORA).toISOString()
         : null,
       settings_id: settings.id,
+      client_idempotency_key: input.clientIdempotencyKey ?? null,
     })
     .select('id, code, opened_by, store_id')
     .single();
 
   if (error || !pqrs) {
+    // Otro intento con la misma llave de idempotencia llegó primero: es el mismo caso.
+    if (error?.code === '23505' && error.message.includes('pqrs_idempotencia_unica') && input.clientIdempotencyKey) {
+      const { data: previo } = await service
+        .from('pqrs')
+        .select('id, code')
+        .eq('opened_by', actor.userId)
+        .eq('client_idempotency_key', input.clientIdempotencyKey)
+        .maybeSingle();
+      if (previo) return { id: previo.id, code: previo.code };
+    }
     // El índice único: ya hay un caso abierto por este motivo sobre este pedido.
     if (error?.code === '23505') {
       throw new PqrsInputError(

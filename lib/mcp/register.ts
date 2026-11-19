@@ -8,6 +8,7 @@ import { registerVerificarTelefono } from './tools/verificar-telefono';
 import { registerEstadoPago } from './tools/estado-pago';
 import { registerReglasDeCompra } from './tools/reglas-de-compra';
 import { registerCobertura } from './tools/cobertura';
+import { registerCasos } from './tools/casos';
 
 /**
  * Las herramientas de Carolina, el agente de Meteor. Consultan, salvo
@@ -24,4 +25,5 @@ export function registerMeteorTools(server: McpServer) {
   registerEstadoPago(server);
   registerReglasDeCompra(server);
   registerCobertura(server);
+  registerCasos(server);
 }
