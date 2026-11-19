@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { toE164 } from '@/lib/phone/phone';
+import { resolveRoleKey } from '@/lib/auth/roles';
 
 /**
  * Quién escribe por WhatsApp, a partir del teléfono que manda Meteor.
@@ -19,6 +20,29 @@ export interface McpUser {
   role: string;
   /** Tiendas de las que es miembro. Para las herramientas del tendero. */
   stores: { id: string; name: string }[];
+  /** Plazas que atiende, si es de logística o patinador. */
+  marketplaces: { id: string; name: string; role: string }[];
+}
+
+/** Cómo se llama el rol en el chat. El domiciliario es de Pibox y no tiene cuenta en MercaMesa. */
+export type ChatRole = 'comprador' | 'tendero' | 'logistica' | 'patinador' | 'administrador' | 'contador';
+
+export function chatRole(roleName: string): ChatRole {
+  const key = resolveRoleKey(roleName);
+  switch (key) {
+    case 'provider':
+      return 'tendero';
+    case 'logistics':
+      return 'logistica';
+    case 'runner':
+      return 'patinador';
+    case 'admin':
+      return 'administrador';
+    case 'accountant':
+      return 'contador';
+    default:
+      return 'comprador';
+  }
 }
 
 export type IdentityResult =
@@ -70,10 +94,14 @@ export async function identifyByPhone(service: SupabaseClient<any>, phone: strin
   const elegido = pickProfile((data ?? []) as unknown as ProfileRow[]);
   if ('ok' in elegido) return elegido;
 
-  const { data: tiendas } = await service
-    .from('store_members')
-    .select('stores ( id, name )')
-    .eq('user_id', elegido.id);
+  const [{ data: tiendas }, { data: plazas }] = await Promise.all([
+    service.from('store_members').select('stores ( id, name )').eq('user_id', elegido.id),
+    service
+      .from('marketplace_staff')
+      .select('role, marketplaces ( id, name )')
+      .eq('user_id', elegido.id)
+      .eq('is_active', true),
+  ]);
 
   return {
     ok: true,
@@ -85,6 +113,9 @@ export async function identifyByPhone(service: SupabaseClient<any>, phone: strin
         .map((t: any) => t.stores)
         .filter(Boolean)
         .map((s: any) => ({ id: s.id, name: s.name })),
+      marketplaces: (plazas ?? [])
+        .filter((p: any) => p.marketplaces)
+        .map((p: any) => ({ id: p.marketplaces.id, name: p.marketplaces.name, role: p.role })),
     },
   };
 }

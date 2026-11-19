@@ -40,7 +40,9 @@ const fmt = (n: number) => String(n).replace('.', ',');
 export async function savePriceBatch(
   supabase: SupabaseClient<Database>,
   userId: string,
-  rows: PriceBatchRow[]
+  rows: PriceBatchRow[],
+  /** De dónde viene el cambio, para la nota de la bitácora. */
+  origin: 'tabla' | 'whatsapp' = 'tabla'
 ): Promise<SavePriceBatchResult> {
   const ids = rows.map((r) => r.id);
   const actuales = new Map<string, { storeId: string; values: PriceValues }>();
@@ -125,7 +127,7 @@ export async function savePriceBatch(
         type: 'adjustment',
         quantity: Math.abs(row.stock - values.stock),
         reference_type: 'adjustment_manual',
-        notes: `Ajuste desde la tabla: ${fmt(values.stock)} → ${fmt(row.stock)}`,
+        notes: `Ajuste ${origin === 'whatsapp' ? 'por WhatsApp' : 'desde la tabla'}: ${fmt(values.stock)} → ${fmt(row.stock)}`,
         registered_by: userId,
       });
     }

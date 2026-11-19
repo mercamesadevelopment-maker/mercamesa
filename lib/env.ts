@@ -47,6 +47,19 @@ export function getMeteorWhatsappNumber(line: 'compradores' | 'tenderos'): strin
   return numero || null;
 }
 
+/**
+ * Los dominios desde los que el MCP acepta fotos del chat (`registrar_caso`,
+ * `agregar_a_caso`): los del almacenamiento de medios de Meteor, separados por
+ * coma (`media.meteor.example,cdn.meteor.example`). Sin la variable no se acepta
+ * ninguna foto por URL: el servidor no descarga de cualquier sitio.
+ */
+export function getMeteorMediaHosts(): string[] {
+  return (process.env.METEOR_MEDIA_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export type DeploymentEnv = 'produccion' | 'staging' | 'local';
 
 /**
@@ -59,4 +72,19 @@ export function getDeploymentEnv(): DeploymentEnv {
   if (env === 'production') return 'produccion';
   if (env === 'preview') return 'staging';
   return 'local';
+}
+
+/**
+ * La dirección pública de la app en este entorno, para los enlaces que salen
+ * por el chat de Meteor (pagar un pedido, por ejemplo).
+ */
+export function getPublicAppUrl(): string {
+  switch (getDeploymentEnv()) {
+    case 'produccion':
+      return 'https://www.mercamesa.com';
+    case 'staging':
+      return 'https://staging.mercamesa.com';
+    default:
+      return 'http://localhost:3000';
+  }
 }

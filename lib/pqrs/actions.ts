@@ -69,7 +69,7 @@ export async function addPqrsMessage(
   service: SupabaseClient<any>,
   actor: PqrsActor,
   id: string,
-  input: { body?: unknown; isInternal?: unknown; attachments?: unknown }
+  input: { body?: unknown; isInternal?: unknown; attachments?: unknown; clientIdempotencyKey?: string | null }
 ): Promise<void> {
   const { pqrs, viewer } = await loadForAction(service, actor, id);
 
@@ -98,6 +98,7 @@ export async function addPqrsMessage(
       author_as: viewer,
       body,
       is_internal: isInternal,
+      client_idempotency_key: input.clientIdempotencyKey ?? null,
     })
     .select('id')
     .single();

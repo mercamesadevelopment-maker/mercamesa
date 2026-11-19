@@ -100,14 +100,16 @@ export interface Elegibilidad {
  * `payout_items.store_order_id`, que aguanta incluso dos procesos a la vez.
  */
 export async function calcularElegibilidad(
-  service: SupabaseClient<any>
+  service: SupabaseClient<any>,
+  /** Solo los pedidos de una tienda: lo que le toca a ella (el chat del tendero). */
+  storeId?: string
 ): Promise<Elegibilidad> {
   const settings = await loadPayoutSettings(service);
 
   // Los pedidos entregados de compras pagadas que no son de mostrador. El
   // `!inner` es lo que convierte el filtro sobre `orders` en un join de verdad.
-  const entregados = await fetchAllRows<any>((from, to) =>
-    service
+  const entregados = await fetchAllRows<any>((from, to) => {
+    const query = service
       .from('store_orders')
       .select(
         `id, code, store_id, subtotal, order_id,
@@ -116,9 +118,9 @@ export async function calcularElegibilidad(
       )
       .eq('status', 'delivered')
       .eq('orders.payment_status', 'approved')
-      .is('orders.client_id', null)
-      .range(from, to)
-  );
+      .is('orders.client_id', null);
+    return (storeId ? query.eq('store_id', storeId) : query).range(from, to);
+  });
 
   if (entregados.length === 0) {
     return { settings, elegibles: [], descartados: [], cargos: [], total: 0 };

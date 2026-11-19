@@ -2230,6 +2230,7 @@ export type Database = {
       pqrs: {
         Row: {
           buyer_id: string | null
+          client_idempotency_key: string | null
           code: string | null
           consecutive: number
           created_at: string
@@ -2258,6 +2259,7 @@ export type Database = {
         }
         Insert: {
           buyer_id?: string | null
+          client_idempotency_key?: string | null
           code?: string | null
           consecutive?: number
           created_at?: string
@@ -2286,6 +2288,7 @@ export type Database = {
         }
         Update: {
           buyer_id?: string | null
+          client_idempotency_key?: string | null
           code?: string | null
           consecutive?: number
           created_at?: string
@@ -2493,6 +2496,7 @@ export type Database = {
           author_as: string
           author_id: string | null
           body: string
+          client_idempotency_key: string | null
           created_at: string
           id: string
           is_internal: boolean
@@ -2502,6 +2506,7 @@ export type Database = {
           author_as: string
           author_id?: string | null
           body: string
+          client_idempotency_key?: string | null
           created_at?: string
           id?: string
           is_internal?: boolean
@@ -2511,6 +2516,7 @@ export type Database = {
           author_as?: string
           author_id?: string | null
           body?: string
+          client_idempotency_key?: string | null
           created_at?: string
           id?: string
           is_internal?: boolean

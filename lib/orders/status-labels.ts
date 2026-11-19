@@ -16,6 +16,23 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   returned: 'Devuelto',
 };
 
+/**
+ * Cómo se le nombra cada estado al tendero: en su panel y en el chat de Meteor.
+ * Distinto del comprador en tres: el pedido nuevo, el listo para recoger y el
+ * que va en camino.
+ */
+export const STORE_STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Nuevo',
+  confirmed: 'Confirmado',
+  paid: 'Pagado',
+  packing: 'Empacando',
+  at_collection: 'Listo Recogida',
+  dispatched: 'En Camino',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+  returned: 'Devuelto',
+};
+
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   pending: 'Pendiente',
   processing: 'Procesando',

@@ -33,6 +33,23 @@ describe('/api/mcp', () => {
     expect((await listar()).status).toBe(401);
     const res = await listar(token);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain('identificar_usuario');
+    const texto = await res.text();
+    for (const herramienta of [
+      'identificar_usuario',
+      'estado_pago',
+      'reglas_de_compra',
+      'listar_direcciones',
+      'consultar_cobertura',
+      'registrar_caso',
+      'agregar_a_caso',
+      'pedidos_del_tendero',
+      'liquidacion_del_tendero',
+      'crear_orden',
+      'modificar_orden',
+      'cambiar_estado_subpedido',
+      'actualizar_precio',
+    ]) {
+      expect(texto).toContain(herramienta);
+    }
   });
 });

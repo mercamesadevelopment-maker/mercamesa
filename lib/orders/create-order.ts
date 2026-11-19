@@ -92,6 +92,7 @@ export async function createOrder(
     // No se validaba en ningún punto: se podían pedir 999 de un producto con 2,
     // y el trigger que descuenta tampoco impide dejar el stock en negativo.
     checkStock: true,
+    requirePublished: !isInStore,
   });
 
   // En mostrador se vende lo de esa tienda y nada más. Antes no se comprobaba:
