@@ -12,6 +12,7 @@ export type McpErrorCode =
   | 'AMBIGUO'
   | 'CODIGO_INVALIDO'
   | 'NO_EXISTE'
+  | 'SIN_COTIZACION'
   | 'FALLO_CONSULTA';
 
 export function ok(data: Record<string, unknown>) {

@@ -45,6 +45,53 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.3.0',
+    fecha: '2026-11-19',
+    resumen:
+      'Nuevas consultas: el pago de un pedido, las reglas de compra, las direcciones del comprador y qué le llega a cada una. `identificar_usuario` reconoce a logística y al patinador.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'estado_pago',
+        detalle:
+          'El pago de un pedido del comprador (por su código o el de una parte): `estado` (pending, processing, approved, rejected, refunded, disputed), `estado_texto`, `que_hacer` con lo que se le dice al comprador en cada caso, `total`, `saldo_a_favor_usado` y `devoluciones` (por un caso o porque una tienda canceló su parte: `total`, `como` —saldo a favor o dinero—, `estado_texto` y `consignada`). `devolucion_en_curso` es `true` si hay dinero por consignar. Sin datos financieros.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'reglas_de_compra',
+        detalle:
+          'Sin teléfono: `minimo_de_compra`, `maximo_tiendas_por_pedido`, `misma_plaza` (solo se juntan tiendas que despachan desde la misma plaza), `ofertas` y, por plaza, `como_sale` un pedido de varias tiendas. `plaza` es opcional.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'listar_direcciones',
+        detalle: 'Las direcciones guardadas del comprador, con su `id`, la predeterminada primero.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'consultar_cobertura',
+        detalle:
+          'Con `direccion_id` (de listar_direcciones) y opcionalmente `valor`: por cada plaza o tienda con dirección propia, sus tiendas (`abierta` ahora y `horario`) y el `domicilio` hasta esa dirección. `domicilio: null` es un punto que no se pudo cotizar en ese momento.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'identificar_usuario',
+        detalle:
+          '`perfil`: comprador, tendero, logistica, patinador, administrador o contador. Logística y patinador traen `plazas` (`nombre` y `como`). `rol` sigue igual.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'buscar_productos',
+        detalle: '`maximo_por_pedido`: el tope de la oferta vigente por pedido, o `null`. También en detalle_producto.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Errores',
+        detalle: '`SIN_COTIZACION`: Pibox no pudo cotizar ningún domicilio para esa dirección en este momento. Se puede reintentar en unos minutos.',
+      },
+    ],
+  },
+  {
     version: '2.2.0',
     fecha: '2026-11-17',
     resumen: '`buscar_productos` encuentra aunque el comprador escriba con errores de ortografía.',

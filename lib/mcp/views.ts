@@ -22,6 +22,8 @@ export function toProductView(p: StorefrontItem) {
     precio: p.price_per_unit,
     precio_oferta: p.offer ? p.offer.finalPrice : null,
     oferta: p.offer?.label ?? null,
+    // Más de esto no entra al pedido (`reglas_de_compra`).
+    maximo_por_pedido: p.offer?.maxQtyPerOrder ?? null,
     existencias: p.stock,
     imagen: p.imageSignedUrl,
   };
@@ -118,5 +120,61 @@ export function toOrderDetailView(o: OrderDetail) {
           }
         : null,
     })),
+  };
+}
+
+type PaymentStatus = import('@/lib/orders/buyer-payment').BuyerPaymentStatus;
+
+/** El pago de un pedido: estado, qué hacer y devoluciones. Sin datos financieros. */
+export function toPaymentStatusView(p: PaymentStatus) {
+  return {
+    pedido: p.orderCode,
+    estado: p.status,
+    estado_texto: p.statusLabel,
+    que_hacer: p.help,
+    total: p.total,
+    saldo_a_favor_usado: p.creditApplied,
+    devolucion_en_curso: p.refundInProgress,
+    devoluciones: p.refunds.map((r) => ({
+      parte: r.part,
+      tienda: r.store,
+      por: r.reason,
+      caso: r.caseCode,
+      total: r.total,
+      como: r.method,
+      estado: r.status,
+      estado_texto: r.statusLabel,
+      fecha: r.createdAt,
+      consignada: r.moneyPaidAt,
+    })),
+  };
+}
+
+type BuyerAddress = import('@/lib/orders/coverage').BuyerAddress;
+type Coverage = import('@/lib/orders/coverage').CoverageResult;
+
+export function toAddressView(a: BuyerAddress) {
+  return {
+    id: a.id,
+    nombre: a.label,
+    direccion: a.addressLine,
+    barrio: a.neighborhood,
+    municipio: a.municipality,
+    predeterminada: a.isDefault,
+  };
+}
+
+/** Lo que llega a una dirección: por punto de recogida, sus tiendas y el domicilio. */
+export function toCoverageView(c: Coverage) {
+  return {
+    direccion: { nombre: c.address.label, barrio: c.address.neighborhood, municipio: c.address.municipality },
+    valor_cotizado: c.declaredValue,
+    puntos: c.points.map((p) => ({
+      plaza: p.marketplace,
+      sale_de: p.from === 'plaza' ? 'la bahía de la plaza' : 'la dirección propia de la tienda',
+      domicilio: p.deliveryFee,
+      tiendas: p.stores.map((t) => ({ nombre: t.name, abierta: t.open, horario: t.hoursLabel })),
+    })),
+    incompleto: c.truncated,
   };
 }
