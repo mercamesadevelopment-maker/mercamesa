@@ -120,7 +120,27 @@ export function reasonsCatalog(): string {
   }).join('; ');
 }
 
-/** El caso por su código, si quien pregunta lo abrió o es de su tienda. Lanza 404 si no. */
+/**
+ * Si esta persona ya dejó este mensaje en este caso (un reintento de Meteor). Se
+ * busca también por el caso: con solo la clave, repetir una clave propia con el
+ * código de un caso ajeno devolvía ese caso sin comprobar quién pregunta.
+ */
+export async function isRepeatedCaseMessage(
+  service: SupabaseClient<any>,
+  q: { caseId: string; authorId: string; key: string }
+): Promise<boolean> {
+  const { data, error } = await service
+    .from('pqrs_messages')
+    .select('id')
+    .eq('pqrs_id', q.caseId)
+    .eq('author_id', q.authorId)
+    .eq('client_idempotency_key', q.key)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data);
+}
+
+/** El caso por su código. No comprueba el acceso: lo hace quien escribe o lee el caso. Lanza 404 si no existe. */
 export async function caseIdByCode(service: SupabaseClient<any>, code: string): Promise<string> {
   const { data, error } = await service.from('pqrs').select('id').eq('code', code.trim().toUpperCase()).maybeSingle();
   if (error) throw new Error(error.message);

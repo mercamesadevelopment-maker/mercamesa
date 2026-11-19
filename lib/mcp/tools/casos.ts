@@ -11,7 +11,7 @@ import { PqrsInputError } from '@/lib/pqrs/errors';
 import type { PqrsActor } from '@/lib/pqrs/actor';
 import { asBuyer, failure } from '../buyer';
 import { fail, ok, type ToolResult } from '../result';
-import { caseIdByCode, loadParts, matchItems, pickPart, reasonsCatalog, whoHandles } from '../cases';
+import { caseIdByCode, isRepeatedCaseMessage, loadParts, matchItems, pickPart, reasonsCatalog, whoHandles } from '../cases';
 import { ChatPhotoError, importChatPhotos } from '../media';
 import type { McpUser } from '../identity';
 import { telefono } from './schemas';
@@ -176,13 +176,9 @@ export function registerCasos(server: McpServer) {
       asBuyer(args.telefono, async ({ service, user }) => {
         try {
           const id = await caseIdByCode(service, args.codigo);
-          const { data: previo } = await service
-            .from('pqrs_messages')
-            .select('id')
-            .eq('author_id', user.userId)
-            .eq('client_idempotency_key', args.clave_idempotencia)
-            .maybeSingle();
-          if (previo) return ok({ caso: await caseView(service, id), agregado: true, repetido: true });
+          if (await isRepeatedCaseMessage(service, { caseId: id, authorId: user.userId, key: args.clave_idempotencia })) {
+            return ok({ caso: await caseView(service, id), agregado: true, repetido: true });
+          }
 
           const attachments = await importChatPhotos(service, user.userId, args.fotos ?? []);
           await addPqrsMessage(service, actorOf(user), id, {

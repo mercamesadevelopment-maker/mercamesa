@@ -45,6 +45,25 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.6.1',
+    fecha: '2026-11-19',
+    resumen: 'Dos correcciones de seguridad en las herramientas que escriben.',
+    cambios: [
+      {
+        tipo: 'corregido',
+        donde: 'crear_orden',
+        detalle:
+          'Solo acepta productos publicados de tiendas activas, los mismos que muestra buscar_productos. Uno que no lo está responde DATOS_INVALIDOS con «ya no están disponibles».',
+      },
+      {
+        tipo: 'corregido',
+        donde: 'agregar_a_caso',
+        detalle:
+          'Un reintento con la misma clave_idempotencia solo cuenta como repetido en el mismo caso. Con el código de otro caso, la respuesta es la de siempre: NO_EXISTE si no es de la persona.',
+      },
+    ],
+  },
+  {
     version: '2.6.0',
     fecha: '2026-11-19',
     resumen:

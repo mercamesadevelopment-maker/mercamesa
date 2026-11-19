@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchItems, pickPart, reasonsCatalog, whoHandles } from './cases';
+import { isRepeatedCaseMessage, matchItems, pickPart, reasonsCatalog, whoHandles } from './cases';
 import { isAllowedMediaUrl, photoTypeOf } from './media';
 import { getPqrsReason } from '@/lib/pqrs/reasons';
 
@@ -81,5 +81,31 @@ describe('fotos del chat', () => {
     expect(photoTypeOf('IMAGE/PNG')).toBe('image/png');
     expect(photoTypeOf('image/svg+xml')).toBeNull();
     expect(photoTypeOf(null)).toBeNull();
+  });
+});
+
+describe('agregar_a_caso: el reintento', () => {
+  // Un mensaje ya guardado: de «u1», en el caso «propio», con la clave «clave-0001».
+  const guardado = { pqrs_id: 'propio', author_id: 'u1', client_idempotency_key: 'clave-0001' };
+  const service = () => {
+    const filtros: Record<string, string> = {};
+    const query: any = {
+      select: () => query,
+      eq: (columna: string, valor: string) => ((filtros[columna] = valor), query),
+      maybeSingle: async () => ({
+        data: Object.entries(filtros).every(([c, v]) => (guardado as any)[c] === v) ? { id: 'm1' } : null,
+        error: null,
+      }),
+    };
+    return { from: () => query } as any;
+  };
+
+  it('la misma clave en el mismo caso es un reintento', async () => {
+    expect(await isRepeatedCaseMessage(service(), { caseId: 'propio', authorId: 'u1', key: 'clave-0001' })).toBe(true);
+  });
+
+  it('una clave propia con el código de otro caso no lo devuelve', async () => {
+    // Antes se buscaba solo por persona y clave, y respondía con el caso ajeno.
+    expect(await isRepeatedCaseMessage(service(), { caseId: 'ajeno', authorId: 'u1', key: 'clave-0001' })).toBe(false);
   });
 });

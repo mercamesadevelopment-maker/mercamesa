@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     const draft = await buildOrderDraft(supabase, service, items, {
       buyerProfileId: user.id,
       blockedBuyerId: user.id,
+      requirePublished: true,
     });
 
     const settings = await loadPricingSettings(supabase);

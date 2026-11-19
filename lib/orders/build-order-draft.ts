@@ -85,6 +85,23 @@ export interface BuildDraftOptions {
   blockedBuyerId?: string;
   /** Exige existencias suficientes. La cotización no lo hace: solo muestra precios. */
   checkStock?: boolean;
+  /**
+   * Exige que cada producto esté publicado y su tienda activa. Todo pedido en
+   * línea lo pide; solo el mostrador no, porque ahí la tienda vende lo suyo.
+   *
+   * No basta con la política de la base: el chat (`lib/orders/chat-order.ts`) lee
+   * con el cliente de servicio, que se la salta, y un tendero ve sus productos sin
+   * publicar. Sin esto se podían pedir los que la base le asigna a una tienda de
+   * grupo con precio 0.
+   */
+  requirePublished?: boolean;
+}
+
+/** Lo que la vitrina no muestra: producto sin publicar o de una tienda inactiva. */
+export function unpublishedProductIds(
+  products: { id: string; is_active?: boolean | null; stores?: { is_active?: boolean | null } | null }[]
+): string[] {
+  return products.filter((p) => p.is_active !== true || p.stores?.is_active !== true).map((p) => String(p.id));
 }
 
 export async function buildOrderDraft(
@@ -111,10 +128,10 @@ export async function buildOrderDraft(
   const { data: dbProducts, error: productsError } = await supabase
     .from('store_products')
     .select(
-      `id, price_per_unit, wholesale_price, store_id, stock,
+      `id, price_per_unit, wholesale_price, store_id, stock, is_active,
        catalog_products ( name, iva_rate ),
        measurement_units ( abbreviation ),
-       stores ( name, pickup_group )`
+       stores ( name, pickup_group, is_active )`
     )
     .in('id', productIds);
 
@@ -123,6 +140,13 @@ export async function buildOrderDraft(
   }
   if (dbProducts.length !== new Set(productIds).size) {
     throw new OrderDraftError('Uno o más productos del pedido no son válidos');
+  }
+  if (options.requirePublished && unpublishedProductIds(dbProducts as any[]).length > 0) {
+    throw new OrderDraftError(
+      'Uno o más productos del pedido ya no están disponibles. Quítalos e intenta de nuevo.',
+      409,
+      'not_available'
+    );
   }
 
   const porId = new Map<string, any>((dbProducts as any[]).map((p) => [String(p.id), p]));

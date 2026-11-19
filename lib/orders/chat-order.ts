@@ -40,7 +40,7 @@ export async function previewChatOrder(service: SupabaseClient<any>, input: Chat
     service,
     service,
     input.items.map((i) => ({ store_product_id: i.storeProductId, quantity: i.quantity })),
-    { buyerProfileId: input.buyerId, blockedBuyerId: input.buyerId, checkStock: true }
+    { buyerProfileId: input.buyerId, blockedBuyerId: input.buyerId, checkStock: true, requirePublished: true }
   );
   await assertMinimumPurchase(service, draft);
 
