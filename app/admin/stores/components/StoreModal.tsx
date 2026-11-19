@@ -223,7 +223,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
               }
               <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
-            <p className="text-xs text-mm-txw max-w-[200px]">Sube un logo cuadrado (1:1). Máximo 2MB.</p>
+            <p className="text-xs text-mm-txw max-w-[200px]">Sube un logo cuadrado (1:1). Máximo 50 MB.</p>
           </div>
         </div>
 
