@@ -14,7 +14,10 @@ interface StoreProfileTabProps {
   storeId: string | null;
 }
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+// El logo y la portada suben directo a Storage (bucket `stores`, sin tope propio; el del proyecto es
+// 50 MB) y el servidor saca de ahí las variantes WebP que se muestran. Por eso pueden ser pesadas.
+const MAX_IMAGE_MB = 50;
+const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
 export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
   const { store, categories, loading, saving, error, fetchStore, saveStore } =
@@ -88,7 +91,6 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  // El modal del admin dice "máximo 2MB" pero no lo comprueba en ningún lado.
   const pickImage = (kind: 'logo' | 'cover') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -101,7 +103,7 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setImageError('La imagen no puede pesar más de 2 MB.');
+      setImageError(`La imagen no puede pesar más de ${MAX_IMAGE_MB} MB.`);
       return;
     }
 
