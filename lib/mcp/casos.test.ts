@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isRepeatedCaseMessage, matchItems, pickPart, reasonsCatalog, whoHandles } from './cases';
-import { isAllowedMediaUrl, photoTypeOf } from './media';
+import { downloadChatPhoto, isAllowedMediaUrl, photoTypeOf } from './media';
 import { getPqrsReason } from '@/lib/pqrs/reasons';
 
 describe('registrar_caso: la parte del pedido', () => {
@@ -81,6 +81,59 @@ describe('fotos del chat', () => {
     expect(photoTypeOf('IMAGE/PNG')).toBe('image/png');
     expect(photoTypeOf('image/svg+xml')).toBeNull();
     expect(photoTypeOf(null)).toBeNull();
+  });
+});
+
+describe('fotos del chat: la descarga', () => {
+  // El enlace de Meteor redirige a una URL firmada de su almacenamiento.
+  const hosts = ['api.met.meteor.com.co', 'cxabyznqncjjnxaerssj.supabase.co'];
+  const ENLACE = 'https://api.met.meteor.com.co/api/v1/f/abc';
+  const FIRMADA = 'https://cxabyznqncjjnxaerssj.supabase.co/storage/v1/object/sign/x?token=t';
+  const foto = (bytes: number, headers: Record<string, string> = {}) =>
+    new Response(new Uint8Array(bytes), { status: 200, headers: { 'content-type': 'image/jpeg', ...headers } });
+  const redirige = (a: string) => new Response(null, { status: 302, headers: { location: a } });
+  const servidor = (rutas: Record<string, () => Response>) => {
+    const pedidas: string[] = [];
+    const impl = (async (url: string, init: RequestInit) => {
+      expect(init.redirect).toBe('manual');
+      pedidas.push(url);
+      const r = rutas[url];
+      if (!r) throw new Error(`no debía pedir ${url}`);
+      return r();
+    }) as unknown as typeof fetch;
+    return { impl, pedidas };
+  };
+
+  it('sigue la redirección a la URL firmada y valida el tipo por la respuesta', async () => {
+    const s = servidor({ [ENLACE]: () => redirige(FIRMADA), [FIRMADA]: () => foto(1000) });
+    const r = await downloadChatPhoto(ENLACE, hosts, s.impl);
+    expect(r.type).toBe('image/jpeg');
+    expect(r.bytes.byteLength).toBe(1000);
+    expect(s.pedidas).toEqual([ENLACE, FIRMADA]);
+  });
+
+  it('no sigue una redirección a un dominio que no está en la lista', async () => {
+    const s = servidor({ [ENLACE]: () => redirige('https://169.254.169.254/latest/meta-data') });
+    await expect(downloadChatPhoto(ENLACE, hosts, s.impl)).rejects.toThrow(/no viene del almacenamiento de Meteor/);
+    expect(s.pedidas).toEqual([ENLACE]);
+  });
+
+  it('ni a http, ni más de dos saltos', async () => {
+    const http = servidor({ [ENLACE]: () => redirige('http://cxabyznqncjjnxaerssj.supabase.co/x') });
+    await expect(downloadChatPhoto(ENLACE, hosts, http.impl)).rejects.toThrow(/no viene del almacenamiento/);
+    const bucle = servidor({ [ENLACE]: () => redirige(ENLACE) });
+    await expect(downloadChatPhoto(ENLACE, hosts, bucle.impl)).rejects.toThrow(/No se pudo descargar/);
+    expect(bucle.pedidas).toHaveLength(3);
+  });
+
+  it('corta una foto de más de 8 MB aunque no diga su tamaño', async () => {
+    const s = servidor({ [FIRMADA]: () => foto(8 * 1024 * 1024 + 1) });
+    await expect(downloadChatPhoto(FIRMADA, hosts, s.impl)).rejects.toThrow(/8 MB/);
+  });
+
+  it('lo que no es JPG, PNG o WebP no entra, termine como termine la URL', async () => {
+    const s = servidor({ [FIRMADA]: () => foto(10, { 'content-type': 'text/html' }) });
+    await expect(downloadChatPhoto(FIRMADA, hosts, s.impl)).rejects.toThrow(/JPG, PNG o WebP/);
   });
 });
 

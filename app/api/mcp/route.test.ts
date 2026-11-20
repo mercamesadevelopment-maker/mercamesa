@@ -44,6 +44,7 @@ describe('/api/mcp', () => {
       'agregar_a_caso',
       'pedidos_del_tendero',
       'liquidacion_del_tendero',
+      'inventario_del_tendero',
       'crear_orden',
       'modificar_orden',
       'cambiar_estado_subpedido',

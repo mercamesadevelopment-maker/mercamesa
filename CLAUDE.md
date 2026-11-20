@@ -226,11 +226,13 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
   distinto por entorno). Sin ella el MCP responde 503. Por ahora solo en Preview.
 - `METEOR_WHATSAPP_BUYERS_NUMBER` y `METEOR_WHATSAPP_SELLERS_NUMBER`: las dos líneas de WhatsApp de
   Meteor (compradores y tenderos), a las que el usuario manda el código que verifica su teléfono
-  (`lib/phone/verification.ts`): +57 312 365 5225 y +57 313 744 5344. Sin la que le toca,
+  (`lib/phone/verification.ts`): +57 312 635 5225 y +57 313 744 5344. Sin la que le toca,
   verificar responde 503.
 - `METEOR_MEDIA_HOSTS`: los dominios del almacenamiento de medios de Meteor, separados por coma, desde
-  los que el MCP descarga las fotos de un caso (`lib/mcp/media.ts`: solo https, sin redirecciones). Sin
-  ella no se acepta ninguna foto por el chat.
+  los que el MCP descarga las fotos de un caso (`lib/mcp/media.ts`: solo https; una redirección se sigue
+  a mano, hasta dos saltos, y cada destino tiene que estar en la lista). Su enlace permanente
+  (`api.met.meteor.com.co`) redirige a una URL firmada de su Supabase (`cxabyznqncjjnxaerssj.supabase.co`):
+  van los dos. Sin ella no se acepta ninguna foto por el chat.
 
 Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
 corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada

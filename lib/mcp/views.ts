@@ -1,4 +1,5 @@
 import { PQRS_OUTCOME_LABELS, PQRS_STATUS_LABELS, type PqrsDetail, type PqrsSummary } from '@/lib/pqrs/types';
+import type { InventoryItem } from '@/lib/store-products/store-inventory';
 import type { toStorefrontItem } from '@/lib/store-products/storefront';
 import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 
@@ -10,9 +11,11 @@ import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 
 type StorefrontItem = ReturnType<typeof toStorefrontItem>;
 
-export function toProductView(p: StorefrontItem) {
+export function toProductView(p: StorefrontItem, code: string | null = null) {
   return {
     id: p.id,
+    // El de la tienda (MM-000123 o el suyo); con él o con `id` lo cambia actualizar_precio.
+    codigo: code,
     nombre: p.catalog_products.name,
     categoria: p.catalog_products.categories?.name ?? null,
     tienda: p.stores.name,
@@ -221,5 +224,23 @@ export function toStatementView(s: StoreStatement) {
     retenido: s.held.map((h) => ({ razon: h.reason, explicacion: h.explanation, pedidos: h.orders, valor: h.amount })),
     retenciones: s.withholdings,
     nota: s.note,
+  };
+}
+
+/** Un producto del inventario del tendero. */
+export function toInventoryView(p: InventoryItem) {
+  return {
+    id: p.id,
+    codigo: p.code,
+    nombre: p.name,
+    categoria: p.category,
+    unidad: p.unit,
+    precio: p.price,
+    precio_mayorista: p.wholesalePrice,
+    minimo_mayorista: p.wholesaleMin,
+    existencias: p.stock,
+    publicado: p.published,
+    // Un producto en $0 no se publica: primero el precio.
+    falta_precio: p.needsPrice,
   };
 }

@@ -52,6 +52,18 @@ function orderFailure(error: unknown): ToolResult {
   return failure(error);
 }
 
+/** Un producto en actualizar_precio: por su `id` o su código, y lo que cambia. */
+export const cambioDePrecio = z.object({
+  id: z.string().uuid().optional().describe('El `id` del producto, de inventario_del_tendero o buscar_productos.'),
+  codigo: z.string().min(1).max(50).optional().describe('O el código del producto en su tienda (MM-000123 o el suyo propio).'),
+  precio: z.number().positive().optional(),
+  precio_mayorista: z.number().positive().nullable().optional().describe('null para quitarlo.'),
+  minimo_mayorista: z.number().int().min(1).nullable().optional(),
+  stock: z.number().min(0).optional(),
+  publicado: z.boolean().optional(),
+  })
+  .refine((p) => Boolean(p.id) !== Boolean(p.codigo), 'Cada producto lleva `id` o `codigo`, uno de los dos.');
+
 export function registerEscritura(server: McpServer) {
   // ---------------------------------------------------------------- comprador
   server.registerTool(
@@ -274,26 +286,14 @@ export function registerEscritura(server: McpServer) {
     {
       title: 'Actualizar precios y existencias',
       description:
-        'Cambia, en productos de la tienda de la persona, por su código: precio, precio mayorista, mínimo mayorista, stock y si está ' +
+        'Cambia, en productos de la tienda de la persona, por su `id` o su `codigo` (de inventario_del_tendero): precio, precio mayorista, mínimo mayorista, stock y si está ' +
         'publicado. Las mismas reglas de la tabla del panel (un producto no se publica sin precio; el mayorista no supera al precio). ' +
         'Cada cambio de stock queda en la bitácora como ajuste por WhatsApp. Hasta 50 productos. Primero sin `confirmar`: devuelve ' +
         'antes y después de cada uno, o el error de cada producto; luego con `confirmar: true`.',
       inputSchema: z.object({
         telefono,
         tienda,
-        productos: z
-          .array(
-            z.object({
-              codigo: z.string().min(1).max(50).describe('El código del producto en su tienda (MM-000123 o el suyo propio).'),
-              precio: z.number().positive().optional(),
-              precio_mayorista: z.number().positive().nullable().optional().describe('null para quitarlo.'),
-              minimo_mayorista: z.number().int().min(1).nullable().optional(),
-              stock: z.number().min(0).optional(),
-              publicado: z.boolean().optional(),
-            })
-          )
-          .min(1)
-          .max(50),
+        productos: z.array(cambioDePrecio).min(1).max(50),
         confirmar,
         clave_idempotencia: claveIdempotencia,
       }),
@@ -301,22 +301,25 @@ export function registerEscritura(server: McpServer) {
     async (args) =>
       asStoreMember(args.telefono, args.tienda, async ({ service, user, store }) => {
         try {
-          const codigos = [...new Set(args.productos.map((p) => p.codigo.trim().toUpperCase()))];
-          const { data, error } = await service
-            .from('store_products')
-            .select('id, code, price_per_unit, wholesale_price, wholesale_min_qty, stock, is_active, unit_id, catalog_products ( name )')
-            .eq('store_id', store.id)
-            .in('code', codigos);
-          if (error) throw new Error(error.message);
-          const porCodigo = new Map((data ?? []).map((p: any) => [String(p.code).toUpperCase(), p]));
-          const faltan = codigos.filter((c) => !porCodigo.has(c));
-          if (faltan.length > 0) return fail('NO_EXISTE', `Estos códigos no son de productos de la tienda: ${faltan.join(', ')}.`);
+          // Solo productos de su tienda: un `id` o un código de otra no aparece.
+          const ids = args.productos.flatMap((p) => (p.id ? [p.id] : []));
+          const codigos = args.productos.flatMap((p) => (p.codigo ? [p.codigo.trim().toUpperCase()] : []));
+          const columnas = 'id, code, price_per_unit, wholesale_price, wholesale_min_qty, stock, is_active, unit_id, catalog_products ( name )';
+          const [porIdQ, porCodigoQ] = await Promise.all([
+            ids.length ? service.from('store_products').select(columnas).eq('store_id', store.id).in('id', ids) : { data: [], error: null },
+            codigos.length
+              ? service.from('store_products').select(columnas).eq('store_id', store.id).in('code', codigos)
+              : { data: [], error: null },
+          ]);
+          if (porIdQ.error || porCodigoQ.error) throw new Error((porIdQ.error ?? porCodigoQ.error)!.message);
+          const encontrados = matchProductRefs(args.productos, [...(porIdQ.data ?? []), ...(porCodigoQ.data ?? [])] as any[]);
+          if ('message' in encontrados) return fail(encontrados.code, encontrados.message);
 
           const filas: PriceBatchRow[] = [];
           const vista: Record<string, unknown>[] = [];
           const errores: Record<string, string> = {};
-          for (const p of args.productos) {
-            const actual = porCodigo.get(p.codigo.trim().toUpperCase());
+          for (const [i, p] of args.productos.entries()) {
+            const actual = encontrados.rows[i];
             const antes: PriceValues = {
               unitId: actual.unit_id ?? null,
               price: Number(actual.price_per_unit),
@@ -332,9 +335,10 @@ export function registerEscritura(server: McpServer) {
             if (p.stock !== undefined) fila.stock = p.stock;
             if (p.publicado !== undefined) fila.is_active = p.publicado;
             const e = validateRow(fila, antes);
-            if (Object.keys(e).length > 0) errores[actual.code] = Object.values(e).join(' ');
+            if (Object.keys(e).length > 0) errores[actual.code ?? actual.id] = Object.values(e).join(' ');
             filas.push(fila);
             vista.push({
+              id: actual.id,
               codigo: actual.code,
               producto: actual.catalog_products?.name ?? null,
               antes: { precio: antes.price, precio_mayorista: antes.wsPrice, minimo_mayorista: antes.wsMin, stock: antes.stock, publicado: antes.isActive },
@@ -362,4 +366,37 @@ export function registerEscritura(server: McpServer) {
         }
       })
   );
+}
+
+/**
+ * Cada producto pedido, con su fila de la base (en el mismo orden), o por qué
+ * no. Las filas ya vienen filtradas por la tienda: lo que no esté es de otra o
+ * no existe. Un producto nombrado dos veces (por `id` y por código, por ejemplo)
+ * no pasa: el lote guardaría dos cambios encima del mismo.
+ */
+export function matchProductRefs<R extends { id: string; code: string | null }>(
+  refs: { id?: string; codigo?: string }[],
+  rows: R[]
+): { ok: true; rows: R[] } | { ok: false; code: 'NO_EXISTE' | 'DATOS_INVALIDOS'; message: string } {
+  const porId = new Map(rows.map((r) => [r.id, r]));
+  const porCodigo = new Map(rows.filter((r) => r.code).map((r) => [String(r.code).toUpperCase(), r]));
+  const faltan: string[] = [];
+  const hallados: R[] = [];
+  for (const ref of refs) {
+    const fila = ref.id ? porId.get(ref.id) : porCodigo.get(String(ref.codigo).trim().toUpperCase());
+    if (!fila) faltan.push(ref.id ?? String(ref.codigo));
+    else hallados.push(fila);
+  }
+  if (faltan.length > 0) {
+    return { ok: false, code: 'NO_EXISTE', message: `Estos productos no son de la tienda: ${faltan.join(', ')}.` };
+  }
+  const repetidos = hallados.filter((f, i) => hallados.findIndex((g) => g.id === f.id) !== i);
+  if (repetidos.length > 0) {
+    return {
+      ok: false,
+      code: 'DATOS_INVALIDOS',
+      message: `Un producto viene dos veces: ${[...new Set(repetidos.map((r) => r.code ?? r.id))].join(', ')}. Junta sus cambios en uno.`,
+    };
+  }
+  return { ok: true, rows: hallados };
 }

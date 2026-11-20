@@ -45,6 +45,36 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.7.0',
+    fecha: '2026-11-20',
+    resumen: 'El tendero ve todo su inventario y cambia precios por id o por código; las fotos de un caso llegan con el enlace de Meteor.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'inventario_del_tendero',
+        detalle:
+          'Los productos de la tienda del tendero, también los no publicados, sin precio o sin existencias, con `texto`, `filtro` (`todos`, `sin_publicar`, `sin_precio`, `sin_stock`) y `pagina` (20 por página). Cada uno trae `id`, `codigo`, nombre, categoría, unidad, precios, existencias, `publicado` y `falta_precio`. Los productos exclusivos de un grupo de tiendas llegan sin publicar y en $0: salen con `filtro: "sin_precio"`.',
+      },
+      {
+        tipo: 'cambio',
+        donde: 'actualizar_precio',
+        detalle:
+          'Cada producto va por su `id` o por su `codigo`, uno de los dos. La respuesta trae los dos. Un mismo producto dos veces responde DATOS_INVALIDOS.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'buscar_productos y detalle_producto',
+        detalle: 'Cada producto trae `codigo`, el de su tienda.',
+      },
+      {
+        tipo: 'cambio',
+        donde: 'registrar_caso y agregar_a_caso',
+        detalle:
+          'Las `fotos` pueden ser el enlace permanente de Meteor: se sigue su redirección (hasta dos saltos, cada uno https y de un dominio autorizado) y la foto se descarga en ese momento. El tipo (JPG, PNG o WebP) se toma del Content-Type de la respuesta, no de la URL. Dominios autorizados en staging: api.met.meteor.com.co y cxabyznqncjjnxaerssj.supabase.co.',
+      },
+    ],
+  },
+  {
     version: '2.6.1',
     fecha: '2026-11-19',
     resumen: 'Dos correcciones de seguridad en las herramientas que escriben.',
