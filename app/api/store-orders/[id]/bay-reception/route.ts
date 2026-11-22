@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { canManageStoreOrder } from '@/lib/pibox/authz';
 import { getBayReception } from '@/lib/logistics/bay-reception';
+import { loadStoreEvidence } from '@/lib/orders/store-evidence';
 
 /**
  * Cómo recibió logística esta parte en la bahía: fotos, observación y si algo
@@ -24,7 +25,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
 
     const service = createSupabaseServiceClient() as unknown as SupabaseClient<any>;
-    return NextResponse.json({ data: await getBayReception(service, id) }, { status: 200 });
+    // También la evidencia que dejó la tienda al marcar «Listo Recogida», cuando le tocaba a ella.
+    const [recepcion, tienda] = await Promise.all([getBayReception(service, id), loadStoreEvidence(service, id)]);
+    return NextResponse.json({ data: recepcion, store: tienda }, { status: 200 });
   } catch (error: unknown) {
     console.error('[store-orders/bay-reception] error no controlado', error);
     return NextResponse.json({ error: 'No pudimos cargar la recepción en la bahía.' }, { status: 500 });

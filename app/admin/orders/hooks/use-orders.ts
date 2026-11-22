@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { Order, OrderStatus } from '@/features/orders/types/order.types';
-import { updateStoreOrderStatus } from '@/features/orders/services/update-order-status.service';
+import { updateStoreOrderStatus, type StoreEvidencePayload } from '@/features/orders/services/update-order-status.service';
 import { revertStoreOrderStatus } from '@/features/orders/services/revert-order-status.service';
 import { cancelStorePart } from '@/features/orders/services/cancel-store-part.service';
 import { toStoreOrderCard } from '@/features/orders/utils/store-order-card';
@@ -162,16 +162,24 @@ export function useOrders() {
   // parecía despachado sin que hubiera mensajero en camino.
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
 
-  const updateOrderStatus = async (orderId: string, status: OrderStatus, notes?: string) => {
+  // Con evidencia (fotos del tendero al marcar «Listo Recogida»), el error se
+  // propaga: el modal de la evidencia tiene que mostrarlo.
+  const updateOrderStatus = async (
+    orderId: string,
+    status: OrderStatus,
+    notes?: string,
+    evidence?: StoreEvidencePayload
+  ) => {
     try {
       const order = myOrders.find(o => o.id === orderId);
       if (!order || !order.storeOrderId) return;
 
-      const outcome = await updateStoreOrderStatus(order.storeOrderId, status, notes);
+      const outcome = await updateStoreOrderStatus(order.storeOrderId, status, notes, evidence);
       if (outcome.error) setDeliveryError(outcome.error);
 
       await fetchStoreOrders();
     } catch (err) {
+      if (evidence) throw err;
       console.error('Error updating store order status:', err);
     }
   };

@@ -415,6 +415,11 @@ Cada plaza decide cómo se junta (Plazas → detalle → «Pedidos de varias tie
   tendero y a los admins sin bloquear el pedido. En un pedido de una sola tienda es «Registrar
   recepción» y el despacho no la espera. Se completa mientras la parte siga en la plaza. La ven
   el tendero de esa parte y el admin en el detalle del pedido; el comprador no.
+- **Evidencia del tendero** (`lib/orders/store-evidence-rules.ts`, `store-evidence.ts`): cuando la parte no la
+  recibe logística —la plaza no tiene logística, el pedido de varias tiendas no la usa o la tienda despacha
+  desde su dirección—, «Listo Recogida» exige al menos una foto del tendero (`StoreEvidenceModal`; lo valida
+  `POST /api/store-orders/[id]/status`). Mismo bucket y tabla que las de la bahía, con `source = 'store'`, y
+  no cuenta como servicio de logística. El admin puede marcarlo sin foto; Carolina (MCP) todavía no pide fotos.
 - **Servicios de logística** (Contabilidad → Logística): un pedido que salió de la bahía y en el
   que logística recibió alguna parte o lo despachó (`orders.logistics_dispatched_at`) cuenta
   uno, el día en que salió en hora de Colombia (`logistics_services_by_day`).

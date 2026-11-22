@@ -13,6 +13,10 @@ import { OrderDetailModal } from '@/features/orders/components/OrderDetailModal'
 import { formatOrderCode } from '@/lib/orders/order-code';
 import { getStatusConfig, getRevertTargets } from '@/features/orders/utils/order-status';
 import { StatusNoteModal } from './StatusNoteModal';
+import { StoreEvidenceModal, type StoreEvidenceForm } from './StoreEvidenceModal';
+import { useStoreEvidenceGate } from '../hooks/use-store-evidence-gate';
+import { uploadStoreEvidencePhotos } from '../services/store-evidence.service';
+import type { StoreEvidencePayload } from '../services/update-order-status.service';
 import { isPaymentApproved, UNPAID_STATUS_CHANGE_WARNING } from '@/features/orders/utils/payment-status';
 import { RevertStatusModal } from './RevertStatusModal';
 import { CancelPartModal } from './CancelPartModal';
@@ -29,7 +33,7 @@ interface OrdersViewProps {
   filterStatus: OrderStatus | 'all';
   setFilterStatus: (status: OrderStatus | 'all') => void;
   stats: Record<string, number>;
-  updateOrderStatus: (orderId: string, status: OrderStatus, notes?: string) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: OrderStatus, notes?: string, evidence?: StoreEvidencePayload) => Promise<void>;
   revertOrderStatus: (orderId: string, status: OrderStatus, notes: string) => Promise<void>;
   /** Cancela la parte de la tienda en un pedido de varias tiendas. Lanza si no se pudo. */
   cancelPart: (orderId: string, reason: string) => Promise<void>;
@@ -84,6 +88,24 @@ export function OrdersView({
     statusChangeOrder && !isPaymentApproved(statusChangeOrder.paymentStatus)
       ? UNPAID_STATUS_CHANGE_WARNING
       : null;
+
+  // «Listo Recogida» en una parte que no recibe logística: el tendero deja
+  // fotos antes de pedir el domiciliario. El admin no: puede destrabar sin foto.
+  const pideEvidencia = useStoreEvidenceGate(
+    variant === 'seller' ? statusChangeOrder?.storeOrderId ?? null : null,
+    variant === 'seller' ? statusChangeRequest?.nextStatus ?? null : null
+  );
+  const conEvidencia = statusChangeRequest?.nextStatus === 'at_collection' && pideEvidencia === true;
+  const esperandoEvidencia =
+    variant === 'seller' && statusChangeRequest?.nextStatus === 'at_collection' && pideEvidencia === null;
+
+  const handleConfirmWithEvidence = async (form: StoreEvidenceForm) => {
+    if (!statusChangeRequest || !statusChangeOrder?.storeOrderId) return;
+    const photos = await uploadStoreEvidencePhotos(statusChangeOrder.storeOrderId, form.files);
+    const evidence: StoreEvidencePayload = { photos, observation: form.observation || null };
+    await updateOrderStatus(statusChangeRequest.orderId, statusChangeRequest.nextStatus, form.notes, evidence);
+    setStatusChangeRequest(null);
+  };
 
   const ordersPerPage = 6;
   const storeFilterThreshold = variant === 'admin' ? 0 : 1;
@@ -461,8 +483,17 @@ export function OrdersView({
       />
 
       {/* Status Note Prompt Modal */}
+      <StoreEvidenceModal
+        isOpen={conEvidencia}
+        items={statusChangeOrder?.items ?? []}
+        orderCode={statusChangeOrder ? formatOrderCode(statusChangeOrder.code ?? null, statusChangeOrder.id) : ''}
+        warning={statusChangeWarning}
+        onClose={() => setStatusChangeRequest(null)}
+        onConfirm={handleConfirmWithEvidence}
+      />
+
       <StatusNoteModal
-        isOpen={!!statusChangeRequest}
+        isOpen={!!statusChangeRequest && !conEvidencia && !esperandoEvidencia}
         onClose={() => setStatusChangeRequest(null)}
         onConfirm={handleConfirmStatusChange}
         title="Cambiar Estado del Pedido"
