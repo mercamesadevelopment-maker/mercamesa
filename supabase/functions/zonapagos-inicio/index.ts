@@ -89,13 +89,17 @@ serve(async (req) => {
       throw new Error('Este pedido ya quedó pagado con tu saldo a favor.')
     }
 
+    // ZonaPagos rechaza una descripción de más de 70 caracteres. El navegador ya
+    // la recorta (`lib/payments/payment-description.ts`); esto es la red de abajo.
+    const descripcion = String(compraData.descripcion ?? '').trim().slice(0, 70) || 'Pedido MercaMesa'
+
     // 3. Armar el JSON EXACTO con la estructura que exige Zonapagos
     const zonapagosPayload = {
       "InformacionPago": {
         "flt_total_con_iva": amountToCharge,
         "flt_valor_iva": compraData.iva || 0,
         "str_id_pago": compraData.idPago,
-        "str_descripcion_pago": compraData.descripcion,
+        "str_descripcion_pago": descripcion,
         "str_email": compraData.email,
         "str_id_cliente": compraData.idCliente,
         "str_tipo_id": compraData.tipoIdCliente,
