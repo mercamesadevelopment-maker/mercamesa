@@ -64,6 +64,9 @@ export function buildStoreInsert(
       marketplace_id,
       description,
       contact_name: (body.contact_name as string) || null,
+      // El local dentro de la plaza («Local 234, pasillo 3»): va en la indicación
+      // de recogida de Picap. Sin él, el domiciliario solo sabe el nombre.
+      local_address: String(body.local_address ?? '').trim() || null,
       contact_email,
       phone,
       whatsapp,

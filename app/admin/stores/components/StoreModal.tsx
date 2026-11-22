@@ -43,7 +43,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const [marketplaces, setMarketplaces] = useState<Marketplace[]>([]);
   const [storeCategories, setStoreCategories] = useState<StoreCategory[]>([]);
   const [formData, setFormData] = useState({
-    name: '', slug: '', marketplace_id: '', description: '',
+    name: '', slug: '', marketplace_id: '', description: '', local_address: '',
     contact_name: '', contact_email: '', phone: '', whatsapp: '', is_active: true,
   });
   // Aparte de `formData`, que es todo cadenas: las categorías son varias y el
@@ -85,6 +85,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         name: initialData.name || '', slug: initialData.slug || '',
         marketplace_id: initialData.marketplace_id || '',
         description: initialData.description || '',
+        local_address: initialData.local_address || '',
         contact_name: initialData.contact_name || '',
         contact_email: initialData.contact_email || '',
         phone: initialData.phone || '',
@@ -117,7 +118,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setFormData({
         name: '', slug: '',
         marketplace_id: marketplaces.length > 0 ? marketplaces[0].id : '',
-        description: '', contact_name: '', contact_email: '',
+        description: '', local_address: '', contact_name: '', contact_email: '',
         phone: '', whatsapp: '', is_active: true,
       });
       setCategoryIds([]);
@@ -302,6 +303,20 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
           />
           <span className="text-[10px] text-mm-txw ml-1">
             {formData.description.length}/{STORE_DESCRIPTION_MAX_LENGTH}
+          </span>
+        </div>
+
+        {/* El local dentro de la plaza: va en la indicación de recogida de Picap. */}
+        <div className="flex flex-col gap-1">
+          <Input
+            label="Ubicación dentro de la plaza"
+            name="local_address"
+            value={formData.local_address}
+            onChange={handleChange}
+            placeholder="Ej: Local 234, pasillo 3"
+          />
+          <span className="text-[10px] text-mm-txw ml-1">
+            Se le envía al domiciliario para que encuentre la tienda. No la pongas en la descripción.
           </span>
         </div>
 
