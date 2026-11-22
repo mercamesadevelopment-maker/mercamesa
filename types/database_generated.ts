@@ -3705,6 +3705,7 @@ export type Database = {
           id: string
           mime_type: string | null
           path: string
+          source: string
           store_order_id: string
           uploaded_by: string | null
         }
@@ -3713,6 +3714,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           path: string
+          source?: string
           store_order_id: string
           uploaded_by?: string | null
         }
@@ -3721,6 +3723,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           path?: string
+          source?: string
           store_order_id?: string
           uploaded_by?: string | null
         }
@@ -3811,7 +3814,10 @@ export type Database = {
           packing_notes: string | null
           split_index: number
           status: Database["public"]["Enums"]["order_status"]
+          store_evidence_at: string | null
+          store_evidence_by: string | null
           store_id: string
+          store_observation: string | null
           subtotal: number
           updated_at: string
         }
@@ -3832,7 +3838,10 @@ export type Database = {
           packing_notes?: string | null
           split_index?: number
           status?: Database["public"]["Enums"]["order_status"]
+          store_evidence_at?: string | null
+          store_evidence_by?: string | null
           store_id: string
+          store_observation?: string | null
           subtotal?: number
           updated_at?: string
         }
@@ -3853,7 +3862,10 @@ export type Database = {
           packing_notes?: string | null
           split_index?: number
           status?: Database["public"]["Enums"]["order_status"]
+          store_evidence_at?: string | null
+          store_evidence_by?: string | null
           store_id?: string
+          store_observation?: string | null
           subtotal?: number
           updated_at?: string
         }

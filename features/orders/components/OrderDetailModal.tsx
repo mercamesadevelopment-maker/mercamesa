@@ -14,6 +14,7 @@ import { useOrderInvoice } from '../hooks/use-order-invoice';
 import { InvoiceLink } from './InvoiceLink';
 import { PackingNotesCard } from './PackingNotesCard';
 import { BayReceptionCard } from './BayReceptionCard';
+import { StoreEvidenceCard } from './StoreEvidenceCard';
 import { useBayReception } from '../hooks/use-bay-reception';
 import { ConsolidatedNotice } from './ConsolidatedNotice';
 import { packingNotesEditable } from '@/lib/orders/packing-notes';
@@ -61,7 +62,7 @@ export function OrderDetailModal({
     isOpen && hasDelivery
   );
   const invoice = useOrderInvoice(order?.storeOrderId ? String(order.storeOrderId) : null, isOpen);
-  const bayReception = useBayReception(order?.storeOrderId ? String(order.storeOrderId) : null, isOpen);
+  const evidencia = useBayReception(order?.storeOrderId ? String(order.storeOrderId) : null, isOpen);
 
   if (!order) return null;
 
@@ -231,7 +232,8 @@ export function OrderDetailModal({
               />
             )}
 
-            <BayReceptionCard reception={bayReception} />
+            <StoreEvidenceCard evidence={evidencia.store} />
+            <BayReceptionCard reception={evidencia.reception} />
 
             <PackingNotesCard
               notes={order.packingNotes ?? null}
