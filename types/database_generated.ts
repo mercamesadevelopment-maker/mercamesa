@@ -4027,7 +4027,10 @@ export type Database = {
           created_at: string
           department: string | null
           description: string | null
+          document_dv: string | null
+          document_number: string | null
           id: string
+          identification_type_id: string | null
           is_active: boolean
           is_retail: boolean
           is_verified: boolean
@@ -4057,7 +4060,10 @@ export type Database = {
           created_at?: string
           department?: string | null
           description?: string | null
+          document_dv?: string | null
+          document_number?: string | null
           id?: string
+          identification_type_id?: string | null
           is_active?: boolean
           is_retail?: boolean
           is_verified?: boolean
@@ -4087,7 +4093,10 @@ export type Database = {
           created_at?: string
           department?: string | null
           description?: string | null
+          document_dv?: string | null
+          document_number?: string | null
           id?: string
+          identification_type_id?: string | null
           is_active?: boolean
           is_retail?: boolean
           is_verified?: boolean
@@ -4112,6 +4121,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "store_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_identification_type_id_fkey"
+            columns: ["identification_type_id"]
+            isOneToOne: false
+            referencedRelation: "identification_types"
             referencedColumns: ["id"]
           },
           {
