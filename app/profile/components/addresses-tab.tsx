@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { AddressFormModal } from './address-form-modal';
+import { ConfirmModal } from '@/components/ui/confirm-modal/ConfirmModal';
+import { useDeleteConfirm } from '@/components/ui/confirm-modal/hooks/use-delete-confirm';
 
 export function AddressesTab() {
   const { addresses, loading, error, fetchAddresses, createAddress, updateAddress, deleteAddress } =
@@ -52,13 +54,10 @@ export function AddressesTab() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteAddress(id);
-    } catch {
-      // error visible en el banner superior
-    }
-  };
+  // Borrar pide confirmación. Si el servidor lo rechaza, el motivo sale en el
+  // banner de arriba (lo pone `useAddresses`).
+  const borrado = useDeleteConfirm<DeliveryAddress>((addr) => deleteAddress(addr.id));
+  const aBorrar = borrado.target;
 
   return (
     <>
@@ -142,7 +141,7 @@ export function AddressesTab() {
                   </button>
                   <button
                     className="p-2.5 hover:bg-mm-gbg rounded-full text-mm-txw hover:text-r transition-colors"
-                    onClick={() => handleDelete(addr.id)}
+                    onClick={() => borrado.ask(addr)}
                     aria-label="Eliminar dirección"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -153,6 +152,25 @@ export function AddressesTab() {
           )}
         </div>
       </motion.div>
+
+      <ConfirmModal
+        isOpen={!!aBorrar}
+        onClose={borrado.cancel}
+        onConfirm={borrado.confirm}
+        isLoading={borrado.isDeleting}
+        variant="danger"
+        title="¿Eliminar esta dirección?"
+        message={
+          aBorrar && (
+            <>
+              <span className="font-semibold text-mm-g">{aBorrar.label ?? aBorrar.address_line}</span>
+              {aBorrar.label ? ` (${aBorrar.address_line})` : ''}. No la podrás usar en tus próximos pedidos.
+              {aBorrar.is_default && ' Es tu dirección predeterminada: elige otra al hacer tu próximo pedido.'}
+            </>
+          )
+        }
+        confirmText="Eliminar"
+      />
 
       <AddressFormModal
         isOpen={isModalOpen}
