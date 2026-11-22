@@ -20,6 +20,11 @@ describe('buildStoreInsert', () => {
     expect(buildStoreInsert({ name: 'x' }, 's')).toEqual({ error: 'Missing required fields' });
   });
 
+  it('guarda el local dentro de la plaza, que es lo que busca el domiciliario', () => {
+    expect(buildStoreInsert({ ...alta, local_address: ' Local 1022 ' }, 's')).toMatchObject({ insert: { local_address: 'Local 1022' } });
+    expect(buildStoreInsert({ ...alta, local_address: '' }, 's')).toMatchObject({ insert: { local_address: null } });
+  });
+
   it('is_retail en falso solo si se pide', () => {
     expect(buildStoreInsert({ ...alta, is_retail: 'false' }, 's')).toMatchObject({ insert: { is_retail: false } });
   });
