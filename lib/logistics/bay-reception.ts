@@ -55,6 +55,8 @@ export async function loadBayReceptions(
       .from('store_order_bay_photos')
       .select('id, store_order_id, path, created_at')
       .in('store_order_id', storeOrderIds)
+      // Las de la tienda son su propia evidencia (`lib/orders/store-evidence.ts`).
+      .eq('source', 'logistics')
       .order('created_at', { ascending: true }),
   ]);
   if (error) throw new Error(`No se pudo cargar la recepción: ${error.message}`);

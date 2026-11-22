@@ -19,12 +19,19 @@ export interface DeliveryRequestOutcome {
  * se revierte por un fallo de Pibox, pero quien llama debe poder avisarle al
  * vendedor que el mensajero no quedó pedido.
  */
+/** La evidencia del tendero al marcar «Listo Recogida»: rutas ya subidas y la observación. */
+export interface StoreEvidencePayload {
+  photos: string[];
+  observation: string | null;
+}
+
 export async function updateStoreOrderStatus(
   storeOrderId: string,
   status: OrderStatus,
-  notes?: string
+  notes?: string,
+  evidence?: StoreEvidencePayload
 ): Promise<DeliveryRequestOutcome> {
-  await postStatus(storeOrderId, status, notes);
+  await postStatus(storeOrderId, status, notes, evidence);
 
   // Al marcar "Listo Recogida" el paquete ya existe físicamente: es el momento
   // de pedir el mensajero. Va por el servidor porque el token de Pibox es
@@ -36,11 +43,16 @@ export async function updateStoreOrderStatus(
   return { requested: false };
 }
 
-async function postStatus(storeOrderId: string, status: OrderStatus, notes?: string): Promise<void> {
+async function postStatus(
+  storeOrderId: string,
+  status: OrderStatus,
+  notes?: string,
+  evidence?: StoreEvidencePayload
+): Promise<void> {
   const response = await fetch(`/api/store-orders/${storeOrderId}/status`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, notes: notes || null }),
+    body: JSON.stringify({ status, notes: notes || null, ...(evidence ?? {}) }),
   });
   if (!response.ok) {
     const result = await response.json().catch(() => ({}));
