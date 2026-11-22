@@ -45,6 +45,202 @@ export const MCP_CHANGE_KIND_LABELS: Record<McpChangeKind, string> = {
 /** De la más nueva a la más vieja. */
 export const MCP_RELEASES: McpRelease[] = [
   {
+    version: '2.7.0',
+    fecha: '2026-11-20',
+    resumen: 'El tendero ve todo su inventario y cambia precios por id o por código; las fotos de un caso llegan con el enlace de Meteor.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'inventario_del_tendero',
+        detalle:
+          'Los productos de la tienda del tendero, también los no publicados, sin precio o sin existencias, con `texto`, `filtro` (`todos`, `sin_publicar`, `sin_precio`, `sin_stock`) y `pagina` (20 por página). Cada uno trae `id`, `codigo`, nombre, categoría, unidad, precios, existencias, `publicado` y `falta_precio`. Los productos exclusivos de un grupo de tiendas llegan sin publicar y en $0: salen con `filtro: "sin_precio"`.',
+      },
+      {
+        tipo: 'cambio',
+        donde: 'actualizar_precio',
+        detalle:
+          'Cada producto va por su `id` o por su `codigo`, uno de los dos. La respuesta trae los dos. Un mismo producto dos veces responde DATOS_INVALIDOS.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'buscar_productos y detalle_producto',
+        detalle: 'Cada producto trae `codigo`, el de su tienda.',
+      },
+      {
+        tipo: 'cambio',
+        donde: 'registrar_caso y agregar_a_caso',
+        detalle:
+          'Las `fotos` pueden ser el enlace permanente de Meteor: se sigue su redirección (hasta dos saltos, cada uno https y de un dominio autorizado) y la foto se descarga en ese momento. El tipo (JPG, PNG o WebP) se toma del Content-Type de la respuesta, no de la URL. Dominios autorizados en staging: api.met.meteor.com.co y cxabyznqncjjnxaerssj.supabase.co.',
+      },
+    ],
+  },
+  {
+    version: '2.6.1',
+    fecha: '2026-11-19',
+    resumen: 'Dos correcciones de seguridad en las herramientas que escriben.',
+    cambios: [
+      {
+        tipo: 'corregido',
+        donde: 'crear_orden',
+        detalle:
+          'Solo acepta productos publicados de tiendas activas, los mismos que muestra buscar_productos. Uno que no lo está responde DATOS_INVALIDOS con «ya no están disponibles».',
+      },
+      {
+        tipo: 'corregido',
+        donde: 'agregar_a_caso',
+        detalle:
+          'Un reintento con la misma clave_idempotencia solo cuenta como repetido en el mismo caso. Con el código de otro caso, la respuesta es la de siempre: NO_EXISTE si no es de la persona.',
+      },
+    ],
+  },
+  {
+    version: '2.6.0',
+    fecha: '2026-11-19',
+    resumen:
+      'Carolina escribe: crea pedidos (el pago sigue en la app), y el tendero avanza sus pedidos, cancela su parte y cambia precios y existencias. Todo pide confirmar.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'Herramientas que escriben',
+        detalle:
+          'crear_orden, modificar_orden, cambiar_estado_subpedido y actualizar_precio se llaman dos veces: sin `confirmar` devuelven `resumen` sin escribir nada; con `confirmar: true` y la misma `clave_idempotencia` escriben. Hay que mostrarle el resumen a la persona y esperar su sí. Lo que hacen queda en el historial como «Por WhatsApp (Carolina)».',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'crear_orden',
+        detalle:
+          'Con `productos` (`id` de buscar_productos y `cantidad`), `direccion_id`, `notas` y `usar_saldo`. El resumen trae productos con su precio, `productos_de_terceros`, `domicilio`, `total` y `saldo_a_favor_disponible`. Al confirmar devuelve `pedido` (`codigo`, `total`, `pago`), `enlace_pago` (Mis órdenes, donde se paga con «Pagar») y `que_sigue`. Carolina no cobra: el pedido queda pendiente de pago, salvo que el saldo a favor lo cubra. Aplican las reglas de reglas_de_compra; si no se cumplen, `DATOS_INVALIDOS` con el motivo.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'modificar_orden',
+        detalle:
+          '`accion: cancelar_parte`: la tienda cancela su parte de un pedido de varias tiendas (`parte`, `motivo`); al comprador se le abona como saldo a favor. El comprador no puede cambiar ni cancelar un pedido: responde `NO_PERMITIDO` con qué hacer (caso si ya pagó; si no, el pedido vence solo).',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'cambiar_estado_subpedido',
+        detalle:
+          'Avanza la parte de su tienda un paso (`estado`: confirmed, packing, at_collection, dispatched, delivered), como el botón del panel. Al pasar a at_collection pide el mensajero (`domicilio` dice qué pasó). En un pedido de varias tiendas, después de «Listo Recogida» no avanza la tienda.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'actualizar_precio',
+        detalle:
+          'Hasta 50 productos de su tienda por `codigo`: `precio`, `precio_mayorista`, `minimo_mayorista`, `stock` y `publicado`, con las reglas de la tabla del panel. El resumen trae `antes` y `despues` de cada uno. El cambio de stock queda en la bitácora como «Ajuste por WhatsApp».',
+      },
+    ],
+  },
+  {
+    version: '2.5.0',
+    fecha: '2026-11-19',
+    resumen: 'El tendero consulta por el chat sus pedidos, por urgencia, y su liquidación.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'pedidos_del_tendero',
+        detalle:
+          'Las partes de pedido de la tienda de la persona, pagadas, lo más urgente primero (por preparar, empacando, listas para recoger, en camino). Cada una con `estado_texto` como en el panel del tendero, `siguiente` (el paso que sigue), `productos` de su tienda, `notas_del_comprador`, `notas_de_empaque`, `refrigerado`, `varias_tiendas`, `venta_de_mostrador` y `domicilio` (estado, conductor y placa). Del comprador solo `comprador` (primer nombre) y `barrio`. Sin códigos. `incluir_cerrados` suma las entregadas, canceladas y devueltas. Hasta 30, con `hay_mas`.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'liquidacion_del_tendero',
+        detalle:
+          'Del periodo (`desde` y `hasta`, por defecto los últimos 30 días): `vendido`, `pagado` (con cada pago) y, a hoy, `proximo_pago` (`fecha_de_liquidacion`, martes o jueves; `valor`; `pedidos`; `descuentos` por devoluciones que asume la tienda) y `retenido` por razón con su `explicacion`. `retenciones` es `null`: el sistema no las calcula. A la tienda se le paga el valor de sus productos.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Herramientas del tendero',
+        detalle:
+          'Si la persona tiene varias tiendas, `tienda` (su nombre) dice cuál; sin ella responde `AMBIGUO` con la lista. Si no es de ninguna tienda, `NO_PERMITIDO`.',
+      },
+    ],
+  },
+  {
+    version: '2.4.0',
+    fecha: '2026-11-19',
+    resumen: 'Carolina radica casos de PQRSF y les agrega mensajes y fotos, sin duplicarlos si reintenta.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'registrar_caso',
+        detalle:
+          'Radica un caso a nombre de la persona (comprador, o tendero en los motivos de tienda): `motivo` (la llave; la lista con lo que pide cada uno está en la descripción de la herramienta), `descripcion`, `pedido` (la parte de una tienda, o el pedido si tiene una sola), `productos` por su nombre en el pedido (con `cantidad` opcional), `fotos` y `clave_idempotencia`. Devuelve `caso` (`codigo`, `estado`), `motivo`, `quien_atiende` y `repetido`. Si el pedido tiene varias tiendas y no se dice cuál, responde `DATOS_INVALIDOS` con las partes.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'agregar_a_caso',
+        detalle:
+          'Suma un `mensaje` y, si hay, `fotos` a un caso abierto por `codigo`, con `clave_idempotencia`. Un caso resuelto no recibe más.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Fotos',
+        detalle:
+          '`fotos` son URLs https del almacenamiento de medios de Meteor, hasta 5, JPG, PNG o WebP de hasta 8 MB. Solo se aceptan los dominios que MercaMesa tenga configurados: hay que enviarnos cuáles son. Mientras no estén, una llamada con fotos responde `DATOS_INVALIDOS`.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Idempotencia',
+        detalle:
+          '`clave_idempotencia` (8 a 120 caracteres, un UUID sirve) es obligatoria en las herramientas que escriben. La misma clave de la misma persona devuelve lo que ya se creó, con `repetido: true`.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Errores',
+        detalle:
+          '`DATOS_INVALIDOS`: falta algo o no cumple una regla (el mensaje dice qué decirle a la persona). `NO_PERMITIDO`: la persona no puede hacer eso (por ejemplo, un motivo de tienda sin ser de su equipo).',
+      },
+    ],
+  },
+  {
+    version: '2.3.0',
+    fecha: '2026-11-19',
+    resumen:
+      'Nuevas consultas: el pago de un pedido, las reglas de compra, las direcciones del comprador y qué le llega a cada una. `identificar_usuario` reconoce a logística y al patinador.',
+    cambios: [
+      {
+        tipo: 'nuevo',
+        donde: 'estado_pago',
+        detalle:
+          'El pago de un pedido del comprador (por su código o el de una parte): `estado` (pending, processing, approved, rejected, refunded, disputed), `estado_texto`, `que_hacer` con lo que se le dice al comprador en cada caso, `total`, `saldo_a_favor_usado` y `devoluciones` (por un caso o porque una tienda canceló su parte: `total`, `como` —saldo a favor o dinero—, `estado_texto` y `consignada`). `devolucion_en_curso` es `true` si hay dinero por consignar. Sin datos financieros.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'reglas_de_compra',
+        detalle:
+          'Sin teléfono: `minimo_de_compra`, `maximo_tiendas_por_pedido`, `misma_plaza` (solo se juntan tiendas que despachan desde la misma plaza), `ofertas` y, por plaza, `como_sale` un pedido de varias tiendas. `plaza` es opcional.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'listar_direcciones',
+        detalle: 'Las direcciones guardadas del comprador, con su `id`, la predeterminada primero.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'consultar_cobertura',
+        detalle:
+          'Con `direccion_id` (de listar_direcciones) y opcionalmente `valor`: por cada plaza o tienda con dirección propia, sus tiendas (`abierta` ahora y `horario`) y el `domicilio` hasta esa dirección. `domicilio: null` es un punto que no se pudo cotizar en ese momento.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'identificar_usuario',
+        detalle:
+          '`perfil`: comprador, tendero, logistica, patinador, administrador o contador. Logística y patinador traen `plazas` (`nombre` y `como`). `rol` sigue igual.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'buscar_productos',
+        detalle: '`maximo_por_pedido`: el tope de la oferta vigente por pedido, o `null`. También en detalle_producto.',
+      },
+      {
+        tipo: 'nuevo',
+        donde: 'Errores',
+        detalle: '`SIN_COTIZACION`: Pibox no pudo cotizar ningún domicilio para esa dirección en este momento. Se puede reintentar en unos minutos.',
+      },
+    ],
+  },
+  {
     version: '2.2.0',
     fecha: '2026-11-17',
     resumen: '`buscar_productos` encuentra aunque el comprador escriba con errores de ortografía.',

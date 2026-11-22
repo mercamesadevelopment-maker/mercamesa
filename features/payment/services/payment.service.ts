@@ -1,6 +1,7 @@
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getPublicSupabaseUrl } from '@/lib/env'
 import type { CreateOrderPayload } from '@/lib/orders/types'
+import { paymentDescription } from '@/lib/payments/payment-description'
 import {
   ZonapagosPayload,
   ZonapagosResponse,
@@ -228,7 +229,7 @@ export async function iniciarPagoDeOrden(
     // Informativo: `zonapagos-inicio` cobra el total guardado en la orden.
     total: 0,
     iva: 0,
-    descripcion: opciones.storeName ? `Pedido ${orderId} - ${opciones.storeName}` : `Pedido ${orderId}`,
+    descripcion: paymentDescription(orderId, opciones.storeName),
     email: perfil.email,
     idCliente: perfil.documento,
     tipoIdCliente: '1',

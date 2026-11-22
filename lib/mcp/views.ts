@@ -1,4 +1,5 @@
 import { PQRS_OUTCOME_LABELS, PQRS_STATUS_LABELS, type PqrsDetail, type PqrsSummary } from '@/lib/pqrs/types';
+import type { InventoryItem } from '@/lib/store-products/store-inventory';
 import type { toStorefrontItem } from '@/lib/store-products/storefront';
 import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 
@@ -10,9 +11,11 @@ import { buyerInvoiceConcepts } from '@/lib/pricing/buyer-concepts';
 
 type StorefrontItem = ReturnType<typeof toStorefrontItem>;
 
-export function toProductView(p: StorefrontItem) {
+export function toProductView(p: StorefrontItem, code: string | null = null) {
   return {
     id: p.id,
+    // El de la tienda (MM-000123 o el suyo); con él o con `id` lo cambia actualizar_precio.
+    codigo: code,
     nombre: p.catalog_products.name,
     categoria: p.catalog_products.categories?.name ?? null,
     tienda: p.stores.name,
@@ -22,6 +25,8 @@ export function toProductView(p: StorefrontItem) {
     precio: p.price_per_unit,
     precio_oferta: p.offer ? p.offer.finalPrice : null,
     oferta: p.offer?.label ?? null,
+    // Más de esto no entra al pedido (`reglas_de_compra`).
+    maximo_por_pedido: p.offer?.maxQtyPerOrder ?? null,
     existencias: p.stock,
     imagen: p.imageSignedUrl,
   };
@@ -118,5 +123,124 @@ export function toOrderDetailView(o: OrderDetail) {
           }
         : null,
     })),
+  };
+}
+
+type PaymentStatus = import('@/lib/orders/buyer-payment').BuyerPaymentStatus;
+
+/** El pago de un pedido: estado, qué hacer y devoluciones. Sin datos financieros. */
+export function toPaymentStatusView(p: PaymentStatus) {
+  return {
+    pedido: p.orderCode,
+    estado: p.status,
+    estado_texto: p.statusLabel,
+    que_hacer: p.help,
+    total: p.total,
+    saldo_a_favor_usado: p.creditApplied,
+    devolucion_en_curso: p.refundInProgress,
+    devoluciones: p.refunds.map((r) => ({
+      parte: r.part,
+      tienda: r.store,
+      por: r.reason,
+      caso: r.caseCode,
+      total: r.total,
+      como: r.method,
+      estado: r.status,
+      estado_texto: r.statusLabel,
+      fecha: r.createdAt,
+      consignada: r.moneyPaidAt,
+    })),
+  };
+}
+
+type BuyerAddress = import('@/lib/orders/coverage').BuyerAddress;
+type Coverage = import('@/lib/orders/coverage').CoverageResult;
+
+export function toAddressView(a: BuyerAddress) {
+  return {
+    id: a.id,
+    nombre: a.label,
+    direccion: a.addressLine,
+    barrio: a.neighborhood,
+    municipio: a.municipality,
+    predeterminada: a.isDefault,
+  };
+}
+
+/** Lo que llega a una dirección: por punto de recogida, sus tiendas y el domicilio. */
+export function toCoverageView(c: Coverage) {
+  return {
+    direccion: { nombre: c.address.label, barrio: c.address.neighborhood, municipio: c.address.municipality },
+    valor_cotizado: c.declaredValue,
+    puntos: c.points.map((p) => ({
+      plaza: p.marketplace,
+      sale_de: p.from === 'plaza' ? 'la bahía de la plaza' : 'la dirección propia de la tienda',
+      domicilio: p.deliveryFee,
+      tiendas: p.stores.map((t) => ({ nombre: t.name, abierta: t.open, horario: t.hoursLabel })),
+    })),
+    incompleto: c.truncated,
+  };
+}
+
+type StoreQueuePart = import('@/lib/orders/store-queue').StoreQueuePart;
+type StoreStatement = import('@/lib/payouts/store-statement').StoreStatement;
+
+/** Una parte de pedido como la ve el tendero por el chat: sin contacto del comprador y sin códigos. */
+export function toStoreQueueView(p: StoreQueuePart) {
+  return {
+    codigo: p.code,
+    pedido: p.orderCode,
+    estado: p.status,
+    estado_texto: p.statusLabel,
+    siguiente: p.next ? { estado: p.next.status, texto: p.next.label } : null,
+    fecha: p.createdAt,
+    comprador: p.buyerFirstName,
+    barrio: p.neighborhood,
+    varias_tiendas: p.multiStore,
+    venta_de_mostrador: p.inStore,
+    refrigerado: p.refrigerated,
+    notas_del_comprador: p.buyerNotes,
+    notas_de_empaque: p.packingNotes,
+    valor: p.subtotal,
+    productos: p.products.map((i) => ({ nombre: i.name, cantidad: i.quantity, unidad: i.unit, total: i.total })),
+    domicilio: p.delivery
+      ? { estado: p.delivery.statusLabel, conductor: p.delivery.driverName, placa: p.delivery.vehiclePlates }
+      : null,
+  };
+}
+
+export function toStatementView(s: StoreStatement) {
+  return {
+    desde: s.from,
+    hasta: s.to,
+    vendido: { pedidos: s.sold.orders, valor: s.sold.amount },
+    pagado: { valor: s.paid.amount, pagos: s.paid.payouts.map((p) => ({ fecha: p.date, valor: p.amount })) },
+    proximo_pago: {
+      fecha_de_liquidacion: s.nextPayout.date,
+      valor: s.nextPayout.amount,
+      pedidos: s.nextPayout.orders,
+      descuentos: s.nextPayout.discounts,
+    },
+    retenido: s.held.map((h) => ({ razon: h.reason, explicacion: h.explanation, pedidos: h.orders, valor: h.amount })),
+    retenciones: s.withholdings,
+    nota: s.note,
+  };
+}
+
+/** Un producto del inventario del tendero. */
+export function toInventoryView(p: InventoryItem) {
+  return {
+    id: p.id,
+    codigo: p.code,
+    nombre: p.name,
+    categoria: p.category,
+    unidad: p.unit,
+    precio: p.price,
+    precio_mayorista: p.wholesalePrice,
+    minimo_mayorista: p.wholesaleMin,
+    existencias: p.stock,
+    publicado: p.published,
+    // Un producto en $0 no se publica: primero el precio.
+    falta_precio: p.needsPrice,
   };
 }

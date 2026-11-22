@@ -1,15 +1,8 @@
 import React from 'react';
 import { cn } from '@/lib/utils/cn';
-import { DAY_LABELS } from './summarize-hours';
+import { DAY_LABELS, type BusinessHourEntry, type BusinessHours } from '@/lib/stores/business-hours';
 
-export interface BusinessHourEntry {
-  day: number; // ISO weekday: 1 = Lunes ... 7 = Domingo
-  is_closed: boolean;
-  open_time: string | null;
-  close_time: string | null;
-}
-
-export type BusinessHours = BusinessHourEntry[];
+export type { BusinessHourEntry, BusinessHours } from '@/lib/stores/business-hours';
 
 export function createDefaultBusinessHours(): BusinessHours {
   return [1, 2, 3, 4, 5, 6, 7].map((day) => ({

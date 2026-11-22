@@ -200,6 +200,8 @@ export interface NewPqrsInput {
   items?: { orderItemId: string; quantity: number }[];
   /** Rutas temporales que devolvió `/api/pqrs/uploads`. */
   attachments?: string[];
+  /** Solo el chat de Meteor: un reintento con la misma llave no radica otro caso. */
+  clientIdempotencyKey?: string | null;
 }
 
 export interface PqrsSettings {
