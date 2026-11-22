@@ -6,6 +6,7 @@ import { parseCategoryIds, setStoreCategories, CategoryLinksError } from './cate
 import { validateStoreFields } from './validate-store';
 import { parsePickupAddress } from './pickup-address';
 import { processStoreImage } from './store-images';
+import { resolveStoreIdentification } from './store-identification';
 import { storeError, type StoreResult } from './store-result';
 
 type StoreInsert = Database['public']['Tables']['stores']['Insert'];
@@ -98,6 +99,10 @@ export async function createStore(
   const armado = buildStoreInsert(body, storeId);
   if ('error' in armado) return storeError(400, armado.error);
   const { insert, categoryIds } = armado;
+
+  const identificacion = await resolveStoreIdentification(supabase, body);
+  if (identificacion && 'error' in identificacion) return storeError(400, identificacion.error);
+  if (identificacion && 'fields' in identificacion) Object.assign(insert, identificacion.fields);
 
   if (insert.contact_email) {
     const { data: existingStore, error: checkError } = await supabase

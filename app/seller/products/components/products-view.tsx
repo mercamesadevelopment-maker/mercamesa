@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, Plus, Edit2, Trash2, AlertCircle, CheckCircle2, Zap, History, Upload, ImagePlus } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, AlertCircle, CheckCircle2, Zap, History, Upload, ImagePlus, FileDown, FileUp, X } from 'lucide-react';
 import { useProducts } from '../hooks/use-products';
 import { usePriceGrid } from '@/features/store-products/hooks/usePriceGrid';
 import { PriceGrid } from '@/features/store-products/components/PriceGrid';
 import { toPriceGridRow } from '../utils/price-grid-row';
+import { usePriceWorkbook } from '../hooks/use-price-workbook';
 import { StockChart } from './stock-chart';
 import { ProductModal } from './product-modal';
 import { StockHistoryModal } from './StockHistoryModal';
@@ -71,6 +72,37 @@ export function ProductsView() {
   const productById = React.useMemo(() => new Map(allProducts.map((p) => [String(p.id), p])), [allProducts]);
   const grid = usePriceGrid(gridRows, units, fetchStoreProducts);
 
+  // Exportar e importar Excel: todos los productos, no solo los filtrados.
+  const storeNameById = React.useMemo(() => new Map(stores.map((s) => [String(s.id), s.name])), [stores]);
+  const unitAbbr = React.useMemo(() => new Map(units.map((u) => [u.id, u.abbreviation || u.name])), [units]);
+  const excel = usePriceWorkbook({
+    grid,
+    targets: gridRows,
+    units,
+    storeLabel: stores.length > 1 ? 'mis tiendas' : storeName || 'mi tienda',
+    withStore: stores.length > 1,
+    products: () =>
+      gridRows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        storeName: storeNameById.get(String(productById.get(r.id)?.storeId ?? '')) ?? '',
+        categoryLabel: r.categoryLabel,
+        unit: unitAbbr.get(r.values.unitId ?? '') ?? '',
+        price: r.values.price,
+        wsPrice: r.values.wsPrice,
+        wsMin: r.values.wsMin,
+        stock: r.values.stock,
+        ivaRate: r.ivaRate,
+        isActive: r.values.isActive,
+      })),
+    onImported: () => {
+      setSearch('');
+      setSelectedCategory('');
+      setSelectedStore('');
+    },
+  });
+
   /**
    * La papelera hace una de dos cosas según el producto.
    *
@@ -137,6 +169,19 @@ export function ProductsView() {
           <Button variant="outline" onClick={() => setIsBulkImportOpen(true)} disabled={!storeId}>
             <Upload className="w-5 h-5 mr-1" /> Carga masiva
           </Button>
+          <Button variant="outline" onClick={excel.exportar} loading={excel.exporting} disabled={gridRows.length === 0}>
+            <FileDown className="w-5 h-5 mr-1" /> Exportar Excel
+          </Button>
+          <Button variant="outline" onClick={excel.pedirArchivo} loading={excel.importing} disabled={gridRows.length === 0}>
+            <FileUp className="w-5 h-5 mr-1" /> Importar Excel
+          </Button>
+          <input
+            ref={excel.fileInput}
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            className="hidden"
+            onChange={(e) => excel.importar(e.target.files?.[0])}
+          />
           {puedeCargarImagenes && (
             <Button variant="outline" onClick={() => setIsImagesOpen(true)}>
               <ImagePlus className="w-5 h-5 mr-1" /> Cargar imágenes
@@ -279,6 +324,31 @@ export function ProductsView() {
           </div>
         </div>
 
+        {excel.summary && (
+          <div
+            role="status"
+            className={cn(
+              'flex items-start justify-between gap-4 rounded-2xl border px-4 py-3 text-sm',
+              excel.summary.tone === 'ok' ? 'border-salvia/30 bg-okl text-tinta' : 'border-r/30 bg-rl text-r'
+            )}
+          >
+            <div className="space-y-1">
+              <p className="font-semibold">{excel.summary.title}</p>
+              {excel.summary.notes.map((n) => (
+                <p key={n} className="text-xs">{n}</p>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={excel.dismissSummary}
+              aria-label="Cerrar aviso"
+              className="rounded-full p-1 hover:bg-black/5"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* La tabla se edita como Excel: precio, mayorista, stock y publicado. */}
         <PriceGrid
           rows={visibleRows}
@@ -302,6 +372,16 @@ export function ProductsView() {
         newProduct={newProduct}
         setNewOfferProduct={setNewProduct}
         onSubmit={handleAddProduct}
+      />
+
+      <ConfirmModal
+        isOpen={excel.confirmOpen}
+        onClose={excel.cancelar}
+        onConfirm={excel.confirmar}
+        title="Tienes cambios sin guardar"
+        message="Lo que traiga el archivo se suma a los cambios que ya tienes en la tabla. Si prefieres empezar de cero, cancela y dale «Descartar» primero."
+        confirmText="Importar de todas formas"
+        variant="warning"
       />
 
       {/* Bulk Import Modal */}

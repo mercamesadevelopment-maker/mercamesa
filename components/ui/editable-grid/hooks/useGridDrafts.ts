@@ -131,6 +131,30 @@ export function useGridDrafts<TDraft extends { id: string }, TRow>(o: GridDrafts
     setSavedCount(null);
   };
 
+  /**
+   * Vuelca en la tabla valores ya leídos (de un archivo importado, por ejemplo):
+   * quedan como cambios sin guardar, igual que lo pegado, y los que no se
+   * pudieron leer quedan como error de su celda.
+   */
+  const applyCells = (
+    cambios: { id: string; field: string; value: GridValue }[],
+    errores: { id: string; field: string; error: string }[] = []
+  ) => {
+    const nuevas: Record<string, TDraft> = {};
+    for (const c of cambios) {
+      if (!o.fields.includes(c.field)) continue;
+      const fila = nuevas[c.id] ?? draftOf(c.id);
+      if (fila) nuevas[c.id] = { ...fila, [c.field]: c.value };
+    }
+    const nuevosErrores: GridErrors = {};
+    for (const e of errores) if (originals.has(e.id)) (nuevosErrores[e.id] ??= {})[e.field] = e.error;
+
+    setEditadas((prev) => ({ ...prev, ...nuevas }));
+    cambios.forEach((c) => limpiarErrorDe(c.id, c.field));
+    setErroresPegado((prev) => unirErrores(prev, nuevosErrores));
+    setSavedCount(null);
+  };
+
   const discard = () => {
     setEditadas({});
     setErroresPegado({});
@@ -192,6 +216,7 @@ export function useGridDrafts<TDraft extends { id: string }, TRow>(o: GridDrafts
     isChanged,
     updateCell,
     paste,
+    applyCells,
     discard,
     save,
     saving,

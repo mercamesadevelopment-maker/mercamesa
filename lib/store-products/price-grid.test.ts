@@ -37,6 +37,16 @@ describe('rowFromDraft', () => {
     expect(r.row).toEqual({ id: 'p1', price_per_unit: 5500, stock: 20 });
   });
 
+  it('un decimal de tres cifras ya normalizado no se lee como miles (2,125 kg no son 2125)', () => {
+    // Regresión: el borrador guarda «2.125» (lo deja así `priceValueFromPaste` o
+    // el Excel importado) y al guardar se volvía a leer en formato colombiano.
+    const r = rowFromDraft(original, { ...original, stock: '2.125' }, actual);
+    expect(r.row).toEqual({ id: 'p1', stock: 2.125 });
+    const escrito = priceValueFromPaste('stock', '2.1250');
+    expect(escrito).toEqual({ ok: true, value: '2.125' });
+    expect(rowFromDraft(original, { ...original, stock: String((escrito as { value: string }).value) }, actual).row).toEqual({ id: 'p1', stock: 2.125 });
+  });
+
   it('una fila sin cambios no se manda ni se valida', () => {
     // Un mayorista viejo mayor que el precio no bloquea si nadie lo toca.
     const raro = draftFromValues('p3', { ...actual, wsPrice: 9000 });

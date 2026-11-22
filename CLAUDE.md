@@ -311,6 +311,11 @@ Inventario actual:
     catálogo maestro: se guarda aparte por `PATCH /api/products/batch` (`splitCategoryChanges`);
   - catálogo maestro (`lib/catalog/master-grid.ts`, `PATCH /api/products/batch`).
   Lo pegado se lee con `lib/utils/pasted-cells.ts`.
+  Un archivo importado entra igual que lo pegado, con `applyCells` de `useGridDrafts`: queda como cambio
+  sin guardar y se guarda con el mismo «Guardar». Ejemplo: «Exportar / Importar Excel» de los productos
+  del tendero (`lib/store-products/price-workbook.ts` arma y lee el archivo; `price-import.ts` decide qué
+  cambió). El borrador guarda los números ya normalizados («2.125»): se leen tal cual, no otra vez con
+  `parseNumber`, que tomaría ese punto como de miles.
 - `shell/` — layout de shell (sidebar, permisos), dividido igual en `components/` y
   `hooks/usePermissions.ts`. El `Sidebar` es responsive: a partir de `lg` (1024px) es el
   riel colapsable de siempre (`collapsed`/`w-20`/`w-64`); por debajo de `lg` se ignora
@@ -356,6 +361,13 @@ Convención para agregar uno nuevo:
   para cualquier otro menú/panel off-canvas en vez de inventar una variante nueva.
 
 ---
+
+## Identificación de la tienda
+
+`stores.identification_type_id`, `document_number` y `document_dv`: NIT, cédula u otro tipo de
+`identification_types`. Opcional; la editan el admin (`StoreModal`) y el tendero (perfil de la tienda),
+con `StoreIdentificationFields` de `features/stores`. Las reglas están en `lib/stores/store-identification.ts`:
+con NIT o RUT el DV se escribe y se comprueba, no se calcula. No es pública (`lib/stores/public-store.ts`).
 
 ## Productos exclusivos de un grupo de tiendas
 
