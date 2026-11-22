@@ -13,6 +13,14 @@ import { uploadImageDirect } from '@/lib/supabase/client-upload';
 import { StoreContactFields } from '@/features/stores/components/StoreContactFields';
 import { StoreSalesTypeFields } from '@/features/stores/components/StoreSalesTypeFields';
 import { StorePickupFields, type StorePickupValues } from '@/features/stores/components/StorePickupFields';
+import {
+  EMPTY_STORE_IDENTIFICATION,
+  StoreIdentificationFields,
+  storeIdentificationError,
+  storeIdentificationFrom,
+  type StoreIdentificationValues,
+} from '@/features/stores/components/StoreIdentificationFields';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { validateStoreFields, STORE_DESCRIPTION_MAX_LENGTH } from '@/lib/stores/validate-store';
 
@@ -48,6 +56,10 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     address: '', city: '', department: '', latitude: '', longitude: '',
   });
   const [businessHours, setBusinessHours] = useState<BusinessHours>(createDefaultBusinessHours());
+  // NIT o cédula de la tienda; el tendero también la edita desde su perfil.
+  const [identification, setIdentification] = useState<StoreIdentificationValues>(EMPTY_STORE_IDENTIFICATION);
+  const [identificationError, setIdentificationError] = useState<string | null>(null);
+  const { allIdentificationTypes } = useIdentificationTypes();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -99,6 +111,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         latitude: (initialData as any).latitude?.toString() || '',
         longitude: (initialData as any).longitude?.toString() || '',
       });
+      setIdentification(storeIdentificationFrom(initialData as unknown as Record<string, unknown>));
       setLogoPreview(initialData.logoSignedUrl || null);
     } else {
       setFormData({
@@ -111,6 +124,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setSalesType({ is_wholesale: false, is_retail: true });
       setBusinessHours(createDefaultBusinessHours());
       setPickup({ address: '', city: '', department: '', latitude: '', longitude: '' });
+      setIdentification(EMPTY_STORE_IDENTIFICATION);
       setLogoPreview(null);
     }
     setLogoFile(null);
@@ -145,6 +159,13 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     e.preventDefault();
     setEmailError(null);
     setFormError(null);
+    setIdentificationError(null);
+
+    const idError = storeIdentificationError(identification, allIdentificationTypes);
+    if (idError) {
+      setIdentificationError(idError);
+      return;
+    }
 
     // Correo malformado o descripción demasiado larga: se avisa acá, antes de
     // subir el logo o llamar a la API, que igual las rechazaría.
@@ -180,6 +201,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         category_ids: categoryIds,
         ...salesType,
         ...pickup,
+        ...identification,
       };
 
       if (logoFile) {
@@ -232,6 +254,16 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
           <Input label="Nombre de la Tienda" name="name" value={formData.name} onChange={handleChange} required placeholder="Ej: Frutas y Verduras Don Pepe" />
           <Input label="Identificador" name="slug" value={formData.slug} onChange={handleChange} required placeholder="ej-frutas-don-pepe" />
         </div>
+
+        <StoreIdentificationFields
+          values={identification}
+          onChange={(v) => {
+            setIdentification(v);
+            setIdentificationError(null);
+          }}
+          types={allIdentificationTypes}
+          error={identificationError}
+        />
 
         {/* Marketplace + Categoría */}
         <div className="grid sm:grid-cols-2 gap-4">

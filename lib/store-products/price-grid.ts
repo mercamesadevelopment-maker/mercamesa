@@ -117,10 +117,22 @@ export function changedFields(original: PriceDraft | undefined, draft: PriceDraf
   return PRICE_FIELDS_WITH_CATEGORY.filter((f) => original[f] !== draft[f]);
 }
 
-/** Un número escrito en la celda: vacío es `null`; lo que no se entiende, `NaN`. */
+/** El texto que deja `String(n)`: lo que guarda el borrador después de leer una celda. */
+const NUMERO_NORMALIZADO = /^-?\d+(\.\d+)?$/;
+
+/**
+ * Un número del borrador: vacío es `null`; lo que no se entiende, `NaN`.
+ *
+ * Lo escrito o pegado ya llega normalizado (`priceValueFromPaste` deja «1.200»
+ * como «1200», y «2,5» como «2.5»), así que ese formato se lee tal cual. Volver
+ * a pasarlo por `parseNumber` convertía un decimal de tres cifras, como 2,125
+ * kg, en 2125: para el formato colombiano «2.125» es dos mil ciento veinticinco.
+ */
 function leerNumero(valor: string): number | null {
-  if (valor.trim() === '') return null;
-  return parseNumber(valor) ?? Number.NaN;
+  const t = valor.trim();
+  if (t === '') return null;
+  if (NUMERO_NORMALIZADO.test(t)) return Number(t);
+  return parseNumber(t) ?? Number.NaN;
 }
 
 /**

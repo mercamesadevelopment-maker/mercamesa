@@ -17,6 +17,10 @@ export interface StoreProfile {
   categories: StoreCategory[];
   is_wholesale: boolean;
   is_retail: boolean;
+  /** NIT o cédula de la tienda (opcional). */
+  identification_type_id: string | null;
+  document_number: string | null;
+  document_dv: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
   logoSignedUrl: string | null;

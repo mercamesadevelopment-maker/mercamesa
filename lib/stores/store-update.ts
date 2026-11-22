@@ -5,6 +5,7 @@ import { parseCategoryIds, setStoreCategories, CategoryLinksError } from './cate
 import { validateStoreFields } from './validate-store';
 import { parsePickupAddress } from './pickup-address';
 import { processStoreImage } from './store-images';
+import { resolveStoreIdentification } from './store-identification';
 import { storeError, type StoreResult } from './store-result';
 
 type StoreUpdate = Database['public']['Tables']['stores']['Update'];
@@ -146,6 +147,11 @@ export async function updateStore(
   const armado = buildStoreUpdate(body, isAdmin);
   if ('error' in armado) return storeError(400, armado.error);
   const { updateData, categoryIds } = armado;
+
+  // NIT o cédula: la edita también el tendero. El tipo se resuelve en la base.
+  const identificacion = await resolveStoreIdentification(supabase, body);
+  if (identificacion && 'error' in identificacion) return storeError(400, identificacion.error);
+  if (identificacion && 'fields' in identificacion) Object.assign(updateData, identificacion.fields);
 
   if (updateData.contact_email) {
     const { data: existingStore, error: checkError } = await supabase

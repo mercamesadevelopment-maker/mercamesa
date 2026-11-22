@@ -9,6 +9,14 @@ import { StoreContactFields } from '@/features/stores/components/StoreContactFie
 import { StoreSalesTypeFields } from '@/features/stores/components/StoreSalesTypeFields';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { StorePickupFields, type StorePickupValues } from '@/features/stores/components/StorePickupFields';
+import {
+  EMPTY_STORE_IDENTIFICATION,
+  StoreIdentificationFields,
+  storeIdentificationError,
+  storeIdentificationFrom,
+  type StoreIdentificationValues,
+} from '@/features/stores/components/StoreIdentificationFields';
+import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 
 interface StoreProfileTabProps {
   storeId: string | null;
@@ -42,6 +50,9 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     address: '', city: '', department: '', latitude: '', longitude: '',
   });
   const [pickupError, setPickupError] = useState<string | null>(null);
+  const [identification, setIdentification] = useState<StoreIdentificationValues>(EMPTY_STORE_IDENTIFICATION);
+  const [identificationError, setIdentificationError] = useState<string | null>(null);
+  const { allIdentificationTypes } = useIdentificationTypes();
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -78,6 +89,7 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
       latitude: store.latitude?.toString() || '',
       longitude: store.longitude?.toString() || '',
     });
+    setIdentification(storeIdentificationFrom(store as unknown as Record<string, unknown>));
     setLogoFile(null);
     setCoverFile(null);
     setLogoPreview(null);
@@ -122,6 +134,13 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     setSaved(false);
     setImageError(null);
     setPickupError(null);
+    setIdentificationError(null);
+
+    const idError = storeIdentificationError(identification, allIdentificationTypes);
+    if (idError) {
+      setIdentificationError(idError);
+      return;
+    }
 
     // La API lo rechaza igual; avisar acá deja el mensaje junto al mapa. Se
     // comprueban los DOS sentidos: un punto sin dirección también es media
@@ -150,6 +169,7 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
         contact_email: form.contact_email || null,
         phone: form.phone || null,
         whatsapp: form.whatsapp || null,
+        ...identification,
       },
       { logo: logoFile, cover: coverFile }
     );
@@ -303,6 +323,19 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
             className="rounded-xl border border-mm-crd bg-white px-4 py-2.5 text-sm outline-none transition-all focus:border-mm-g"
           />
         </div>
+
+        {/* NIT o cédula: el mismo bloque que usa el admin. */}
+        <StoreIdentificationFields
+          className="sm:col-span-2"
+          values={identification}
+          onChange={(v) => {
+            setSaved(false);
+            setIdentification(v);
+            setIdentificationError(null);
+          }}
+          types={allIdentificationTypes}
+          error={identificationError}
+        />
 
         {/* El mismo bloque que usa el admin desde /admin/stores. */}
         <StoreContactFields
