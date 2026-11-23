@@ -4570,6 +4570,7 @@ export type Database = {
       }
       revert_store_order_status: {
         Args: {
+          p_actor: string
           p_notes: string
           p_store_order_id: string
           p_target_status: Database["public"]["Enums"]["order_status"]
