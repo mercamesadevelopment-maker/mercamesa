@@ -63,7 +63,7 @@ export function RevertStatusModal({
   const warnings: string[] = [];
   if (target && currentStatus) {
     if (DELIVERY_REQUESTED.includes(currentStatus) && !DELIVERY_REQUESTED.includes(target)) {
-      warnings.push('Si ya se solicitó un domicilio en Pibox, cancélalo manualmente allá.');
+      warnings.push('Si ya se pidió el domiciliario en Pibox, se cancela automáticamente. Si ya tiene el paquete, no se puede regresar.');
     }
     const wasDeducted = STOCK_DEDUCTED.includes(currentStatus);
     const willDeduct = STOCK_DEDUCTED.includes(target);
