@@ -396,6 +396,12 @@ Cada plaza decide cómo se junta (Plazas → detalle → «Pedidos de varias tie
 
 - Las reglas están en `lib/orders/consolidation.ts` (puras, con pruebas). El pedido **copia** la
   configuración de la plaza al crearse: cambiarla no afecta a los que están en curso.
+- **Regresar una parte a un estado anterior** (corrección manual) va por `POST /api/store-orders/[id]/revert`
+  (`lib/orders/revert-store-order.ts`). Si vuelve a antes de «Listo Recogida» y hay un mensajero pedido
+  (el de la parte o el del pedido entero), primero lo cancela en Pibox, usando el id relanzado si lo hay
+  (`decideCourierOnRevert`, `lib/orders/revert-courier.ts`). Si el conductor ya tiene el paquete, no deja
+  regresar. `revert_store_order_status` solo la ejecuta el servidor (`p_actor`). Antes se llamaba desde el
+  navegador y en MM-2026-001100 llegaron conductores a una tienda cerrada.
 - **Patinador** (rol `runner`, `/runner`) y **logística** (rol `logistics`, solo
   `/admin/orders`, donde ve la bahía de su plaza) son por plaza: `marketplace_staff`, que
   no tiene políticas y solo lee el servidor (`lib/marketplace-staff/`). Los invita el admin
