@@ -11,16 +11,16 @@ import { OrderStatusTimeline } from '@/features/orders/components/OrderStatusTim
 import { InvoiceLink } from '@/features/orders/components/InvoiceLink';
 import { MapPin, CreditCard, Clock, ShoppingBag, Image as ImageIcon } from 'lucide-react';
 
-import { OrderDetail, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '../types/order.types';
-import { PAYMENT_STATUS_CONFIG } from './OrderCard';
-import { useOrderHistory } from '../hooks/useOrderHistory';
-import { isPayable } from '../hooks/usePayOrder';
+import { OrderDetail, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/app/orders/types/order.types';
+import { PAYMENT_STATUS_CONFIG } from './payment-status-config';
+import { useOrderHistory } from '@/features/orders/hooks/use-buyer-order-history';
+import { isPayable } from '@/features/orders/hooks/use-pay-order';
 import { OrderSavings } from './OrderSavings';
 import { BuyerOrderHero } from './BuyerOrderHero';
 import { ProtectOrderCard } from './ProtectOrderCard';
 import { OrderSection } from './OrderSection';
 import { useDeliveryTracking } from '@/features/orders/hooks/use-delivery-tracking';
-import type { OrderStatus } from '../types/order.types';
+import type { OrderStatus } from '@/app/orders/types/order.types';
 
 /** Estados en los que el pedido ya tiene (o tuvo) domiciliario. */
 const DELIVERY_STATUSES: OrderStatus[] = ['at_collection', 'dispatched', 'delivered', 'returned'];
@@ -38,7 +38,7 @@ interface OrderDetailModalProps {
  * qué va su pedido (frase grande y barra de pasos), el código de entrega y a
  * dónde llega. Lo demás —productos, pago, historial— queda plegado.
  */
-export function OrderDetailModal({ isOpen, onClose, order, onReport }: OrderDetailModalProps) {
+export function BuyerOrderDetailModal({ isOpen, onClose, order, onReport }: OrderDetailModalProps) {
   const { history } = useOrderHistory(
     isOpen ? order?.order_id || null : null,
     isOpen ? order?.store_id || null : null

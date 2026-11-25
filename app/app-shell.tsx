@@ -11,6 +11,7 @@ import { useSession } from '@/features/auth/session-context';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
 import { LegalGate } from '@/features/legal/components/LegalGate';
+import { ActiveOrderBubble } from '@/features/orders/components/buyer/ActiveOrderBubble';
 import { isPublicPath } from '@/lib/auth/public-paths';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -71,6 +72,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <CartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <CartStoreConflictModal />
+
+      {/* El pedido en curso del comprador, a la vista mientras navega. Solo
+          aparece para compradores con un pedido en curso. */}
+      <ActiveOrderBubble />
 
       {/* Si se publicó una versión nueva de los términos o de la política de
           datos, no se sigue hasta aceptarla. Se monta acá porque este shell ya

@@ -8,6 +8,7 @@ import { OfferCard } from './components/OfferCard';
 import { OfferDetailModal } from './components/OfferDetailModal';
 import { StoreOffer } from '@/features/offers/types/offer.types';
 import { PlazaList } from './components/PlazaList';
+import { ActiveOrdersSection } from '@/features/orders/components/buyer/ActiveOrdersSection';
 
 export default function MarketplacesPage() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function MarketplacesPage() {
 
   return (
     <div className="pb-24">
+      {/* Lo primero al entrar: en qué va su pedido, si tiene uno en curso. */}
+      <ActiveOrdersSection />
+
       {/* Mientras cargan se reserva el espacio de las cuatro tarjetas: si no, al
           llegar las ofertas empujan las plazas hacia abajo de golpe (CLS). */}
       {loading && (
