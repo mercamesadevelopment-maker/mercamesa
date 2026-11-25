@@ -23,6 +23,7 @@ import {
 import { useIdentificationTypes } from '@/features/auth/hooks/use-identification-types';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { validateStoreFields, STORE_DESCRIPTION_MAX_LENGTH } from '@/lib/stores/validate-store';
+import { storeImageError } from '@/lib/stores/store-image';
 
 type Store = Database['public']['Tables']['stores']['Row'] & {
   coverSignedUrl?: string | null;
@@ -62,6 +63,10 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
   const { allIdentificationTypes } = useIdentificationTypes();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  // La portada: la misma que sube el tendero en su perfil y la que encabeza la página de la tienda.
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   // Errores de formato (nombre/descripción/correo) que no dependen del servidor;
   // se revisan antes de enviar, para no gastar un viaje a la API en algo que ya
@@ -114,6 +119,7 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       });
       setIdentification(storeIdentificationFrom(initialData as unknown as Record<string, unknown>));
       setLogoPreview(initialData.logoSignedUrl || null);
+      setCoverPreview(initialData.coverSignedUrl || null);
     } else {
       setFormData({
         name: '', slug: '',
@@ -127,8 +133,11 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
       setPickup({ address: '', city: '', department: '', latitude: '', longitude: '' });
       setIdentification(EMPTY_STORE_IDENTIFICATION);
       setLogoPreview(null);
+      setCoverPreview(null);
     }
     setLogoFile(null);
+    setCoverFile(null);
+    setImageError(null);
   }, [initialData, marketplaces]);
 
   useEffect(() => {
@@ -151,9 +160,20 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
 
   const plazaElegida = marketplaces.find((m) => m.id === formData.marketplace_id) ?? null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pickImage = (kind: 'logo' | 'cover') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) { setLogoFile(file); setLogoPreview(URL.createObjectURL(file)); }
+    if (!file) return;
+    const invalida = storeImageError(file);
+    setImageError(invalida);
+    if (invalida) return;
+    const preview = URL.createObjectURL(file);
+    if (kind === 'logo') {
+      setLogoFile(file);
+      setLogoPreview(preview);
+    } else {
+      setCoverFile(file);
+      setCoverPreview(preview);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -205,12 +225,20 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
         ...identification,
       };
 
+      // Una tienda nueva todavía no tiene id: se inventa uno para la carpeta de
+      // sus imágenes, el mismo para el logo y la portada, y se manda al crearla.
+      const id = initialData?.id || crypto.randomUUID();
       if (logoFile) {
-        const id = initialData?.id || crypto.randomUUID();
         const path = `imgs/${id}/logo-${Date.now()}.${logoFile.name.split('.').pop()}`;
         await uploadImageDirect('stores', path, logoFile);
         payload.id = id;
         payload.logo_url = path;
+      }
+      if (coverFile) {
+        const path = `imgs/${id}/cover-${Date.now()}.${coverFile.name.split('.').pop()}`;
+        await uploadImageDirect('stores', path, coverFile);
+        payload.id = id;
+        payload.cover_image_url = path;
       }
 
       await onSave(initialData?.id || null, payload);
@@ -232,7 +260,9 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Editar Tienda' : 'Nueva Tienda'}>
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
 
-        {/* Logo */}
+        {/* Logo y portada */}
+        {imageError && <div className="rounded-2xl bg-rl px-4 py-3 text-sm font-medium text-r">{imageError}</div>}
+        <div className="flex flex-wrap gap-6">
         <div className="space-y-3">
           <label className="text-sm font-medium text-mm-txs ml-1">Logo de la Tienda</label>
           <div className="flex gap-4 items-center">
@@ -244,10 +274,28 @@ export function StoreModal({ isOpen, onClose, onSave, initialData }: StoreModalP
                   <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
                 </div>
               }
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <input type="file" accept="image/*" onChange={pickImage('logo')} className="absolute inset-0 opacity-0 cursor-pointer" />
             </div>
             <p className="text-xs text-mm-txw max-w-[200px]">Sube un logo cuadrado (1:1). Máximo 50 MB.</p>
           </div>
+        </div>
+
+        <div className="space-y-3 flex-grow">
+          <label className="text-sm font-medium text-mm-txs ml-1">Portada</label>
+          <div className="flex gap-4 items-center">
+            <div className="h-24 w-48 bg-mm-gbg rounded-2xl flex items-center justify-center shrink-0 overflow-hidden border-2 border-dashed border-mm-crd relative">
+              {coverPreview
+                ? <img src={coverPreview} alt="Portada" className="w-full h-full object-cover" />
+                : <div className="flex flex-col items-center gap-1">
+                  <ImageIcon className="w-6 h-6 text-mm-txw" />
+                  <span className="text-[10px] text-mm-txw font-bold uppercase">Subir</span>
+                </div>
+              }
+              <input type="file" accept="image/*" onChange={pickImage('cover')} aria-label="Subir portada" className="absolute inset-0 opacity-0 cursor-pointer" />
+            </div>
+            <p className="text-xs text-mm-txw max-w-[200px]">Encabeza la página de la tienda. Horizontal (3:1). Máximo 50 MB.</p>
+          </div>
+        </div>
         </div>
 
         {/* Nombre + Slug */}

@@ -5,12 +5,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Topbar } from '@/features/layout/components/Topbar';
 import { Sidebar } from '@/features/layout/components/Sidebar';
 import { CartPanel } from '@/features/cart/components/CartPanel';
+import { useCartPanel } from '@/features/cart/cart-panel-context';
 import { CartStoreConflictModal } from '@/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/lib/utils/cn';
 import { useSession } from '@/features/auth/session-context';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import { useMediaQuery } from '@/features/layout/hooks/use-media-query';
 import { LegalGate } from '@/features/legal/components/LegalGate';
+import { ActiveOrderBubble } from '@/features/orders/components/buyer/ActiveOrderBubble';
 import { isPublicPath } from '@/lib/auth/public-paths';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -18,7 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const session = useSession();
   const { fetchNotifications } = useNotifications();
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const cartPanel = useCartPanel();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
@@ -51,7 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F7F5EE]">
       <Topbar
-        onCartOpen={() => setIsCartOpen(true)}
+        onCartOpen={cartPanel.open}
         onToggleSidebar={() =>
           isDesktop ? setSidebarCollapsed(v => !v) : setMobileNavOpen(v => !v)
         }
@@ -69,8 +71,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
-      <CartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartPanel isOpen={cartPanel.isOpen} onClose={cartPanel.close} />
       <CartStoreConflictModal />
+
+      {/* El pedido en curso del comprador, a la vista mientras navega. Solo
+          aparece para compradores con un pedido en curso. */}
+      <ActiveOrderBubble />
 
       {/* Si se publicó una versión nueva de los términos o de la política de
           datos, no se sigue hasta aceptarla. Se monta acá porque este shell ya

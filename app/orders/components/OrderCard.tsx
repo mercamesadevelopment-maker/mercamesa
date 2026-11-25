@@ -22,17 +22,17 @@ import { InvoiceLink } from '@/features/orders/components/InvoiceLink';
 import {
   OrderDetail,
   OrderStatus,
-  PaymentStatus,
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
 } from '../types/order.types';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
-import { OrderDetailModal } from './OrderDetailModal';
-import { OrderSavings } from './OrderSavings';
+import { BuyerOrderDetailModal as OrderDetailModal } from '@/features/orders/components/buyer/BuyerOrderDetailModal';
+import { PAYMENT_STATUS_CONFIG } from '@/features/orders/components/buyer/payment-status-config';
+import { OrderSavings } from '@/features/orders/components/buyer/OrderSavings';
 import { ReorderModal } from './ReorderModal';
-import { usePayOrder, isPayable } from '../hooks/usePayOrder';
+import { usePayOrder, isPayable } from '@/features/orders/hooks/use-pay-order';
 import { PqrsFormModal } from '@/features/pqrs/components/PqrsFormModal';
 
 interface OrderCardProps {
@@ -52,14 +52,6 @@ export const ORDER_STATUS_CONFIG: Record<OrderStatus, { color: string; icon: any
   returned: { color: 'bg-mm-gbg text-mm-txw', icon: XCircle },
 };
 
-export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { color: string; icon: any }> = {
-  pending: { color: 'bg-warnl text-warn', icon: Clock },
-  processing: { color: 'bg-bluel text-blue', icon: CreditCard },
-  approved: { color: 'bg-okl text-ok', icon: CheckCircle2 },
-  rejected: { color: 'bg-rl text-r', icon: XCircle },
-  refunded: { color: 'bg-mm-gbg text-mm-txw', icon: CreditCard },
-  disputed: { color: 'bg-purple-100 text-purple-600', icon: CreditCard },
-};
 
 // En móvil los botones del pie se reparten el ancho en vez de ir en una fila
 // que no cabe; desde `sm` recuperan su tamaño natural.

@@ -1,17 +1,26 @@
 /**
  * Links para compartir un producto o una tienda.
  *
- * No hay página de producto individual: `ProductCard` solo existe dentro del
- * catálogo de una tienda o del listado de todo el marketplace, siempre paginado.
- * Por eso el link de un producto apunta a su tienda con `?product=<id>`, que
- * `app/stores/[slug]/page.tsx` usa para saltar a la página donde está y
- * resaltarlo, en vez de a una ruta que no existe.
+ * Un producto tiene su página, `/products/<id>` (el id de `store_products`). Antes
+ * no la tenía y el link apuntaba a su tienda con `?product=<id>`, que
+ * `app/stores/[slug]/page.tsx` todavía entiende para los links que ya se mandaron.
  */
 
 export function getStoreShareUrl(storeSlug: string): string {
   return `${window.location.origin}/stores/${storeSlug}`;
 }
 
-export function getProductShareUrl(storeSlug: string, productId: string): string {
-  return `${window.location.origin}/stores/${storeSlug}?product=${productId}`;
+/** La ruta de la página del producto, para un `<Link>`. */
+export function getProductPath(productId: string): string {
+  return `/products/${productId}`;
+}
+
+/**
+ * El enlace completo. La página del producto se pinta primero en el servidor,
+ * donde no hay `window`: ahí sale la ruta sola, y en el navegador el enlace entero
+ * (compartir solo se usa en el navegador).
+ */
+export function getProductShareUrl(productId: string): string {
+  const origin = typeof window === 'undefined' ? '' : window.location.origin;
+  return `${origin}${getProductPath(productId)}`;
 }

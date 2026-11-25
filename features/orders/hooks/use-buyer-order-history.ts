@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { OrderStatusHistoryItem } from '../types/order.types';
+import { OrderStatusHistoryItem } from '@/app/orders/types/order.types';
 
 export function useOrderHistory(orderId: string | null, storeId: string | null) {
   const [history, setHistory] = useState<OrderStatusHistoryItem[]>([]);
