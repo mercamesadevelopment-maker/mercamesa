@@ -20,10 +20,11 @@ export function useCart() {
   const cartState = useCartState();
   const buyerId = session.profile?.id;
 
-  const addToCart = async (product: Product, qty: number = 1, offerId?: string | null) => {
+  /** Devuelve si entró a la canasta: `false` sin sesión o si la tienda no cabe (sale el aviso). */
+  const addToCart = async (product: Product, qty: number = 1, offerId?: string | null): Promise<boolean> => {
     if (!session.isLoggedIn || !buyerId) {
       alert('Debes iniciar sesión para añadir productos al carrito');
-      return;
+      return false;
     }
 
     // Un pedido puede llevar varias tiendas, pero solo las que despachan desde
@@ -37,7 +38,7 @@ export function useCart() {
     const tiendas = new Set(cartState.items.map((i) => String(i.storeId)));
     if (!yaEnLaCanasta && tiendas.size >= MAX_STORES_PER_ORDER) {
       cartState.dispatch({ type: 'SET_CART_STORE_LIMIT' });
-      return;
+      return false;
     }
 
     if (cartState.items.length > 0 && !yaEnLaCanasta) {
@@ -52,7 +53,7 @@ export function useCart() {
           type: 'SET_CART_STORE_CONFLICT',
           currentStoreName: currentItem.storeName || 'la tienda actual',
         });
-        return;
+        return false;
       }
     }
 
@@ -70,6 +71,7 @@ export function useCart() {
     } catch (e) {
       console.error('Error adding to cart in DB:', e);
     }
+    return true;
   };
 
   const updateCartQty = async (productId: number | string, qty: number) => {

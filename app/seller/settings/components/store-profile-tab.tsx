@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { storeImageError } from '@/lib/stores/store-image';
 import { CheckCircle2, Loader2, Image as ImageIcon, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form-fields';
@@ -24,8 +25,6 @@ interface StoreProfileTabProps {
 
 // El logo y la portada suben directo a Storage (bucket `stores`, sin tope propio; el del proyecto es
 // 50 MB) y el servidor saca de ahí las variantes WebP que se muestran. Por eso pueden ser pesadas.
-const MAX_IMAGE_MB = 50;
-const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
 export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
   const { store, categories, loading, saving, error, fetchStore, saveStore } =
@@ -110,12 +109,9 @@ export function StoreProfileTab({ storeId }: StoreProfileTabProps) {
     setSaved(false);
     setImageError(null);
 
-    if (!file.type.startsWith('image/')) {
-      setImageError('El archivo debe ser una imagen.');
-      return;
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setImageError(`La imagen no puede pesar más de ${MAX_IMAGE_MB} MB.`);
+    const invalida = storeImageError(file);
+    if (invalida) {
+      setImageError(invalida);
       return;
     }
 

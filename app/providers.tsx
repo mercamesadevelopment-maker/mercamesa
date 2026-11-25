@@ -3,6 +3,7 @@
 import React from 'react';
 import { SessionProvider } from '@/features/auth/session-context';
 import { CartProvider } from '@/features/cart/cart-context';
+import { CartPanelProvider } from '@/features/cart/cart-panel-context';
 import { NotificationsProvider } from '@/features/notifications/notifications-context';
 import { ActiveOrdersProvider } from '@/features/orders/active-orders-context';
 
@@ -14,9 +15,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <CartProvider>
-        <NotificationsProvider>
-          <ActiveOrdersProvider>{children}</ActiveOrdersProvider>
-        </NotificationsProvider>
+        <CartPanelProvider>
+          <NotificationsProvider>
+            <ActiveOrdersProvider>{children}</ActiveOrdersProvider>
+          </NotificationsProvider>
+        </CartPanelProvider>
       </CartProvider>
     </SessionProvider>
   );

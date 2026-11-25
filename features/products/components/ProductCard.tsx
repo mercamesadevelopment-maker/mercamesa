@@ -1,19 +1,17 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Stamp } from '@/components/ui/stamp';
 import { formatCOP } from '@/lib/utils/format';
-import { useCart } from '@/features/cart/hooks/use-cart';
-import { discountPct } from '@/features/cart/utils/cart-savings';
-import { useSession } from '@/features/auth/session-context';
 import { QuantityStepper } from '@/components/ui/quantity-stepper/QuantityStepper';
-import { ImageViewer } from '@/components/ui/image-viewer/components/ImageViewer';
-import { maxQtyFor, offerLimitLabel } from '@/lib/offers/offer-limit';
+import { offerLimitLabel } from '@/lib/offers/offer-limit';
 import { getSupabaseImageUrl } from '@/lib/supabase/supabase-image';
-import { getProductShareUrl } from '@/features/products/utils/share-link';
+import { getProductShareUrl, getProductPath } from '@/features/products/utils/share-link';
 import { ShareLinkButton } from '@/features/products/components/ShareLinkButton';
+import { useProductCart } from '@/features/products/hooks/use-product-cart';
 import type { StoreProduct } from '@/app/products/hooks/usePublicProducts';
 
 interface ProductCardProps {
@@ -24,41 +22,15 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, highlighted }: ProductCardProps) {
-  const { cart, addToCart, updateCartQty } = useCart();
-  const session = useSession();
+  const { price, listPrice, hasDiscount, pct, offerMax, tope, stock, qty, unit, add, setQty } = useProductCart(product);
   const [imgSrc, setImgSrc] = useState(product.imageSignedUrl || null);
   const [triedFallback, setTriedFallback] = useState(false);
-  const [viewerOpen, setViewerOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const href = getProductPath(product.id);
 
   useEffect(() => {
     if (highlighted) cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlighted]);
-
-  // La cantidad se lee del carrito, no de un estado local: así el contador de la
-  // tarjeta y el del panel del carrito no se pueden desincronizar.
-  const cartItem = cart.find((i) => String(i.id) === String(product.id));
-  const qty = cartItem?.qty ?? 0;
-  const stock = Number(product.stock ?? 0);
-
-  /**
-   * El precio con la oferta vigente, que el servidor ya resolvió.
-   *
-   * Antes la tarjeta pintaba y agregaba `price_per_unit` sin mirar ofertas: el
-   * comprador veía el valor completo acá y en el carrito, aunque al cotizar y al
-   * cobrar sí se le hacía el descuento.
-   *
-   * Al comprador mayorista no se le aplica: se le cobra el precio mayorista, que
-   * es la misma regla de `resolveOfferPrices` y del carrito.
-   */
-  const listPrice = Number(product.price_per_unit || 0);
-  const offer = session.role === 'wholesale' ? null : product.offer ?? null;
-  const price = offer && offer.finalPrice < listPrice ? offer.finalPrice : listPrice;
-  const hasDiscount = price < listPrice;
-  const pct = discountPct(listPrice, price);
-  // Solo si la oferta se aplica: sin descuento no hay máximo que cuidar.
-  const offerMax = hasDiscount ? offer?.maxQtyPerOrder ?? null : null;
-  const tope = maxQtyFor(stock, offerMax);
 
   // Red de seguridad: si el derivado WebP aún no existe (imagen subida antes
   // del backfill, o formato que sharp no pudo procesar), cae al original.
@@ -74,36 +46,10 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(
-      {
-        id: product.id,
-        name: product.catalog_products?.name || 'Producto',
-        cat: product.catalog_products?.categories?.name || 'Sin Categoría',
-        retailPrice: price,
-        wsPrice: listPrice,
-        // Con descuento, el carrito tacha el de lista y suma el ahorro.
-        listPrice: hasDiscount ? listPrice : undefined,
-        offerId: hasDiscount ? offer?.id ?? null : null,
-        offerMaxQty: offerMax,
-        stock: product.stock ?? 0,
-        unit: product.measurement_units?.abbreviation || 'und',
-        emoji: '📦',
-        image: product.imageSignedUrl || null,
-        plazaId: 1,
-        storeId: product.store_id,
-        storeName: product.stores?.name || 'Tienda',
-      } as any,
-      1,
-      // Queda guardada en `cart_items`, igual que al agregar desde una oferta.
-      hasDiscount ? offer?.id ?? null : null
-    );
+    add();
   };
 
-  const unit = product.measurement_units?.abbreviation || 'und';
   const productName = product.catalog_products?.name || 'Producto';
-  // En grande va el original: el derivado `card` es de 480 px y se ve borroso.
-  const originalPath = product.catalog_products?.image_url;
-  const largeSrc = originalPath ? getSupabaseImageUrl('products', originalPath) : imgSrc;
 
   return (
     // Caso de marca, lámina 16: foto sobre fondo hueso, nombre, unidad en mono,
@@ -123,9 +69,9 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           {hasDiscount && <Stamp>-{pct}%</Stamp>}
           {(product as any).is_featured && <Stamp tono="tinta">Destacado</Stamp>}
         </div>
-        {product.stores?.slug && (
+        {product.id && (
           <ShareLinkButton
-            url={getProductShareUrl(product.stores.slug, product.id)}
+            url={getProductShareUrl(product.id)}
             title={product.catalog_products?.name}
             label="Compartir este producto"
             wrapperClassName="absolute top-2 right-2 z-10"
@@ -133,14 +79,11 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
             iconClassName="w-3.5 h-3.5"
           />
         )}
+        {/* La foto y el nombre llevan a la página del producto, donde está el zoom.
+            El enlace es hermano del botón de compartir, no lo envuelve: compartir
+            no navega. */}
         {imgSrc ? (
-          // Hermano del botón de compartir, no lo envuelve: compartir no abre la foto.
-          <button
-            type="button"
-            onClick={() => setViewerOpen(true)}
-            aria-label={`Ver foto de ${productName} en grande`}
-            className="absolute inset-0 cursor-zoom-in"
-          >
+          <Link href={href} aria-label={`Ver ${productName}`} className="absolute inset-0">
             <img
               src={imgSrc}
               alt={productName}
@@ -151,27 +94,19 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
               height={256}
               onError={handleImageError}
             />
-          </button>
+          </Link>
         ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-5xl">📦</span>
+          <Link href={href} aria-label={`Ver ${productName}`} className="absolute inset-0 flex items-center justify-center text-5xl">
+            📦
+          </Link>
         )}
       </div>
 
-      {/* Se monta solo abierto: un listado tiene cien tarjetas. */}
-      {viewerOpen && largeSrc && (
-        <ImageViewer
-          isOpen
-          onClose={() => setViewerOpen(false)}
-          src={largeSrc}
-          placeholderSrc={imgSrc}
-          alt={productName}
-          caption={productName}
-        />
-      )}
-
       <div className="flex flex-grow flex-col items-center px-3 pt-3 pb-2 text-center">
         <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-tinta sm:text-base">
-          {product.catalog_products?.name}
+          <Link href={href} className="hover:underline">
+            {product.catalog_products?.name}
+          </Link>
         </h3>
         <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-mm-txw">{unit}</p>
         {product.stores?.name && (
@@ -210,10 +145,10 @@ export function ProductCard({ product, highlighted }: ProductCardProps) {
           <QuantityStepper
             qty={qty}
             max={tope}
-            onChange={(next) => updateCartQty(product.id, next)}
+            onChange={setQty}
             // Bajar de 1 saca el producto de la canasta.
             min={1}
-            onBelowMin={() => updateCartQty(product.id, 0)}
+            onBelowMin={() => setQty(0)}
             className="w-full max-w-40 justify-between bg-transparent"
           />
         ) : (

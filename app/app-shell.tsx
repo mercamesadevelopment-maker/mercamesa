@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Topbar } from '@/features/layout/components/Topbar';
 import { Sidebar } from '@/features/layout/components/Sidebar';
 import { CartPanel } from '@/features/cart/components/CartPanel';
+import { useCartPanel } from '@/features/cart/cart-panel-context';
 import { CartStoreConflictModal } from '@/features/cart/components/CartStoreConflictModal';
 import { cn } from '@/lib/utils/cn';
 import { useSession } from '@/features/auth/session-context';
@@ -19,7 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const session = useSession();
   const { fetchNotifications } = useNotifications();
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const cartPanel = useCartPanel();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
@@ -52,7 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F7F5EE]">
       <Topbar
-        onCartOpen={() => setIsCartOpen(true)}
+        onCartOpen={cartPanel.open}
         onToggleSidebar={() =>
           isDesktop ? setSidebarCollapsed(v => !v) : setMobileNavOpen(v => !v)
         }
@@ -70,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
-      <CartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartPanel isOpen={cartPanel.isOpen} onClose={cartPanel.close} />
       <CartStoreConflictModal />
 
       {/* El pedido en curso del comprador, a la vista mientras navega. Solo

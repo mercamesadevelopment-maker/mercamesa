@@ -15,6 +15,8 @@ export interface StoreHeaderData {
   id: string;
   name: string;
   logoSignedUrl?: string | null;
+  /** La portada que sube el tendero o el admin; sin ella el encabezado queda sin franja. */
+  coverSignedUrl?: string | null;
   is_active?: boolean;
   is_wholesale?: boolean;
   is_retail?: boolean;
@@ -71,8 +73,22 @@ export function StoreHeader({
         </button>
       )}
 
+      {/* La portada, a todo el ancho de la tarjeta. El `aspect` le reserva el
+          espacio antes de que cargue, para no empujar la página. */}
+      {store.coverSignedUrl && (
+        <div className="-mx-6 -mt-6 mb-6 aspect-[2/1] overflow-hidden rounded-t-[32px] bg-hueso sm:-mx-8 sm:-mt-8 md:aspect-[3/1]">
+          <img src={store.coverSignedUrl} alt="" className="h-full w-full object-cover" />
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start">
-        <div className="w-24 h-24 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden bg-mm-gbg border border-mm-crd/40">
+        <div
+          className={cn(
+            'w-24 h-24 rounded-3xl flex items-center justify-center shrink-0 overflow-hidden bg-mm-gbg border border-mm-crd/40',
+            // Con portada, el logo se monta sobre su borde inferior; el texto no se mueve.
+            store.coverSignedUrl && 'relative -mt-16 bg-white border-4 border-white shadow-md md:-mt-18'
+          )}
+        >
           {store.logoSignedUrl ? (
             <img src={store.logoSignedUrl} alt={store.name} className="w-full h-full object-cover p-2" />
           ) : (

@@ -369,6 +369,15 @@ Convención para agregar uno nuevo:
 con `StoreIdentificationFields` de `features/stores`. Las reglas están en `lib/stores/store-identification.ts`:
 con NIT o RUT el DV se escribe y se comprueba, no se calcula. No es pública (`lib/stores/public-store.ts`).
 
+## Página del producto
+
+`/products/[id]` (el id de `store_products`) muestra lo que la tarjeta no alcanza: la descripción del
+catálogo, la foto con zoom, la tienda, «Comprar ahora» (lo agrega y abre la canasta) y sugeridos de la
+misma tienda y de otras. Lee con `loadProductDetail` (`lib/store-products/product-detail.ts`), que pasa
+por la misma consulta de la vitrina: lo que la vitrina no muestra da 404. La tarjeta y la página
+comparten el precio y el agregar a la canasta (`useProductCart`, `lib/offers/display-price.ts`). El
+enlace para compartir apunta a esta página; `?product=<id>` en la tienda sigue sirviendo para los viejos.
+
 ## Productos exclusivos de un grupo de tiendas
 
 Un producto del catálogo con `owner_group_id` es de ese grupo. Solo las tiendas del grupo lo pueden
@@ -557,6 +566,7 @@ No hay un store global. Cada cosa compartida tiene su contexto, montados en
 | `useSession()` | `features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
 | `useCart()` | `features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
 | `useNotifications()` | `features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
+| `useCartPanel()` | `features/cart/cart-panel-context.tsx` | Si el panel de la canasta está abierto. Lo abren la barra de arriba y «Comprar ahora» de la página del producto |
 | `useActiveOrders()` | `features/orders/active-orders-context.tsx` | Los pedidos en curso del comprador (`GET /api/orders/active`, `lib/orders/active-buyer-orders.ts`), con su frase de avance. Los muestran la tarjeta de la página de inicio (`ActiveOrdersSection`) y la burbuja del pedido (`ActiveOrderBubble`, en `app-shell`), que abren el detalle del comprador (`features/orders/components/buyer/`) |
 
 Algo nuevo que varias pantallas necesiten compartir va en un contexto propio de su
