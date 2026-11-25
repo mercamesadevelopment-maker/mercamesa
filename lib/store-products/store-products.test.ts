@@ -49,6 +49,8 @@ describe('toStorefrontItem', () => {
     product_name: 'Tomate',
     product_image_url: null,
     category_name: 'Verduras',
+    parent_category_name: 'Frutas y verduras',
+    catalog_product_id: 'c',
     store_name: 'La Esquina',
     store_slug: 'la-esquina',
     marketplace_name: null,

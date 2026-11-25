@@ -24,6 +24,8 @@ export interface StorefrontRow {
   product_name: string | null;
   product_image_url: string | null;
   category_name: string | null;
+  parent_category_name: string | null;
+  catalog_product_id: string | null;
   store_name: string | null;
   store_slug: string | null;
   marketplace_name: string | null;
@@ -66,7 +68,7 @@ export async function listStorefront(
         // no para mostrar.
         `
           id, store_id, price_per_unit, stock, is_featured, featured_at,
-          product_name, product_image_url, category_name,
+          product_name, product_image_url, category_name, parent_category_name, catalog_product_id,
           store_name, store_slug, marketplace_name, unit_abbreviation
         `,
         paginated ? { count: 'exact' } : undefined
@@ -216,6 +218,7 @@ export function toStorefrontItem(p: StorefrontRow, precio: PrecioResuelto | unde
       ? { id: precio.offerId, finalPrice: precio.finalPrice, label: precio.label, maxQtyPerOrder: precio.maxQtyPerOrder }
       : null,
     stock: p.stock,
+    catalog_product_id: p.catalog_product_id,
     is_featured: p.is_featured,
     featured_at: p.featured_at,
     imageSignedUrl: p.product_image_url
@@ -225,6 +228,7 @@ export function toStorefrontItem(p: StorefrontRow, precio: PrecioResuelto | unde
       name: p.product_name,
       image_url: p.product_image_url,
       categories: p.category_name ? { name: p.category_name } : null,
+      parent_category_name: p.parent_category_name,
     },
     stores: {
       name: p.store_name,
