@@ -557,6 +557,7 @@ No hay un store global. Cada cosa compartida tiene su contexto, montados en
 | `useSession()` | `features/auth/session-context.tsx` | Perfil, rol, `isLoggedIn`, `hydrated`; `signIn`, `signOut`, `updateProfile` |
 | `useCart()` | `features/cart/hooks/use-cart.ts` | La canasta y las acciones que también escriben en la base. `useCartState()` es el estado crudo |
 | `useNotifications()` | `features/notifications/hooks/use-notifications.ts` | Las notificaciones de la campana |
+| `useActiveOrders()` | `features/orders/active-orders-context.tsx` | Los pedidos en curso del comprador (`GET /api/orders/active`, `lib/orders/active-buyer-orders.ts`), con su frase de avance. Los muestran la tarjeta de la página de inicio (`ActiveOrdersSection`) y la burbuja del pedido (`ActiveOrderBubble`, en `app-shell`), que abren el detalle del comprador (`features/orders/components/buyer/`) |
 
 Algo nuevo que varias pantallas necesiten compartir va en un contexto propio de su
 feature, no en uno de estos.

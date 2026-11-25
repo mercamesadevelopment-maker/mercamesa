@@ -5,7 +5,7 @@ type OrderStatus = Database['public']['Enums']['order_status'];
 
 /**
  * En qué va el pedido, dicho para el comprador: una frase grande y la barra de
- * cuatro pasos del detalle del pedido (`app/orders/components/BuyerOrderHero`).
+ * cuatro pasos del detalle del pedido (`features/orders/components/buyer/BuyerOrderHero`).
  *
  * Junta el estado del pedido con el del domicilio de Picap, que va más
  * adelantado: el pedido sigue «listo para recoger» mientras el domiciliario va
