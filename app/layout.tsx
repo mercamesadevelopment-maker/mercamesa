@@ -4,6 +4,7 @@ import { AppProviders } from './providers';
 import AppShell from './app-shell';
 import type { Metadata, Viewport } from 'next';
 import { ServiceWorkerRegister } from '@/features/pwa/components/ServiceWorkerRegister';
+import { MetaPixel } from '@/features/analytics/components/MetaPixel';
 
 /**
  * Las fuentes se sirven desde el propio sitio con `next/font`. Antes se pedían a
@@ -62,6 +63,8 @@ export default function RootLayout({
     <html lang="es" className={`${poppins.variable} ${jetbrains.variable}`}>
       <body>
         <ServiceWorkerRegister />
+        {/* Solo carga en producción: depende de NEXT_PUBLIC_META_PIXEL_ID. */}
+        <MetaPixel />
         <AppProviders>
           <AppShell>
             {children}

@@ -1,3 +1,4 @@
+import { parseMetaPixelId } from '@/lib/analytics/meta-pixel';
 // lib/env.ts
 export function getPublicSupabaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,6 +36,15 @@ export function getResendFromEmail(): string {
  */
 export function getMeteorMcpToken(): string | null {
   return process.env.METEOR_MCP_TOKEN || null;
+}
+
+/**
+ * El píxel de Meta (Facebook e Instagram). Solo se configura en Production de
+ * Vercel: sin la variable, staging y local no le mandan visitas falsas a Meta.
+ * Se lee con el nombre completo para que Next.js la incluya en el navegador.
+ */
+export function getMetaPixelId(): string | null {
+  return parseMetaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID);
 }
 
 /**
