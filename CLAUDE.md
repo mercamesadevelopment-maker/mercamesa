@@ -234,6 +234,11 @@ Cada variable vive en **un** entorno: ninguna se comparte entre Production y Pre
   (`api.met.meteor.com.co`) redirige a una URL firmada de su Supabase (`cxabyznqncjjnxaerssj.supabase.co`):
   van los dos. Sin ella no se acepta ninguna foto por el chat.
 
+- `NEXT_PUBLIC_META_PIXEL_ID`: el píxel de Meta (Facebook e Instagram), solo dígitos. **Solo en
+  Production**: sin ella, Preview y local no cargan el píxel ni le mandan visitas de prueba a Meta. Lo carga
+  `features/analytics/components/MetaPixel.tsx` en `app/layout.tsx`, y cuenta una visita también al cambiar de
+  pantalla sin recargar.
+
 Al agregar una variable nueva, se crea dos veces —una por entorno— con el valor que
 corresponda. Hasta octubre de 2026 las de Supabase y Resend estaban compartidas y cada
 vista previa escribía en la base de producción; no volver a marcar las dos casillas.
