@@ -383,6 +383,15 @@ por la misma consulta de la vitrina: lo que la vitrina no muestra da 404. La tar
 comparten el precio y el agregar a la canasta (`useProductCart`, `lib/offers/display-price.ts`). El
 enlace para compartir apunta a esta página; `?product=<id>` en la tienda sigue sirviendo para los viejos.
 
+## Dispersiones: regenerar el archivo
+
+Una liquidación aprobada puede volver a generar su `.txt` («Regenerar archivo» en Contabilidad →
+Dispersiones; `lib/payouts/regenerate-file.ts`). Es para cuando el banco rechazó el archivo, o no se
+subió, por un dato malo de la cuenta de una tienda: la tienda registra la cuenta corregida, se verifica,
+y el archivo sale con la cuenta verificada vigente de cada tienda (`payout_items.bank_account_id` pasa a
+ella). Mismos pedidos y montos, mismo nombre; queda `file_regenerated_at/by`. Si el banco ya pagó alguna
+línea, no se usa: pagaría dos veces.
+
 ## Productos exclusivos de un grupo de tiendas
 
 Un producto del catálogo con `owner_group_id` es de ese grupo. Solo las tiendas del grupo lo pueden
