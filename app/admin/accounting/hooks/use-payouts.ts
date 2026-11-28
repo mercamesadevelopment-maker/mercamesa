@@ -72,6 +72,17 @@ export function usePayouts(query = '') {
     [fetchPayouts]
   );
 
+  const regenerar = useCallback(
+    async (id: string) => {
+      const r = await handle<{ fileName: string; storesCount: number; totalAmount: number; cuentasCambiadas: string[] }>(
+        await fetch(`/api/admin/payouts/${id}/regenerate`, { method: 'POST' })
+      );
+      await fetchPayouts();
+      return r;
+    },
+    [fetchPayouts]
+  );
+
   const cancelar = useCallback(
     async (id: string, notes?: string) => {
       await handle(
@@ -110,6 +121,7 @@ export function usePayouts(query = '') {
     fetchDetalle,
     crearBorrador,
     aprobar,
+    regenerar,
     cancelar,
     descargar,
   };

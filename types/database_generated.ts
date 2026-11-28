@@ -1889,6 +1889,8 @@ export type Database = {
           created_at: string
           file_name: string | null
           file_path: string | null
+          file_regenerated_at: string | null
+          file_regenerated_by: string | null
           generated_at: string | null
           generated_by: string | null
           id: string
@@ -1908,6 +1910,8 @@ export type Database = {
           created_at?: string
           file_name?: string | null
           file_path?: string | null
+          file_regenerated_at?: string | null
+          file_regenerated_by?: string | null
           generated_at?: string | null
           generated_by?: string | null
           id?: string
@@ -1927,6 +1931,8 @@ export type Database = {
           created_at?: string
           file_name?: string | null
           file_path?: string | null
+          file_regenerated_at?: string | null
+          file_regenerated_by?: string | null
           generated_at?: string | null
           generated_by?: string | null
           id?: string
@@ -1948,6 +1954,13 @@ export type Database = {
           {
             foreignKeyName: "payouts_cancelled_by_fkey"
             columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_file_regenerated_by_fkey"
+            columns: ["file_regenerated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
