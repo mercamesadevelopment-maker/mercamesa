@@ -39,9 +39,10 @@ export async function GET(request: Request) {
       .from('payouts')
       .select(
         `id, consecutive, file_name, status, scheduled_for, total_amount, items_count,
-         file_path, generated_at, approved_at, cancelled_at, notes,
+         file_path, generated_at, approved_at, cancelled_at, notes, file_regenerated_at,
          generado:profiles!payouts_generated_by_fkey ( full_name ),
-         aprobado:profiles!payouts_approved_by_fkey ( full_name )`
+         aprobado:profiles!payouts_approved_by_fkey ( full_name ),
+         regenerado:profiles!payouts_file_regenerated_by_fkey ( full_name )`
       );
     if (periodo) query = query.gte('scheduled_for', periodo.from).lt('scheduled_for', periodo.to);
     if (payoutIds) query = query.in('id', payoutIds);
@@ -72,6 +73,8 @@ export async function GET(request: Request) {
           cancelledAt: p.cancelled_at,
           generatedByName: p.generado?.full_name ?? null,
           approvedByName: p.aprobado?.full_name ?? null,
+          regeneratedAt: p.file_regenerated_at,
+          regeneratedByName: p.regenerado?.full_name ?? null,
           notes: p.notes,
         })),
       },

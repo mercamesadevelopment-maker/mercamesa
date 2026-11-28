@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Loader2, FileText, Download, Ban, Eye, RefreshCw, AlertTriangle, CheckCircle2,
+  Loader2, FileText, Download, Ban, Eye, RefreshCw, RotateCcw, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,14 +31,14 @@ const ESTADO: Record<Payout['status'], { label: string; clase: string }> = {
 export function PayoutsTab({ query = '' }: { query?: string }) {
   const {
     payouts, loading, error, fetchPayouts, fetchElegibles, fetchDetalle,
-    crearBorrador, aprobar, cancelar, descargar,
+    crearBorrador, aprobar, regenerar, cancelar, descargar,
   } = usePayouts(query);
 
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<{ title: string; message: string } | null>(null);
   const [elegibles, setElegibles] = useState<Elegibles | null>(null);
   const [detalle, setDetalle] = useState<PayoutDetalle | null>(null);
-  const [confirmando, setConfirmando] = useState<{ payout: Payout; accion: 'approve' | 'cancel' } | null>(null);
+  const [confirmando, setConfirmando] = useState<{ payout: Payout; accion: Accion } | null>(null);
 
   useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
 
@@ -74,7 +74,19 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
     if (!confirmando) return;
     setTrabajando(true);
     try {
-      if (confirmando.accion === 'approve') {
+      if (confirmando.accion === 'regenerate') {
+        const r = await regenerar(confirmando.payout.id);
+        await descargar(confirmando.payout.id, r.fileName);
+        setAviso({
+          title: 'Archivo regenerado',
+          message:
+            `Se descargó ${r.fileName} con ${r.storesCount} pagos por ${formatCOP(r.totalAmount)}. ` +
+            (r.cuentasCambiadas.length > 0
+              ? `Salió con la cuenta corregida de: ${r.cuentasCambiadas.join(', ')}. `
+              : 'Ninguna tienda cambió de cuenta: salió con los mismos datos. ') +
+            'Reemplaza al anterior: sube solo este al portal del banco.',
+        });
+      } else if (confirmando.accion === 'approve') {
         const r = await aprobar(confirmando.payout.id);
         await descargar(confirmando.payout.id, r.fileName);
         setAviso({
@@ -138,6 +150,12 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
           </p>
           {p.approvedByName && (
             <p><span className="text-mm-txw">Aprobó: </span>{p.approvedByName}</p>
+          )}
+          {p.regeneratedAt && (
+            <p title={fechaCompleta(p.regeneratedAt)}>
+              <span className="text-mm-txw">Regeneró: </span>
+              {p.regeneratedByName ?? '—'} · {fechaCorta(p.regeneratedAt)}
+            </p>
           )}
         </div>
       ),
@@ -218,6 +236,12 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
                   Descargar
                 </Button>
               )}
+              {p.status === 'approved' && (
+                <Button variant="outline" size="sm" onClick={() => setConfirmando({ payout: p, accion: 'regenerate' })}>
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Regenerar archivo
+                </Button>
+              )}
             </div>
           )}
         />
@@ -231,28 +255,10 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
         onClose={() => setConfirmando(null)}
         onConfirm={confirmar}
         isLoading={trabajando}
-        variant={confirmando?.accion === 'approve' ? 'warning' : 'danger'}
-        title={confirmando?.accion === 'approve' ? 'Aprobar y generar el archivo' : 'Cancelar el borrador'}
-        confirmText={confirmando?.accion === 'approve' ? 'Sí, generar' : 'Sí, cancelar'}
-        message={
-          confirmando?.accion === 'approve' ? (
-            <>
-              Se generará el archivo para el banco con{' '}
-              <span className="font-bold text-mm-g">{confirmando.payout.itemsCount} pedidos</span> por{' '}
-              <span className="font-bold text-mm-g">{formatCOP(confirmando.payout.totalAmount)}</span>, y se
-              descargará.
-              {'\n\n'}
-              A partir de ahí la liquidación no se puede deshacer desde acá: una vez subas el archivo
-              al portal, el banco transfiere y no hay vuelta atrás. Revisa el detalle antes.
-            </>
-          ) : (
-            <>
-              El borrador quedará cancelado y sus{' '}
-              <span className="font-bold text-mm-g">{confirmando?.payout.itemsCount} pedidos</span>{' '}
-              volverán a quedar disponibles para la próxima dispersión.
-            </>
-          )
-        }
+        variant={confirmando ? CONFIRMAR[confirmando.accion].variant : 'warning'}
+        title={confirmando ? CONFIRMAR[confirmando.accion].title : ''}
+        confirmText={confirmando ? CONFIRMAR[confirmando.accion].confirmText : ''}
+        message={confirmando ? <MensajeConfirmar payout={confirmando.payout} accion={confirmando.accion} /> : ''}
       />
 
       <ConfirmModal
@@ -266,6 +272,47 @@ export function PayoutsTab({ query = '' }: { query?: string }) {
         message={aviso?.message ?? ''}
       />
     </div>
+  );
+}
+
+type Accion = 'approve' | 'regenerate' | 'cancel';
+
+const CONFIRMAR: Record<Accion, { title: string; confirmText: string; variant: 'warning' | 'danger' }> = {
+  approve: { title: 'Aprobar y generar el archivo', confirmText: 'Sí, generar', variant: 'warning' },
+  regenerate: { title: 'Regenerar el archivo', confirmText: 'Sí, regenerar', variant: 'danger' },
+  cancel: { title: 'Cancelar el borrador', confirmText: 'Sí, cancelar', variant: 'danger' },
+};
+
+function MensajeConfirmar({ payout, accion }: { payout: Payout; accion: Accion }) {
+  const pedidos = <span className="font-bold text-mm-g">{payout.itemsCount} pedidos</span>;
+  if (accion === 'approve') {
+    return (
+      <>
+        Se generará el archivo para el banco con {pedidos} por{' '}
+        <span className="font-bold text-mm-g">{formatCOP(payout.totalAmount)}</span>, y se descargará.
+        {'\n\n'}
+        A partir de ahí la liquidación no se puede deshacer desde acá: una vez subas el archivo
+        al portal, el banco transfiere y no hay vuelta atrás. Revisa el detalle antes.
+      </>
+    );
+  }
+  if (accion === 'regenerate') {
+    return (
+      <>
+        Se vuelve a armar <span className="font-bold text-mm-g">{payout.fileName}</span> con los mismos{' '}
+        {pedidos} y montos, tomando la cuenta verificada vigente de cada tienda (por ejemplo, después
+        de corregir un tipo de documento). Reemplaza al archivo anterior.
+        {'\n\n'}
+        Úsalo solo si el banco rechazó el archivo o no se alcanzó a subir. Si el banco ya pagó alguna
+        línea, subir el nuevo pagaría dos veces.
+      </>
+    );
+  }
+  return (
+    <>
+      El borrador quedará cancelado y sus {pedidos} volverán a quedar disponibles para la próxima
+      dispersión.
+    </>
   );
 }
 

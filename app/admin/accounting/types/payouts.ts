@@ -16,6 +16,9 @@ export interface Payout {
   cancelledAt: string | null;
   generatedByName: string | null;
   approvedByName: string | null;
+  /** Si el archivo se volvió a generar después de aprobarla, y quién. */
+  regeneratedAt?: string | null;
+  regeneratedByName?: string | null;
   notes: string | null;
 }
 
